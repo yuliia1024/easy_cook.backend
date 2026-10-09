@@ -1,0 +1,72 @@
+# Easy Cook local stack. All host ports are deliberately different from clearwire/backend
+# (api 3002, postgres 5432/5433, redis 6379/6380), so both stacks can run side by side.
+#
+#   npm run infra:up   -> postgres + redis + mailpit only (run the API with `npm run start:dev`)
+#   npm run compose    -> everything including the API container
+name: easy-cook
+
+services:
+  api:
+    container_name: easy-cook-api
+    build: ./
+    env_file: .env
+    environment:
+      PORT: 3000
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+    ports:
+      - '${PORT:-3100}:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  postgres:
+    container_name: easy-cook-postgres
+    image: postgres:16
+    environment:
+      POSTGRES_USER: '${POSTGRES_USER}'
+      POSTGRES_PASSWORD: '${POSTGRES_PASSWORD}'
+      POSTGRES_DB: '${POSTGRES_DB}'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5442:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    container_name: easy-cook-redis
+    image: redis:7.4
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis_data:/data
+    ports:
+      - '6390:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  # Catches every email Nodemailer sends locally. Web UI: http://localhost:8035
+  mailpit:
+    container_name: easy-cook-mailpit
+    image: axllent/mailpit:v1.27
+    ports:
+      - '1035:1025'
+      - '8035:8025'
+
+volumes:
+  postgres_data:
+  redis_data:
