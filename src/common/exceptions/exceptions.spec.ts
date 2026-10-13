@@ -1,11 +1,15 @@
 import { HttpStatus } from '@nestjs/common';
 import * as badRequest from './bad-request';
 import * as conflict from './conflict';
-import * as forbidden from './forbidden';
 import * as notFound from './not-found';
-import * as tooManyRequests from './too-many-requests';
-import * as unauthorized from './unauthorized';
+import * as serviceUnavailable from './service-unavailable';
 import { AppError } from './app-error';
+
+/** Constructor arguments for the exceptions that need them. */
+const ARGS: Record<string, unknown[]> = {
+  FoodItemsNotFoundBadRequestException: [['a', 'b']],
+  UnknownDietBadRequestException: ['carnivore'],
+};
 
 /**
  * Every exception must extend the base matching the file it lives in, otherwise the filter
@@ -14,28 +18,32 @@ import { AppError } from './app-error';
 describe('exception taxonomy', () => {
   const groups: Array<[string, Record<string, unknown>, HttpStatus]> = [
     ['bad-request', badRequest, HttpStatus.BAD_REQUEST],
-    ['unauthorized', unauthorized, HttpStatus.UNAUTHORIZED],
-    ['forbidden', forbidden, HttpStatus.FORBIDDEN],
     ['not-found', notFound, HttpStatus.NOT_FOUND],
     ['conflict', conflict, HttpStatus.CONFLICT],
-    ['too-many-requests', tooManyRequests, HttpStatus.TOO_MANY_REQUESTS],
+    ['service-unavailable', serviceUnavailable, HttpStatus.SERVICE_UNAVAILABLE],
   ];
 
   const cases = groups.flatMap(([file, exports, status]) =>
     Object.entries(exports).map(([name, ctor]) => [file, name, ctor, status] as const),
   );
 
-  it.each(cases)('%s: %s', (_file, _name, ctor, status) => {
-    const error = new (ctor as new (...args: unknown[]) => AppError)(30);
+  it.each(cases)('%s: %s', (_file, name, ctor, status) => {
+    const error = new (ctor as new (...args: unknown[]) => AppError)(...(ARGS[name] ?? []));
 
     expect(error).toBeInstanceOf(AppError);
     expect(error.status).toBe(status);
     expect(error.message).toBeTruthy();
   });
 
-  it('puts the retry delay into the cooldown message', () => {
-    expect(new tooManyRequests.OtpCooldownTooManyRequestsException(42).message).toContain(
-      '42 seconds',
+  it('lists the missing food ids', () => {
+    expect(new badRequest.FoodItemsNotFoundBadRequestException(['x', 'y']).message).toBe(
+      'Food items not found: x, y',
+    );
+  });
+
+  it('names the unknown diet', () => {
+    expect(new badRequest.UnknownDietBadRequestException('carnivore').message).toContain(
+      'carnivore',
     );
   });
 });

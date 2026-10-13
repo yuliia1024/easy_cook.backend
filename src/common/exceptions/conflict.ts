@@ -1,13 +1,19 @@
 import { ConflictError } from './app-error';
 
-export class EmailExistConflictException extends ConflictError {
+export class FoodItemSourceConflictException extends ConflictError {
   constructor() {
-    super('Email is already registered');
+    super('A food item with this source and source id already exists');
   }
 }
 
-export class EmailAlreadyVerifiedConflictException extends ConflictError {
+export class RecipeSourceConflictException extends ConflictError {
   constructor() {
-    super('Email is already verified');
+    super('A recipe with this source and source id already exists');
+  }
+}
+
+export class DietaryPreferenceExistsConflictException extends ConflictError {
+  constructor() {
+    super('This dietary preference is already saved');
   }
 }

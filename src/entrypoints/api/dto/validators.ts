@@ -1,34 +1,36 @@
 import { applyDecorators } from '@nestjs/common';
 import { Transform } from 'class-transformer';
-import {
-  IsEmail,
-  IsNumberString,
-  IsString,
-  Length,
-  Matches,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
-import {
-  PASSWORD_MAX_LENGTH,
-  PASSWORD_MIN_LENGTH,
-  PASSWORD_REGEX,
-} from '../../../common/constants';
+import { IsNumber, IsOptional, Max, Min, ValidateIf } from 'class-validator';
 
-export const IsUserEmail = (): PropertyDecorator =>
+/** Trims strings, leaves anything else for the validators to reject. */
+export const Trim = (): PropertyDecorator =>
+  Transform(({ value }) => (typeof value === 'string' ? value.trim() : value));
+
+/** `?tag=a&tag=b`, `?tag=a,b` and `?tag=a` all become `['a', 'b']` / `['a']`. */
+export const ToArray = (): PropertyDecorator =>
+  Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    const values = Array.isArray(value) ? value : [value];
+    return values
+      .flatMap((v) => (typeof v === 'string' ? v.split(',') : [v]))
+      .map((v) => (typeof v === 'string' ? v.trim() : v))
+      .filter((v) => v !== '');
+  });
+
+/** Query string booleans: only `true` / `1` are true. */
+export const ToBoolean = (): PropertyDecorator =>
+  Transform(({ value }) => (typeof value === 'string' ? ['true', '1'].includes(value) : value));
+
+/**
+ * A nutrient amount per 100 g. Optional on input; `null` means "unknown" and is stored as such.
+ */
+export const IsNutrientValue = (max: number): PropertyDecorator =>
   applyDecorators(
-    Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value)),
-    IsEmail(),
-    MaxLength(254),
+    IsOptional(),
+    ValidateIf((_, value) => value !== null),
+    IsNumber({ allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2 }),
+    Min(0),
+    Max(max),
   );
-
-export const IsUserPassword = (): PropertyDecorator =>
-  applyDecorators(
-    IsString(),
-    MinLength(PASSWORD_MIN_LENGTH),
-    MaxLength(PASSWORD_MAX_LENGTH),
-    Matches(PASSWORD_REGEX, { message: 'password must contain at least one letter and one digit' }),
-  );
-
-export const IsOtpCode = (): PropertyDecorator =>
-  applyDecorators(IsNumberString({ no_symbols: true }), Length(4, 10));

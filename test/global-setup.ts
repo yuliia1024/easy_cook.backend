@@ -1,0 +1,10 @@
+import { execSync } from 'child_process';
+import { testDatabaseUrl } from './test-database';
+
+/** Creates the test database if needed and applies every migration to it. */
+export default function globalSetup(): void {
+  execSync('npx prisma migrate deploy', {
+    env: { ...process.env, DATABASE_URL: testDatabaseUrl() },
+    stdio: 'ignore',
+  });
+}

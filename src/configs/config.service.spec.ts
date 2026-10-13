@@ -13,7 +13,7 @@ describe('ConfigService', () => {
   });
 
   it('reads raw values', () => {
-    expect(new ConfigService().get('POSTGRES_HOST')).toBe('localhost');
+    expect(new ConfigService().get('DATABASE_URL')).toBe(VALID_ENV.DATABASE_URL);
   });
 
   it('converts numbers and booleans', () => {
@@ -31,15 +31,21 @@ describe('ConfigService', () => {
   });
 
   it('fails fast when a required variable is missing', () => {
-    delete process.env.AUTH_JWT_SECRET;
+    delete process.env.DATABASE_URL;
 
-    expect(() => new ConfigService()).toThrow(/AUTH_JWT_SECRET/);
+    expect(() => new ConfigService()).toThrow(/DATABASE_URL/);
   });
 
   it('fails fast on a malformed value', () => {
     process.env.PORT = 'not-a-number';
 
     expect(() => new ConfigService()).toThrow(/PORT/);
+  });
+
+  it('rejects a database url of another driver', () => {
+    process.env.DATABASE_URL = 'mysql://u:p@localhost/db';
+
+    expect(() => new ConfigService()).toThrow(/DATABASE_URL/);
   });
 
   it('rejects an unknown environment name', () => {

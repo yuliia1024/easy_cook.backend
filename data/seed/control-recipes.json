@@ -1,0 +1,54 @@
+{
+  "$comment": "Control recipes for `npm run data:verify` (and `data:validate`). Expected values were computed by hand from data/seed/foods.json: value = quantityG / 100 × per-100g value, summed over the non-optional ingredients; per serving = total / servings. Order in each line: kcal / protein g / fat g / carbs g. Unrounded; compared with ±0.5 kcal and ±0.1 g against NutritionService (which rounds to 0.1). If foods.json or recipes.json change, recompute these by hand.",
+  "recipes": [
+    {
+      "slug": "oatmeal-banana-blueberry",
+      "servings": 2,
+      "calculation": [
+        "oats-dry 80 g: 0.8 × (379 / 13.2 / 6.5 / 67.7) = 303.2 / 10.56 / 5.2 / 54.16",
+        "milk-2pct 300 g: 3 × (50 / 3.3 / 2 / 4.8) = 150 / 9.9 / 6 / 14.4",
+        "banana-raw 120 g: 1.2 × (89 / 1.1 / 0.3 / 22.8) = 106.8 / 1.32 / 0.36 / 27.36",
+        "blueberries-raw 80 g: 0.8 × (57 / 0.7 / 0.3 / 14.5) = 45.6 / 0.56 / 0.24 / 11.6",
+        "honey 10 g: optional, excluded",
+        "total: 303.2 + 150 + 106.8 + 45.6 = 605.6 kcal; 10.56 + 9.9 + 1.32 + 0.56 = 22.34 g; 5.2 + 6 + 0.36 + 0.24 = 11.8 g; 54.16 + 14.4 + 27.36 + 11.6 = 107.52 g",
+        "per serving: total / 2 = 302.8 / 11.17 / 5.9 / 53.76"
+      ],
+      "total": { "kcal": 605.6, "proteinG": 22.34, "fatG": 11.8, "carbsG": 107.52 },
+      "perServing": { "kcal": 302.8, "proteinG": 11.17, "fatG": 5.9, "carbsG": 53.76 }
+    },
+    {
+      "slug": "chicken-buckwheat-broccoli",
+      "servings": 2,
+      "calculation": [
+        "buckwheat-dry 150 g: 1.5 × (343 / 13.3 / 3.4 / 71.5) = 514.5 / 19.95 / 5.1 / 107.25",
+        "chicken-breast-raw 300 g: 3 × (120 / 22.5 / 2.6 / 0) = 360 / 67.5 / 7.8 / 0",
+        "broccoli-raw 300 g: 3 × (34 / 2.8 / 0.4 / 6.6) = 102 / 8.4 / 1.2 / 19.8",
+        "olive-oil 15 g: 0.15 × (884 / 0 / 100 / 0) = 132.6 / 0 / 15 / 0",
+        "garlic-raw 10 g: 0.1 × (149 / 6.4 / 0.5 / 33.1) = 14.9 / 0.64 / 0.05 / 3.31",
+        "salt 4 g: 0.04 × (0 / 0 / 0 / 0) = 0",
+        "total: 514.5 + 360 + 102 + 132.6 + 14.9 = 1124 kcal; 19.95 + 67.5 + 8.4 + 0.64 = 96.49 g; 5.1 + 7.8 + 1.2 + 15 + 0.05 = 29.15 g; 107.25 + 19.8 + 3.31 = 130.36 g",
+        "per serving: total / 2 = 562 / 48.245 / 14.575 / 65.18"
+      ],
+      "total": { "kcal": 1124, "proteinG": 96.49, "fatG": 29.15, "carbsG": 130.36 },
+      "perServing": { "kcal": 562, "proteinG": 48.245, "fatG": 14.575, "carbsG": 65.18 }
+    },
+    {
+      "slug": "red-lentil-soup",
+      "servings": 4,
+      "calculation": [
+        "lentils-red-dry 200 g: 2 × (352 / 24.6 / 1.1 / 63.4) = 704 / 49.2 / 2.2 / 126.8",
+        "potato-raw 300 g: 3 × (77 / 2 / 0.1 / 17.5) = 231 / 6 / 0.3 / 52.5",
+        "carrot-raw 100 g: 1 × (41 / 0.9 / 0.2 / 9.6) = 41 / 0.9 / 0.2 / 9.6",
+        "onion-raw 100 g: 1 × (40 / 1.1 / 0.1 / 9.3) = 40 / 1.1 / 0.1 / 9.3",
+        "sunflower-oil 15 g: 0.15 × (884 / 0 / 100 / 0) = 132.6 / 0 / 15 / 0",
+        "garlic-raw 10 g: 0.1 × (149 / 6.4 / 0.5 / 33.1) = 14.9 / 0.64 / 0.05 / 3.31",
+        "salt 6 g: 0",
+        "dill-raw 10 g: optional, excluded",
+        "total: 704 + 231 + 41 + 40 + 132.6 + 14.9 = 1163.5 kcal; 49.2 + 6 + 0.9 + 1.1 + 0.64 = 57.84 g; 2.2 + 0.3 + 0.2 + 0.1 + 15 + 0.05 = 17.85 g; 126.8 + 52.5 + 9.6 + 9.3 + 3.31 = 201.51 g",
+        "per serving: total / 4 = 290.875 / 14.46 / 4.4625 / 50.3775"
+      ],
+      "total": { "kcal": 1163.5, "proteinG": 57.84, "fatG": 17.85, "carbsG": 201.51 },
+      "perServing": { "kcal": 290.875, "proteinG": 14.46, "fatG": 4.4625, "carbsG": 50.3775 }
+    }
+  ]
+}

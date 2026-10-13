@@ -6,8 +6,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AllExceptionsFilter } from './all-exceptions.filter';
-import { EmailExistConflictException } from './conflict';
-import { UnauthorizedException } from './unauthorized';
+import { FoodItemSourceConflictException } from './conflict';
+import { RecipeNotFoundException } from './not-found';
+import { DatabaseUnavailableException } from './service-unavailable';
 
 describe('AllExceptionsFilter', () => {
   let filter: AllExceptionsFilter;
@@ -22,7 +23,7 @@ describe('AllExceptionsFilter', () => {
     host = {
       switchToHttp: () => ({
         getResponse: () => response,
-        getRequest: () => ({ method: 'POST', url: '/api/auth/sign-in' }),
+        getRequest: () => ({ method: 'POST', url: '/foods', originalUrl: '/api/foods' }),
       }),
     } as unknown as ArgumentsHost;
     logError = jest.spyOn(Logger.prototype, 'error').mockImplementation();
@@ -31,24 +32,24 @@ describe('AllExceptionsFilter', () => {
   const body = (): Record<string, unknown> => response.json.mock.calls[0][0];
 
   it('answers an AppError with its own status and message', () => {
-    filter.catch(new EmailExistConflictException(), host);
+    filter.catch(new FoodItemSourceConflictException(), host);
 
     expect(response.status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
     expect(body()).toMatchObject({
       statusCode: 409,
-      message: 'Email is already registered',
+      message: 'A food item with this source and source id already exists',
       error: 'CONFLICT',
-      path: '/api/auth/sign-in',
+      path: '/api/foods',
     });
     expect(typeof body().timestamp).toBe('string');
     expect(logError).not.toHaveBeenCalled();
   });
 
   it('keeps the validation messages of a Nest HttpException', () => {
-    filter.catch(new BadRequestException(['email must be an email']), host);
+    filter.catch(new BadRequestException(['name should not be empty']), host);
 
     expect(response.status).toHaveBeenCalledWith(400);
-    expect(body().message).toEqual(['email must be an email']);
+    expect(body().message).toEqual(['name should not be empty']);
   });
 
   it('falls back to the exception message for a string response', () => {
@@ -63,7 +64,7 @@ describe('AllExceptionsFilter', () => {
     expect(response.status).toHaveBeenCalledWith(500);
     expect(body().message).toBe('Internal server error');
     expect(logError).toHaveBeenCalledWith(
-      'POST /api/auth/sign-in failed',
+      'POST /api/foods failed',
       expect.stringContaining('hunter2'),
     );
   });
@@ -75,8 +76,28 @@ describe('AllExceptionsFilter', () => {
     expect(logError).toHaveBeenCalledWith(expect.any(String), 'boom');
   });
 
+  it('logs a 503 but keeps its message', () => {
+    filter.catch(new DatabaseUnavailableException(), host);
+
+    expect(body()).toMatchObject({ statusCode: 503, message: 'Database is unavailable' });
+    expect(logError).toHaveBeenCalled();
+  });
+
+  it('falls back to url when there is no originalUrl', () => {
+    host = {
+      switchToHttp: () => ({
+        getResponse: () => response,
+        getRequest: () => ({ method: 'GET', url: '/api/x' }),
+      }),
+    } as unknown as ArgumentsHost;
+
+    filter.catch(new RecipeNotFoundException(), host);
+
+    expect(body().path).toBe('/api/x');
+  });
+
   it('does not log expected 4xx errors', () => {
-    filter.catch(new UnauthorizedException(), host);
+    filter.catch(new RecipeNotFoundException(), host);
 
     expect(logError).not.toHaveBeenCalled();
   });

@@ -1,57 +1,75 @@
-import { Diet, Gender } from '../../../common/constants';
 import { ProfileNotFoundException } from '../../../common/exceptions';
 import { createMock } from '../../../test/create-mock';
-import { buildProfile, USER_ID } from '../../../test/fixtures';
+import { buildProfile, PROFILE_ID } from '../../../test/fixtures';
 import { UserProfileRepository } from '../../data-access/user-profile/user-profile.repository';
 import { UserProfileService } from './user-profile.service';
 
 describe('UserProfileService', () => {
   let repository: jest.Mocked<UserProfileRepository>;
   let service: UserProfileService;
+  const data = {
+    age: 30,
+    heightCm: 170,
+    weightKg: 65,
+    sex: 'female',
+    activityLevel: 'moderate',
+    goal: 'maintain',
+  };
 
   beforeEach(() => {
     repository = createMock<UserProfileRepository>();
     service = new UserProfileService(repository);
   });
 
-  it('saves the questionnaire with a trimmed name', async () => {
-    const profile = buildProfile();
-    repository.upsert.mockResolvedValue(profile);
+  describe('getCurrent', () => {
+    it('returns the profile', async () => {
+      const profile = buildProfile();
+      repository.findCurrent.mockResolvedValue(profile);
 
-    await expect(
-      service.save(USER_ID, { firstName: '  Jane ', gender: Gender.Female, diet: Diet.Vegan }),
-    ).resolves.toBe(profile);
-    expect(repository.upsert).toHaveBeenCalledWith(USER_ID, {
-      firstName: 'Jane',
-      gender: Gender.Female,
-      diet: Diet.Vegan,
+      await expect(service.getCurrent()).resolves.toBe(profile);
+    });
+
+    it('fails until the profile is filled in', async () => {
+      repository.findCurrent.mockResolvedValue(null);
+
+      await expect(service.getCurrent()).rejects.toBeInstanceOf(ProfileNotFoundException);
+    });
+  });
+
+  describe('save', () => {
+    it('creates the first profile', async () => {
+      const profile = buildProfile();
+      repository.findCurrent.mockResolvedValue(null);
+      repository.create.mockResolvedValue(profile);
+
+      await expect(service.save(data)).resolves.toBe(profile);
+      expect(repository.create).toHaveBeenCalledWith(data);
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    it('replaces the existing one', async () => {
+      repository.findCurrent.mockResolvedValue(buildProfile());
+
+      await service.save(data);
+
+      expect(repository.update).toHaveBeenCalledWith(PROFILE_ID, data);
+      expect(repository.create).not.toHaveBeenCalled();
     });
   });
 
   describe('update', () => {
-    it('changes only the given fields', async () => {
-      const updated = buildProfile({ diet: Diet.Keto });
-      repository.findByUserId.mockResolvedValueOnce(buildProfile()).mockResolvedValueOnce(updated);
+    it('changes the given fields', async () => {
+      repository.findCurrent.mockResolvedValue(buildProfile());
 
-      await expect(service.update(USER_ID, { diet: Diet.Keto })).resolves.toBe(updated);
-      expect(repository.update).toHaveBeenCalledWith(USER_ID, { diet: Diet.Keto });
+      await service.update({ weightKg: 60 });
+
+      expect(repository.update).toHaveBeenCalledWith(PROFILE_ID, { weightKg: 60 });
     });
 
-    it('trims a changed name', async () => {
-      repository.findByUserId.mockResolvedValue(buildProfile());
+    it('requires a profile', async () => {
+      repository.findCurrent.mockResolvedValue(null);
 
-      await service.update(USER_ID, { firstName: ' Ann ' });
-
-      expect(repository.update).toHaveBeenCalledWith(USER_ID, { firstName: 'Ann' });
-    });
-
-    it('requires the questionnaire to be filled in first', async () => {
-      repository.findByUserId.mockResolvedValue(null);
-
-      await expect(service.update(USER_ID, { diet: Diet.Keto })).rejects.toBeInstanceOf(
-        ProfileNotFoundException,
-      );
-      expect(repository.update).not.toHaveBeenCalled();
+      await expect(service.update({ age: 31 })).rejects.toBeInstanceOf(ProfileNotFoundException);
     });
   });
 });

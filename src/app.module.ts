@@ -1,26 +1,28 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from './configs/config.module';
-import { DatabaseConfigService } from './configs/database-config/database-config.service';
-import { AuthControllerModule } from './entrypoints/api/auth-controller/auth-controller.module';
+import { FoodControllerModule } from './entrypoints/api/food-controller/food-controller.module';
 import { HealthController } from './entrypoints/api/health.controller';
-import { UserControllerModule } from './entrypoints/api/user-controller/user-controller.module';
-import { RedisModule } from './providers/redis/redis.module';
+import { MenuControllerModule } from './entrypoints/api/menu-controller/menu-controller.module';
+import { NutritionControllerModule } from './entrypoints/api/nutrition-controller/nutrition-controller.module';
+import { PreferenceControllerModule } from './entrypoints/api/preference-controller/preference-controller.module';
+import { ProfileControllerModule } from './entrypoints/api/profile-controller/profile-controller.module';
+import { RecipeControllerModule } from './entrypoints/api/recipe-controller/recipe-controller.module';
+import { PrismaModule } from './providers/prisma/prisma.module';
 
 @Module({
   imports: [
     ConfigModule,
-    RedisModule,
-    TypeOrmModule.forRootAsync({
-      inject: [DatabaseConfigService],
-      useFactory: (configService: DatabaseConfigService) => configService.config(),
-    }),
-    // Default limit for every route; the auth controller sets a stricter one.
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
-    AuthControllerModule,
-    UserControllerModule,
+    PrismaModule,
+    // Default limit for every route.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
+    ProfileControllerModule,
+    NutritionControllerModule,
+    PreferenceControllerModule,
+    FoodControllerModule,
+    RecipeControllerModule,
+    MenuControllerModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

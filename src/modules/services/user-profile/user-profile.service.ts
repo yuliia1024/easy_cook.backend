@@ -1,29 +1,35 @@
 import { Injectable } from '@nestjs/common';
+import { UserProfile } from '../../../generated/prisma/client';
 import { ProfileNotFoundException } from '../../../common/exceptions';
-import { UserProfile } from '../../data-access/user-profile/user-profile.entity';
-import { UserProfileRepository } from '../../data-access/user-profile/user-profile.repository';
+import {
+  ProfileData,
+  UserProfileRepository,
+} from '../../data-access/user-profile/user-profile.repository';
 
-export type ProfileFields = Pick<UserProfile, 'firstName' | 'gender' | 'diet'>;
-
+/** One user, no auth: there is at most one profile and every request works with it. */
 @Injectable()
 export class UserProfileService {
   constructor(private readonly userProfileRepository: UserProfileRepository) {}
 
-  public async save(userId: string, data: ProfileFields): Promise<UserProfile> {
-    return this.userProfileRepository.upsert(userId, { ...data, firstName: data.firstName.trim() });
-  }
-
-  public async update(userId: string, data: Partial<ProfileFields>): Promise<UserProfile> {
-    const profile = await this.userProfileRepository.findByUserId(userId);
+  public async getCurrent(): Promise<UserProfile> {
+    const profile = await this.userProfileRepository.findCurrent();
     if (!profile) {
       throw new ProfileNotFoundException();
     }
+    return profile;
+  }
 
-    await this.userProfileRepository.update(userId, {
-      ...data,
-      ...(data.firstName !== undefined && { firstName: data.firstName.trim() }),
-    });
+  /** Creates the profile on the first save, replaces its fields afterwards. */
+  public async save(data: ProfileData): Promise<UserProfile> {
+    const profile = await this.userProfileRepository.findCurrent();
 
-    return this.userProfileRepository.findByUserId(userId);
+    return profile
+      ? this.userProfileRepository.update(profile.id, data)
+      : this.userProfileRepository.create(data);
+  }
+
+  public async update(data: Partial<ProfileData>): Promise<UserProfile> {
+    const profile = await this.getCurrent();
+    return this.userProfileRepository.update(profile.id, data);
   }
 }

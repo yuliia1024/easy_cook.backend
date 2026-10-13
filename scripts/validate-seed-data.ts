@@ -1,0 +1,28 @@
+/**
+ * Validates data/seed/*.json without a database. Exit code 1 on errors. The expected values of
+ * control-recipes.json are re-checked against NutritionService over foods.json.
+ *
+ *   npm run data:validate
+ *   npm run data:validate -- --quiet      # errors only
+ */
+import { parseArgs } from 'util';
+import { loadControlRecipes, validateControlRecipes } from './lib/control-recipes';
+import { loadSeedData, validateSeedData } from './lib/seed-data';
+
+const { values } = parseArgs({ options: { quiet: { type: 'boolean', default: false } } });
+
+const data = loadSeedData();
+const controls = loadControlRecipes();
+const { errors, warnings } = validateSeedData(data);
+errors.push(...validateControlRecipes(controls, data));
+
+console.log(
+  `${data.foods.length} foods, ${data.recipes.length} recipes, ${controls.length} control recipes`,
+);
+if (!values.quiet) {
+  warnings.forEach((warning) => console.warn(`warning: ${warning}`));
+}
+errors.forEach((error) => console.error(`error: ${error}`));
+console.log(`${errors.length} errors, ${warnings.length} warnings`);
+
+process.exit(errors.length > 0 ? 1 : 0);

@@ -1,0 +1,220 @@
+// Single source of truth for the database. Change it, then `NAME=... npm run migration:create`
+// (or `npm run migration:dev`). Never edit a committed migration.
+//
+// Enum-like columns are VARCHAR on purpose: the allowed values live in `src/common/constants`
+// and are validated by the API, so adding a value does not need a migration.
+
+// The client is generated into src/generated/prisma (git-ignored) on `npm install`.
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
+  // Explicit, so the output does not depend on whether tsconfig.json is present (docker build).
+  importFileExtension = ""
+  previewFeatures     = ["postgresqlExtensions"]
+}
+
+// The connection URL lives in prisma.config.ts (CLI) and DatabaseConfigService (app).
+datasource db {
+  provider   = "postgresql"
+  extensions = [pg_trgm]
+}
+
+model UserProfile {
+  id            String   @id @default(uuid()) @db.Uuid
+  age           Int
+  heightCm      Decimal  @map("height_cm") @db.Decimal(5, 1)
+  weightKg      Decimal  @map("weight_kg") @db.Decimal(5, 1)
+  /// Input for the energy formula (`Sex`).
+  sex           String   @db.VarChar(16)
+  /// `ActivityLevel`
+  activityLevel String   @map("activity_level") @db.VarChar(32)
+  /// `Goal`
+  goal          String   @db.VarChar(32)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  nutritionGoals     NutritionGoal[]
+  dietaryPreferences DietaryPreference[]
+  menus              Menu[]
+
+  @@map("user_profiles")
+}
+
+/// Daily targets. Rows are never updated: a new goal is a new row, the current one is the
+/// latest `effective_from` that is not in the future.
+model NutritionGoal {
+  id              String   @id @default(uuid()) @db.Uuid
+  profileId       String   @map("profile_id") @db.Uuid
+  caloriesKcal    Decimal  @map("calories_kcal") @db.Decimal(7, 1)
+  proteinG        Decimal  @map("protein_g") @db.Decimal(6, 1)
+  fatG            Decimal  @map("fat_g") @db.Decimal(6, 1)
+  carbsG          Decimal  @map("carbs_g") @db.Decimal(6, 1)
+  /// `CalculationMode`: manual | rule_based
+  calculationMode String   @map("calculation_mode") @db.VarChar(16)
+  /// Formula version for rule_based goals, null for manual ones.
+  ruleVersion     String?  @map("rule_version") @db.VarChar(32)
+  effectiveFrom   DateTime @default(now()) @map("effective_from") @db.Timestamptz(6)
+
+  profile UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, effectiveFrom(sort: Desc)])
+  @@map("nutrition_goals")
+}
+
+model DietaryPreference {
+  id             String @id @default(uuid()) @db.Uuid
+  profileId      String @map("profile_id") @db.Uuid
+  /// `PreferenceType`
+  preferenceType String @map("preference_type") @db.VarChar(32)
+  value          String @db.VarChar(120)
+
+  profile UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, preferenceType, value])
+  @@map("dietary_preferences")
+}
+
+/// Nutrition values describe 100 g of the product in the given `state`: 100 g of dry rice and
+/// 100 g of boiled rice are two different food items. Null means the value is unknown.
+model FoodItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(255)
+  nameEn      String?  @map("name_en") @db.VarChar(255)
+  kcalPer100g Decimal? @map("kcal_per_100g") @db.Decimal(7, 2)
+  proteinG    Decimal? @map("protein_g") @db.Decimal(6, 2)
+  fatG        Decimal? @map("fat_g") @db.Decimal(6, 2)
+  carbsG      Decimal? @map("carbs_g") @db.Decimal(6, 2)
+  /// `FoodState`
+  state       String   @db.VarChar(32)
+  /// `FoodSource`
+  source      String   @db.VarChar(32)
+  sourceId    String?  @map("source_id") @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  recipeIngredients RecipeIngredient[]
+
+  @@unique([source, sourceId])
+  // Trigram indexes serve the case-insensitive `contains` search.
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "food_items_name_trgm_idx")
+  @@index([nameEn(ops: raw("gin_trgm_ops"))], type: Gin, map: "food_items_name_en_trgm_idx")
+  @@map("food_items")
+}
+
+model Recipe {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @db.VarChar(255)
+  description     String?
+  instructions    String
+  /// `MealType`
+  mealType        String   @map("meal_type") @db.VarChar(32)
+  /// `DietTag[]`
+  dietType        String[] @default([]) @map("diet_type") @db.VarChar(32)
+  servings        Int
+  prepTimeMinutes Int?     @map("prep_time_minutes")
+  source          String   @db.VarChar(32)
+  sourceId        String?  @map("source_id") @db.VarChar(64)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ingredients RecipeIngredient[]
+  menuMeals   MenuMeal[]
+
+  @@unique([source, sourceId])
+  @@index([mealType])
+  @@index([dietType], type: Gin)
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "recipes_name_trgm_idx")
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id         String  @id @default(uuid()) @db.Uuid
+  recipeId   String  @map("recipe_id") @db.Uuid
+  foodItemId String  @map("food_item_id") @db.Uuid
+  /// For the whole recipe, in the state of the referenced food item.
+  quantityG  Decimal @map("quantity_g") @db.Decimal(8, 2)
+  isOptional Boolean @default(false) @map("is_optional")
+  notes      String?
+  /// Display order within the recipe.
+  position   Int     @default(0)
+
+  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  // A food used by a recipe cannot be deleted.
+  foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+
+  @@index([recipeId])
+  @@index([foodItemId])
+  @@map("recipe_ingredients")
+}
+
+// ---------- Menus: filled in by the AI flow (next stage) ----------
+
+/// A logical menu. Its content lives in immutable versions.
+model Menu {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  title     String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profile  UserProfile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  versions MenuVersion[]
+
+  @@index([profileId])
+  @@map("menus")
+}
+
+/// Never updated. Snapshots keep the version intact when recipes or goals change later.
+model MenuVersion {
+  id                     String   @id @default(uuid()) @db.Uuid
+  menuId                 String   @map("menu_id") @db.Uuid
+  versionNumber          Int      @map("version_number")
+  /// `MenuGeneratedBy`: manual | llm
+  generatedBy            String   @map("generated_by") @db.VarChar(16)
+  /// The nutrition goal the version was built for.
+  nutritionGoalsSnapshot Json     @map("nutrition_goals_snapshot")
+  /// Days, meals, recipes and their nutrition at creation time.
+  compositionSnapshot    Json     @map("composition_snapshot")
+  notes                  String?
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  menu Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  days MenuDay[]
+
+  @@unique([menuId, versionNumber])
+  @@map("menu_versions")
+}
+
+model MenuDay {
+  id            String    @id @default(uuid()) @db.Uuid
+  menuVersionId String    @map("menu_version_id") @db.Uuid
+  /// 0-based day within the version.
+  dayIndex      Int       @map("day_index")
+  date          DateTime? @db.Date
+
+  menuVersion MenuVersion @relation(fields: [menuVersionId], references: [id], onDelete: Cascade)
+  meals       MenuMeal[]
+
+  @@unique([menuVersionId, dayIndex])
+  @@map("menu_days")
+}
+
+model MenuMeal {
+  id             String  @id @default(uuid()) @db.Uuid
+  menuDayId      String  @map("menu_day_id") @db.Uuid
+  /// `MealType`
+  mealType       String  @map("meal_type") @db.VarChar(32)
+  position       Int     @default(0)
+  /// Null once the recipe is deleted; `recipe_snapshot` still describes it.
+  recipeId       String? @map("recipe_id") @db.Uuid
+  servings       Decimal @db.Decimal(5, 2)
+  recipeSnapshot Json    @map("recipe_snapshot")
+
+  menuDay MenuDay @relation(fields: [menuDayId], references: [id], onDelete: Cascade)
+  recipe  Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+
+  @@index([menuDayId])
+  @@index([recipeId])
+  @@map("menu_meals")
+}

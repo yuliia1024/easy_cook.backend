@@ -1,28 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { UserProfile } from './user-profile.entity';
+import { UserProfile } from '../../../generated/prisma/client';
+import { PrismaService } from '../../../providers/prisma/prisma.service';
 
-type ProfileData = Pick<UserProfile, 'firstName' | 'gender' | 'diet'>;
+export interface ProfileData {
+  age: number;
+  heightCm: number;
+  weightKg: number;
+  sex: string;
+  activityLevel: string;
+  goal: string;
+}
 
+/** Single user app: the profile is the oldest (and only) row. */
 @Injectable()
 export class UserProfileRepository {
-  constructor(
-    @InjectRepository(UserProfile)
-    private readonly repository: Repository<UserProfile>,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  public async findByUserId(userId: string): Promise<UserProfile | null> {
-    return this.repository.findOneBy({ userId });
+  public async findCurrent(): Promise<UserProfile | null> {
+    return this.prisma.userProfile.findFirst({ orderBy: { createdAt: 'asc' } });
   }
 
-  /** Insert-or-update on the unique `userId`, so two concurrent first saves cannot both insert. */
-  public async upsert(userId: string, data: ProfileData): Promise<UserProfile> {
-    await this.repository.upsert({ userId, ...data }, { conflictPaths: ['userId'] });
-    return this.repository.findOneByOrFail({ userId });
+  public async create(data: ProfileData): Promise<UserProfile> {
+    return this.prisma.userProfile.create({ data });
   }
 
-  public async update(userId: string, data: Partial<ProfileData>): Promise<void> {
-    await this.repository.update({ userId }, data);
+  public async update(id: string, data: Partial<ProfileData>): Promise<UserProfile> {
+    return this.prisma.userProfile.update({ where: { id }, data });
   }
 }

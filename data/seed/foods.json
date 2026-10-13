@@ -1,0 +1,455 @@
+{
+  "$comment": "Base foods. Values per 100 g of the product in `state` (rounded USDA SR Legacy values). Referenced by recipes.json via `food`.",
+  "foods": [
+    {
+      "slug": "chicken-breast-raw",
+      "name": "Куряче філе, сире",
+      "nameEn": "Chicken breast, skinless, boneless, raw",
+      "state": "raw",
+      "kcalPer100g": 120,
+      "proteinG": 22.5,
+      "fatG": 2.6,
+      "carbsG": 0
+    },
+    {
+      "slug": "beef-ground-lean-raw",
+      "name": "Яловичий фарш 10% жиру, сирий",
+      "nameEn": "Beef, ground, 90% lean, raw",
+      "state": "raw",
+      "kcalPer100g": 176,
+      "proteinG": 20,
+      "fatG": 10,
+      "carbsG": 0
+    },
+    {
+      "slug": "salmon-raw",
+      "name": "Лосось атлантичний, сирий",
+      "nameEn": "Salmon, Atlantic, farmed, raw",
+      "state": "raw",
+      "kcalPer100g": 208,
+      "proteinG": 20.4,
+      "fatG": 13.4,
+      "carbsG": 0
+    },
+    {
+      "slug": "tuna-canned-water",
+      "name": "Тунець у власному соку, консервований",
+      "nameEn": "Tuna, light, canned in water, drained",
+      "state": "canned",
+      "kcalPer100g": 116,
+      "proteinG": 25.5,
+      "fatG": 0.8,
+      "carbsG": 0
+    },
+    {
+      "slug": "egg-raw",
+      "name": "Яйце куряче, сире",
+      "nameEn": "Egg, whole, raw",
+      "state": "raw",
+      "kcalPer100g": 143,
+      "proteinG": 12.6,
+      "fatG": 9.5,
+      "carbsG": 0.7
+    },
+    {
+      "slug": "milk-2pct",
+      "name": "Молоко 2%",
+      "nameEn": "Milk, reduced fat, 2% milkfat",
+      "state": "other",
+      "kcalPer100g": 50,
+      "proteinG": 3.3,
+      "fatG": 2.0,
+      "carbsG": 4.8
+    },
+    {
+      "slug": "greek-yogurt-nonfat",
+      "name": "Грецький йогурт знежирений",
+      "nameEn": "Yogurt, Greek, plain, nonfat",
+      "state": "other",
+      "kcalPer100g": 59,
+      "proteinG": 10.3,
+      "fatG": 0.4,
+      "carbsG": 3.6
+    },
+    {
+      "slug": "cottage-cheese-4pct",
+      "name": "Сир кисломолочний 4%",
+      "nameEn": "Cottage cheese, creamed, 4% milkfat",
+      "state": "other",
+      "kcalPer100g": 98,
+      "proteinG": 11.1,
+      "fatG": 4.3,
+      "carbsG": 3.4
+    },
+    {
+      "slug": "cheese-cheddar",
+      "name": "Сир твердий чедер",
+      "nameEn": "Cheese, cheddar",
+      "state": "other",
+      "kcalPer100g": 403,
+      "proteinG": 24.9,
+      "fatG": 33.1,
+      "carbsG": 1.3
+    },
+    {
+      "slug": "sour-cream",
+      "name": "Сметана 20%",
+      "nameEn": "Sour cream, cultured",
+      "state": "other",
+      "kcalPer100g": 198,
+      "proteinG": 2.4,
+      "fatG": 19.4,
+      "carbsG": 4.6
+    },
+    {
+      "slug": "butter",
+      "name": "Масло вершкове",
+      "nameEn": "Butter, salted",
+      "state": "other",
+      "kcalPer100g": 717,
+      "proteinG": 0.9,
+      "fatG": 81.1,
+      "carbsG": 0.1
+    },
+    {
+      "slug": "olive-oil",
+      "name": "Олія оливкова",
+      "nameEn": "Oil, olive, extra virgin",
+      "state": "other",
+      "kcalPer100g": 884,
+      "proteinG": 0,
+      "fatG": 100,
+      "carbsG": 0
+    },
+    {
+      "slug": "sunflower-oil",
+      "name": "Олія соняшникова",
+      "nameEn": "Oil, sunflower",
+      "state": "other",
+      "kcalPer100g": 884,
+      "proteinG": 0,
+      "fatG": 100,
+      "carbsG": 0
+    },
+    {
+      "slug": "oats-dry",
+      "name": "Вівсяні пластівці, сухі",
+      "nameEn": "Oats, rolled, dry",
+      "state": "dried",
+      "kcalPer100g": 379,
+      "proteinG": 13.2,
+      "fatG": 6.5,
+      "carbsG": 67.7
+    },
+    {
+      "slug": "rice-white-dry",
+      "name": "Рис білий, сухий",
+      "nameEn": "Rice, white, long-grain, raw",
+      "state": "dried",
+      "kcalPer100g": 365,
+      "proteinG": 7.1,
+      "fatG": 0.7,
+      "carbsG": 80
+    },
+    {
+      "slug": "rice-white-boiled",
+      "name": "Рис білий, варений",
+      "nameEn": "Rice, white, long-grain, cooked",
+      "state": "boiled",
+      "kcalPer100g": 130,
+      "proteinG": 2.7,
+      "fatG": 0.3,
+      "carbsG": 28.2
+    },
+    {
+      "slug": "buckwheat-dry",
+      "name": "Гречка, суха",
+      "nameEn": "Buckwheat groats, roasted, dry",
+      "state": "dried",
+      "kcalPer100g": 343,
+      "proteinG": 13.3,
+      "fatG": 3.4,
+      "carbsG": 71.5
+    },
+    {
+      "slug": "buckwheat-boiled",
+      "name": "Гречка, варена",
+      "nameEn": "Buckwheat groats, roasted, cooked",
+      "state": "boiled",
+      "kcalPer100g": 92,
+      "proteinG": 3.4,
+      "fatG": 0.6,
+      "carbsG": 19.9
+    },
+    {
+      "slug": "pasta-dry",
+      "name": "Макарони з твердих сортів, сухі",
+      "nameEn": "Pasta, dry, enriched",
+      "state": "dried",
+      "kcalPer100g": 371,
+      "proteinG": 13,
+      "fatG": 1.5,
+      "carbsG": 74.7
+    },
+    {
+      "slug": "wheat-flour",
+      "name": "Борошно пшеничне",
+      "nameEn": "Wheat flour, white, all-purpose",
+      "state": "dried",
+      "kcalPer100g": 364,
+      "proteinG": 10.3,
+      "fatG": 1,
+      "carbsG": 76.3
+    },
+    {
+      "slug": "bread-whole-wheat",
+      "name": "Хліб цільнозерновий",
+      "nameEn": "Bread, whole-wheat",
+      "state": "baked",
+      "kcalPer100g": 252,
+      "proteinG": 12.4,
+      "fatG": 3.5,
+      "carbsG": 42.7
+    },
+    {
+      "slug": "lentils-red-dry",
+      "name": "Сочевиця червона, суха",
+      "nameEn": "Lentils, raw",
+      "state": "dried",
+      "kcalPer100g": 352,
+      "proteinG": 24.6,
+      "fatG": 1.1,
+      "carbsG": 63.4
+    },
+    {
+      "slug": "chickpeas-boiled",
+      "name": "Нут, варений",
+      "nameEn": "Chickpeas, mature seeds, cooked, boiled",
+      "state": "boiled",
+      "kcalPer100g": 164,
+      "proteinG": 8.9,
+      "fatG": 2.6,
+      "carbsG": 27.4
+    },
+    {
+      "slug": "tofu-firm",
+      "name": "Тофу твердий",
+      "nameEn": "Tofu, firm, prepared with calcium sulfate",
+      "state": "other",
+      "kcalPer100g": 144,
+      "proteinG": 17.3,
+      "fatG": 8.7,
+      "carbsG": 2.8
+    },
+    {
+      "slug": "potato-raw",
+      "name": "Картопля, сира",
+      "nameEn": "Potatoes, flesh and skin, raw",
+      "state": "raw",
+      "kcalPer100g": 77,
+      "proteinG": 2,
+      "fatG": 0.1,
+      "carbsG": 17.5
+    },
+    {
+      "slug": "potato-boiled",
+      "name": "Картопля, варена",
+      "nameEn": "Potatoes, boiled, cooked without skin",
+      "state": "boiled",
+      "kcalPer100g": 87,
+      "proteinG": 1.9,
+      "fatG": 0.1,
+      "carbsG": 20.1
+    },
+    {
+      "slug": "tomato-raw",
+      "name": "Помідор",
+      "nameEn": "Tomatoes, red, ripe, raw",
+      "state": "raw",
+      "kcalPer100g": 18,
+      "proteinG": 0.9,
+      "fatG": 0.2,
+      "carbsG": 3.9
+    },
+    {
+      "slug": "cucumber-raw",
+      "name": "Огірок",
+      "nameEn": "Cucumber, with peel, raw",
+      "state": "raw",
+      "kcalPer100g": 15,
+      "proteinG": 0.7,
+      "fatG": 0.1,
+      "carbsG": 3.6
+    },
+    {
+      "slug": "onion-raw",
+      "name": "Цибуля ріпчаста",
+      "nameEn": "Onions, raw",
+      "state": "raw",
+      "kcalPer100g": 40,
+      "proteinG": 1.1,
+      "fatG": 0.1,
+      "carbsG": 9.3
+    },
+    {
+      "slug": "carrot-raw",
+      "name": "Морква",
+      "nameEn": "Carrots, raw",
+      "state": "raw",
+      "kcalPer100g": 41,
+      "proteinG": 0.9,
+      "fatG": 0.2,
+      "carbsG": 9.6
+    },
+    {
+      "slug": "garlic-raw",
+      "name": "Часник",
+      "nameEn": "Garlic, raw",
+      "state": "raw",
+      "kcalPer100g": 149,
+      "proteinG": 6.4,
+      "fatG": 0.5,
+      "carbsG": 33.1
+    },
+    {
+      "slug": "bell-pepper-red-raw",
+      "name": "Перець болгарський червоний",
+      "nameEn": "Peppers, sweet, red, raw",
+      "state": "raw",
+      "kcalPer100g": 31,
+      "proteinG": 1,
+      "fatG": 0.3,
+      "carbsG": 6
+    },
+    {
+      "slug": "broccoli-raw",
+      "name": "Броколі",
+      "nameEn": "Broccoli, raw",
+      "state": "raw",
+      "kcalPer100g": 34,
+      "proteinG": 2.8,
+      "fatG": 0.4,
+      "carbsG": 6.6
+    },
+    {
+      "slug": "spinach-raw",
+      "name": "Шпинат",
+      "nameEn": "Spinach, raw",
+      "state": "raw",
+      "kcalPer100g": 23,
+      "proteinG": 2.9,
+      "fatG": 0.4,
+      "carbsG": 3.6
+    },
+    {
+      "slug": "cabbage-raw",
+      "name": "Капуста білокачанна",
+      "nameEn": "Cabbage, raw",
+      "state": "raw",
+      "kcalPer100g": 25,
+      "proteinG": 1.3,
+      "fatG": 0.1,
+      "carbsG": 5.8
+    },
+    {
+      "slug": "beetroot-raw",
+      "name": "Буряк",
+      "nameEn": "Beets, raw",
+      "state": "raw",
+      "kcalPer100g": 43,
+      "proteinG": 1.6,
+      "fatG": 0.2,
+      "carbsG": 9.6
+    },
+    {
+      "slug": "mushrooms-raw",
+      "name": "Печериці",
+      "nameEn": "Mushrooms, white, raw",
+      "state": "raw",
+      "kcalPer100g": 22,
+      "proteinG": 3.1,
+      "fatG": 0.3,
+      "carbsG": 3.3
+    },
+    {
+      "slug": "dill-raw",
+      "name": "Кріп",
+      "nameEn": "Dill weed, fresh",
+      "state": "raw",
+      "kcalPer100g": 43,
+      "proteinG": 3.5,
+      "fatG": 1.1,
+      "carbsG": 7
+    },
+    {
+      "slug": "banana-raw",
+      "name": "Банан",
+      "nameEn": "Bananas, raw",
+      "state": "raw",
+      "kcalPer100g": 89,
+      "proteinG": 1.1,
+      "fatG": 0.3,
+      "carbsG": 22.8
+    },
+    {
+      "slug": "apple-raw",
+      "name": "Яблуко",
+      "nameEn": "Apples, raw, with skin",
+      "state": "raw",
+      "kcalPer100g": 52,
+      "proteinG": 0.3,
+      "fatG": 0.2,
+      "carbsG": 13.8
+    },
+    {
+      "slug": "blueberries-raw",
+      "name": "Лохина",
+      "nameEn": "Blueberries, raw",
+      "state": "raw",
+      "kcalPer100g": 57,
+      "proteinG": 0.7,
+      "fatG": 0.3,
+      "carbsG": 14.5
+    },
+    {
+      "slug": "lemon-juice",
+      "name": "Сік лимона",
+      "nameEn": "Lemon juice, raw",
+      "state": "raw",
+      "kcalPer100g": 22,
+      "proteinG": 0.4,
+      "fatG": 0.2,
+      "carbsG": 6.9
+    },
+    {
+      "slug": "walnuts",
+      "name": "Волоські горіхи",
+      "nameEn": "Nuts, walnuts, English",
+      "state": "dried",
+      "kcalPer100g": 654,
+      "proteinG": 15.2,
+      "fatG": 65.2,
+      "carbsG": 13.7
+    },
+    {
+      "slug": "honey",
+      "name": "Мед",
+      "nameEn": "Honey",
+      "state": "other",
+      "kcalPer100g": 304,
+      "proteinG": 0.3,
+      "fatG": 0,
+      "carbsG": 82.4
+    },
+    {
+      "slug": "salt",
+      "name": "Сіль",
+      "nameEn": "Salt, table",
+      "state": "other",
+      "kcalPer100g": 0,
+      "proteinG": 0,
+      "fatG": 0,
+      "carbsG": 0
+    }
+  ]
+}

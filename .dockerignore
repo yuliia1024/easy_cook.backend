@@ -1,3 +1,7 @@
 node_modules
 dist
+coverage
+src/generated
+data/raw
+data/processed
 .env

@@ -1,0 +1,516 @@
+{
+  "$comment": "Seed recipes. `food` is a slug from foods.json, or `<source>:<sourceId>` for an imported food (e.g. usda_fdc:2346393). quantityG is for the whole recipe, in the state of that food.",
+  "recipes": [
+    {
+      "slug": "oatmeal-banana-blueberry",
+      "name": "Вівсянка з бананом і лохиною",
+      "description": "Швидкий сніданок на молоці.",
+      "instructions": "Довести молоко до кипіння, всипати пластівці, варити 5 хвилин помішуючи. Розкласти по тарілках, додати нарізаний банан, лохину та мед.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "oats-dry",
+          "quantityG": 80
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 300
+        },
+        {
+          "food": "banana-raw",
+          "quantityG": 120,
+          "notes": "нарізати кружальцями"
+        },
+        {
+          "food": "blueberries-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "honey",
+          "quantityG": 10,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "spinach-tomato-omelette",
+      "name": "Омлет зі шпинатом і помідорами",
+      "instructions": "Збити яйця з молоком і сіллю. Обсмажити шпинат на маслі 1 хвилину, додати помідор, залити яйцями та готувати під кришкою 5 хвилин.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "low_carb"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "egg-raw",
+          "quantityG": 150,
+          "notes": "3 яйця"
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 50
+        },
+        {
+          "food": "spinach-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 100,
+          "notes": "нарізати кубиками"
+        },
+        {
+          "food": "butter",
+          "quantityG": 10
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "syrnyky",
+      "name": "Сирники",
+      "instructions": "Змішати сир, яйце, мед і борошно. Сформувати сирники, обваляти в борошні та обсмажити на олії по 3 хвилини з кожного боку. Подавати зі сметаною.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "cottage-cheese-4pct",
+          "quantityG": 400
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "wheat-flour",
+          "quantityG": 60
+        },
+        {
+          "food": "honey",
+          "quantityG": 20
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 20,
+          "notes": "для смаження"
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 100,
+          "isOptional": true,
+          "notes": "для подачі"
+        }
+      ]
+    },
+    {
+      "slug": "chicken-buckwheat-broccoli",
+      "name": "Курка з гречкою та броколі",
+      "instructions": "Зварити гречку (150 г сухої). Курку нарізати, обсмажити на оливковій олії з часником 8–10 хвилин. Броколі приготувати на пару 5 хвилин. Посолити, подавати разом.",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "buckwheat-dry",
+          "quantityG": 150,
+          "notes": "вага сухої крупи"
+        },
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "broccoli-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        }
+      ]
+    },
+    {
+      "slug": "red-lentil-soup",
+      "name": "Суп із червоної сочевиці",
+      "instructions": "Обсмажити цибулю, моркву і часник на олії. Додати картоплю, промиту сочевицю та 1,5 л води, варити 25 хвилин. Посолити, за бажанням збити блендером і посипати кропом.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "lentils-red-dry",
+          "quantityG": 200
+        },
+        {
+          "food": "potato-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "salt",
+          "quantityG": 6
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 10,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "tuna-egg-salad",
+      "name": "Салат з тунцем і яйцем",
+      "instructions": "Зварити яйця круто, нарізати. Змішати з тунцем, огірком і помідором, заправити оливковою олією та лимонним соком.",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "tuna-canned-water",
+          "quantityG": 150
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 100,
+          "notes": "2 яйця, зварити круто"
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "lenten-borscht",
+      "name": "Борщ пісний",
+      "instructions": "Буряк, моркву і цибулю потушкувати на олії з лимонним соком 10 хвилин. Картоплю варити в 2 л води 10 хвилин, додати капусту, через 5 хвилин — засмажку та помідори. Варити ще 10 хвилин, додати часник, сіль і кріп.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 70,
+      "ingredients": [
+        {
+          "food": "beetroot-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "cabbage-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "potato-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 20
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 15
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "salt",
+          "quantityG": 10
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 10,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "salmon-rice-pepper",
+      "name": "Лосось з рисом і перцем",
+      "instructions": "Зварити рис (150 г сухого). Лосось посолити, збризнути лимонним соком і запекти 15 хвилин при 200 °C. Перець обсмажити на оливковій олії 5 хвилин.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "salmon-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "rice-white-dry",
+          "quantityG": 150,
+          "notes": "вага сухого рису"
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 20
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        }
+      ]
+    },
+    {
+      "slug": "tofu-vegetables-rice",
+      "name": "Тофу з овочами та рисом",
+      "instructions": "Зварити рис. Тофу нарізати кубиками й обсмажити до скоринки. Додати моркву, броколі, перець і часник, готувати 6–7 хвилин помішуючи.",
+      "mealType": "dinner",
+      "dietType": [
+        "vegan",
+        "dairy_free",
+        "gluten_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "tofu-firm",
+          "quantityG": 300
+        },
+        {
+          "food": "rice-white-boiled",
+          "quantityG": 400,
+          "notes": "вже зварений рис"
+        },
+        {
+          "food": "broccoli-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "beef-pasta-mushrooms",
+      "name": "Паста з яловичиною та печерицями",
+      "instructions": "Зварити пасту. Фарш обсмажити з цибулею 8 хвилин, додати печериці та помідори, тушкувати 10 хвилин. Посолити, змішати з пастою.",
+      "mealType": "dinner",
+      "dietType": [
+        "high_protein",
+        "dairy_free"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "pasta-dry",
+          "quantityG": 240
+        },
+        {
+          "food": "beef-ground-lean-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "mushrooms-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        }
+      ]
+    },
+    {
+      "slug": "greek-yogurt-walnuts-apple",
+      "name": "Грецький йогурт з горіхами та яблуком",
+      "instructions": "Викласти йогурт, додати нарізане яблуко, подрібнені горіхи та мед.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 200
+        },
+        {
+          "food": "apple-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "walnuts",
+          "quantityG": 20
+        },
+        {
+          "food": "honey",
+          "quantityG": 10,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "hummus-vegetables",
+      "name": "Хумус з овочами",
+      "instructions": "Збити блендером нут, оливкову олію, лимонний сік, часник і сіль, додаючи трохи води. Подавати з паличками моркви та огірка.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "chickpeas-boiled",
+          "quantityG": 300
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 30
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 30
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 5
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 200,
+          "notes": "нарізати паличками"
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 200,
+          "notes": "нарізати паличками"
+        }
+      ]
+    }
+  ]
+}

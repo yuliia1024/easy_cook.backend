@@ -5,3 +5,12 @@ coverage
 *.tsbuildinfo
 .DS_Store
 .idea
+notes.md
+# Datasets are downloaded locally, see README -> "Datasets"
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Prisma client, generated on `npm install`
+src/generated

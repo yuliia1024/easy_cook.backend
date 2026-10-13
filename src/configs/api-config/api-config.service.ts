@@ -19,10 +19,6 @@ export class ApiConfigService {
     return this.configService.getBoolean('SWAGGER_ENABLED') && this.env !== Environments.PRODUCTION;
   }
 
-  public get frontEndUrl(): string {
-    return this.configService.get('FRONT_END_URL');
-  }
-
   public cors(): CorsOptions {
     const origins = this.configService.get('CORS_ORIGINS') || '*';
 

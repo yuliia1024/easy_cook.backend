@@ -1,43 +1,44 @@
-import { Repository } from 'typeorm';
-import { Diet, Gender } from '../../../common/constants';
-import { createMock } from '../../../test/create-mock';
-import { buildProfile, USER_ID } from '../../../test/fixtures';
-import { UserProfile } from './user-profile.entity';
+import { buildProfile, PROFILE_ID } from '../../../test/fixtures';
+import { createPrismaMock, PrismaMock } from '../../../test/prisma-mock';
 import { UserProfileRepository } from './user-profile.repository';
 
 describe('UserProfileRepository', () => {
-  let repository: jest.Mocked<Repository<UserProfile>>;
-  let profileRepository: UserProfileRepository;
-  const data = { firstName: 'Jane', gender: Gender.Female, diet: Diet.Vegan };
+  let prisma: PrismaMock;
+  let repository: UserProfileRepository;
+  const data = {
+    age: 30,
+    heightCm: 170,
+    weightKg: 65,
+    sex: 'female',
+    activityLevel: 'moderate',
+    goal: 'maintain',
+  };
 
   beforeEach(() => {
-    repository = createMock<Repository<UserProfile>>();
-    profileRepository = new UserProfileRepository(repository);
+    prisma = createPrismaMock();
+    repository = new UserProfileRepository(prisma);
   });
 
-  it('finds by user id', async () => {
+  it('finds the oldest profile', async () => {
     const profile = buildProfile();
-    repository.findOneBy.mockResolvedValue(profile);
+    prisma.userProfile.findFirst.mockResolvedValue(profile);
 
-    await expect(profileRepository.findByUserId(USER_ID)).resolves.toBe(profile);
-    expect(repository.findOneBy).toHaveBeenCalledWith({ userId: USER_ID });
+    await expect(repository.findCurrent()).resolves.toBe(profile);
+    expect(prisma.userProfile.findFirst).toHaveBeenCalledWith({ orderBy: { createdAt: 'asc' } });
   });
 
-  it('upserts on userId and returns the stored row', async () => {
-    const profile = buildProfile();
-    repository.findOneByOrFail.mockResolvedValue(profile);
+  it('creates', async () => {
+    await repository.create(data);
 
-    await expect(profileRepository.upsert(USER_ID, data)).resolves.toBe(profile);
-    expect(repository.upsert).toHaveBeenCalledWith(
-      { userId: USER_ID, ...data },
-      { conflictPaths: ['userId'] },
-    );
-    expect(repository.findOneByOrFail).toHaveBeenCalledWith({ userId: USER_ID });
+    expect(prisma.userProfile.create).toHaveBeenCalledWith({ data });
   });
 
-  it('updates by user id', async () => {
-    await profileRepository.update(USER_ID, { diet: Diet.Keto });
+  it('updates by id', async () => {
+    await repository.update(PROFILE_ID, { age: 31 });
 
-    expect(repository.update).toHaveBeenCalledWith({ userId: USER_ID }, { diet: Diet.Keto });
+    expect(prisma.userProfile.update).toHaveBeenCalledWith({
+      where: { id: PROFILE_ID },
+      data: { age: 31 },
+    });
   });
 });

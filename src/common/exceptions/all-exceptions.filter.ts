@@ -32,10 +32,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const { status, message } = this.resolve(exception);
+    // `url` is relative to the router that answered (e.g. without the global prefix).
+    const path = request.originalUrl ?? request.url;
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
-        `${request.method} ${request.url} failed`,
+        `${request.method} ${path} failed`,
         exception instanceof Error ? exception.stack : String(exception),
       );
     }
@@ -44,7 +46,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode: status,
       message,
       error: HttpStatus[status] ?? 'Error',
-      path: request.url,
+      path,
       timestamp: new Date().toISOString(),
     };
 

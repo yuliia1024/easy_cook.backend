@@ -1,39 +1,27 @@
+import { PrismaPg } from '@prisma/adapter-pg';
 import { fakeConfig } from '../../test/fake-config';
 import { DatabaseConfigService } from './database-config.service';
 
 describe('DatabaseConfigService', () => {
-  it('builds postgres options that only change the schema through migrations', () => {
-    const service = new DatabaseConfigService(
-      fakeConfig({
-        POSTGRES_HOST: 'db',
-        POSTGRES_PORT: '5442',
-        POSTGRES_USER: 'u',
-        POSTGRES_PASSWORD: 'p',
-        POSTGRES_DB: 'd',
-        POSTGRES_LOGGING: 'true',
-      }),
-    );
+  const url = 'postgresql://u:p@db:5442/d';
 
-    expect(service.config()).toMatchObject({
-      type: 'postgres',
-      host: 'db',
-      port: 5442,
-      username: 'u',
-      password: 'p',
-      database: 'd',
-      synchronize: false,
-      migrationsRun: true,
-      logging: true,
-    });
+  it('exposes DATABASE_URL', () => {
+    expect(new DatabaseConfigService(fakeConfig({ DATABASE_URL: url })).url).toBe(url);
   });
 
-  it('points at entity and migration files', () => {
-    const config = new DatabaseConfigService(fakeConfig({})).config() as {
-      entities: string[];
-      migrations: string[];
-    };
+  it('connects through the pg driver adapter', () => {
+    const { adapter } = new DatabaseConfigService(fakeConfig({ DATABASE_URL: url })).config();
 
-    expect(config.entities[0]).toMatch(/modules\/\*\*\/\*\.entity\{\.ts,\.js\}$/);
-    expect(config.migrations[0]).toMatch(/database\/migrations\/\*\{\.ts,\.js\}$/);
+    expect(adapter).toBeInstanceOf(PrismaPg);
+  });
+
+  it('logs queries only when asked to', () => {
+    const quiet = new DatabaseConfigService(fakeConfig({ DATABASE_URL: url }));
+    const verbose = new DatabaseConfigService(
+      fakeConfig({ DATABASE_URL: url, POSTGRES_LOGGING: 'true' }),
+    );
+
+    expect(quiet.config().log).toEqual(['warn', 'error']);
+    expect(verbose.config().log).toEqual(['query', 'warn', 'error']);
   });
 });

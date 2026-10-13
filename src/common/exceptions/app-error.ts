@@ -12,14 +12,6 @@ export class BadRequestError extends AppError {
   public readonly status = HttpStatus.BAD_REQUEST;
 }
 
-export class UnauthorizedError extends AppError {
-  public readonly status = HttpStatus.UNAUTHORIZED;
-}
-
-export class ForbiddenError extends AppError {
-  public readonly status = HttpStatus.FORBIDDEN;
-}
-
 export class NotFoundError extends AppError {
   public readonly status = HttpStatus.NOT_FOUND;
 }
@@ -28,6 +20,6 @@ export class ConflictError extends AppError {
   public readonly status = HttpStatus.CONFLICT;
 }
 
-export class TooManyRequestsError extends AppError {
-  public readonly status = HttpStatus.TOO_MANY_REQUESTS;
+export class ServiceUnavailableError extends AppError {
+  public readonly status = HttpStatus.SERVICE_UNAVAILABLE;
 }

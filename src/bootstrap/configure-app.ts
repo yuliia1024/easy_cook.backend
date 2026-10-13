@@ -3,7 +3,7 @@ import helmet from 'helmet';
 import { AllExceptionsFilter } from '../common/exceptions';
 import { ApiConfigService } from '../configs/api-config/api-config.service';
 
-/** Request pipeline shared by `main.ts` and any future e2e test harness. */
+/** Request pipeline shared by `main.ts` and the e2e tests. */
 export function configureApp(app: INestApplication): void {
   const apiConfigService = app.get(ApiConfigService);
 

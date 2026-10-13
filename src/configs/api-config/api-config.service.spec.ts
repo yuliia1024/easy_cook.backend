@@ -6,12 +6,11 @@ describe('ApiConfigService', () => {
   const build = (values: Parameters<typeof fakeConfig>[0]): ApiConfigService =>
     new ApiConfigService(fakeConfig(values));
 
-  it('exposes port, env and front-end url', () => {
-    const service = build({ PORT: '3100', ENV: Environments.LOCAL, FRONT_END_URL: 'http://app' });
+  it('exposes port and env', () => {
+    const service = build({ PORT: '3100', ENV: Environments.LOCAL });
 
     expect(service.port).toBe(3100);
     expect(service.env).toBe(Environments.LOCAL);
-    expect(service.frontEndUrl).toBe('http://app');
   });
 
   describe('isSwaggerEnabled', () => {
