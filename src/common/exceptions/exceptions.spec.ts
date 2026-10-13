@@ -9,6 +9,17 @@ import { AppError } from './app-error';
 const ARGS: Record<string, unknown[]> = {
   FoodItemsNotFoundBadRequestException: [['a', 'b']],
   UnknownDietBadRequestException: ['carnivore'],
+  CaloriesBelowMinimumBadRequestException: [1200],
+  MacrosCaloriesMismatchBadRequestException: [1500, 2000, 0.1],
+  MacroShareBadRequestException: ['protein', 0.42, { min: 0.1, max: 0.35 }],
+  ImplausibleBmiBadRequestException: [75],
+  WeightLossUnderweightBadRequestException: [18.5],
+  FoodKcalMismatchBadRequestException: [130, 200],
+  TooManyIngredientsBadRequestException: [100],
+  ServingTooHeavyBadRequestException: [2500, 2000],
+  ServingTooManyKcalBadRequestException: [3000, 2500],
+  ConflictingDietsBadRequestException: ['pescatarian', 'vegan'],
+  TooManyPreferencesBadRequestException: [50],
 };
 
 /**
@@ -45,5 +56,40 @@ describe('exception taxonomy', () => {
     expect(new badRequest.UnknownDietBadRequestException('carnivore').message).toContain(
       'carnivore',
     );
+  });
+
+  it('names the calorie minimum', () => {
+    expect(new badRequest.CaloriesBelowMinimumBadRequestException(1200).message).toContain(
+      '1200 kcal',
+    );
+  });
+
+  it.each([
+    [
+      new badRequest.MacrosCaloriesMismatchBadRequestException(1499.6, 2000, 0.1),
+      'Protein, fat and carbs give 1500 kcal, more than 10 % away from the 2000 kcal goal',
+    ],
+    [
+      new badRequest.MacroShareBadRequestException('protein', 0.416, { min: 0.1, max: 0.35 }),
+      'Protein must be 10-35 % of the calories (now 42 %)',
+    ],
+    [
+      new badRequest.ImplausibleBmiBadRequestException(75.04),
+      'Weight and height give an implausible BMI (75.0); check the values',
+    ],
+    [
+      new badRequest.FoodKcalMismatchBadRequestException(130, 199.6),
+      '130 kcal does not match protein, fat and carbs (≈ 200 kcal by 4/9/4)',
+    ],
+    [
+      new badRequest.ServingTooHeavyBadRequestException(2500.4, 2000),
+      'One serving would weigh 2500 g; at most 2000 g',
+    ],
+    [
+      new badRequest.ConflictingDietsBadRequestException('pescatarian', 'vegan'),
+      'Diet "pescatarian" conflicts with "vegan"',
+    ],
+  ])('formats %p', (error, message) => {
+    expect(error.message).toBe(message);
   });
 });

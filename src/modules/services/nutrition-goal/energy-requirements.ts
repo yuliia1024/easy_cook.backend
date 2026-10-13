@@ -1,4 +1,12 @@
-import { ActivityLevel, Goal, KCAL_PER_GRAM, Sex } from '../../../common/constants';
+import {
+  ActivityLevel,
+  Goal,
+  KCAL_PER_GRAM,
+  MacroName,
+  MAX_DAILY_CALORIES_KCAL,
+  MIN_DAILY_CALORIES_KCAL,
+  Sex,
+} from '../../../common/constants';
 import { round } from '../../../common/utils';
 
 /**
@@ -8,7 +16,9 @@ import { round } from '../../../common/utils';
  * - BMR: Mifflin-St Jeor, `10 * kg + 6.25 * cm - 5 * age + (male ? 5 : -161)`.
  * - TDEE: BMR * activity factor.
  * - Goal: calorie adjustment, protein per kg of body weight.
- * - Fat: 25 % of calories. Carbs: the rest.
+ * - Calories are kept between the minimum for the sex and `MAX_DAILY_CALORIES_KCAL`.
+ * - Fat: 25 % of calories. Protein: per kg, kept within 10-30 % of calories. Carbs: the rest,
+ *   so they always land in 45-65 % and the goal passes `MACRO_SHARE_LIMITS`.
  */
 export const ACTIVITY_FACTORS: Record<ActivityLevel, number> = {
   [ActivityLevel.Sedentary]: 1.2,
@@ -25,6 +35,7 @@ export const GOAL_RULES: Record<Goal, { calorieFactor: number; proteinPerKg: num
 };
 
 export const FAT_SHARE_OF_CALORIES = 0.25;
+export const PROTEIN_SHARE_OF_CALORIES = { min: 0.1, max: 0.3 } as const;
 
 export interface EnergyInput {
   age: number;
@@ -48,17 +59,70 @@ export function basalMetabolicRate({ age, heightCm, weightKg, sex }: EnergyInput
 
 export function calculateNutritionTargets(input: EnergyInput): NutritionTargets {
   const rules = GOAL_RULES[input.goal];
-  const calories =
-    basalMetabolicRate(input) * ACTIVITY_FACTORS[input.activityLevel] * rules.calorieFactor;
+  const calories = round(
+    basalMetabolicRate(input) * ACTIVITY_FACTORS[input.activityLevel] * rules.calorieFactor,
+    0,
+  );
+  const allowed = clamp(calories, MIN_DAILY_CALORIES_KCAL[input.sex], MAX_DAILY_CALORIES_KCAL);
 
-  const proteinG = input.weightKg * rules.proteinPerKg;
-  const fatG = (calories * FAT_SHARE_OF_CALORIES) / KCAL_PER_GRAM.fat;
-  const carbsKcal = calories - proteinG * KCAL_PER_GRAM.protein - fatG * KCAL_PER_GRAM.fat;
+  return macrosForCalories(allowed, input.weightKg, input.goal);
+}
+
+/**
+ * Splits a calorie goal: 25 % fat, protein per kg of the profile goal (kept within 10-30 % of the
+ * calories), carbs for the rest.
+ */
+export function macrosForCalories(
+  caloriesKcal: number,
+  weightKg: number,
+  goal: Goal,
+): NutritionTargets {
+  const fatG = (caloriesKcal * FAT_SHARE_OF_CALORIES) / KCAL_PER_GRAM.fat;
+  const proteinG = clamp(
+    weightKg * GOAL_RULES[goal].proteinPerKg,
+    (caloriesKcal * PROTEIN_SHARE_OF_CALORIES.min) / KCAL_PER_GRAM.protein,
+    (caloriesKcal * PROTEIN_SHARE_OF_CALORIES.max) / KCAL_PER_GRAM.protein,
+  );
+  const carbsKcal = caloriesKcal - proteinG * KCAL_PER_GRAM.protein - fatG * KCAL_PER_GRAM.fat;
 
   return {
-    caloriesKcal: round(calories, 0),
+    caloriesKcal,
     proteinG: round(proteinG, 0),
     fatG: round(fatG, 0),
-    carbsG: round(Math.max(carbsKcal, 0) / KCAL_PER_GRAM.carbs, 0),
+    carbsG: round(carbsKcal / KCAL_PER_GRAM.carbs, 0),
   };
+}
+
+export interface MacroEnergy {
+  /** 4/9/4 kcal per gram of protein/fat/carbs. */
+  kcal: number;
+  /** Share of `kcal` from each macro, 0-1; all 0 when `kcal` is 0. */
+  shares: Record<MacroName, number>;
+}
+
+export function macroEnergy({
+  proteinG,
+  fatG,
+  carbsG,
+}: Pick<NutritionTargets, 'proteinG' | 'fatG' | 'carbsG'>): MacroEnergy {
+  const byMacro: Record<MacroName, number> = {
+    protein: proteinG * KCAL_PER_GRAM.protein,
+    fat: fatG * KCAL_PER_GRAM.fat,
+    carbs: carbsG * KCAL_PER_GRAM.carbs,
+  };
+  const kcal = byMacro.protein + byMacro.fat + byMacro.carbs;
+  const share = (value: number): number => (kcal > 0 ? value / kcal : 0);
+
+  return {
+    kcal,
+    shares: {
+      protein: share(byMacro.protein),
+      fat: share(byMacro.fat),
+      carbs: share(byMacro.carbs),
+    },
+  };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }

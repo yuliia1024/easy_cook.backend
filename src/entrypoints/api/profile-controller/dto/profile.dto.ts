@@ -36,4 +36,5 @@ export class SaveProfileDto {
   goal: Goal;
 }
 
-export class UpdateProfileDto extends PartialType(SaveProfileDto) {}
+/** BMI 12-70; `lose_weight` needs a BMI of at least 18.5 (the service checks both). */
+export class UpdateProfileDto extends PartialType(SaveProfileDto, { skipNullProperties: false }) {}

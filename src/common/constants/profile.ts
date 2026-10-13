@@ -5,15 +5,10 @@ export enum Sex {
 }
 
 export enum ActivityLevel {
-  /** Little or no exercise. */
   Sedentary = 'sedentary',
-  /** Exercise 1-3 days a week. */
   Light = 'light',
-  /** Exercise 3-5 days a week. */
   Moderate = 'moderate',
-  /** Exercise 6-7 days a week. */
   Active = 'active',
-  /** Hard exercise every day or a physical job. */
   VeryActive = 'very_active',
 }
 
@@ -24,7 +19,6 @@ export enum Goal {
 }
 
 export enum PreferenceType {
-  /** `value` is a `DietTag`. */
   Diet = 'diet',
   Allergy = 'allergy',
   DislikedFood = 'disliked_food',
@@ -37,4 +31,11 @@ export const PROFILE_LIMITS = {
   weightKg: { min: 30, max: 300 },
 } as const;
 
+/** Weight / height² outside this range is a typo, not a body. */
+export const BMI_LIMITS = { min: 12, max: 70 } as const;
+
+/** Below it a weight loss goal is not allowed. */
+export const UNDERWEIGHT_BMI = 18.5;
+
 export const PREFERENCE_VALUE_MAX_LENGTH = 120;
+export const MAX_PREFERENCES = 50;

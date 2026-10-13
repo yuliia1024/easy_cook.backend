@@ -10,7 +10,7 @@ import { FoodControllerService } from './food-controller.service';
 export class FoodController {
   constructor(private readonly foodControllerService: FoodControllerService) {}
 
-  /** Paged, sorted by name. `search` matches `name` and `nameEn`. */
+  /** Paged, sorted by name (`sortOrder`, default `asc`). `search` matches `name` and `nameEn`. */
   @Get()
   async getPage(@Query() query: FoodItemQueryDto): Promise<PageResponseDto<FoodItemResponseDto>> {
     return this.foodControllerService.getPage(query);
@@ -21,13 +21,19 @@ export class FoodController {
     return this.foodControllerService.getById(id);
   }
 
-  /** 409 when `source` + `sourceId` is taken. */
+  /**
+   * Always `source = manual`. 400 when protein + fat + carbs exceed 100 g or the kcal are far from
+   * the 4/9/4 estimate (more than 20 kcal and 25 %); 409 when `sourceId` is taken.
+   */
   @Post()
   async create(@Body() dto: CreateFoodItemDto): Promise<FoodItemResponseDto> {
     return this.foodControllerService.create(dto);
   }
 
-  /** `null` clears a nutrient value (= unknown). */
+  /**
+   * `null` clears a nutrient value (= unknown). 409 when the `state` of a food that recipes use
+   * changes: create a new food for the other state instead.
+   */
   @Patch(':id')
   async update(
     @Param('id', ParseUUIDPipe) id: string,

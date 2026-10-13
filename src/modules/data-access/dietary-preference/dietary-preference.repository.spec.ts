@@ -1,6 +1,7 @@
 import { buildPreference, PROFILE_ID } from '../../../test/fixtures';
 import { createPrismaMock, PrismaMock } from '../../../test/prisma-mock';
 import { DietaryPreferenceRepository } from './dietary-preference.repository';
+import { SortOrder } from '../../../common/constants';
 
 describe('DietaryPreferenceRepository', () => {
   let prisma: PrismaMock;
@@ -17,7 +18,7 @@ describe('DietaryPreferenceRepository', () => {
 
     expect(prisma.dietaryPreference.findMany).toHaveBeenCalledWith({
       where: { profileId: PROFILE_ID },
-      orderBy: [{ preferenceType: 'asc' }, { value: 'asc' }],
+      orderBy: [{ preferenceType: SortOrder.Asc }, { value: SortOrder.Asc }],
     });
   });
 

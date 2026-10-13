@@ -1,11 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { RecipeSource } from '../../../common/constants';
+import {
+  MAX_RECIPE_INGREDIENTS,
+  MAX_SERVING_KCAL,
+  MAX_SERVING_WEIGHT_G,
+  RecipeSource,
+} from '../../../common/constants';
 import {
   RecipeIngredientNotFoundException,
   RecipeNotFoundException,
   RecipeSourceConflictException,
+  ServingTooHeavyBadRequestException,
+  ServingTooManyKcalBadRequestException,
+  TooManyIngredientsBadRequestException,
 } from '../../../common/exceptions';
 import { Page, PageQuery } from '../../../common/types';
+import { toNumber } from '../../../common/utils';
 import { RecipeIngredientRepository } from '../../data-access/recipe-ingredient/recipe-ingredient.repository';
 import {
   IngredientData,
@@ -15,6 +24,7 @@ import {
   RecipeWithIngredients,
 } from '../../data-access/recipe/recipe.repository';
 import { FoodItemService } from '../food-item/food-item.service';
+import { NutritionIngredientInput, NutritionService } from '../nutrition/nutrition.service';
 
 export type NewRecipeData = Omit<RecipeData, 'source'> & { source?: string };
 
@@ -24,6 +34,7 @@ export class RecipeService {
     private readonly recipeRepository: RecipeRepository,
     private readonly recipeIngredientRepository: RecipeIngredientRepository,
     private readonly foodItemService: FoodItemService,
+    private readonly nutritionService: NutritionService,
   ) {}
 
   public async getPage(
@@ -47,7 +58,7 @@ export class RecipeService {
   ): Promise<RecipeWithIngredients> {
     const recipe: RecipeData = { ...data, source: data.source ?? RecipeSource.Manual };
 
-    await this.foodItemService.assertExist(ingredients.map((i) => i.foodItemId));
+    this.assertServingFits(recipe.servings, await this.withFoods(ingredients));
     await this.assertSourceIsFree(recipe.source, recipe.sourceId);
 
     return this.recipeRepository.create(recipe, ingredients);
@@ -61,8 +72,11 @@ export class RecipeService {
   ): Promise<RecipeWithIngredients> {
     const current = await this.getById(id);
 
-    if (ingredients) {
-      await this.foodItemService.assertExist(ingredients.map((i) => i.foodItemId));
+    if (ingredients || data.servings !== undefined) {
+      this.assertServingFits(
+        data.servings ?? current.servings,
+        ingredients ? await this.withFoods(ingredients) : current.ingredients,
+      );
     }
 
     const source = data.source ?? current.source;
@@ -83,8 +97,14 @@ export class RecipeService {
     recipeId: string,
     ingredient: IngredientData,
   ): Promise<RecipeWithIngredients> {
-    await this.getById(recipeId);
-    await this.foodItemService.assertExist([ingredient.foodItemId]);
+    const recipe = await this.getById(recipeId);
+    if (recipe.ingredients.length >= MAX_RECIPE_INGREDIENTS) {
+      throw new TooManyIngredientsBadRequestException(MAX_RECIPE_INGREDIENTS);
+    }
+    this.assertServingFits(recipe.servings, [
+      ...recipe.ingredients,
+      ...(await this.withFoods([ingredient])),
+    ]);
 
     await this.recipeIngredientRepository.create(recipeId, ingredient);
     return this.getById(recipeId);
@@ -95,9 +115,24 @@ export class RecipeService {
     ingredientId: string,
     data: Partial<IngredientData>,
   ): Promise<RecipeWithIngredients> {
-    await this.getIngredient(recipeId, ingredientId);
-    if (data.foodItemId) {
-      await this.foodItemService.assertExist([data.foodItemId]);
+    const recipe = await this.getIngredient(recipeId, ingredientId);
+
+    if (data.foodItemId !== undefined || data.quantityG !== undefined) {
+      const [food] = data.foodItemId
+        ? (await this.foodItemService.getByIds([data.foodItemId])).values()
+        : [];
+      this.assertServingFits(
+        recipe.servings,
+        recipe.ingredients.map((ingredient) =>
+          ingredient.id === ingredientId
+            ? {
+                ...ingredient,
+                quantityG: data.quantityG ?? ingredient.quantityG,
+                foodItem: food ?? ingredient.foodItem,
+              }
+            : ingredient,
+        ),
+      );
     }
 
     await this.recipeIngredientRepository.update(ingredientId, data);
@@ -115,10 +150,41 @@ export class RecipeService {
   }
 
   /** 404 for an unknown recipe first, then for an ingredient of another recipe. */
-  private async getIngredient(recipeId: string, ingredientId: string): Promise<void> {
-    await this.getById(recipeId);
+  private async getIngredient(
+    recipeId: string,
+    ingredientId: string,
+  ): Promise<RecipeWithIngredients> {
+    const recipe = await this.getById(recipeId);
     if (!(await this.recipeIngredientRepository.findOne(recipeId, ingredientId))) {
       throw new RecipeIngredientNotFoundException();
+    }
+    return recipe;
+  }
+
+  /** The ingredients with their foods; 400 listing the foods that do not exist. */
+  private async withFoods(ingredients: IngredientData[]): Promise<NutritionIngredientInput[]> {
+    const foods = await this.foodItemService.getByIds(ingredients.map((i) => i.foodItemId));
+    return ingredients.map((ingredient, index) => ({
+      id: String(index),
+      quantityG: ingredient.quantityG,
+      isOptional: ingredient.isOptional ?? false,
+      foodItem: foods.get(ingredient.foodItemId)!,
+    }));
+  }
+
+  /** One serving, optional ingredients included, must stay a plausible amount of food. */
+  private assertServingFits(servings: number, ingredients: NutritionIngredientInput[]): void {
+    const weightG = ingredients.reduce((sum, i) => sum + toNumber(i.quantityG), 0) / servings;
+    if (weightG > MAX_SERVING_WEIGHT_G) {
+      throw new ServingTooHeavyBadRequestException(weightG, MAX_SERVING_WEIGHT_G);
+    }
+
+    const { kcal } = this.nutritionService.calculateRecipe(
+      { id: '', servings, ingredients },
+      { includeOptional: true },
+    ).perServing;
+    if (kcal > MAX_SERVING_KCAL) {
+      throw new ServingTooManyKcalBadRequestException(kcal, MAX_SERVING_KCAL);
     }
   }
 

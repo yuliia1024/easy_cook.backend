@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { NutritionGoalService } from '../../../modules/services/nutrition-goal/nutrition-goal.service';
-import { SetNutritionGoalDto } from './dto/nutrition-goal.dto';
+import { SortQueryDto } from '../dto/sort.dto';
+import { PreviewNutritionGoalQueryDto, SetNutritionGoalDto } from './dto/nutrition-goal.dto';
 import {
   NutritionGoalResponseDto,
   NutritionTargetsResponseDto,
@@ -14,8 +15,8 @@ export class NutritionControllerService {
     return NutritionGoalResponseDto.from(await this.nutritionGoalService.getCurrent());
   }
 
-  public async getHistory(): Promise<NutritionGoalResponseDto[]> {
-    const goals = await this.nutritionGoalService.getHistory();
+  public async getHistory({ sortOrder }: SortQueryDto): Promise<NutritionGoalResponseDto[]> {
+    const goals = await this.nutritionGoalService.getHistory(sortOrder);
     return goals.map(NutritionGoalResponseDto.from);
   }
 
@@ -28,8 +29,10 @@ export class NutritionControllerService {
     );
   }
 
-  public async preview(): Promise<NutritionTargetsResponseDto> {
-    return this.nutritionGoalService.preview();
+  public async preview({
+    caloriesKcal,
+  }: PreviewNutritionGoalQueryDto): Promise<NutritionTargetsResponseDto> {
+    return this.nutritionGoalService.preview(caloriesKcal);
   }
 
   public async calculate(): Promise<NutritionGoalResponseDto> {

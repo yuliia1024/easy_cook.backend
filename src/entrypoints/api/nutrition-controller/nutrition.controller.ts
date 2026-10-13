@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { SetNutritionGoalDto } from './dto/nutrition-goal.dto';
+import { SortQueryDto } from '../dto/sort.dto';
+import { PreviewNutritionGoalQueryDto, SetNutritionGoalDto } from './dto/nutrition-goal.dto';
 import {
   NutritionGoalResponseDto,
   NutritionTargetsResponseDto,
@@ -13,10 +14,10 @@ import { NutritionControllerService } from './nutrition-controller.service';
 export class NutritionController {
   constructor(private readonly nutritionControllerService: NutritionControllerService) {}
 
-  /** Newest first. */
+  /** By `effectiveFrom`; `sortOrder` defaults to `desc` (newest first). */
   @Get()
-  async getHistory(): Promise<NutritionGoalResponseDto[]> {
-    return this.nutritionControllerService.getHistory();
+  async getHistory(@Query() query: SortQueryDto): Promise<NutritionGoalResponseDto[]> {
+    return this.nutritionControllerService.getHistory(query);
   }
 
   /** 404 until a goal is set. */
@@ -25,13 +26,22 @@ export class NutritionController {
     return this.nutritionControllerService.getCurrent();
   }
 
-  /** What `POST /calculate` would save for the current profile. */
+  /**
+   * What `POST /calculate` would save for the current profile. With `caloriesKcal`, splits those
+   * calories into macros for the profile instead (400 below the minimum for the profile sex).
+   */
   @Get('preview')
-  async preview(): Promise<NutritionTargetsResponseDto> {
-    return this.nutritionControllerService.preview();
+  async preview(
+    @Query() query: PreviewNutritionGoalQueryDto,
+  ): Promise<NutritionTargetsResponseDto> {
+    return this.nutritionControllerService.preview(query);
   }
 
-  /** Sets the targets by hand (`calculation_mode = manual`). */
+  /**
+   * Sets the targets by hand (`calculation_mode = manual`). 400 when the calories are below
+   * 1200 kcal for women or 1500 kcal for men, when protein, fat and carbs do not add up to the
+   * calories (±10 %) or leave the healthy ranges (protein 10-35 %, fat 20-35 %, carbs 45-65 %).
+   */
   @Post()
   async setManual(@Body() dto: SetNutritionGoalDto): Promise<NutritionGoalResponseDto> {
     return this.nutritionControllerService.setManual(dto);

@@ -1,9 +1,11 @@
 import { Prisma } from '../../../generated/prisma/client';
-import { FoodSource, FoodState } from '../../../common/constants';
+import { FoodSource, FoodState, SortOrder } from '../../../common/constants';
 import {
   FoodItemNotFoundException,
   FoodItemSourceConflictException,
   FoodItemsNotFoundBadRequestException,
+  FoodKcalMismatchBadRequestException,
+  FoodStateInUseConflictException,
   MacrosExceedWeightBadRequestException,
 } from '../../../common/exceptions';
 import { createMock } from '../../../test/create-mock';
@@ -30,7 +32,7 @@ describe('FoodItemService', () => {
   });
 
   it('getPage trims the search', async () => {
-    const page = { page: 1, limit: 20 };
+    const page = { page: 1, limit: 20, sortOrder: SortOrder.Asc };
 
     await service.getPage({ search: '  rice ', state: FoodState.Raw }, page);
 
@@ -55,26 +57,33 @@ describe('FoodItemService', () => {
     });
   });
 
-  describe('assertExist', () => {
-    it('passes when every id exists (duplicates allowed)', async () => {
-      repository.findExistingIds.mockResolvedValue(['a', 'b']);
+  describe('getByIds', () => {
+    it('returns the foods by id (duplicates allowed)', async () => {
+      const a = buildFoodItem({ id: 'a' });
+      const b = buildFoodItem({ id: 'b' });
+      repository.findByIds.mockResolvedValue([a, b]);
 
-      await expect(service.assertExist(['a', 'b', 'a'])).resolves.toBeUndefined();
-      expect(repository.findExistingIds).toHaveBeenCalledWith(['a', 'b']);
+      const foods = await service.getByIds(['a', 'b', 'a']);
+
+      expect([...foods.entries()]).toEqual([
+        ['a', a],
+        ['b', b],
+      ]);
+      expect(repository.findByIds).toHaveBeenCalledWith(['a', 'b']);
     });
 
     it('lists the missing ids', async () => {
-      repository.findExistingIds.mockResolvedValue(['a']);
+      repository.findByIds.mockResolvedValue([buildFoodItem({ id: 'a' })]);
 
-      await expect(service.assertExist(['a', 'b', 'c'])).rejects.toThrow(
+      await expect(service.getByIds(['a', 'b', 'c'])).rejects.toThrow(
         new FoodItemsNotFoundBadRequestException(['b', 'c']),
       );
     });
 
     it('does not query for an empty list', async () => {
-      await service.assertExist([]);
+      await expect(service.getByIds([])).resolves.toEqual(new Map());
 
-      expect(repository.findExistingIds).not.toHaveBeenCalled();
+      expect(repository.findByIds).not.toHaveBeenCalled();
     });
   });
 
@@ -95,6 +104,30 @@ describe('FoodItemService', () => {
       await expect(
         service.create({ ...data, proteinG: 50, fatG: 40, carbsG: 20 }),
       ).rejects.toBeInstanceOf(MacrosExceedWeightBadRequestException);
+    });
+
+    it.each([
+      // 4*10 + 9*10 + 4*10 = 170 kcal; 25 % = 42.5 kcal
+      ['too high', 220],
+      ['too low', 120],
+    ])('rejects kcal %s for the macros', async (_case, kcalPer100g) => {
+      await expect(
+        service.create({ ...data, kcalPer100g, proteinG: 10, fatG: 10, carbsG: 10 }),
+      ).rejects.toThrow(new FoodKcalMismatchBadRequestException(kcalPer100g, 170));
+      expect(repository.create).not.toHaveBeenCalled();
+    });
+
+    it('allows at least 20 kcal of difference for lean foods', async () => {
+      // cucumber-like: 4*0.7 + 9*0.1 + 4*3.6 = 18.1 kcal
+      await service.create({ ...data, kcalPer100g: 36, proteinG: 0.7, fatG: 0.1, carbsG: 3.6 });
+
+      expect(repository.create).toHaveBeenCalled();
+    });
+
+    it('skips the kcal check while a value is unknown', async () => {
+      await service.create({ ...data, kcalPer100g: 900, fatG: null });
+
+      expect(repository.create).toHaveBeenCalled();
     });
 
     it('rejects a taken source id', async () => {
@@ -140,6 +173,54 @@ describe('FoodItemService', () => {
       await service.update(FOOD_ID, { proteinG: null, fatG: 50 });
 
       expect(repository.update).toHaveBeenCalled();
+    });
+
+    it('checks the kcal merged with the stored macros', async () => {
+      // stored rice: 2.7 / 0.3 / 28.2 g -> 126.3 kcal
+      await expect(service.update(FOOD_ID, { kcalPer100g: 300 })).rejects.toBeInstanceOf(
+        FoodKcalMismatchBadRequestException,
+      );
+    });
+
+    it('lets a stored row that fails the kcal check be renamed', async () => {
+      repository.findById.mockResolvedValue(
+        buildFoodItem({ kcalPer100g: new Prisma.Decimal(500) }),
+      );
+
+      // The web form sends the unchanged nutrients along with the name.
+      await service.update(FOOD_ID, {
+        name: 'Renamed',
+        kcalPer100g: 500,
+        proteinG: 2.7,
+        fatG: 0.3,
+        carbsG: 28.2,
+      });
+
+      expect(repository.update).toHaveBeenCalled();
+    });
+
+    it('rejects a state change of a food used in recipes', async () => {
+      repository.isUsedInRecipes.mockResolvedValue(true);
+
+      await expect(service.update(FOOD_ID, { state: FoodState.Raw })).rejects.toBeInstanceOf(
+        FoodStateInUseConflictException,
+      );
+      expect(repository.isUsedInRecipes).toHaveBeenCalledWith(FOOD_ID);
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    it('changes the state of an unused food', async () => {
+      repository.isUsedInRecipes.mockResolvedValue(false);
+
+      await service.update(FOOD_ID, { state: FoodState.Raw });
+
+      expect(repository.update).toHaveBeenCalledWith(FOOD_ID, { state: FoodState.Raw });
+    });
+
+    it('does not look for recipes when the state stays', async () => {
+      await service.update(FOOD_ID, { state: FoodState.Boiled });
+
+      expect(repository.isUsedInRecipes).not.toHaveBeenCalled();
     });
 
     it('checks a changed source id', async () => {

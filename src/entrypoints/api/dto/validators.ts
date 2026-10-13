@@ -2,6 +2,13 @@ import { applyDecorators } from '@nestjs/common';
 import { Transform } from 'class-transformer';
 import { IsNumber, IsOptional, Max, Min, ValidateIf } from 'class-validator';
 
+/**
+ * Optional, but `null` is validated (and rejected) instead of skipped like with `IsOptional`:
+ * for NOT NULL columns, where a `null` would otherwise reach the database.
+ */
+export const IsOptionalNotNull = (): PropertyDecorator =>
+  ValidateIf((_, value) => value !== undefined);
+
 /** Trims strings, leaves anything else for the validators to reject. */
 export const Trim = (): PropertyDecorator =>
   Transform(({ value }) => (typeof value === 'string' ? value.trim() : value));

@@ -1,26 +1,46 @@
+import { Type } from 'class-transformer';
 import {
   IsBooleanString,
   IsIn,
-  IsNumberString,
+  IsInt,
   IsOptional,
   IsString,
   Matches,
+  Max,
+  Min,
+  ValidateIf,
 } from 'class-validator';
 import { Environments } from '../common/types';
+
+/** `https://a.com, http://localhost:5173`: comma separated http(s) origins. */
+const ORIGIN_LIST = /^https?:\/\/[^\s,]+(\s*,\s*https?:\/\/[^\s,]+)*$/;
 
 /**
  * Every environment variable the application reads. Validated once on start-up by
  * `ConfigService`, so a missing value fails the boot instead of the first request.
  */
 export class Configs {
-  @IsNumberString()
-  PORT: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  PORT: number;
 
   @IsIn(Object.values(Environments))
   ENV: Environments;
 
-  @IsOptional()
+  /** `*` (or unset) allows any origin, which production does not accept. */
+  @ValidateIf(
+    (configs: Configs) =>
+      configs.ENV === Environments.PRODUCTION ||
+      (configs.CORS_ORIGINS !== undefined &&
+        configs.CORS_ORIGINS !== '' &&
+        configs.CORS_ORIGINS !== '*'),
+  )
   @IsString()
+  @Matches(ORIGIN_LIST, {
+    message: 'CORS_ORIGINS must be comma separated http(s) origins ("*" only outside production)',
+  })
   CORS_ORIGINS?: string;
 
   @IsOptional()

@@ -48,6 +48,7 @@ describe('/api/foods (e2e)', () => {
       ['negative values', { kcalPer100g: -1 }],
       ['an unknown state', { state: 'grilled' }],
       ['unknown fields', { color: 'white' }],
+      ['a source (always manual)', { source: 'usda_fdc' }],
     ])('rejects %s with 400', async (_case, patch) => {
       await http()
         .post('/api/foods')
@@ -64,11 +65,23 @@ describe('/api/foods (e2e)', () => {
       expect(body.message).toContain('cannot exceed 100 g');
     });
 
-    it('keeps source + source id unique', async () => {
-      const usda = { ...riceDry, source: 'usda_fdc', sourceId: '168877' };
-      await http().post('/api/foods').send(usda).expect(201);
+    it('rejects kcal that do not match the macros', async () => {
+      // 4/9/4 estimate of the dry rice: 354 kcal
+      const { body } = await http()
+        .post('/api/foods')
+        .send({ ...riceDry, kcalPer100g: 130 })
+        .expect(400);
 
-      await http().post('/api/foods').send(usda).expect(409);
+      expect(body.message).toBe(
+        '130 kcal does not match protein, fat and carbs (≈ 354 kcal by 4/9/4)',
+      );
+    });
+
+    it('keeps source + source id unique', async () => {
+      const withId = { ...riceDry, sourceId: 'my-rice' };
+      await http().post('/api/foods').send(withId).expect(201);
+
+      await http().post('/api/foods').send(withId).expect(409);
     });
   });
 
@@ -90,7 +103,12 @@ describe('/api/foods (e2e)', () => {
         .expect(201);
       await http()
         .post('/api/foods')
-        .send({ name: 'Buckwheat, dry', nameEn: 'Buckwheat groats, roasted', state: 'dried', kcalPer100g: 343 })
+        .send({
+          name: 'Buckwheat, dry',
+          nameEn: 'Buckwheat groats, roasted',
+          state: 'dried',
+          kcalPer100g: 343,
+        })
         .expect(201);
     });
 
@@ -113,6 +131,20 @@ describe('/api/foods (e2e)', () => {
       const { body } = await http().get('/api/foods').query({ state: 'boiled' }).expect(200);
 
       expect(body.items.map((f: { name: string }) => f.name)).toEqual(['White rice, boiled']);
+    });
+
+    it('sorts by name in the requested order', async () => {
+      const { body } = await http().get('/api/foods').query({ sortOrder: 'desc' }).expect(200);
+
+      expect(body.items.map((f: { name: string }) => f.name)).toEqual([
+        'White rice, dry',
+        'White rice, boiled',
+        'Buckwheat, dry',
+      ]);
+    });
+
+    it('rejects an unknown sort order', async () => {
+      await http().get('/api/foods').query({ sortOrder: 'up' }).expect(400);
     });
 
     it('rejects a page size over the limit', async () => {
@@ -141,10 +173,31 @@ describe('/api/foods (e2e)', () => {
       expect(body).toMatchObject({ name: 'Basmati rice', fatG: null, kcalPer100g: 365 });
     });
 
-    it('checks the macros against the stored values', async () => {
+    it('checks the macros and kcal against the stored values', async () => {
       const { body: food } = await http().post('/api/foods').send(riceDry).expect(201);
 
       await http().patch(`/api/foods/${food.id}`).send({ proteinG: 25 }).expect(400);
+      await http().patch(`/api/foods/${food.id}`).send({ kcalPer100g: 600 }).expect(400);
+    });
+
+    it.each(['name', 'state'])('rejects null for %s with 400', async (field) => {
+      const { body: food } = await http().post('/api/foods').send(riceDry).expect(201);
+
+      await http()
+        .patch(`/api/foods/${food.id}`)
+        .send({ [field]: null })
+        .expect(400);
+    });
+
+    it('changes the state of a food no recipe uses', async () => {
+      const { body: food } = await http().post('/api/foods').send(riceDry).expect(201);
+
+      const { body } = await http()
+        .patch(`/api/foods/${food.id}`)
+        .send({ state: 'raw' })
+        .expect(200);
+
+      expect(body.state).toBe('raw');
     });
   });
 });

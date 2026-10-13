@@ -22,7 +22,10 @@ export class ProfileController {
     return this.profileControllerService.getOptions();
   }
 
-  /** Creates the profile, or replaces it completely. */
+  /**
+   * Creates the profile, or replaces it completely. 400 when weight and height give a BMI outside
+   * 12-70, or for `lose_weight` with a BMI below 18.5. `PATCH` checks the same on the result.
+   */
   @Put()
   async save(@Body() dto: SaveProfileDto): Promise<ProfileResponseDto> {
     return this.profileControllerService.save(dto);

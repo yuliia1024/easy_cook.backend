@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { UserProfile } from '../../../generated/prisma/client';
-import { ProfileNotFoundException } from '../../../common/exceptions';
+import { BMI_LIMITS, Goal, UNDERWEIGHT_BMI } from '../../../common/constants';
+import {
+  ImplausibleBmiBadRequestException,
+  ProfileNotFoundException,
+  WeightLossUnderweightBadRequestException,
+} from '../../../common/exceptions';
+import { toNumber } from '../../../common/utils';
 import {
   ProfileData,
   UserProfileRepository,
@@ -21,6 +27,7 @@ export class UserProfileService {
 
   /** Creates the profile on the first save, replaces its fields afterwards. */
   public async save(data: ProfileData): Promise<UserProfile> {
+    this.assertHealthy(data);
     const profile = await this.userProfileRepository.findCurrent();
 
     return profile
@@ -30,6 +37,27 @@ export class UserProfileService {
 
   public async update(data: Partial<ProfileData>): Promise<UserProfile> {
     const profile = await this.getCurrent();
+    this.assertHealthy({
+      heightCm: toNumber(profile.heightCm),
+      weightKg: toNumber(profile.weightKg),
+      goal: profile.goal,
+      ...data,
+    });
     return this.userProfileRepository.update(profile.id, data);
+  }
+
+  /** The BMI must be plausible, and an underweight profile cannot aim to lose weight. */
+  private assertHealthy({
+    heightCm,
+    weightKg,
+    goal,
+  }: Pick<ProfileData, 'heightCm' | 'weightKg' | 'goal'>): void {
+    const bmi = weightKg / (heightCm / 100) ** 2;
+    if (bmi < BMI_LIMITS.min || bmi > BMI_LIMITS.max) {
+      throw new ImplausibleBmiBadRequestException(bmi);
+    }
+    if (goal === Goal.LoseWeight && bmi < UNDERWEIGHT_BMI) {
+      throw new WeightLossUnderweightBadRequestException(UNDERWEIGHT_BMI);
+    }
   }
 }

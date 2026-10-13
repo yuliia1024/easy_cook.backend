@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
+import { SortOrder } from '../../../common/constants';
 
 export const MENU_INCLUDE = {
   versions: {
-    orderBy: { versionNumber: 'desc' },
+    orderBy: { versionNumber: SortOrder.Desc },
     include: {
       days: {
-        orderBy: { dayIndex: 'asc' },
-        include: { meals: { orderBy: { position: 'asc' } } },
+        orderBy: { dayIndex: SortOrder.Asc },
+        include: { meals: { orderBy: { position: SortOrder.Asc } } },
       },
     },
   },
@@ -28,7 +29,7 @@ export class MenuRepository {
     return this.prisma.menu.findMany({
       where: { profileId },
       include: { _count: { select: { versions: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: SortOrder.Desc },
     });
   }
 

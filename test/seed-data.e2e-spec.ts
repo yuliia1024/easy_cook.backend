@@ -4,6 +4,7 @@ import { loadSeedData } from '../scripts/lib/seed-data';
 import { upsertSeedFoods, upsertSeedRecipes } from '../scripts/lib/seed-db';
 import { verifyData } from '../scripts/lib/verify-data';
 import { createTestApp, resetDatabase, TestApp } from './test-app';
+import { SortOrder } from '../src/common/constants';
 
 /** `npm run db:seed` on an empty database, twice, then `data:verify` and the API. */
 describe('seed data (e2e)', () => {
@@ -19,11 +20,11 @@ describe('seed data (e2e)', () => {
   const snapshot = async () => ({
     foods: await ctx.prisma.foodItem.findMany({
       select: { id: true, source: true, sourceId: true },
-      orderBy: { id: 'asc' },
+      orderBy: { id: SortOrder.Asc },
     }),
     recipes: await ctx.prisma.recipe.findMany({
       select: { id: true, source: true, sourceId: true },
-      orderBy: { id: 'asc' },
+      orderBy: { id: SortOrder.Asc },
     }),
     ingredients: await ctx.prisma.recipeIngredient.count(),
   });

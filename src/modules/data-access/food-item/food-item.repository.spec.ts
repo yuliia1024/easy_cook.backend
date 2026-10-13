@@ -1,6 +1,7 @@
 import { buildFoodItem, FOOD_ID } from '../../../test/fixtures';
 import { createPrismaMock, PrismaMock } from '../../../test/prisma-mock';
 import { FoodItemRepository } from './food-item.repository';
+import { QueryMode, SortOrder } from '../../../common/constants';
 
 describe('FoodItemRepository', () => {
   let prisma: PrismaMock;
@@ -17,14 +18,16 @@ describe('FoodItemRepository', () => {
       prisma.foodItem.count.mockResolvedValue(41 as never);
       prisma.foodItem.findMany.mockResolvedValue([food]);
 
-      await expect(repository.findPage({}, { page: 3, limit: 20 })).resolves.toEqual({
+      await expect(
+        repository.findPage({}, { page: 3, limit: 20, sortOrder: SortOrder.Asc }),
+      ).resolves.toEqual({
         items: [food],
         total: 41,
       });
       expect(prisma.$transaction).toHaveBeenCalled();
       expect(prisma.foodItem.findMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        orderBy: [{ name: SortOrder.Asc }, { id: SortOrder.Asc }],
         skip: 40,
         take: 20,
       });
@@ -33,19 +36,27 @@ describe('FoodItemRepository', () => {
     it('searches both names case-insensitively and filters by state and source', async () => {
       await repository.findPage(
         { search: 'rice', state: 'boiled', source: 'seed' },
-        { page: 1, limit: 10 },
+        { page: 1, limit: 10, sortOrder: SortOrder.Asc },
       );
 
       const where = {
         OR: [
-          { name: { contains: 'rice', mode: 'insensitive' } },
-          { nameEn: { contains: 'rice', mode: 'insensitive' } },
+          { name: { contains: 'rice', mode: QueryMode.Insensitive } },
+          { nameEn: { contains: 'rice', mode: QueryMode.Insensitive } },
         ],
         state: 'boiled',
         source: 'seed',
       };
       expect(prisma.foodItem.count).toHaveBeenCalledWith({ where });
       expect(prisma.foodItem.findMany).toHaveBeenCalledWith(expect.objectContaining({ where }));
+    });
+
+    it('sorts by name and id in the requested order', async () => {
+      await repository.findPage({}, { page: 1, limit: 20, sortOrder: SortOrder.Desc });
+
+      expect(prisma.foodItem.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: [{ name: SortOrder.Desc }, { id: SortOrder.Desc }] }),
+      );
     });
   });
 
@@ -55,13 +66,25 @@ describe('FoodItemRepository', () => {
     expect(prisma.foodItem.findUnique).toHaveBeenCalledWith({ where: { id: FOOD_ID } });
   });
 
-  it('returns the ids that exist', async () => {
-    prisma.foodItem.findMany.mockResolvedValue([{ id: 'a' }] as never);
+  it('returns the foods that exist', async () => {
+    const food = buildFoodItem();
+    prisma.foodItem.findMany.mockResolvedValue([food]);
 
-    await expect(repository.findExistingIds(['a', 'b'])).resolves.toEqual(['a']);
+    await expect(repository.findByIds([FOOD_ID, 'b'])).resolves.toEqual([food]);
     expect(prisma.foodItem.findMany).toHaveBeenCalledWith({
-      where: { id: { in: ['a', 'b'] } },
-      select: { id: true },
+      where: { id: { in: [FOOD_ID, 'b'] } },
+    });
+  });
+
+  it.each([
+    [2, true],
+    [0, false],
+  ])('with %i recipe ingredients tells if the food is used: %p', async (count, used) => {
+    prisma.recipeIngredient.count.mockResolvedValue(count as never);
+
+    await expect(repository.isUsedInRecipes(FOOD_ID)).resolves.toBe(used);
+    expect(prisma.recipeIngredient.count).toHaveBeenCalledWith({
+      where: { foodItemId: FOOD_ID },
     });
   });
 

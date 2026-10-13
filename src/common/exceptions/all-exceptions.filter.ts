@@ -7,7 +7,18 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { Prisma } from '../../generated/prisma/client';
 import { AppError } from './app-error';
+
+/**
+ * Constraint violations the services check up front but can still hit in a race (two requests
+ * creating the same row, a row deleted between the check and the write).
+ */
+const PRISMA_ERRORS: Record<string, { status: HttpStatus; message: string }> = {
+  P2002: { status: HttpStatus.CONFLICT, message: 'This record already exists' },
+  P2003: { status: HttpStatus.CONFLICT, message: 'A related record is missing or still in use' },
+  P2025: { status: HttpStatus.NOT_FOUND, message: 'The record no longer exists' },
+};
 
 interface ErrorBody {
   statusCode: number;
@@ -19,8 +30,9 @@ interface ErrorBody {
 
 /**
  * Single place that turns any thrown value into a response. `AppError`s carry their own status,
- * Nest `HttpException`s (validation pipe, throttler) keep theirs, everything else is a 500 that
- * is logged with its stack and never leaks details to the client.
+ * Nest `HttpException`s (validation pipe, throttler) keep theirs, known Prisma constraint errors
+ * become 404/409, everything else is a 500 that is logged with its stack and never leaks details
+ * to the client.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -65,6 +77,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? (res as { message: string | string[] }).message
           : exception.message;
       return { status: exception.getStatus(), message };
+    }
+
+    if (
+      exception instanceof Prisma.PrismaClientKnownRequestError &&
+      exception.code in PRISMA_ERRORS
+    ) {
+      return PRISMA_ERRORS[exception.code];
     }
 
     return { status: HttpStatus.INTERNAL_SERVER_ERROR, message: 'Internal server error' };

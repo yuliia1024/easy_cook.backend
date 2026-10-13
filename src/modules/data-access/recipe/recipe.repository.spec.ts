@@ -1,6 +1,7 @@
 import { buildRecipe, FOOD_ID, RECIPE_ID } from '../../../test/fixtures';
 import { createPrismaMock, PrismaMock } from '../../../test/prisma-mock';
 import { RECIPE_INCLUDE, RecipeRepository } from './recipe.repository';
+import { QueryMode, SortOrder } from '../../../common/constants';
 
 describe('RecipeRepository', () => {
   let prisma: PrismaMock;
@@ -25,7 +26,7 @@ describe('RecipeRepository', () => {
   it('orders ingredients by position and loads their food', () => {
     expect(RECIPE_INCLUDE.ingredients).toEqual({
       include: { foodItem: true },
-      orderBy: [{ position: 'asc' }, { id: 'asc' }],
+      orderBy: [{ position: SortOrder.Asc }, { id: SortOrder.Asc }],
     });
   });
 
@@ -35,14 +36,16 @@ describe('RecipeRepository', () => {
       prisma.recipe.count.mockResolvedValue(3 as never);
       prisma.recipe.findMany.mockResolvedValue([recipe]);
 
-      await expect(repository.findPage({}, { page: 2, limit: 2 })).resolves.toEqual({
+      await expect(
+        repository.findPage({}, { page: 2, limit: 2, sortOrder: SortOrder.Asc }),
+      ).resolves.toEqual({
         items: [recipe],
         total: 3,
       });
       expect(prisma.recipe.findMany).toHaveBeenCalledWith({
         where: {},
         include: RECIPE_INCLUDE,
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        orderBy: [{ name: SortOrder.Asc }, { id: SortOrder.Asc }],
         skip: 2,
         take: 2,
       });
@@ -51,12 +54,12 @@ describe('RecipeRepository', () => {
     it('filters by name, meal type and every given diet tag', async () => {
       await repository.findPage(
         { search: 'soup', mealType: 'lunch', dietTypes: ['vegan', 'gluten_free'] },
-        { page: 1, limit: 20 },
+        { page: 1, limit: 20, sortOrder: SortOrder.Asc },
       );
 
       expect(prisma.recipe.count).toHaveBeenCalledWith({
         where: {
-          name: { contains: 'soup', mode: 'insensitive' },
+          name: { contains: 'soup', mode: QueryMode.Insensitive },
           mealType: 'lunch',
           dietType: { hasEvery: ['vegan', 'gluten_free'] },
         },
@@ -64,9 +67,20 @@ describe('RecipeRepository', () => {
     });
 
     it('ignores an empty diet tag list', async () => {
-      await repository.findPage({ dietTypes: [] }, { page: 1, limit: 20 });
+      await repository.findPage(
+        { dietTypes: [] },
+        { page: 1, limit: 20, sortOrder: SortOrder.Asc },
+      );
 
       expect(prisma.recipe.count).toHaveBeenCalledWith({ where: {} });
+    });
+
+    it('sorts by name and id in the requested order', async () => {
+      await repository.findPage({}, { page: 1, limit: 20, sortOrder: SortOrder.Desc });
+
+      expect(prisma.recipe.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: [{ name: SortOrder.Desc }, { id: SortOrder.Desc }] }),
+      );
     });
   });
 

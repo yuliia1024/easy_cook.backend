@@ -56,6 +56,13 @@ describe('profile DTOs', () => {
     expect(await errorsOf(UpdateProfileDto, { goal: 'bulk' })).toEqual(['goal']);
   });
 
+  it.each(['age', 'heightCm', 'weightKg', 'sex', 'activityLevel', 'goal'])(
+    'UpdateProfileDto rejects null for %s',
+    async (property) => {
+      expect(await errorsOf(UpdateProfileDto, { [property]: null })).toEqual([property]);
+    },
+  );
+
   it('ProfileResponseDto turns decimals into numbers', () => {
     const profile = buildProfile();
 

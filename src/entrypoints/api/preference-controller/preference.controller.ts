@@ -25,7 +25,10 @@ export class PreferenceController {
     return this.preferenceControllerService.getAll();
   }
 
-  /** 409 for a duplicate, 400 for an unknown diet. */
+  /**
+   * 409 for a duplicate; 400 for an unknown diet, a diet that conflicts with a saved one
+   * (pescatarian with vegetarian or vegan) or more than 50 preferences.
+   */
   @Post()
   async add(@Body() dto: CreatePreferenceDto): Promise<PreferenceResponseDto> {
     return this.preferenceControllerService.add(dto);

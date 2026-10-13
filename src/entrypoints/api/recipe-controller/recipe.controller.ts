@@ -30,7 +30,7 @@ import { RecipeControllerService } from './recipe-controller.service';
 export class RecipeController {
   constructor(private readonly recipeControllerService: RecipeControllerService) {}
 
-  /** Paged, sorted by name. Filters combine with AND. */
+  /** Paged, sorted by name (`sortOrder`, default `asc`). Filters combine with AND. */
   @Get()
   async getPage(@Query() query: RecipeQueryDto): Promise<PageResponseDto<RecipeResponseDto>> {
     return this.recipeControllerService.getPage(query);
@@ -53,7 +53,10 @@ export class RecipeController {
     return this.recipeControllerService.getNutrition(id, query);
   }
 
-  /** 400 when an ingredient points to a food that does not exist. */
+  /**
+   * Always `source = manual`. 400 when an ingredient points to a food that does not exist, or one
+   * serving (optional ingredients included) weighs over 2000 g or has over 2500 kcal.
+   */
   @Post()
   async create(@Body() dto: CreateRecipeDto): Promise<RecipeResponseDto> {
     return this.recipeControllerService.create(dto);
@@ -74,7 +77,7 @@ export class RecipeController {
     return this.recipeControllerService.delete(id);
   }
 
-  /** Appends an ingredient; returns the recipe. */
+  /** Appends an ingredient (at most 100, same serving limits); returns the recipe. */
   @Post(':id/ingredients')
   async addIngredient(
     @Param('id', ParseUUIDPipe) id: string,

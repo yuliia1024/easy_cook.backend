@@ -109,10 +109,66 @@ describe('/api/recipes (e2e)', () => {
       ],
       ['an unknown diet tag', { dietType: ['paleo'] }],
       ['an unknown meal type', { mealType: 'brunch' }],
+      ['null diet tags', { dietType: null }],
+      ['a source (always manual)', { source: 'llm' }],
     ])('rejects %s', async (_case, patch) => {
       await http()
         .post('/api/recipes')
         .send({ ...recipeDto(), ...patch })
+        .expect(400);
+    });
+  });
+
+  describe('serving limits', () => {
+    it('rejects a serving heavier than 2 kg', async () => {
+      const { body } = await http()
+        .post('/api/recipes')
+        .send({
+          ...recipeDto(),
+          servings: 1,
+          ingredients: [{ foodItemId: food.chicken, quantityG: 2500 }],
+        })
+        .expect(400);
+
+      expect(body.message).toBe('One serving would weigh 2500 g; at most 2000 g');
+    });
+
+    it('rejects a serving over 2500 kcal, optional ingredients included', async () => {
+      // 300 g of oil = 2652 kcal
+      const { body } = await http()
+        .post('/api/recipes')
+        .send({
+          ...recipeDto(),
+          servings: 1,
+          ingredients: [{ foodItemId: food.oil, quantityG: 300, isOptional: true }],
+        })
+        .expect(400);
+
+      expect(body.message).toBe('One serving would have 2652 kcal; at most 2500 kcal');
+    });
+
+    it('checks fewer servings and added ingredients against the stored recipe', async () => {
+      // 300 g chicken + 150 g rice + 25 g oil = 475 g, 2 servings
+      const recipe = await create();
+
+      await http()
+        .post(`/api/recipes/${recipe.id}/ingredients`)
+        .send({ foodItemId: food.oil, quantityG: 500 })
+        .expect(400);
+      await http()
+        .patch(`/api/recipes/${recipe.id}/ingredients/${recipe.ingredients[0].id}`)
+        .send({ quantityG: 4000 })
+        .expect(400);
+      await http().patch(`/api/recipes/${recipe.id}`).send({ servings: 1 }).expect(200);
+    });
+
+    it('rejects null for required fields in a patch', async () => {
+      const recipe = await create();
+
+      await http().patch(`/api/recipes/${recipe.id}`).send({ name: null }).expect(400);
+      await http()
+        .patch(`/api/recipes/${recipe.id}/ingredients/${recipe.ingredients[0].id}`)
+        .send({ quantityG: null })
         .expect(400);
     });
   });
@@ -144,6 +200,19 @@ describe('/api/recipes (e2e)', () => {
       expect(byMeal.body.total).toBe(2);
       expect(byTags.body.items.map((r: { name: string }) => r.name)).toEqual(['Vegetable soup']);
       expect(byCsv.body.total).toBe(1);
+    });
+
+    it('sorts by name, ascending by default', async () => {
+      const names = async (query: object): Promise<string[]> => {
+        const { body } = await http().get('/api/recipes').query(query).expect(200);
+        return body.items.map((r: { name: string }) => r.name);
+      };
+
+      const asc = await names({});
+
+      expect(asc).toEqual([...asc].sort());
+      expect(await names({ sortOrder: 'asc' })).toEqual(asc);
+      expect(await names({ sortOrder: 'desc' })).toEqual([...asc].reverse());
     });
 
     it('pages', async () => {
@@ -257,5 +326,16 @@ describe('/api/recipes (e2e)', () => {
     await create();
 
     await expect(ctx.prisma.foodItem.delete({ where: { id: food.chicken } })).rejects.toThrow();
+  });
+
+  it('keeps the state of a food that a recipe uses', async () => {
+    await create();
+
+    const { body } = await http()
+      .patch(`/api/foods/${food.rice}`)
+      .send({ state: 'boiled' })
+      .expect(409);
+    expect(body.message).toBe('The food is used in recipes; create a new food for another state');
+    await http().patch(`/api/foods/${food.rice}`).send({ name: 'Rice, white, dry' }).expect(200);
   });
 });

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UserProfile } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
+import { SortOrder } from '../../../common/constants';
 
 export interface ProfileData {
   age: number;
@@ -17,7 +18,7 @@ export class UserProfileRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   public async findCurrent(): Promise<UserProfile | null> {
-    return this.prisma.userProfile.findFirst({ orderBy: { createdAt: 'asc' } });
+    return this.prisma.userProfile.findFirst({ orderBy: { createdAt: SortOrder.Asc } });
   }
 
   public async create(data: ProfileData): Promise<UserProfile> {

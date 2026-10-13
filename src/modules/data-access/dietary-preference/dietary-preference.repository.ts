@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DietaryPreference } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
+import { SortOrder } from '../../../common/constants';
 
 export interface DietaryPreferenceData {
   preferenceType: string;
@@ -14,7 +15,7 @@ export class DietaryPreferenceRepository {
   public async findAll(profileId: string): Promise<DietaryPreference[]> {
     return this.prisma.dietaryPreference.findMany({
       where: { profileId },
-      orderBy: [{ preferenceType: 'asc' }, { value: 'asc' }],
+      orderBy: [{ preferenceType: SortOrder.Asc }, { value: SortOrder.Asc }],
     });
   }
 

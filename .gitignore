@@ -14,3 +14,5 @@ data/processed/*
 
 # Prisma client, generated on `npm install`
 src/generated
+.vscode/launch.json
+/docs/features.md

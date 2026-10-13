@@ -1,4 +1,4 @@
-import { FoodState } from '../../../common/constants';
+import { FoodState, SortOrder } from '../../../common/constants';
 import { FoodItemService } from '../../../modules/services/food-item/food-item.service';
 import { createMock } from '../../../test/create-mock';
 import { buildFoodItem, FOOD_ID } from '../../../test/fixtures';
@@ -29,7 +29,18 @@ describe('FoodControllerService', () => {
     });
     expect(foodService.getPage).toHaveBeenCalledWith(
       { search: 'rice', state: FoodState.Boiled, source: undefined },
-      { page: 1, limit: 10 },
+      { page: 1, limit: 10, sortOrder: SortOrder.Asc },
+    );
+  });
+
+  it('passes the requested sort order', async () => {
+    foodService.getPage.mockResolvedValue({ items: [], total: 0 });
+
+    await service.getPage({ sortOrder: SortOrder.Desc });
+
+    expect(foodService.getPage).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ sortOrder: SortOrder.Desc }),
     );
   });
 

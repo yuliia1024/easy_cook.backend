@@ -1,6 +1,7 @@
 import { MENU_ID, PROFILE_ID } from '../../../test/fixtures';
 import { createPrismaMock, PrismaMock } from '../../../test/prisma-mock';
 import { MENU_INCLUDE, MenuRepository } from './menu.repository';
+import { SortOrder } from '../../../common/constants';
 
 describe('MenuRepository', () => {
   let prisma: PrismaMock;
@@ -17,7 +18,7 @@ describe('MenuRepository', () => {
     expect(prisma.menu.findMany).toHaveBeenCalledWith({
       where: { profileId: PROFILE_ID },
       include: { _count: { select: { versions: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: SortOrder.Desc },
     });
   });
 

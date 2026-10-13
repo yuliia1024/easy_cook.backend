@@ -2,11 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import { Page, PageQuery } from '../../../common/types';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
+import { QueryMode, SortOrder } from '../../../common/constants';
 
 export const RECIPE_INCLUDE = {
   ingredients: {
     include: { foodItem: true },
-    orderBy: [{ position: 'asc' }, { id: 'asc' }],
+    orderBy: [{ position: SortOrder.Asc }, { id: SortOrder.Asc }],
   },
 } satisfies Prisma.RecipeInclude;
 
@@ -46,7 +47,7 @@ export class RecipeRepository {
 
   public async findPage(
     filter: RecipeFilter,
-    { page, limit }: PageQuery,
+    { page, limit, sortOrder }: PageQuery,
   ): Promise<Page<RecipeWithIngredients>> {
     const where = this.where(filter);
     const [total, items] = await this.prisma.$transaction([
@@ -54,7 +55,7 @@ export class RecipeRepository {
       this.prisma.recipe.findMany({
         where,
         include: RECIPE_INCLUDE,
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        orderBy: [{ name: sortOrder }, { id: sortOrder }],
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -121,7 +122,7 @@ export class RecipeRepository {
 
   private where({ search, mealType, dietTypes }: RecipeFilter): Prisma.RecipeWhereInput {
     return {
-      ...(search && { name: { contains: search, mode: 'insensitive' } }),
+      ...(search && { name: { contains: search, mode: QueryMode.Insensitive } }),
       ...(mealType && { mealType }),
       ...(dietTypes?.length && { dietType: { hasEvery: dietTypes } }),
     };

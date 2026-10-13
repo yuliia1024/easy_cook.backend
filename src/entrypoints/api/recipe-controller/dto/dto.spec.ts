@@ -43,6 +43,8 @@ describe('recipe DTOs', () => {
       [{ quantityG: 1.234 }, 'quantityG'],
       [{ quantityG: '100' }, 'quantityG'],
       [{ isOptional: 'yes' }, 'isOptional'],
+      [{ quantityG: 10_000.01 }, 'quantityG'],
+      [{ isOptional: null }, 'isOptional'],
       [{ notes: 'x'.repeat(501) }, 'notes'],
     ])('rejects %p', async (patch, property) => {
       expect(await errorsOf(RecipeIngredientDto, { ...ingredient, ...patch })).toEqual([property]);
@@ -50,8 +52,16 @@ describe('recipe DTOs', () => {
 
     it('UpdateRecipeIngredientDto accepts any subset', async () => {
       expect(await errorsOf(UpdateRecipeIngredientDto, { quantityG: 10 })).toEqual([]);
+      expect(await errorsOf(UpdateRecipeIngredientDto, { notes: null })).toEqual([]);
       expect(await errorsOf(UpdateRecipeIngredientDto, { quantityG: 0 })).toEqual(['quantityG']);
     });
+
+    it.each(['foodItemId', 'quantityG', 'isOptional'])(
+      'UpdateRecipeIngredientDto rejects null for %s',
+      async (property) => {
+        expect(await errorsOf(UpdateRecipeIngredientDto, { [property]: null })).toEqual([property]);
+      },
+    );
   });
 
   describe('CreateRecipeDto', () => {
@@ -76,8 +86,11 @@ describe('recipe DTOs', () => {
       [{ servings: 0 }, 'servings'],
       [{ servings: 1.5 }, 'servings'],
       [{ prepTimeMinutes: -1 }, 'prepTimeMinutes'],
-      [{ source: 'blog' }, 'source'],
+      [{ dietType: null }, 'dietType'],
+      [{ description: 'x'.repeat(2001) }, 'description'],
+      [{ instructions: 'x'.repeat(10_001) }, 'instructions'],
       [{ ingredients: [] }, 'ingredients'],
+      [{ ingredients: Array.from({ length: 101 }, () => ingredient) }, 'ingredients'],
     ])('rejects %p', async (patch, property) => {
       expect(await errorsOf(CreateRecipeDto, { ...valid, ...patch })).toEqual([property]);
     });
@@ -92,9 +105,24 @@ describe('recipe DTOs', () => {
     });
   });
 
-  it('UpdateRecipeDto validates only the given fields', async () => {
-    expect(await errorsOf(UpdateRecipeDto, { servings: 2 })).toEqual([]);
-    expect(await errorsOf(UpdateRecipeDto, { ingredients: [] })).toEqual(['ingredients']);
+  describe('UpdateRecipeDto', () => {
+    it('validates only the given fields', async () => {
+      expect(await errorsOf(UpdateRecipeDto, { servings: 2 })).toEqual([]);
+      expect(await errorsOf(UpdateRecipeDto, { ingredients: [] })).toEqual(['ingredients']);
+    });
+
+    it('accepts null for the nullable fields', async () => {
+      expect(await errorsOf(UpdateRecipeDto, { description: null, prepTimeMinutes: null })).toEqual(
+        [],
+      );
+    });
+
+    it.each(['name', 'instructions', 'mealType', 'dietType', 'servings', 'ingredients'])(
+      'rejects null for %s',
+      async (property) => {
+        expect(await errorsOf(UpdateRecipeDto, { [property]: null })).toEqual([property]);
+      },
+    );
   });
 
   describe('RecipeQueryDto', () => {

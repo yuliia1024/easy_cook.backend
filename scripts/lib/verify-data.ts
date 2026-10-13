@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from '../../src/generated/prisma/client';
-import { RecipeSource } from '../../src/common/constants';
+import { RecipeSource, SortOrder } from '../../src/common/constants';
 import { NutritionService } from '../../src/modules/services/nutrition/nutrition.service';
 import { compareNutrition, ControlRecipe } from './control-recipes';
 
@@ -115,7 +115,9 @@ export async function checkControlRecipes(
     const name = `control ${control.slug}`;
     const recipe = await prisma.recipe.findUnique({
       where: { source_sourceId: { source: RecipeSource.Seed, sourceId: control.slug } },
-      include: { ingredients: { include: { foodItem: true }, orderBy: { position: 'asc' } } },
+      include: {
+        ingredients: { include: { foodItem: true }, orderBy: { position: SortOrder.Asc } },
+      },
     });
     if (!recipe) {
       results.push({ name, ok: false, detail: 'recipe not found (run npm run db:seed)' });
@@ -144,7 +146,7 @@ export async function summarize(prisma: PrismaClient): Promise<DataSummary> {
   const groups = await prisma.foodItem.groupBy({
     by: ['source'],
     _count: { _all: true },
-    orderBy: { source: 'asc' },
+    orderBy: [{ source: SortOrder.Asc }],
   });
   return {
     foodsBySource: Object.fromEntries(groups.map((g) => [g.source, g._count._all])),

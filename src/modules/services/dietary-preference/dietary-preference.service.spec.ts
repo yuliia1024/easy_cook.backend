@@ -1,7 +1,9 @@
 import { DietTag, PreferenceType } from '../../../common/constants';
 import {
+  ConflictingDietsBadRequestException,
   DietaryPreferenceExistsConflictException,
   DietaryPreferenceNotFoundException,
+  TooManyPreferencesBadRequestException,
   UnknownDietBadRequestException,
 } from '../../../common/exceptions';
 import { createMock } from '../../../test/create-mock';
@@ -18,6 +20,7 @@ describe('DietaryPreferenceService', () => {
   beforeEach(() => {
     repository = createMock<DietaryPreferenceRepository>();
     repository.findOne.mockResolvedValue(null);
+    repository.findAll.mockResolvedValue([]);
     profileService = createMock<UserProfileService>();
     profileService.getCurrent.mockResolvedValue(buildProfile());
     service = new DietaryPreferenceService(repository, profileService);
@@ -56,6 +59,39 @@ describe('DietaryPreferenceService', () => {
         service.add({ preferenceType: PreferenceType.Diet, value: 'carnivore' }),
       ).rejects.toBeInstanceOf(UnknownDietBadRequestException);
       expect(repository.create).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [DietTag.Pescatarian, DietTag.Vegan],
+      [DietTag.Vegetarian, DietTag.Pescatarian],
+    ])('rejects %s next to a saved %s diet', async (diet, saved) => {
+      repository.findAll.mockResolvedValue([
+        buildPreference({ preferenceType: PreferenceType.Diet, value: saved }),
+      ]);
+
+      await expect(
+        service.add({ preferenceType: PreferenceType.Diet, value: diet }),
+      ).rejects.toThrow(new ConflictingDietsBadRequestException(diet, saved));
+      expect(repository.create).not.toHaveBeenCalled();
+    });
+
+    it('combines compatible diets', async () => {
+      repository.findAll.mockResolvedValue([
+        buildPreference({ preferenceType: PreferenceType.Diet, value: DietTag.Vegan }),
+        buildPreference({ preferenceType: PreferenceType.Allergy, value: DietTag.Pescatarian }),
+      ]);
+
+      await service.add({ preferenceType: PreferenceType.Diet, value: DietTag.GlutenFree });
+
+      expect(repository.create).toHaveBeenCalled();
+    });
+
+    it('stops at 50 preferences', async () => {
+      repository.findAll.mockResolvedValue(Array.from({ length: 50 }, () => buildPreference()));
+
+      await expect(
+        service.add({ preferenceType: PreferenceType.Allergy, value: 'milk' }),
+      ).rejects.toBeInstanceOf(TooManyPreferencesBadRequestException);
     });
 
     it('rejects a duplicate', async () => {

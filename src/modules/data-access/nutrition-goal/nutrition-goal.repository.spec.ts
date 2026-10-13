@@ -1,6 +1,7 @@
 import { buildNutritionGoal, PROFILE_ID } from '../../../test/fixtures';
 import { createPrismaMock, PrismaMock } from '../../../test/prisma-mock';
 import { NutritionGoalRepository } from './nutrition-goal.repository';
+import { SortOrder } from '../../../common/constants';
 
 describe('NutritionGoalRepository', () => {
   let prisma: PrismaMock;
@@ -19,18 +20,21 @@ describe('NutritionGoalRepository', () => {
     await expect(repository.findCurrent(PROFILE_ID, at)).resolves.toBe(goal);
     expect(prisma.nutritionGoal.findFirst).toHaveBeenCalledWith({
       where: { profileId: PROFILE_ID, effectiveFrom: { lte: at } },
-      orderBy: { effectiveFrom: 'desc' },
+      orderBy: { effectiveFrom: SortOrder.Desc },
     });
   });
 
-  it('lists the history newest first', async () => {
-    await repository.findAll(PROFILE_ID);
+  it.each([SortOrder.Asc, SortOrder.Desc])(
+    'lists the history by effectiveFrom %s',
+    async (sortOrder) => {
+      await repository.findAll(PROFILE_ID, sortOrder);
 
-    expect(prisma.nutritionGoal.findMany).toHaveBeenCalledWith({
-      where: { profileId: PROFILE_ID },
-      orderBy: { effectiveFrom: 'desc' },
-    });
-  });
+      expect(prisma.nutritionGoal.findMany).toHaveBeenCalledWith({
+        where: { profileId: PROFILE_ID },
+        orderBy: { effectiveFrom: sortOrder },
+      });
+    },
+  );
 
   it('creates a goal for the profile', async () => {
     const data = {

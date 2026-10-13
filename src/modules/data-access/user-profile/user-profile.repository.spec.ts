@@ -1,6 +1,7 @@
 import { buildProfile, PROFILE_ID } from '../../../test/fixtures';
 import { createPrismaMock, PrismaMock } from '../../../test/prisma-mock';
 import { UserProfileRepository } from './user-profile.repository';
+import { SortOrder } from '../../../common/constants';
 
 describe('UserProfileRepository', () => {
   let prisma: PrismaMock;
@@ -24,7 +25,9 @@ describe('UserProfileRepository', () => {
     prisma.userProfile.findFirst.mockResolvedValue(profile);
 
     await expect(repository.findCurrent()).resolves.toBe(profile);
-    expect(prisma.userProfile.findFirst).toHaveBeenCalledWith({ orderBy: { createdAt: 'asc' } });
+    expect(prisma.userProfile.findFirst).toHaveBeenCalledWith({
+      orderBy: { createdAt: SortOrder.Asc },
+    });
   });
 
   it('creates', async () => {

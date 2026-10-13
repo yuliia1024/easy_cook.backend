@@ -1,4 +1,4 @@
-import { DietTag, MealType } from '../../../common/constants';
+import { DietTag, MealType, SortOrder } from '../../../common/constants';
 import { NutritionService } from '../../../modules/services/nutrition/nutrition.service';
 import { RecipeService } from '../../../modules/services/recipe/recipe.service';
 import { createMock } from '../../../test/create-mock';
@@ -40,7 +40,7 @@ describe('RecipeControllerService', () => {
 
     expect(recipeService.getPage).toHaveBeenCalledWith(
       { search: 'rice', mealType: MealType.Lunch, dietTypes: [DietTag.Vegan] },
-      { page: 1, limit: 5 },
+      { page: 1, limit: 5, sortOrder: SortOrder.Asc },
     );
     expect(page).toMatchObject({ total: 1, page: 1, limit: 5 });
     expect(page.items[0].nutritionPerServing).toEqual({
@@ -49,6 +49,17 @@ describe('RecipeControllerService', () => {
       fatG: 0.3,
       carbsG: 28.2,
     });
+  });
+
+  it('passes the requested sort order', async () => {
+    recipeService.getPage.mockResolvedValue({ items: [], total: 0 });
+
+    await service.getPage({ sortOrder: SortOrder.Desc });
+
+    expect(recipeService.getPage).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ sortOrder: SortOrder.Desc }),
+    );
   });
 
   it('getById maps the recipe', async () => {

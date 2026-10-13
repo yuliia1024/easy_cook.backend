@@ -21,16 +21,17 @@ import {
 } from 'class-validator';
 import {
   DietTag,
+  INGREDIENT_MAX_QUANTITY_G,
   INGREDIENT_NOTES_MAX_LENGTH,
+  MAX_RECIPE_INGREDIENTS,
   MealType,
+  RECIPE_DESCRIPTION_MAX_LENGTH,
+  RECIPE_INSTRUCTIONS_MAX_LENGTH,
   RECIPE_NAME_MAX_LENGTH,
-  RecipeSource,
   SOURCE_ID_MAX_LENGTH,
 } from '../../../../common/constants';
 import { PaginationQueryDto } from '../../dto/pagination.dto';
-import { ToArray, ToBoolean, Trim } from '../../dto/validators';
-
-const MAX_INGREDIENTS = 100;
+import { IsOptionalNotNull, ToArray, ToBoolean, Trim } from '../../dto/validators';
 
 export class RecipeIngredientDto {
   @IsUUID()
@@ -42,11 +43,11 @@ export class RecipeIngredientDto {
    */
   @IsNumber({ allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2 })
   @Min(0.01)
-  @Max(100_000)
+  @Max(INGREDIENT_MAX_QUANTITY_G)
   quantityG: number;
 
   /** Optional ingredients are left out of the nutrition totals by default. */
-  @IsOptional()
+  @IsOptionalNotNull()
   @IsBoolean()
   isOptional?: boolean;
 
@@ -59,7 +60,14 @@ export class RecipeIngredientDto {
   notes?: string | null;
 }
 
-export class UpdateRecipeIngredientDto extends PartialType(RecipeIngredientDto) {}
+export class UpdateRecipeIngredientDto extends PartialType(RecipeIngredientDto, {
+  skipNullProperties: false,
+}) {}
+
+/**
+ * One serving (all ingredients, optional ones too, divided by `servings`) may weigh at most 2000 g
+ * and have at most 2500 kcal; the service checks it.
+ */
 
 export class CreateRecipeDto {
   /** @example Chicken with buckwheat and broccoli */
@@ -73,17 +81,19 @@ export class CreateRecipeDto {
   @ValidateIf((_, value) => value !== null)
   @Trim()
   @IsString()
+  @MaxLength(RECIPE_DESCRIPTION_MAX_LENGTH)
   description?: string | null;
 
   @Trim()
   @IsString()
   @IsNotEmpty()
+  @MaxLength(RECIPE_INSTRUCTIONS_MAX_LENGTH)
   instructions: string;
 
   @IsEnum(MealType)
   mealType: MealType;
 
-  @IsOptional()
+  @IsOptionalNotNull()
   @IsArray()
   @ArrayUnique()
   @IsEnum(DietTag, { each: true })
@@ -103,11 +113,7 @@ export class CreateRecipeDto {
   @Max(24 * 60)
   prepTimeMinutes?: number | null;
 
-  /** Defaults to `manual`. */
-  @IsOptional()
-  @IsEnum(RecipeSource)
-  source?: RecipeSource;
-
+  /** Id in the source (always `manual` through the API); unique per source. */
   @IsOptional()
   @ValidateIf((_, value) => value !== null)
   @Trim()
@@ -119,14 +125,14 @@ export class CreateRecipeDto {
   /** In display order. */
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(MAX_INGREDIENTS)
+  @ArrayMaxSize(MAX_RECIPE_INGREDIENTS)
   @ValidateNested({ each: true })
   @Type(() => RecipeIngredientDto)
   ingredients: RecipeIngredientDto[];
 }
 
-/** `ingredients`, when given, replace the whole list. */
-export class UpdateRecipeDto extends PartialType(CreateRecipeDto) {}
+/** `ingredients`, when given, replace the whole list. `null` is rejected for NOT NULL fields. */
+export class UpdateRecipeDto extends PartialType(CreateRecipeDto, { skipNullProperties: false }) {}
 
 export class RecipeQueryDto extends PaginationQueryDto {
   /** Part of the name, any case. @example soup */

@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 import { FoodItemSourceConflictException } from './conflict';
 import { RecipeNotFoundException } from './not-found';
@@ -50,6 +51,31 @@ describe('AllExceptionsFilter', () => {
 
     expect(response.status).toHaveBeenCalledWith(400);
     expect(body().message).toEqual(['name should not be empty']);
+  });
+
+  it.each([
+    ['P2002', 409],
+    ['P2003', 409],
+    ['P2025', 404],
+  ])('maps the Prisma error %s to %d without logging', (code, status) => {
+    filter.catch(
+      new Prisma.PrismaClientKnownRequestError('constraint', { code, clientVersion: 'test' }),
+      host,
+    );
+
+    expect(response.status).toHaveBeenCalledWith(status);
+    expect(body().message).not.toContain('constraint');
+    expect(logError).not.toHaveBeenCalled();
+  });
+
+  it('keeps other Prisma errors a logged 500', () => {
+    filter.catch(
+      new Prisma.PrismaClientKnownRequestError('boom', { code: 'P2000', clientVersion: 'test' }),
+      host,
+    );
+
+    expect(response.status).toHaveBeenCalledWith(500);
+    expect(logError).toHaveBeenCalled();
   });
 
   it('falls back to the exception message for a string response', () => {

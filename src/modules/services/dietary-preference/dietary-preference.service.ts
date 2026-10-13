@@ -1,9 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { DietaryPreference } from '../../../generated/prisma/client';
-import { DietTag, PreferenceType } from '../../../common/constants';
 import {
+  CONFLICTING_DIETS,
+  DietTag,
+  MAX_PREFERENCES,
+  PreferenceType,
+} from '../../../common/constants';
+import {
+  ConflictingDietsBadRequestException,
   DietaryPreferenceExistsConflictException,
   DietaryPreferenceNotFoundException,
+  TooManyPreferencesBadRequestException,
   UnknownDietBadRequestException,
 } from '../../../common/exceptions';
 import {
@@ -24,7 +31,10 @@ export class DietaryPreferenceService {
     return this.dietaryPreferenceRepository.findAll(profile.id);
   }
 
-  /** Values are stored trimmed and lower-cased, so "Peanut" and "peanut " are one preference. */
+  /**
+   * Values are stored trimmed and lower-cased, so "Peanut" and "peanut " are one preference.
+   * Diets must be known and compatible with the saved ones (no pescatarian + vegan).
+   */
   public async add(data: DietaryPreferenceData): Promise<DietaryPreference> {
     const profile = await this.userProfileService.getCurrent();
     const normalized = { ...data, value: data.value.trim().toLowerCase() };
@@ -39,6 +49,20 @@ export class DietaryPreferenceService {
       throw new DietaryPreferenceExistsConflictException();
     }
 
+    const saved = await this.dietaryPreferenceRepository.findAll(profile.id);
+    if (saved.length >= MAX_PREFERENCES) {
+      throw new TooManyPreferencesBadRequestException(MAX_PREFERENCES);
+    }
+    if (normalized.preferenceType === PreferenceType.Diet) {
+      const diets = saved
+        .filter((preference) => preference.preferenceType === PreferenceType.Diet)
+        .map((preference) => preference.value);
+      const conflict = this.conflictingDiet(normalized.value, diets);
+      if (conflict) {
+        throw new ConflictingDietsBadRequestException(normalized.value, conflict);
+      }
+    }
+
     return this.dietaryPreferenceRepository.create(profile.id, normalized);
   }
 
@@ -48,5 +72,11 @@ export class DietaryPreferenceService {
       throw new DietaryPreferenceNotFoundException();
     }
     await this.dietaryPreferenceRepository.delete(id);
+  }
+
+  private conflictingDiet(diet: string, saved: string[]): string | undefined {
+    return CONFLICTING_DIETS.flatMap(([a, b]) => (diet === a ? [b] : diet === b ? [a] : [])).find(
+      (other) => saved.includes(other),
+    );
   }
 }

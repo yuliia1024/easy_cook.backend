@@ -1,3 +1,4 @@
+import { SortOrder } from '../../../common/constants';
 import { NutritionGoalService } from '../../../modules/services/nutrition-goal/nutrition-goal.service';
 import { createMock } from '../../../test/create-mock';
 import { buildNutritionGoal } from '../../../test/fixtures';
@@ -19,7 +20,13 @@ describe('NutritionControllerService', () => {
 
   it('maps the current goal and the history', async () => {
     await expect(service.getCurrent()).resolves.toMatchObject(targets);
-    await expect(service.getHistory()).resolves.toEqual([expect.objectContaining(targets)]);
+    await expect(service.getHistory({})).resolves.toEqual([expect.objectContaining(targets)]);
+  });
+
+  it('passes the history sort order', async () => {
+    await service.getHistory({ sortOrder: SortOrder.Asc });
+
+    expect(goalService.getHistory).toHaveBeenCalledWith(SortOrder.Asc);
   });
 
   it('splits the start date from the targets', async () => {
@@ -33,7 +40,14 @@ describe('NutritionControllerService', () => {
   it('previews and calculates', async () => {
     goalService.preview.mockResolvedValue(targets);
 
-    await expect(service.preview()).resolves.toEqual(targets);
+    await expect(service.preview({})).resolves.toEqual(targets);
     await expect(service.calculate()).resolves.toMatchObject(targets);
+    expect(goalService.preview).toHaveBeenCalledWith(undefined);
+  });
+
+  it('passes the calories to recalculate the macros for', async () => {
+    await service.preview({ caloriesKcal: 1500 });
+
+    expect(goalService.preview).toHaveBeenCalledWith(1500);
   });
 });

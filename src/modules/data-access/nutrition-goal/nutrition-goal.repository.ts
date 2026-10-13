@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { NutritionGoal } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
+import { SortOrder } from '../../../common/constants';
 
 export interface NutritionGoalData {
   caloriesKcal: number;
@@ -24,14 +25,15 @@ export class NutritionGoalRepository {
   ): Promise<NutritionGoal | null> {
     return this.prisma.nutritionGoal.findFirst({
       where: { profileId, effectiveFrom: { lte: at } },
-      orderBy: { effectiveFrom: 'desc' },
+      orderBy: { effectiveFrom: SortOrder.Desc },
     });
   }
 
-  public async findAll(profileId: string): Promise<NutritionGoal[]> {
+  /** Ordered by `effectiveFrom`. */
+  public async findAll(profileId: string, sortOrder: SortOrder): Promise<NutritionGoal[]> {
     return this.prisma.nutritionGoal.findMany({
       where: { profileId },
-      orderBy: { effectiveFrom: 'desc' },
+      orderBy: { effectiveFrom: sortOrder },
     });
   }
 

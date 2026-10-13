@@ -46,12 +46,7 @@ export class CreateFoodItemDto {
   @IsEnum(FoodState)
   state: FoodState;
 
-  /** Defaults to `manual`. */
-  @IsOptional()
-  @IsEnum(FoodSource)
-  source?: FoodSource;
-
-  /** Id in the source; unique per source. */
+  /** Id in the source (always `manual` through the API); unique per source. */
   @IsOptional()
   @ValidateIf((_, value) => value !== null)
   @Trim()
@@ -61,7 +56,10 @@ export class CreateFoodItemDto {
   sourceId?: string | null;
 }
 
-export class UpdateFoodItemDto extends PartialType(CreateFoodItemDto) {}
+/** `null` clears the nullable fields and is rejected for the others. */
+export class UpdateFoodItemDto extends PartialType(CreateFoodItemDto, {
+  skipNullProperties: false,
+}) {}
 
 export class FoodItemQueryDto extends PaginationQueryDto {
   /** Part of `name` or `nameEn`, any case. @example rice */

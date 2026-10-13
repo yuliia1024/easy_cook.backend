@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { FoodItem, Prisma } from '../../../generated/prisma/client';
 import { Page, PageQuery } from '../../../common/types';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
+import { QueryMode } from '../../../common/constants';
 
 export interface FoodItemFilter {
   /** Case-insensitive substring of `name` or `name_en`. */
@@ -29,14 +30,14 @@ export class FoodItemRepository {
 
   public async findPage(
     filter: FoodItemFilter,
-    { page, limit }: PageQuery,
+    { page, limit, sortOrder }: PageQuery,
   ): Promise<Page<FoodItem>> {
     const where = this.where(filter);
     const [total, items] = await this.prisma.$transaction([
       this.prisma.foodItem.count({ where }),
       this.prisma.foodItem.findMany({
         where,
-        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        orderBy: [{ name: sortOrder }, { id: sortOrder }],
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -48,13 +49,13 @@ export class FoodItemRepository {
     return this.prisma.foodItem.findUnique({ where: { id } });
   }
 
-  /** The subset of `ids` that exist. */
-  public async findExistingIds(ids: string[]): Promise<string[]> {
-    const rows = await this.prisma.foodItem.findMany({
-      where: { id: { in: ids } },
-      select: { id: true },
-    });
-    return rows.map((row) => row.id);
+  /** The foods of `ids` that exist. */
+  public async findByIds(ids: string[]): Promise<FoodItem[]> {
+    return this.prisma.foodItem.findMany({ where: { id: { in: ids } } });
+  }
+
+  public async isUsedInRecipes(id: string): Promise<boolean> {
+    return (await this.prisma.recipeIngredient.count({ where: { foodItemId: id } })) > 0;
   }
 
   public async findBySource(source: string, sourceId: string): Promise<FoodItem | null> {
@@ -73,8 +74,8 @@ export class FoodItemRepository {
     return {
       ...(search && {
         OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { nameEn: { contains: search, mode: 'insensitive' } },
+          { name: { contains: search, mode: QueryMode.Insensitive } },
+          { nameEn: { contains: search, mode: QueryMode.Insensitive } },
         ],
       }),
       ...(state && { state }),

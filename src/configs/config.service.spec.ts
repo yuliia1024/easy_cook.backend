@@ -42,6 +42,36 @@ describe('ConfigService', () => {
     expect(() => new ConfigService()).toThrow(/PORT/);
   });
 
+  it.each(['0', '65536', '3100.5', '-1'])('rejects the port %p', (port) => {
+    process.env.PORT = port;
+
+    expect(() => new ConfigService()).toThrow(/PORT/);
+  });
+
+  it.each([
+    ['any origin outside production', 'local', '*'],
+    ['no origins outside production', 'local', undefined],
+    ['a list of origins on production', 'production', 'https://a.com, https://b.com'],
+  ])('accepts %s', (_case, env, origins) => {
+    process.env.ENV = env;
+    if (origins === undefined) delete process.env.CORS_ORIGINS;
+    else process.env.CORS_ORIGINS = origins;
+
+    expect(() => new ConfigService()).not.toThrow();
+  });
+
+  it.each([
+    ['any origin on production', 'production', '*'],
+    ['no origins on production', 'production', undefined],
+    ['an origin without a scheme', 'local', 'a.com'],
+  ])('rejects %s', (_case, env, origins) => {
+    process.env.ENV = env;
+    if (origins === undefined) delete process.env.CORS_ORIGINS;
+    else process.env.CORS_ORIGINS = origins;
+
+    expect(() => new ConfigService()).toThrow(/CORS_ORIGINS/);
+  });
+
   it('rejects a database url of another driver', () => {
     process.env.DATABASE_URL = 'mysql://u:p@localhost/db';
 

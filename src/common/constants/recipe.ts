@@ -27,4 +27,18 @@ export enum RecipeSource {
 }
 
 export const RECIPE_NAME_MAX_LENGTH = 255;
+export const RECIPE_DESCRIPTION_MAX_LENGTH = 2000;
+export const RECIPE_INSTRUCTIONS_MAX_LENGTH = 10_000;
 export const INGREDIENT_NOTES_MAX_LENGTH = 500;
+export const INGREDIENT_MAX_QUANTITY_G = 10_000;
+export const MAX_RECIPE_INGREDIENTS = 100;
+
+/** Sanity limits for one serving, counting optional ingredients too. */
+export const MAX_SERVING_WEIGHT_G = 2000;
+export const MAX_SERVING_KCAL = 2500;
+
+/** Diets that cannot be followed together. */
+export const CONFLICTING_DIETS: ReadonlyArray<readonly [DietTag, DietTag]> = [
+  [DietTag.Pescatarian, DietTag.Vegetarian],
+  [DietTag.Pescatarian, DietTag.Vegan],
+];

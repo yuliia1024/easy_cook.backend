@@ -1,4 +1,8 @@
-import { ProfileNotFoundException } from '../../../common/exceptions';
+import {
+  ImplausibleBmiBadRequestException,
+  ProfileNotFoundException,
+  WeightLossUnderweightBadRequestException,
+} from '../../../common/exceptions';
 import { createMock } from '../../../test/create-mock';
 import { buildProfile, PROFILE_ID } from '../../../test/fixtures';
 import { UserProfileRepository } from '../../data-access/user-profile/user-profile.repository';
@@ -55,6 +59,30 @@ describe('UserProfileService', () => {
       expect(repository.update).toHaveBeenCalledWith(PROFILE_ID, data);
       expect(repository.create).not.toHaveBeenCalled();
     });
+
+    it.each([
+      ['too light for the height (BMI 4.8)', { heightCm: 250, weightKg: 30 }],
+      ['too heavy for the height (BMI 300)', { heightCm: 100, weightKg: 300 }],
+    ])('rejects a profile %s', async (_case, body) => {
+      await expect(service.save({ ...data, ...body })).rejects.toBeInstanceOf(
+        ImplausibleBmiBadRequestException,
+      );
+      expect(repository.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects losing weight when underweight (BMI 17.3)', async () => {
+      await expect(
+        service.save({ ...data, weightKg: 50, goal: 'lose_weight' }),
+      ).rejects.toBeInstanceOf(WeightLossUnderweightBadRequestException);
+    });
+
+    it('lets an underweight profile maintain or gain', async () => {
+      repository.findCurrent.mockResolvedValue(null);
+
+      await service.save({ ...data, weightKg: 50, goal: 'gain_muscle' });
+
+      expect(repository.create).toHaveBeenCalled();
+    });
   });
 
   describe('update', () => {
@@ -64,6 +92,25 @@ describe('UserProfileService', () => {
       await service.update({ weightKg: 60 });
 
       expect(repository.update).toHaveBeenCalledWith(PROFILE_ID, { weightKg: 60 });
+    });
+
+    it('checks the BMI against the stored height', async () => {
+      // 170 cm, 300 kg -> BMI 103.8
+      repository.findCurrent.mockResolvedValue(buildProfile());
+
+      await expect(service.update({ weightKg: 300 })).rejects.toBeInstanceOf(
+        ImplausibleBmiBadRequestException,
+      );
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    it('checks a new goal against the stored weight', async () => {
+      repository.findCurrent.mockResolvedValue(buildProfile());
+
+      await service.update({ weightKg: 50 });
+      await expect(service.update({ weightKg: 50, goal: 'lose_weight' })).rejects.toBeInstanceOf(
+        WeightLossUnderweightBadRequestException,
+      );
     });
 
     it('requires a profile', async () => {
