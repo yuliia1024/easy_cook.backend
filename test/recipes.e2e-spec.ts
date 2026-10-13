@@ -13,17 +13,17 @@ describe('/api/recipes (e2e)', () => {
 
   /** Control recipe: 300 g raw chicken + 150 g dry rice + 15 g olive oil (+ optional 10 g oil). */
   const recipeDto = () => ({
-    name: 'Курка з рисом',
-    instructions: 'Зварити рис, обсмажити курку.',
+    name: 'Chicken with rice',
+    instructions: 'Boil the rice, fry the chicken.',
     mealType: 'lunch',
     dietType: ['gluten_free', 'high_protein'],
     servings: 2,
     prepTimeMinutes: 30,
     ingredients: [
       { foodItemId: food.chicken, quantityG: 300 },
-      { foodItemId: food.rice, quantityG: 150, notes: 'вага сухого рису' },
+      { foodItemId: food.rice, quantityG: 150, notes: 'dry rice weight' },
       { foodItemId: food.oil, quantityG: 15 },
-      { foodItemId: food.oil, quantityG: 10, isOptional: true, notes: 'для подачі' },
+      { foodItemId: food.oil, quantityG: 10, isOptional: true, notes: 'for serving' },
     ],
   });
 
@@ -34,7 +34,7 @@ describe('/api/recipes (e2e)', () => {
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
     await createFood('chicken', {
-      name: 'Куряче філе',
+      name: 'Chicken breast',
       state: 'raw',
       kcalPer100g: 120,
       proteinG: 22.5,
@@ -42,7 +42,7 @@ describe('/api/recipes (e2e)', () => {
       carbsG: 0,
     });
     await createFood('rice', {
-      name: 'Рис сухий',
+      name: 'Rice, dry',
       state: 'dried',
       kcalPer100g: 365,
       proteinG: 7.1,
@@ -50,14 +50,14 @@ describe('/api/recipes (e2e)', () => {
       carbsG: 80,
     });
     await createFood('oil', {
-      name: 'Олія оливкова',
+      name: 'Olive oil',
       state: 'other',
       kcalPer100g: 884,
       proteinG: 0,
       fatG: 100,
       carbsG: 0,
     });
-    await createFood('sauce', { name: 'Соус', state: 'other', kcalPer100g: 80 });
+    await createFood('sauce', { name: 'Sauce', state: 'other', kcalPer100g: 80 });
   });
 
   afterAll(async () => {
@@ -77,7 +77,7 @@ describe('/api/recipes (e2e)', () => {
       const recipe = await create();
 
       expect(recipe).toMatchObject({
-        name: 'Курка з рисом',
+        name: 'Chicken with rice',
         source: 'manual',
         servings: 2,
         nutritionPerServing: { kcal: 520.1, proteinG: 39.1, fatG: 11.9, carbsG: 60 },
@@ -86,8 +86,8 @@ describe('/api/recipes (e2e)', () => {
       expect(recipe.ingredients.map((i: { position: number }) => i.position)).toEqual([0, 1, 2, 3]);
       expect(recipe.ingredients[1]).toMatchObject({
         quantityG: 150,
-        notes: 'вага сухого рису',
-        foodItem: { name: 'Рис сухий', state: 'dried' },
+        notes: 'dry rice weight',
+        foodItem: { name: 'Rice, dry', state: 'dried' },
       });
     });
 
@@ -121,15 +121,15 @@ describe('/api/recipes (e2e)', () => {
     beforeEach(async () => {
       await create();
       await create({
-        name: 'Суп овочевий',
+        name: 'Vegetable soup',
         mealType: 'dinner',
         dietType: ['vegan', 'gluten_free'],
       });
-      await create({ name: 'Салат', mealType: 'dinner', dietType: ['vegan'] });
+      await create({ name: 'Salad', mealType: 'dinner', dietType: ['vegan'] });
     });
 
     it('filters by name, meal type and every given diet tag', async () => {
-      const byName = await http().get('/api/recipes').query({ search: 'СУП' }).expect(200);
+      const byName = await http().get('/api/recipes').query({ search: 'SOUP' }).expect(200);
       const byMeal = await http().get('/api/recipes').query({ mealType: 'dinner' }).expect(200);
       const byTags = await http()
         .get('/api/recipes')
@@ -140,9 +140,9 @@ describe('/api/recipes (e2e)', () => {
         .query({ dietType: 'vegan,gluten_free' })
         .expect(200);
 
-      expect(byName.body.items.map((r: { name: string }) => r.name)).toEqual(['Суп овочевий']);
+      expect(byName.body.items.map((r: { name: string }) => r.name)).toEqual(['Vegetable soup']);
       expect(byMeal.body.total).toBe(2);
-      expect(byTags.body.items.map((r: { name: string }) => r.name)).toEqual(['Суп овочевий']);
+      expect(byTags.body.items.map((r: { name: string }) => r.name)).toEqual(['Vegetable soup']);
       expect(byCsv.body.total).toBe(1);
     });
 
@@ -241,7 +241,7 @@ describe('/api/recipes (e2e)', () => {
 
     it('refuses an unknown food and an ingredient of another recipe', async () => {
       const first = await create();
-      const second = await create({ name: 'Інший' });
+      const second = await create({ name: 'Another' });
 
       await http()
         .post(`/api/recipes/${first.id}/ingredients`)

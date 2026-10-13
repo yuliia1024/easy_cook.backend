@@ -22,7 +22,7 @@ describe('control recipes', () => {
     foods: [
       {
         slug: 'rice-white-dry',
-        name: 'Рис',
+        name: 'Rice',
         state: 'dried',
         kcalPer100g: 365,
         proteinG: 7.1,
@@ -31,7 +31,7 @@ describe('control recipes', () => {
       },
       {
         slug: 'olive-oil',
-        name: 'Олія',
+        name: 'Oil',
         state: 'other',
         kcalPer100g: 884,
         proteinG: 0,
@@ -42,8 +42,8 @@ describe('control recipes', () => {
     recipes: [
       {
         slug: 'rice',
-        name: 'Рис',
-        instructions: 'Зварити',
+        name: 'Rice',
+        instructions: 'Boil',
         mealType: 'lunch',
         dietType: [],
         servings: 2,

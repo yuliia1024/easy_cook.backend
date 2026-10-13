@@ -10,7 +10,7 @@ import { FoodControllerService } from './food-controller.service';
 export class FoodController {
   constructor(private readonly foodControllerService: FoodControllerService) {}
 
-  /** Paged, sorted by name. `search` matches the Ukrainian and the English name. */
+  /** Paged, sorted by name. `search` matches `name` and `nameEn`. */
   @Get()
   async getPage(@Query() query: FoodItemQueryDto): Promise<PageResponseDto<FoodItemResponseDto>> {
     return this.foodControllerService.getPage(query);

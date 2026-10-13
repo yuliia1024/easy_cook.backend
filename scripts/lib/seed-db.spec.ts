@@ -11,7 +11,7 @@ describe('seed db', () => {
   let prisma: PrismaMock;
   const food: SeedFood = {
     slug: 'rice-white-dry',
-    name: 'Рис',
+    name: 'Rice',
     state: 'dried',
     kcalPer100g: 365,
     proteinG: 7.1,
@@ -20,14 +20,14 @@ describe('seed db', () => {
   };
   const recipe: SeedRecipe = {
     slug: 'rice',
-    name: 'Рис',
-    instructions: 'Зварити',
+    name: 'Rice',
+    instructions: 'Boil',
     mealType: 'lunch',
     dietType: ['vegan'],
     servings: 2,
     ingredients: [
       { food: 'rice-white-dry', quantityG: 150 },
-      { food: 'usda_fdc:42', quantityG: 5, isOptional: true, notes: 'за смаком' },
+      { food: 'usda_fdc:42', quantityG: 5, isOptional: true, notes: 'to taste' },
     ],
   };
 
@@ -52,7 +52,7 @@ describe('seed db', () => {
       await expect(upsertSeedFoods(prisma, [food])).resolves.toEqual({ created: 0, updated: 1 });
       expect(prisma.foodItem.update).toHaveBeenCalledWith({
         where: { id: 'f1' },
-        data: expect.objectContaining({ name: 'Рис', kcalPer100g: 365 }),
+        data: expect.objectContaining({ name: 'Rice', kcalPer100g: 365 }),
       });
     });
   });
@@ -95,7 +95,7 @@ describe('seed db', () => {
 
     const rows = [
       { foodItemId: 'seed-id', quantityG: 150, isOptional: false, notes: null, position: 0 },
-      { foodItemId: 'usda-id', quantityG: 5, isOptional: true, notes: 'за смаком', position: 1 },
+      { foodItemId: 'usda-id', quantityG: 5, isOptional: true, notes: 'to taste', position: 1 },
     ];
 
     it('creates a new recipe with ordered ingredients', async () => {
@@ -107,7 +107,7 @@ describe('seed db', () => {
       });
       expect(prisma.recipe.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          name: 'Рис',
+          name: 'Rice',
           description: null,
           prepTimeMinutes: null,
           source: 'seed',

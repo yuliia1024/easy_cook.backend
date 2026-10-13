@@ -3,7 +3,7 @@ import { estimateKcal, loadSeedData, parseFoodRef, SeedData, validateSeedData } 
 describe('seed data', () => {
   const food = {
     slug: 'rice-white-dry',
-    name: 'Рис білий, сухий',
+    name: 'White rice, dry',
     nameEn: 'Rice, white, raw',
     state: 'dried',
     kcalPer100g: 365,
@@ -13,8 +13,8 @@ describe('seed data', () => {
   };
   const recipe = {
     slug: 'rice',
-    name: 'Рис',
-    instructions: 'Зварити',
+    name: 'Rice',
+    instructions: 'Boil',
     mealType: 'lunch',
     dietType: ['vegan'],
     servings: 2,

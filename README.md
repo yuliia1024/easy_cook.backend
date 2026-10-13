@@ -109,7 +109,7 @@ Everything is under `/api`; Swagger UI on `/docs`.
 | POST | `/nutrition/goals/calculate` | rule based goal from the profile |
 | GET / POST | `/preferences` | values are trimmed and lower-cased; `diet` must be a diet tag |
 | DELETE | `/preferences/:id` | |
-| GET | `/foods?search=&state=&source=&page=&limit=` | search matches the Ukrainian and English name |
+| GET | `/foods?search=&state=&source=&page=&limit=` | search matches `name` and `nameEn` |
 | GET / PATCH | `/foods/:id` | `null` clears a value |
 | POST | `/foods` | macros cannot exceed 100 g per 100 g |
 | GET | `/recipes?search=&mealType=&dietType=&page=&limit=` | `dietType` repeated or comma separated: the recipe has every tag |

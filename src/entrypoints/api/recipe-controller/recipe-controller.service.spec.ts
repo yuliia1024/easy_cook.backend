@@ -31,7 +31,7 @@ describe('RecipeControllerService', () => {
     recipeService.getPage.mockResolvedValue({ items: [recipe], total: 1 });
 
     const page = await service.getPage({
-      search: 'рис',
+      search: 'rice',
       mealType: MealType.Lunch,
       dietType: [DietTag.Vegan],
       page: 1,
@@ -39,7 +39,7 @@ describe('RecipeControllerService', () => {
     });
 
     expect(recipeService.getPage).toHaveBeenCalledWith(
-      { search: 'рис', mealType: MealType.Lunch, dietTypes: [DietTag.Vegan] },
+      { search: 'rice', mealType: MealType.Lunch, dietTypes: [DietTag.Vegan] },
       { page: 1, limit: 5 },
     );
     expect(page).toMatchObject({ total: 1, page: 1, limit: 5 });
@@ -80,7 +80,7 @@ describe('RecipeControllerService', () => {
   });
 
   it('create splits the ingredients from the fields', async () => {
-    const data = { name: 'Рис', instructions: 'x', mealType: MealType.Lunch, servings: 2 };
+    const data = { name: 'Rice', instructions: 'x', mealType: MealType.Lunch, servings: 2 };
 
     await service.create({ ...data, ingredients: [ingredient] });
 

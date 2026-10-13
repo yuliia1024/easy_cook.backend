@@ -10,7 +10,7 @@ async function errorsOf<T extends object>(cls: new () => T, plain: object): Prom
 
 describe('food DTOs', () => {
   const valid = {
-    name: 'Гречка суха',
+    name: 'Buckwheat, dry',
     kcalPer100g: 343,
     proteinG: 13.3,
     fatG: 3.4,
@@ -20,10 +20,10 @@ describe('food DTOs', () => {
 
   describe('CreateFoodItemDto', () => {
     it('accepts a food and trims the name', async () => {
-      const dto = plainToInstance(CreateFoodItemDto, { ...valid, name: ' Гречка ' });
+      const dto = plainToInstance(CreateFoodItemDto, { ...valid, name: ' Buckwheat ' });
 
       expect(await validate(dto)).toHaveLength(0);
-      expect(dto.name).toBe('Гречка');
+      expect(dto.name).toBe('Buckwheat');
     });
 
     it('needs only a name and a state', async () => {

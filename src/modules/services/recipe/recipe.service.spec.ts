@@ -19,8 +19,8 @@ describe('RecipeService', () => {
   let service: RecipeService;
   const recipe = buildRecipe();
   const data = {
-    name: 'Суп',
-    instructions: 'Зварити',
+    name: 'Soup',
+    instructions: 'Boil',
     mealType: MealType.Lunch,
     servings: 4,
   };

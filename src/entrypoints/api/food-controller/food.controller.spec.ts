@@ -15,7 +15,7 @@ describe('FoodController', () => {
 
   it('delegates every route', async () => {
     const query = { search: 'rice' };
-    const dto = { name: 'Рис', state: FoodState.Raw };
+    const dto = { name: 'Rice', state: FoodState.Raw };
 
     await controller.getPage(query);
     await controller.getById(FOOD_ID);

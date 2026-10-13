@@ -3,9 +3,9 @@
   "recipes": [
     {
       "slug": "oatmeal-banana-blueberry",
-      "name": "Вівсянка з бананом і лохиною",
-      "description": "Швидкий сніданок на молоці.",
-      "instructions": "Довести молоко до кипіння, всипати пластівці, варити 5 хвилин помішуючи. Розкласти по тарілках, додати нарізаний банан, лохину та мед.",
+      "name": "Oatmeal with banana and blueberries",
+      "description": "A quick breakfast made with milk.",
+      "instructions": "Bring the milk to a boil, add the oats and cook for 5 minutes, stirring. Divide between plates, top with sliced banana, blueberries and honey.",
       "mealType": "breakfast",
       "dietType": [
         "vegetarian"
@@ -24,7 +24,7 @@
         {
           "food": "banana-raw",
           "quantityG": 120,
-          "notes": "нарізати кружальцями"
+          "notes": "slice into rounds"
         },
         {
           "food": "blueberries-raw",
@@ -39,8 +39,8 @@
     },
     {
       "slug": "spinach-tomato-omelette",
-      "name": "Омлет зі шпинатом і помідорами",
-      "instructions": "Збити яйця з молоком і сіллю. Обсмажити шпинат на маслі 1 хвилину, додати помідор, залити яйцями та готувати під кришкою 5 хвилин.",
+      "name": "Spinach and tomato omelette",
+      "instructions": "Whisk the eggs with milk and salt. Sauté the spinach in butter for 1 minute, add the tomato, pour in the eggs and cook covered for 5 minutes.",
       "mealType": "breakfast",
       "dietType": [
         "vegetarian",
@@ -53,7 +53,7 @@
         {
           "food": "egg-raw",
           "quantityG": 150,
-          "notes": "3 яйця"
+          "notes": "3 eggs"
         },
         {
           "food": "milk-2pct",
@@ -66,7 +66,7 @@
         {
           "food": "tomato-raw",
           "quantityG": 100,
-          "notes": "нарізати кубиками"
+          "notes": "dice"
         },
         {
           "food": "butter",
@@ -80,8 +80,8 @@
     },
     {
       "slug": "syrnyky",
-      "name": "Сирники",
-      "instructions": "Змішати сир, яйце, мед і борошно. Сформувати сирники, обваляти в борошні та обсмажити на олії по 3 хвилини з кожного боку. Подавати зі сметаною.",
+      "name": "Cottage cheese pancakes",
+      "instructions": "Mix the cottage cheese, egg, honey and flour. Shape into small patties, coat in flour and fry in oil for 3 minutes on each side. Serve with sour cream.",
       "mealType": "breakfast",
       "dietType": [
         "vegetarian"
@@ -108,20 +108,20 @@
         {
           "food": "sunflower-oil",
           "quantityG": 20,
-          "notes": "для смаження"
+          "notes": "for frying"
         },
         {
           "food": "sour-cream",
           "quantityG": 100,
           "isOptional": true,
-          "notes": "для подачі"
+          "notes": "for serving"
         }
       ]
     },
     {
       "slug": "chicken-buckwheat-broccoli",
-      "name": "Курка з гречкою та броколі",
-      "instructions": "Зварити гречку (150 г сухої). Курку нарізати, обсмажити на оливковій олії з часником 8–10 хвилин. Броколі приготувати на пару 5 хвилин. Посолити, подавати разом.",
+      "name": "Chicken with buckwheat and broccoli",
+      "instructions": "Boil the buckwheat (150 g dry). Cut the chicken and fry it in olive oil with garlic for 8–10 minutes. Steam the broccoli for 5 minutes. Season with salt and serve together.",
       "mealType": "lunch",
       "dietType": [
         "gluten_free",
@@ -134,7 +134,7 @@
         {
           "food": "buckwheat-dry",
           "quantityG": 150,
-          "notes": "вага сухої крупи"
+          "notes": "dry weight"
         },
         {
           "food": "chicken-breast-raw",
@@ -160,8 +160,8 @@
     },
     {
       "slug": "red-lentil-soup",
-      "name": "Суп із червоної сочевиці",
-      "instructions": "Обсмажити цибулю, моркву і часник на олії. Додати картоплю, промиту сочевицю та 1,5 л води, варити 25 хвилин. Посолити, за бажанням збити блендером і посипати кропом.",
+      "name": "Red lentil soup",
+      "instructions": "Fry the onion, carrot and garlic in oil. Add the potato, rinsed lentils and 1.5 l of water and simmer for 25 minutes. Season with salt, blend if you like and sprinkle with dill.",
       "mealType": "lunch",
       "dietType": [
         "vegan",
@@ -208,8 +208,8 @@
     },
     {
       "slug": "tuna-egg-salad",
-      "name": "Салат з тунцем і яйцем",
-      "instructions": "Зварити яйця круто, нарізати. Змішати з тунцем, огірком і помідором, заправити оливковою олією та лимонним соком.",
+      "name": "Tuna and egg salad",
+      "instructions": "Hard-boil and chop the eggs. Mix with the tuna, cucumber and tomato, dress with olive oil and lemon juice.",
       "mealType": "lunch",
       "dietType": [
         "pescatarian",
@@ -228,7 +228,7 @@
         {
           "food": "egg-raw",
           "quantityG": 100,
-          "notes": "2 яйця, зварити круто"
+          "notes": "2 eggs, hard-boiled"
         },
         {
           "food": "cucumber-raw",
@@ -250,8 +250,8 @@
     },
     {
       "slug": "lenten-borscht",
-      "name": "Борщ пісний",
-      "instructions": "Буряк, моркву і цибулю потушкувати на олії з лимонним соком 10 хвилин. Картоплю варити в 2 л води 10 хвилин, додати капусту, через 5 хвилин — засмажку та помідори. Варити ще 10 хвилин, додати часник, сіль і кріп.",
+      "name": "Vegetarian borscht",
+      "instructions": "Braise the beetroot, carrot and onion in oil with lemon juice for 10 minutes. Boil the potatoes in 2 l of water for 10 minutes, add the cabbage, and after 5 minutes add the braised vegetables and tomatoes. Cook for 10 more minutes, then add garlic, salt and dill.",
       "mealType": "lunch",
       "dietType": [
         "vegan",
@@ -310,8 +310,8 @@
     },
     {
       "slug": "salmon-rice-pepper",
-      "name": "Лосось з рисом і перцем",
-      "instructions": "Зварити рис (150 г сухого). Лосось посолити, збризнути лимонним соком і запекти 15 хвилин при 200 °C. Перець обсмажити на оливковій олії 5 хвилин.",
+      "name": "Salmon with rice and bell pepper",
+      "instructions": "Boil the rice (150 g dry). Salt the salmon, sprinkle with lemon juice and bake for 15 minutes at 200 °C. Fry the pepper in olive oil for 5 minutes.",
       "mealType": "dinner",
       "dietType": [
         "pescatarian",
@@ -329,7 +329,7 @@
         {
           "food": "rice-white-dry",
           "quantityG": 150,
-          "notes": "вага сухого рису"
+          "notes": "dry rice weight"
         },
         {
           "food": "bell-pepper-red-raw",
@@ -351,8 +351,8 @@
     },
     {
       "slug": "tofu-vegetables-rice",
-      "name": "Тофу з овочами та рисом",
-      "instructions": "Зварити рис. Тофу нарізати кубиками й обсмажити до скоринки. Додати моркву, броколі, перець і часник, готувати 6–7 хвилин помішуючи.",
+      "name": "Tofu with vegetables and rice",
+      "instructions": "Boil the rice. Dice the tofu and fry until crisp. Add the carrot, broccoli, pepper and garlic and cook for 6–7 minutes, stirring.",
       "mealType": "dinner",
       "dietType": [
         "vegan",
@@ -369,7 +369,7 @@
         {
           "food": "rice-white-boiled",
           "quantityG": 400,
-          "notes": "вже зварений рис"
+          "notes": "already boiled rice"
         },
         {
           "food": "broccoli-raw",
@@ -395,8 +395,8 @@
     },
     {
       "slug": "beef-pasta-mushrooms",
-      "name": "Паста з яловичиною та печерицями",
-      "instructions": "Зварити пасту. Фарш обсмажити з цибулею 8 хвилин, додати печериці та помідори, тушкувати 10 хвилин. Посолити, змішати з пастою.",
+      "name": "Pasta with beef and mushrooms",
+      "instructions": "Boil the pasta. Fry the ground beef with the onion for 8 minutes, add the mushrooms and tomatoes and simmer for 10 minutes. Season with salt and mix with the pasta.",
       "mealType": "dinner",
       "dietType": [
         "high_protein",
@@ -437,8 +437,8 @@
     },
     {
       "slug": "greek-yogurt-walnuts-apple",
-      "name": "Грецький йогурт з горіхами та яблуком",
-      "instructions": "Викласти йогурт, додати нарізане яблуко, подрібнені горіхи та мед.",
+      "name": "Greek yogurt with walnuts and apple",
+      "instructions": "Spoon out the yogurt, add the chopped apple, crushed walnuts and honey.",
       "mealType": "snack",
       "dietType": [
         "vegetarian",
@@ -469,8 +469,8 @@
     },
     {
       "slug": "hummus-vegetables",
-      "name": "Хумус з овочами",
-      "instructions": "Збити блендером нут, оливкову олію, лимонний сік, часник і сіль, додаючи трохи води. Подавати з паличками моркви та огірка.",
+      "name": "Hummus with vegetables",
+      "instructions": "Blend the chickpeas, olive oil, lemon juice, garlic and salt, adding a little water. Serve with carrot and cucumber sticks.",
       "mealType": "snack",
       "dietType": [
         "vegan",
@@ -503,12 +503,12 @@
         {
           "food": "carrot-raw",
           "quantityG": 200,
-          "notes": "нарізати паличками"
+          "notes": "cut into sticks"
         },
         {
           "food": "cucumber-raw",
           "quantityG": 200,
-          "notes": "нарізати паличками"
+          "notes": "cut into sticks"
         }
       ]
     }

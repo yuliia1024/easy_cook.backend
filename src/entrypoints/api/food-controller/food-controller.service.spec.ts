@@ -34,7 +34,7 @@ describe('FoodControllerService', () => {
   });
 
   it('gets, creates and updates', async () => {
-    const dto = { name: 'Рис', state: FoodState.Boiled };
+    const dto = { name: 'Rice', state: FoodState.Boiled };
 
     await expect(service.getById(FOOD_ID)).resolves.toMatchObject({ id: FOOD_ID });
     await service.create(dto);

@@ -50,7 +50,7 @@ export class RecipeIngredientDto {
   @IsBoolean()
   isOptional?: boolean;
 
-  /** @example дрібно нарізати */
+  /** @example finely chop */
   @IsOptional()
   @ValidateIf((_, value) => value !== null)
   @Trim()
@@ -62,7 +62,7 @@ export class RecipeIngredientDto {
 export class UpdateRecipeIngredientDto extends PartialType(RecipeIngredientDto) {}
 
 export class CreateRecipeDto {
-  /** @example Курка з гречкою та броколі */
+  /** @example Chicken with buckwheat and broccoli */
   @Trim()
   @IsString()
   @IsNotEmpty()
@@ -129,7 +129,7 @@ export class CreateRecipeDto {
 export class UpdateRecipeDto extends PartialType(CreateRecipeDto) {}
 
 export class RecipeQueryDto extends PaginationQueryDto {
-  /** Part of the name, any case. @example суп */
+  /** Part of the name, any case. @example soup */
   @IsOptional()
   @Trim()
   @IsString()

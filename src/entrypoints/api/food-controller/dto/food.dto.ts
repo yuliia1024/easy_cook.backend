@@ -11,7 +11,7 @@ import { PaginationQueryDto } from '../../dto/pagination.dto';
 import { IsNutrientValue, Trim } from '../../dto/validators';
 
 export class CreateFoodItemDto {
-  /** @example Гречка суха */
+  /** @example Buckwheat, dry */
   @Trim()
   @IsString()
   @IsNotEmpty()
@@ -64,7 +64,7 @@ export class CreateFoodItemDto {
 export class UpdateFoodItemDto extends PartialType(CreateFoodItemDto) {}
 
 export class FoodItemQueryDto extends PaginationQueryDto {
-  /** Part of the Ukrainian or English name, any case. @example рис */
+  /** Part of `name` or `nameEn`, any case. @example rice */
   @IsOptional()
   @Trim()
   @IsString()

@@ -6,7 +6,7 @@ Where the food and recipe data comes from, what is committed, and how to refresh
 
 | Data | Source | Licence | In the DB |
 |---|---|---|---|
-| `data/seed/foods.json` (45 base foods) | Derived from USDA FoodData Central, **SR Legacy**: values per 100 g, rounded; Ukrainian names and `state` added for the project | Public domain (CC0 1.0), see below | `food_items`, `source = seed`, `source_id` = slug |
+| `data/seed/foods.json` (45 base foods) | Derived from USDA FoodData Central, **SR Legacy**: values per 100 g, rounded; English display names and `state` added for the project | Public domain (CC0 1.0), see below | `food_items`, `source = seed`, `source_id` = slug |
 | `data/seed/recipes.json` (12 recipes) | Written for this project | Project's own | `recipes` + `recipe_ingredients`, `source = seed`, `source_id` = slug |
 | `data/seed/control-recipes.json` | Hand-computed nutrition of 3 seed recipes, the arithmetic is in the file | Project's own | Not loaded, used by `data:validate` / `data:verify` |
 | USDA FoodData Central **Foundation Foods** (default) and optionally **SR Legacy**, CSV | https://fdc.nal.usda.gov/download-datasets | Public domain (CC0 1.0), see below | `food_items`, `source = usda_fdc`, `source_id` = FDC id |

@@ -6,7 +6,7 @@ describe('/api/foods (e2e)', () => {
   const http = () => request(ctx.app.getHttpServer());
 
   const riceDry = {
-    name: 'Рис білий, сухий',
+    name: 'White rice, dry',
     nameEn: 'Rice, white, raw',
     kcalPer100g: 365,
     proteinG: 7.1,
@@ -38,7 +38,7 @@ describe('/api/foods (e2e)', () => {
     it('stores unknown nutrients as null', async () => {
       const { body } = await http()
         .post('/api/foods')
-        .send({ name: 'Соус', state: 'other', kcalPer100g: 80 })
+        .send({ name: 'Sauce', state: 'other', kcalPer100g: 80 })
         .expect(201);
 
       expect(body).toMatchObject({ kcalPer100g: 80, proteinG: null, fatG: null, carbsG: null });
@@ -79,7 +79,7 @@ describe('/api/foods (e2e)', () => {
         .post('/api/foods')
         .send({
           ...riceDry,
-          name: 'Рис білий, варений',
+          name: 'White rice, boiled',
           nameEn: 'Rice, white, cooked',
           state: 'boiled',
           kcalPer100g: 130,
@@ -90,7 +90,7 @@ describe('/api/foods (e2e)', () => {
         .expect(201);
       await http()
         .post('/api/foods')
-        .send({ name: 'Гречка, суха', nameEn: 'Buckwheat', state: 'dried', kcalPer100g: 343 })
+        .send({ name: 'Buckwheat, dry', nameEn: 'Buckwheat groats, roasted', state: 'dried', kcalPer100g: 343 })
         .expect(201);
     });
 
@@ -98,21 +98,21 @@ describe('/api/foods (e2e)', () => {
       const { body } = await http().get('/api/foods').query({ limit: 2, page: 2 }).expect(200);
 
       expect(body).toMatchObject({ total: 3, page: 2, limit: 2 });
-      expect(body.items.map((f: { name: string }) => f.name)).toEqual(['Рис білий, сухий']);
+      expect(body.items.map((f: { name: string }) => f.name)).toEqual(['White rice, dry']);
     });
 
     it('searches both names, case-insensitively', async () => {
-      const uk = await http().get('/api/foods').query({ search: 'РИС' }).expect(200);
-      const en = await http().get('/api/foods').query({ search: 'buckwheat' }).expect(200);
+      const byName = await http().get('/api/foods').query({ search: 'RICE' }).expect(200);
+      const byNameEn = await http().get('/api/foods').query({ search: 'GROATS' }).expect(200);
 
-      expect(uk.body.total).toBe(2);
-      expect(en.body.items[0].name).toBe('Гречка, суха');
+      expect(byName.body.total).toBe(2);
+      expect(byNameEn.body.items[0].name).toBe('Buckwheat, dry');
     });
 
     it('filters by state', async () => {
       const { body } = await http().get('/api/foods').query({ state: 'boiled' }).expect(200);
 
-      expect(body.items.map((f: { name: string }) => f.name)).toEqual(['Рис білий, варений']);
+      expect(body.items.map((f: { name: string }) => f.name)).toEqual(['White rice, boiled']);
     });
 
     it('rejects a page size over the limit', async () => {
@@ -120,7 +120,7 @@ describe('/api/foods (e2e)', () => {
     });
 
     it('gets one by id, 404 for an unknown one, 400 for a malformed one', async () => {
-      const { body } = await http().get('/api/foods').query({ search: 'гречка' });
+      const { body } = await http().get('/api/foods').query({ search: 'buckwheat' });
       const id = body.items[0].id;
 
       await http().get(`/api/foods/${id}`).expect(200);
@@ -135,10 +135,10 @@ describe('/api/foods (e2e)', () => {
 
       const { body } = await http()
         .patch(`/api/foods/${food.id}`)
-        .send({ name: 'Рис басматі', fatG: null })
+        .send({ name: 'Basmati rice', fatG: null })
         .expect(200);
 
-      expect(body).toMatchObject({ name: 'Рис басматі', fatG: null, kcalPer100g: 365 });
+      expect(body).toMatchObject({ name: 'Basmati rice', fatG: null, kcalPer100g: 365 });
     });
 
     it('checks the macros against the stored values', async () => {

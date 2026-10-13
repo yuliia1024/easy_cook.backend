@@ -10,7 +10,7 @@ describe('menu response DTOs', () => {
 
     expect(MenuSummaryResponseDto.from({ ...menu, _count: { versions: 3 } })).toEqual({
       id: MENU_ID,
-      title: 'Тиждень 1',
+      title: 'Week 1',
       versionCount: 3,
       createdAt: menu.createdAt,
       updatedAt: menu.updatedAt,
@@ -43,7 +43,7 @@ describe('menu response DTOs', () => {
                   position: 0,
                   recipeId: RECIPE_ID,
                   servings: new Prisma.Decimal(1.5),
-                  recipeSnapshot: { name: 'Суп' },
+                  recipeSnapshot: { name: 'Soup' },
                 },
               ],
             },
@@ -72,7 +72,7 @@ describe('menu response DTOs', () => {
               position: 0,
               recipeId: RECIPE_ID,
               servings: 1.5,
-              recipeSnapshot: { name: 'Суп' },
+              recipeSnapshot: { name: 'Soup' },
             },
           ],
         },

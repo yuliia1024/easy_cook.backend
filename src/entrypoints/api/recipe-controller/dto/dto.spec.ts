@@ -21,8 +21,8 @@ async function errorsOf<T extends object>(cls: new () => T, plain: object): Prom
 describe('recipe DTOs', () => {
   const ingredient = { foodItemId: FOOD_ID, quantityG: 150 };
   const valid = {
-    name: 'Суп',
-    instructions: 'Зварити',
+    name: 'Soup',
+    instructions: 'Boil',
     mealType: MealType.Lunch,
     dietType: [DietTag.Vegan],
     servings: 4,
@@ -32,7 +32,7 @@ describe('recipe DTOs', () => {
   describe('RecipeIngredientDto', () => {
     it('accepts an ingredient with notes', async () => {
       expect(
-        await errorsOf(RecipeIngredientDto, { ...ingredient, isOptional: true, notes: 'нарізати' }),
+        await errorsOf(RecipeIngredientDto, { ...ingredient, isOptional: true, notes: 'chop' }),
       ).toEqual([]);
     });
 

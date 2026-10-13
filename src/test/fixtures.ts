@@ -79,7 +79,7 @@ export function buildPreference(overrides: Partial<DietaryPreference> = {}): Die
 export function buildFoodItem(overrides: Partial<FoodItem> = {}): FoodItem {
   return {
     id: FOOD_ID,
-    name: 'Рис білий варений',
+    name: 'White rice, boiled',
     nameEn: 'Rice, white, boiled',
     kcalPer100g: d(130),
     proteinG: d(2.7),
@@ -114,9 +114,9 @@ export function buildIngredient(
 export function buildRecipe(overrides: Partial<RecipeWithIngredients> = {}): RecipeWithIngredients {
   return {
     id: RECIPE_ID,
-    name: 'Рис з овочами',
+    name: 'Rice with vegetables',
     description: null,
-    instructions: 'Зварити рис.',
+    instructions: 'Boil the rice.',
     mealType: MealType.Lunch,
     dietType: [DietTag.Vegan],
     servings: 2,
@@ -134,7 +134,7 @@ export function buildMenu(overrides: Partial<MenuWithVersions> = {}): MenuWithVe
   const menu: Menu = {
     id: MENU_ID,
     profileId: PROFILE_ID,
-    title: 'Тиждень 1',
+    title: 'Week 1',
     createdAt: CREATED_AT,
     updatedAt: UPDATED_AT,
   };

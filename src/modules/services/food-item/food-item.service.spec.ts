@@ -15,7 +15,7 @@ describe('FoodItemService', () => {
   let repository: jest.Mocked<FoodItemRepository>;
   let service: FoodItemService;
   const data = {
-    name: 'Гречка суха',
+    name: 'Buckwheat, dry',
     kcalPer100g: 343,
     proteinG: 13.3,
     fatG: 3.4,
@@ -86,7 +86,7 @@ describe('FoodItemService', () => {
     });
 
     it('accepts unknown nutrient values', async () => {
-      await service.create({ name: 'Соус', state: FoodState.Other, kcalPer100g: null });
+      await service.create({ name: 'Sauce', state: FoodState.Other, kcalPer100g: null });
 
       expect(repository.create).toHaveBeenCalled();
     });

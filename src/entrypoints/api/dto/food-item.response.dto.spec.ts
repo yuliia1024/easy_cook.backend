@@ -7,7 +7,7 @@ describe('FoodItemResponseDto', () => {
 
     expect(FoodItemResponseDto.from(food)).toEqual({
       id: food.id,
-      name: 'Рис білий варений',
+      name: 'White rice, boiled',
       nameEn: 'Rice, white, boiled',
       kcalPer100g: 130,
       proteinG: 2.7,

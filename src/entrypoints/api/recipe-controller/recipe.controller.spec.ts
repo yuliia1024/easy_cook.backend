@@ -17,21 +17,21 @@ describe('RecipeController', () => {
 
   it('delegates the recipe routes', async () => {
     const dto = {
-      name: 'Рис',
+      name: 'Rice',
       instructions: 'x',
       mealType: MealType.Lunch,
       servings: 2,
       ingredients: [{ foodItemId: FOOD_ID, quantityG: 100 }],
     };
 
-    await controller.getPage({ search: 'рис' });
+    await controller.getPage({ search: 'rice' });
     await controller.getById(RECIPE_ID);
     await controller.getNutrition(RECIPE_ID, { includeOptional: true });
     await controller.create(dto);
     await controller.update(RECIPE_ID, { servings: 3 });
     await controller.delete(RECIPE_ID);
 
-    expect(service.getPage).toHaveBeenCalledWith({ search: 'рис' });
+    expect(service.getPage).toHaveBeenCalledWith({ search: 'rice' });
     expect(service.getById).toHaveBeenCalledWith(RECIPE_ID);
     expect(service.getNutrition).toHaveBeenCalledWith(RECIPE_ID, { includeOptional: true });
     expect(service.create).toHaveBeenCalledWith(dto);

@@ -3,7 +3,7 @@
   "foods": [
     {
       "slug": "chicken-breast-raw",
-      "name": "Куряче філе, сире",
+      "name": "Chicken breast, raw",
       "nameEn": "Chicken breast, skinless, boneless, raw",
       "state": "raw",
       "kcalPer100g": 120,
@@ -13,7 +13,7 @@
     },
     {
       "slug": "beef-ground-lean-raw",
-      "name": "Яловичий фарш 10% жиру, сирий",
+      "name": "Ground beef 10% fat, raw",
       "nameEn": "Beef, ground, 90% lean, raw",
       "state": "raw",
       "kcalPer100g": 176,
@@ -23,7 +23,7 @@
     },
     {
       "slug": "salmon-raw",
-      "name": "Лосось атлантичний, сирий",
+      "name": "Atlantic salmon, raw",
       "nameEn": "Salmon, Atlantic, farmed, raw",
       "state": "raw",
       "kcalPer100g": 208,
@@ -33,7 +33,7 @@
     },
     {
       "slug": "tuna-canned-water",
-      "name": "Тунець у власному соку, консервований",
+      "name": "Tuna in water, canned",
       "nameEn": "Tuna, light, canned in water, drained",
       "state": "canned",
       "kcalPer100g": 116,
@@ -43,7 +43,7 @@
     },
     {
       "slug": "egg-raw",
-      "name": "Яйце куряче, сире",
+      "name": "Chicken egg, raw",
       "nameEn": "Egg, whole, raw",
       "state": "raw",
       "kcalPer100g": 143,
@@ -53,7 +53,7 @@
     },
     {
       "slug": "milk-2pct",
-      "name": "Молоко 2%",
+      "name": "Milk 2%",
       "nameEn": "Milk, reduced fat, 2% milkfat",
       "state": "other",
       "kcalPer100g": 50,
@@ -63,7 +63,7 @@
     },
     {
       "slug": "greek-yogurt-nonfat",
-      "name": "Грецький йогурт знежирений",
+      "name": "Greek yogurt, nonfat",
       "nameEn": "Yogurt, Greek, plain, nonfat",
       "state": "other",
       "kcalPer100g": 59,
@@ -73,7 +73,7 @@
     },
     {
       "slug": "cottage-cheese-4pct",
-      "name": "Сир кисломолочний 4%",
+      "name": "Cottage cheese 4%",
       "nameEn": "Cottage cheese, creamed, 4% milkfat",
       "state": "other",
       "kcalPer100g": 98,
@@ -83,7 +83,7 @@
     },
     {
       "slug": "cheese-cheddar",
-      "name": "Сир твердий чедер",
+      "name": "Cheddar cheese",
       "nameEn": "Cheese, cheddar",
       "state": "other",
       "kcalPer100g": 403,
@@ -93,7 +93,7 @@
     },
     {
       "slug": "sour-cream",
-      "name": "Сметана 20%",
+      "name": "Sour cream 20%",
       "nameEn": "Sour cream, cultured",
       "state": "other",
       "kcalPer100g": 198,
@@ -103,7 +103,7 @@
     },
     {
       "slug": "butter",
-      "name": "Масло вершкове",
+      "name": "Butter",
       "nameEn": "Butter, salted",
       "state": "other",
       "kcalPer100g": 717,
@@ -113,7 +113,7 @@
     },
     {
       "slug": "olive-oil",
-      "name": "Олія оливкова",
+      "name": "Olive oil",
       "nameEn": "Oil, olive, extra virgin",
       "state": "other",
       "kcalPer100g": 884,
@@ -123,7 +123,7 @@
     },
     {
       "slug": "sunflower-oil",
-      "name": "Олія соняшникова",
+      "name": "Sunflower oil",
       "nameEn": "Oil, sunflower",
       "state": "other",
       "kcalPer100g": 884,
@@ -133,7 +133,7 @@
     },
     {
       "slug": "oats-dry",
-      "name": "Вівсяні пластівці, сухі",
+      "name": "Rolled oats, dry",
       "nameEn": "Oats, rolled, dry",
       "state": "dried",
       "kcalPer100g": 379,
@@ -143,7 +143,7 @@
     },
     {
       "slug": "rice-white-dry",
-      "name": "Рис білий, сухий",
+      "name": "White rice, dry",
       "nameEn": "Rice, white, long-grain, raw",
       "state": "dried",
       "kcalPer100g": 365,
@@ -153,7 +153,7 @@
     },
     {
       "slug": "rice-white-boiled",
-      "name": "Рис білий, варений",
+      "name": "White rice, boiled",
       "nameEn": "Rice, white, long-grain, cooked",
       "state": "boiled",
       "kcalPer100g": 130,
@@ -163,7 +163,7 @@
     },
     {
       "slug": "buckwheat-dry",
-      "name": "Гречка, суха",
+      "name": "Buckwheat, dry",
       "nameEn": "Buckwheat groats, roasted, dry",
       "state": "dried",
       "kcalPer100g": 343,
@@ -173,7 +173,7 @@
     },
     {
       "slug": "buckwheat-boiled",
-      "name": "Гречка, варена",
+      "name": "Buckwheat, boiled",
       "nameEn": "Buckwheat groats, roasted, cooked",
       "state": "boiled",
       "kcalPer100g": 92,
@@ -183,7 +183,7 @@
     },
     {
       "slug": "pasta-dry",
-      "name": "Макарони з твердих сортів, сухі",
+      "name": "Durum wheat pasta, dry",
       "nameEn": "Pasta, dry, enriched",
       "state": "dried",
       "kcalPer100g": 371,
@@ -193,7 +193,7 @@
     },
     {
       "slug": "wheat-flour",
-      "name": "Борошно пшеничне",
+      "name": "Wheat flour",
       "nameEn": "Wheat flour, white, all-purpose",
       "state": "dried",
       "kcalPer100g": 364,
@@ -203,7 +203,7 @@
     },
     {
       "slug": "bread-whole-wheat",
-      "name": "Хліб цільнозерновий",
+      "name": "Whole-wheat bread",
       "nameEn": "Bread, whole-wheat",
       "state": "baked",
       "kcalPer100g": 252,
@@ -213,7 +213,7 @@
     },
     {
       "slug": "lentils-red-dry",
-      "name": "Сочевиця червона, суха",
+      "name": "Red lentils, dry",
       "nameEn": "Lentils, raw",
       "state": "dried",
       "kcalPer100g": 352,
@@ -223,7 +223,7 @@
     },
     {
       "slug": "chickpeas-boiled",
-      "name": "Нут, варений",
+      "name": "Chickpeas, boiled",
       "nameEn": "Chickpeas, mature seeds, cooked, boiled",
       "state": "boiled",
       "kcalPer100g": 164,
@@ -233,7 +233,7 @@
     },
     {
       "slug": "tofu-firm",
-      "name": "Тофу твердий",
+      "name": "Firm tofu",
       "nameEn": "Tofu, firm, prepared with calcium sulfate",
       "state": "other",
       "kcalPer100g": 144,
@@ -243,7 +243,7 @@
     },
     {
       "slug": "potato-raw",
-      "name": "Картопля, сира",
+      "name": "Potato, raw",
       "nameEn": "Potatoes, flesh and skin, raw",
       "state": "raw",
       "kcalPer100g": 77,
@@ -253,7 +253,7 @@
     },
     {
       "slug": "potato-boiled",
-      "name": "Картопля, варена",
+      "name": "Potato, boiled",
       "nameEn": "Potatoes, boiled, cooked without skin",
       "state": "boiled",
       "kcalPer100g": 87,
@@ -263,7 +263,7 @@
     },
     {
       "slug": "tomato-raw",
-      "name": "Помідор",
+      "name": "Tomato",
       "nameEn": "Tomatoes, red, ripe, raw",
       "state": "raw",
       "kcalPer100g": 18,
@@ -273,7 +273,7 @@
     },
     {
       "slug": "cucumber-raw",
-      "name": "Огірок",
+      "name": "Cucumber",
       "nameEn": "Cucumber, with peel, raw",
       "state": "raw",
       "kcalPer100g": 15,
@@ -283,7 +283,7 @@
     },
     {
       "slug": "onion-raw",
-      "name": "Цибуля ріпчаста",
+      "name": "Onion",
       "nameEn": "Onions, raw",
       "state": "raw",
       "kcalPer100g": 40,
@@ -293,7 +293,7 @@
     },
     {
       "slug": "carrot-raw",
-      "name": "Морква",
+      "name": "Carrot",
       "nameEn": "Carrots, raw",
       "state": "raw",
       "kcalPer100g": 41,
@@ -303,7 +303,7 @@
     },
     {
       "slug": "garlic-raw",
-      "name": "Часник",
+      "name": "Garlic",
       "nameEn": "Garlic, raw",
       "state": "raw",
       "kcalPer100g": 149,
@@ -313,7 +313,7 @@
     },
     {
       "slug": "bell-pepper-red-raw",
-      "name": "Перець болгарський червоний",
+      "name": "Red bell pepper",
       "nameEn": "Peppers, sweet, red, raw",
       "state": "raw",
       "kcalPer100g": 31,
@@ -323,7 +323,7 @@
     },
     {
       "slug": "broccoli-raw",
-      "name": "Броколі",
+      "name": "Broccoli",
       "nameEn": "Broccoli, raw",
       "state": "raw",
       "kcalPer100g": 34,
@@ -333,7 +333,7 @@
     },
     {
       "slug": "spinach-raw",
-      "name": "Шпинат",
+      "name": "Spinach",
       "nameEn": "Spinach, raw",
       "state": "raw",
       "kcalPer100g": 23,
@@ -343,7 +343,7 @@
     },
     {
       "slug": "cabbage-raw",
-      "name": "Капуста білокачанна",
+      "name": "White cabbage",
       "nameEn": "Cabbage, raw",
       "state": "raw",
       "kcalPer100g": 25,
@@ -353,7 +353,7 @@
     },
     {
       "slug": "beetroot-raw",
-      "name": "Буряк",
+      "name": "Beetroot",
       "nameEn": "Beets, raw",
       "state": "raw",
       "kcalPer100g": 43,
@@ -363,7 +363,7 @@
     },
     {
       "slug": "mushrooms-raw",
-      "name": "Печериці",
+      "name": "White mushrooms",
       "nameEn": "Mushrooms, white, raw",
       "state": "raw",
       "kcalPer100g": 22,
@@ -373,7 +373,7 @@
     },
     {
       "slug": "dill-raw",
-      "name": "Кріп",
+      "name": "Dill",
       "nameEn": "Dill weed, fresh",
       "state": "raw",
       "kcalPer100g": 43,
@@ -383,7 +383,7 @@
     },
     {
       "slug": "banana-raw",
-      "name": "Банан",
+      "name": "Banana",
       "nameEn": "Bananas, raw",
       "state": "raw",
       "kcalPer100g": 89,
@@ -393,7 +393,7 @@
     },
     {
       "slug": "apple-raw",
-      "name": "Яблуко",
+      "name": "Apple",
       "nameEn": "Apples, raw, with skin",
       "state": "raw",
       "kcalPer100g": 52,
@@ -403,7 +403,7 @@
     },
     {
       "slug": "blueberries-raw",
-      "name": "Лохина",
+      "name": "Blueberries",
       "nameEn": "Blueberries, raw",
       "state": "raw",
       "kcalPer100g": 57,
@@ -413,7 +413,7 @@
     },
     {
       "slug": "lemon-juice",
-      "name": "Сік лимона",
+      "name": "Lemon juice",
       "nameEn": "Lemon juice, raw",
       "state": "raw",
       "kcalPer100g": 22,
@@ -423,7 +423,7 @@
     },
     {
       "slug": "walnuts",
-      "name": "Волоські горіхи",
+      "name": "Walnuts",
       "nameEn": "Nuts, walnuts, English",
       "state": "dried",
       "kcalPer100g": 654,
@@ -433,7 +433,7 @@
     },
     {
       "slug": "honey",
-      "name": "Мед",
+      "name": "Honey",
       "nameEn": "Honey",
       "state": "other",
       "kcalPer100g": 304,
@@ -443,7 +443,7 @@
     },
     {
       "slug": "salt",
-      "name": "Сіль",
+      "name": "Salt",
       "nameEn": "Salt, table",
       "state": "other",
       "kcalPer100g": 0,
