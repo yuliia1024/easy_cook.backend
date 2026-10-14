@@ -70,7 +70,7 @@ describe('/api/conversations (e2e)', () => {
   });
 
   it('lists, renames, links and deletes conversations', async () => {
-    await createMenuWorld(ctx);
+    const world = await createMenuWorld(ctx);
     const older = await start({ title: 'Older' });
     const newer = await start({ title: 'Newer' });
     await say(older, 'hi');
@@ -79,7 +79,18 @@ describe('/api/conversations (e2e)', () => {
     expect(list.body.map((c: { title: string }) => c.title)).toEqual(['Older', 'Newer']);
     expect(list.body[0].messageCount).toBe(2);
 
-    const menu = await http().post('/api/menus/generate').send({ days: 1 }).expect(201);
+    const menu = await http()
+      .post('/api/menus')
+      .send({
+        title: 'Week',
+        days: [
+          {
+            dayIndex: 0,
+            meals: [{ mealType: 'lunch', recipeId: world.recipe.chicken, servings: 1 }],
+          },
+        ],
+      })
+      .expect(201);
     const linked = await http()
       .patch(`/api/conversations/${newer}`)
       .send({ title: 'About the menu', menuId: menu.body.id })

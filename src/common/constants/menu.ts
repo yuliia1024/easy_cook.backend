@@ -4,6 +4,8 @@ export const MENU_TITLE_MAX_LENGTH = 255;
 export const MENU_NOTES_MAX_LENGTH = 2000;
 export const MAX_MENU_DAYS = 14;
 export const MAX_MEALS_PER_DAY = 8;
+/** Menu dates are today or later, at most this many days ahead. */
+export const MENU_DATE_MAX_FUTURE_DAYS = 365;
 /** Portions of the recipe eaten in one meal. */
 export const MENU_MEAL_SERVINGS = { min: 0.25, max: 10 } as const;
 

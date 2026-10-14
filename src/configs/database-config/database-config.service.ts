@@ -13,7 +13,7 @@ export class DatabaseConfigService {
 
   /**
    * Prisma 7 talks to Postgres through the `pg` driver adapter. Its logs are emitted as events so
-   * `PrismaService` can pass them to the app logger (level filter, request id).
+   * `OpenAiService` can pass them to the app logger (level filter, request id).
    */
   public config(): Prisma.PrismaClientOptions {
     return {

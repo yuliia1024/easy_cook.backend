@@ -121,7 +121,7 @@ Everything is under `/api`; Swagger UI on `/docs`.
 | PATCH / DELETE | `/recipes/:id/ingredients/:ingredientId` | |
 | GET | `/menus`, `/menus/:id` | `:id` with every version, newest first, nutrition per meal and day, issues |
 | POST | `/menus` | by hand; 400 for unknown recipes or broken diets / allergies / excluded foods |
-| POST | `/menus/generate` | planned by the assistant (stub) for the current goal; 404 without a goal, 422 when nothing fits |
+| POST | `/menus/generate` | not implemented yet: an AI SDK UI message stream (SSE) of `start` and an `error` chunk; the body is still validated |
 | PATCH / DELETE | `/menus/:id` | rename / delete |
 | POST | `/menus/:id/versions` | the whole next version, by hand |
 | POST | `/menus/:id/replace-meal` | next version with one meal re-planned |

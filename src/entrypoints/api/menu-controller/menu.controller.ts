@@ -9,8 +9,11 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Res,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiProduces, ApiTags } from '@nestjs/swagger';
+import { pipeUIMessageStreamToResponse } from 'ai';
+import { Response } from 'express';
 import {
   CreateMenuDto,
   GenerateMenuDto,
@@ -48,12 +51,14 @@ export class MenuController {
   }
 
   /**
-   * A menu planned by the assistant (a deterministic stub until the LLM stage) for the current
-   * goal. 404 without a goal; 422 when no recipe fits a meal or no valid plan is found.
+   * Not implemented yet: an AI SDK UI message stream (SSE) of `start` and an `error` chunk. The
+   * body is still validated.
    */
   @Post('generate')
-  async generate(@Body() dto: GenerateMenuDto): Promise<MenuResponseDto> {
-    return this.menuControllerService.generate(dto);
+  @ApiProduces('text/event-stream')
+  async generate(@Body() _dto: GenerateMenuDto, @Res() response: Response): Promise<void> {
+    const stream = this.menuControllerService.generate();
+    await pipeUIMessageStreamToResponse({ response, status: HttpStatus.CREATED, stream });
   }
 
   @Patch(':id')

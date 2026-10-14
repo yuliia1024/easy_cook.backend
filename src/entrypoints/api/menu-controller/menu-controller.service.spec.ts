@@ -1,3 +1,4 @@
+import { UIMessageChunk } from 'ai';
 import { MealType } from '../../../common/constants';
 import { MenuService } from '../../../modules/services/menu/menu.service';
 import { createMock } from '../../../test/create-mock';
@@ -10,6 +11,14 @@ import {
 } from '../../../test/fixtures';
 import { MenuControllerService } from './menu-controller.service';
 
+const read = async (stream: ReadableStream<UIMessageChunk>): Promise<UIMessageChunk[]> => {
+  const chunks: UIMessageChunk[] = [];
+  for await (const chunk of stream as unknown as AsyncIterable<UIMessageChunk>) {
+    chunks.push(chunk);
+  }
+  return chunks;
+};
+
 describe('MenuControllerService', () => {
   let menuService: jest.Mocked<MenuService>;
   let service: MenuControllerService;
@@ -21,7 +30,6 @@ describe('MenuControllerService', () => {
     for (const method of [
       'getById',
       'create',
-      'generate',
       'rename',
       'addVersion',
       'confirm',
@@ -77,30 +85,14 @@ describe('MenuControllerService', () => {
     });
   });
 
-  it('generates with defaults for the optional fields', async () => {
-    await service.generate({ days: 3 });
-    await service.generate({
-      days: 2,
-      title: 'Mine',
-      mealTypes: [MealType.Lunch],
-      startDate: '2026-10-20',
-      instructions: 'fish',
-    });
+  it('streams that generation is not implemented yet', async () => {
+    const chunks = await read(service.generate());
 
-    expect(menuService.generate).toHaveBeenNthCalledWith(1, {
-      title: null,
-      days: 3,
-      mealTypes: null,
-      startDate: null,
-      instructions: null,
-    });
-    expect(menuService.generate).toHaveBeenNthCalledWith(2, {
-      title: 'Mine',
-      days: 2,
-      mealTypes: [MealType.Lunch],
-      startDate: new Date('2026-10-20T00:00:00.000Z'),
-      instructions: 'fish',
-    });
+    expect(chunks).toEqual([
+      expect.objectContaining({ type: 'start' }),
+      { type: 'error', errorText: 'Menu generation is not implemented yet' },
+    ]);
+    expect(menuService.generate).not.toHaveBeenCalled();
   });
 
   it('replaces a meal', async () => {

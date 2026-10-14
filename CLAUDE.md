@@ -5,7 +5,7 @@ repository. Layout:
 
 - `src/configs/` - one `*-config.service.ts` per area; every env var is declared and validated in `configs.ts`.
 - `src/common/` - constants (enums, limits), exceptions, shared types, utils (`toNumber` for Prisma `Decimal`).
-- `src/providers/` - wrappers around external clients (`PrismaService`).
+- `src/providers/` - wrappers around external clients (`OpenAiService` and `PrismaService`).
 - `src/generated/prisma/` - Prisma client, generated on `npm install`, git-ignored. Import Prisma types
   from there (`../generated/prisma/client`), never from `@prisma/client`.
 - `src/modules/data-access/<name>/` - repository + repository module; the only code that touches Prisma.

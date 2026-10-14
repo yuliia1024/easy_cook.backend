@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { createUIMessageStream, UIMessageChunk } from 'ai';
 import { MenuDayDraft } from '../../../common/types';
+import { toDate } from '../../../common/utils';
 import { MenuService } from '../../../modules/services/menu/menu.service';
 import {
   CreateMenuDto,
-  GenerateMenuDto,
   MenuDayDto,
   MenuVersionDto,
   RenameMenuDto,
@@ -11,9 +12,7 @@ import {
 } from './dto/menu.dto';
 import { MenuResponseDto, MenuSummaryResponseDto } from './dto/menu.response.dto';
 
-/** `YYYY-MM-DD` as midnight UTC, the way a DATE column is read back. */
-const toDate = (value: string | null | undefined): Date | null =>
-  value ? new Date(`${value}T00:00:00.000Z`) : null;
+const GENERATION_NOT_IMPLEMENTED = 'Menu generation is not implemented yet';
 
 @Injectable()
 export class MenuControllerService {
@@ -32,15 +31,14 @@ export class MenuControllerService {
     return MenuResponseDto.from(await this.menuService.create(title, this.toManual(version)));
   }
 
-  public async generate(dto: GenerateMenuDto): Promise<MenuResponseDto> {
-    const menu = await this.menuService.generate({
-      title: dto.title ?? null,
-      days: dto.days,
-      mealTypes: dto.mealTypes ?? null,
-      startDate: toDate(dto.startDate),
-      instructions: dto.instructions || null,
+  /** Placeholder until menus are generated: a stream that only reports it is not implemented. */
+  public generate(): ReadableStream<UIMessageChunk> {
+    return createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'start' });
+        writer.write({ type: 'error', errorText: GENERATION_NOT_IMPLEMENTED });
+      },
     });
-    return MenuResponseDto.from(menu);
   }
 
   public async rename(id: string, { title }: RenameMenuDto): Promise<MenuResponseDto> {

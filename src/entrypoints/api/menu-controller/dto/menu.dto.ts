@@ -5,13 +5,11 @@ import {
   IsArray,
   IsEnum,
   IsInt,
-  IsISO8601,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   IsUUID,
-  Matches,
   Max,
   MaxLength,
   Min,
@@ -22,13 +20,12 @@ import {
   MAX_MEALS_PER_DAY,
   MAX_MENU_DAYS,
   MealType,
+  MENU_DATE_MAX_FUTURE_DAYS,
   MENU_MEAL_SERVINGS,
   MENU_NOTES_MAX_LENGTH,
   MENU_TITLE_MAX_LENGTH,
 } from '../../../../common/constants';
-import { Trim } from '../../dto/validators';
-
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+import { IsUpcomingDate, Trim } from '../../dto/validators';
 
 export class MenuMealDto {
   @IsEnum(MealType)
@@ -51,11 +48,10 @@ export class MenuDayDto {
   @Max(MAX_MENU_DAYS - 1)
   dayIndex: number;
 
-  /** `YYYY-MM-DD`. @example 2026-10-20 */
+  /** `YYYY-MM-DD`, today up to a year ahead. @example 2026-10-20 */
   @IsOptional()
   @ValidateIf((_, value) => value !== null)
-  @Matches(DATE_ONLY, { message: 'date must be YYYY-MM-DD' })
-  @IsISO8601({ strict: true })
+  @IsUpcomingDate(MENU_DATE_MAX_FUTURE_DAYS)
   date?: string | null;
 
   /** In order of the day. */
@@ -129,11 +125,12 @@ export class GenerateMenuDto {
   @IsEnum(MealType, { each: true })
   mealTypes?: MealType[] | null;
 
-  /** Date of the first day, `YYYY-MM-DD`; the menu is undated without it. */
+  /**
+   * Date of the first day, `YYYY-MM-DD`, today up to a year ahead; the menu is undated without it.
+   */
   @IsOptional()
   @ValidateIf((_, value) => value !== null)
-  @Matches(DATE_ONLY, { message: 'startDate must be YYYY-MM-DD' })
-  @IsISO8601({ strict: true })
+  @IsUpcomingDate(MENU_DATE_MAX_FUTURE_DAYS)
   startDate?: string | null;
 
   /** Wishes for the planner. The stub planner ignores them. @example quick breakfasts */

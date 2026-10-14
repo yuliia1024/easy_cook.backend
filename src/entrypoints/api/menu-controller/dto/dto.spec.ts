@@ -1,6 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate, ValidationError } from 'class-validator';
 import { MealType } from '../../../../common/constants';
+import { daysFromToday } from '../../../../test/dates';
 import { MENU_VERSION_ID, RECIPE_ID } from '../../../../test/fixtures';
 import {
   CreateMenuDto,
@@ -23,7 +24,7 @@ async function errorsOf<T extends object>(cls: new () => T, plain: object): Prom
 
 describe('menu DTOs', () => {
   const meal = { mealType: MealType.Lunch, recipeId: RECIPE_ID, servings: 1.5 };
-  const day = { dayIndex: 0, date: '2026-10-20', meals: [meal] };
+  const day = { dayIndex: 0, date: daysFromToday(7), meals: [meal] };
 
   describe('MenuVersionDto / CreateMenuDto', () => {
     it('accepts a full menu', async () => {
@@ -47,6 +48,8 @@ describe('menu DTOs', () => {
       [{ days: [{ ...day, date: '20.10.2026' }] }, 'days.0.date'],
       [{ days: [{ ...day, date: '2026-02-30' }] }, 'days.0.date'],
       [{ days: [{ ...day, date: '2026-10-20T00:00:00Z' }] }, 'days.0.date'],
+      [{ days: [{ ...day, date: daysFromToday(-2) }] }, 'days.0.date'],
+      [{ days: [{ ...day, date: daysFromToday(367) }] }, 'days.0.date'],
       [{ days: [{ ...day, meals: [] }] }, 'days.0.meals'],
       [{ days: [{ ...day, meals: Array(9).fill(meal) }] }, 'days.0.meals'],
       [{ days: [{ ...day, meals: [{ ...meal, mealType: 'brunch' }] }] }, 'days.0.meals.0.mealType'],
@@ -80,7 +83,7 @@ describe('menu DTOs', () => {
           days: 14,
           title: 'Plan',
           mealTypes: [MealType.Breakfast, MealType.Snack, MealType.Snack],
-          startDate: '2026-10-20',
+          startDate: daysFromToday(0),
           instructions: 'quick breakfasts',
         }),
       ).toEqual([]);
@@ -103,6 +106,8 @@ describe('menu DTOs', () => {
       [{ days: 3, mealTypes: ['brunch'] }, 'mealTypes'],
       [{ days: 3, mealTypes: Array(9).fill(MealType.Snack) }, 'mealTypes'],
       [{ days: 3, startDate: 'tomorrow' }, 'startDate'],
+      [{ days: 3, startDate: daysFromToday(-2) }, 'startDate'],
+      [{ days: 3, startDate: daysFromToday(367) }, 'startDate'],
       [{ days: 3, title: '' }, 'title'],
       [{ days: 3, instructions: 'x'.repeat(2001) }, 'instructions'],
     ])('rejects %j', async (plain, field) => {
