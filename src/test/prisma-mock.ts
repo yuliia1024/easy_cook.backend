@@ -21,7 +21,7 @@ export type PrismaMock = PrismaService & {
 };
 
 /**
- * A `OpenAiService` stand-in for repository specs. Model delegates are auto-mocked objects,
+ * A `PrismaService` stand-in for repository specs. Model delegates are auto-mocked objects,
  * `$transaction(fn)` runs `fn` with the same mock, so a spec asserts on one set of calls.
  */
 export function createPrismaMock(): PrismaMock {

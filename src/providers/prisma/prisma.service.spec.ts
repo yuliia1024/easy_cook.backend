@@ -3,7 +3,7 @@ import { fakeConfig } from '../../test/fake-config';
 import { DatabaseConfigService } from '../../configs/database-config/database-config.service';
 import { PrismaService } from './prisma.service';
 
-describe('OpenAiService', () => {
+describe('PrismaService', () => {
   let service: PrismaService;
 
   beforeEach(() => {

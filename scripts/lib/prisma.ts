@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../src/generated/prisma/client';
 
-/** A client for CLI scripts, on DATABASE_URL (the app builds its own in OpenAiService). */
+/** A client for CLI scripts, on DATABASE_URL (the app builds its own in PrismaService). */
 export function createPrismaClient(
   url: string | undefined = process.env.DATABASE_URL,
 ): PrismaClient {
