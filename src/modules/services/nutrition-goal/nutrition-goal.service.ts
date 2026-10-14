@@ -46,6 +46,12 @@ export class NutritionGoalService {
     return goal;
   }
 
+  /** The goal in effect now, or null when none is set yet. */
+  public async findCurrent(): Promise<NutritionGoal | null> {
+    const profile = await this.userProfileService.getCurrent();
+    return this.nutritionGoalRepository.findCurrent(profile.id);
+  }
+
   /** By `effectiveFrom`, newest first by default. */
   public async getHistory(sortOrder: SortOrder = SortOrder.Desc): Promise<NutritionGoal[]> {
     const profile = await this.userProfileService.getCurrent();

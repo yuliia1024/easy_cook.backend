@@ -41,3 +41,21 @@ export class MenuNotFoundException extends NotFoundError {
     super('Menu not found');
   }
 }
+
+export class MenuVersionNotFoundException extends NotFoundError {
+  constructor() {
+    super('Menu version not found');
+  }
+}
+
+export class MenuMealNotFoundException extends NotFoundError {
+  constructor(dayIndex: number, position: number) {
+    super(`The menu has no meal ${position} on day ${dayIndex}`);
+  }
+}
+
+export class ConversationNotFoundException extends NotFoundError {
+  constructor() {
+    super('Conversation not found');
+  }
+}

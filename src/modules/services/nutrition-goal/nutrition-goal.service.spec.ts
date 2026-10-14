@@ -58,6 +58,17 @@ describe('NutritionGoalService', () => {
     });
   });
 
+  describe('findCurrent', () => {
+    it('returns the goal in effect or null', async () => {
+      const goal = buildNutritionGoal();
+      repository.findCurrent.mockResolvedValueOnce(goal).mockResolvedValueOnce(null);
+
+      await expect(service.findCurrent()).resolves.toBe(goal);
+      await expect(service.findCurrent()).resolves.toBeNull();
+      expect(repository.findCurrent).toHaveBeenCalledWith(PROFILE_ID);
+    });
+  });
+
   describe('getHistory', () => {
     it('lists the profile goals newest first by default', async () => {
       const goals = [buildNutritionGoal()];

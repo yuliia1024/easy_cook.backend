@@ -21,7 +21,6 @@ describe('ConfigService', () => {
 
     expect(config.getNumber('PORT')).toBe(3100);
     expect(config.getBoolean('SWAGGER_ENABLED')).toBe(true);
-    expect(config.getBoolean('POSTGRES_LOGGING')).toBe(false);
   });
 
   it('treats a missing optional boolean as false', () => {

@@ -1,0 +1,22 @@
+// Single source of truth for the database, one file per domain (profile, catalog, menu, chat); this one
+// holds the generator and datasource. Change a model, then `NAME=... npm run migration:create`
+// (or `npm run migration:dev`). Never edit a committed migration.
+//
+// Enum-like columns are VARCHAR on purpose: the allowed values live in `src/common/constants`
+// and are validated by the API, so adding a value does not need a migration.
+
+// The client is generated into src/generated/prisma (git-ignored) on `npm install`.
+generator client {
+  provider            = "prisma-client"
+  output              = "../../src/generated/prisma"
+  moduleFormat        = "cjs"
+  // Explicit, so the output does not depend on whether tsconfig.json is present (docker build).
+  importFileExtension = ""
+  previewFeatures     = ["postgresqlExtensions"]
+}
+
+// The connection URL lives in prisma.config.ts (CLI) and DatabaseConfigService (app).
+datasource db {
+  provider   = "postgresql"
+  extensions = [pg_trgm]
+}

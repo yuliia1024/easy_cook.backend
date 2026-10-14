@@ -10,6 +10,8 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
+import { LogLevel } from '@nestjs/common';
+import { LOG_LEVELS } from '../common/constants';
 import { Environments } from '../common/types';
 
 /** `https://a.com, http://localhost:5173`: comma separated http(s) origins. */
@@ -51,7 +53,8 @@ export class Configs {
   @Matches(/^postgres(ql)?:\/\//, { message: 'DATABASE_URL must be a postgres connection url' })
   DATABASE_URL: string;
 
+  /** Minimum level printed (`log` when unset); `debug` adds the SQL queries. */
   @IsOptional()
-  @IsBooleanString()
-  POSTGRES_LOGGING?: string;
+  @IsIn(LOG_LEVELS)
+  LOG_LEVEL?: LogLevel;
 }

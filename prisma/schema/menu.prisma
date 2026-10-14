@@ -1,0 +1,77 @@
+// Menus: created by hand, by the planner (a stub until the LLM stage) or from the chat.
+
+/// A logical menu. Its content lives in immutable versions; every edit adds a version.
+model Menu {
+  id                 String    @id @default(uuid()) @db.Uuid
+  profileId          String    @map("profile_id") @db.Uuid
+  title              String    @db.VarChar(255)
+  /// The version the user confirmed; versions stay drafts until an explicit confirm.
+  confirmedVersionId String?   @unique @map("confirmed_version_id") @db.Uuid
+  confirmedAt        DateTime? @map("confirmed_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profile          UserProfile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  versions         MenuVersion[]  @relation("MenuVersions")
+  confirmedVersion MenuVersion?   @relation("ConfirmedMenuVersion", fields: [confirmedVersionId], references: [id], onDelete: SetNull)
+  conversations    Conversation[]
+
+  @@index([profileId])
+  @@map("menus")
+}
+
+/// Never updated. Snapshots keep the version intact when recipes or goals change later.
+model MenuVersion {
+  id                     String   @id @default(uuid()) @db.Uuid
+  menuId                 String   @map("menu_id") @db.Uuid
+  versionNumber          Int      @map("version_number")
+  /// `MenuGeneratedBy`: manual | stub | llm
+  generatedBy            String   @map("generated_by") @db.VarChar(16)
+  /// The nutrition goal the version was built for.
+  nutritionGoalsSnapshot Json     @map("nutrition_goals_snapshot")
+  /// Days, meals, recipes and their nutrition at creation time.
+  compositionSnapshot    Json     @map("composition_snapshot")
+  notes                  String?
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  menu        Menu      @relation("MenuVersions", fields: [menuId], references: [id], onDelete: Cascade)
+  days        MenuDay[]
+  confirmedIn Menu?     @relation("ConfirmedMenuVersion")
+  messages    Message[]
+
+  @@unique([menuId, versionNumber])
+  @@map("menu_versions")
+}
+
+model MenuDay {
+  id            String    @id @default(uuid()) @db.Uuid
+  menuVersionId String    @map("menu_version_id") @db.Uuid
+  /// 0-based day within the version.
+  dayIndex      Int       @map("day_index")
+  date          DateTime? @db.Date
+
+  menuVersion MenuVersion @relation(fields: [menuVersionId], references: [id], onDelete: Cascade)
+  meals       MenuMeal[]
+
+  @@unique([menuVersionId, dayIndex])
+  @@map("menu_days")
+}
+
+model MenuMeal {
+  id             String  @id @default(uuid()) @db.Uuid
+  menuDayId      String  @map("menu_day_id") @db.Uuid
+  /// `MealType`
+  mealType       String  @map("meal_type") @db.VarChar(32)
+  position       Int     @default(0)
+  /// Null once the recipe is deleted; `recipe_snapshot` still describes it.
+  recipeId       String? @map("recipe_id") @db.Uuid
+  servings       Decimal @db.Decimal(5, 2)
+  recipeSnapshot Json    @map("recipe_snapshot")
+
+  menuDay MenuDay @relation(fields: [menuDayId], references: [id], onDelete: Cascade)
+  recipe  Recipe? @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+
+  @@index([menuDayId])
+  @@index([recipeId])
+  @@map("menu_meals")
+}

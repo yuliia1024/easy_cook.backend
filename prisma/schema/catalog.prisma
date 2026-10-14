@@ -1,0 +1,74 @@
+// Food items and recipes.
+
+/// Nutrition values describe 100 g of the product in the given `state`: 100 g of dry rice and
+/// 100 g of boiled rice are two different food items. Null means the value is unknown.
+model FoodItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(255)
+  nameEn      String?  @map("name_en") @db.VarChar(255)
+  kcalPer100g Decimal? @map("kcal_per_100g") @db.Decimal(7, 2)
+  proteinG    Decimal? @map("protein_g") @db.Decimal(6, 2)
+  fatG        Decimal? @map("fat_g") @db.Decimal(6, 2)
+  carbsG      Decimal? @map("carbs_g") @db.Decimal(6, 2)
+  /// `FoodState`
+  state       String   @db.VarChar(32)
+  /// `FoodSource`
+  source      String   @db.VarChar(32)
+  sourceId    String?  @map("source_id") @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  recipeIngredients RecipeIngredient[]
+
+  @@unique([source, sourceId])
+  // Trigram indexes serve the case-insensitive `contains` search.
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "food_items_name_trgm_idx")
+  @@index([nameEn(ops: raw("gin_trgm_ops"))], type: Gin, map: "food_items_name_en_trgm_idx")
+  @@map("food_items")
+}
+
+model Recipe {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @db.VarChar(255)
+  description     String?
+  instructions    String
+  /// `MealType`
+  mealType        String   @map("meal_type") @db.VarChar(32)
+  /// `DietTag[]`
+  dietType        String[] @default([]) @map("diet_type") @db.VarChar(32)
+  servings        Int
+  prepTimeMinutes Int?     @map("prep_time_minutes")
+  source          String   @db.VarChar(32)
+  sourceId        String?  @map("source_id") @db.VarChar(64)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ingredients RecipeIngredient[]
+  menuMeals   MenuMeal[]
+
+  @@unique([source, sourceId])
+  @@index([mealType])
+  @@index([dietType], type: Gin)
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "recipes_name_trgm_idx")
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id         String  @id @default(uuid()) @db.Uuid
+  recipeId   String  @map("recipe_id") @db.Uuid
+  foodItemId String  @map("food_item_id") @db.Uuid
+  /// For the whole recipe, in the state of the referenced food item.
+  quantityG  Decimal @map("quantity_g") @db.Decimal(8, 2)
+  isOptional Boolean @default(false) @map("is_optional")
+  notes      String?
+  /// Display order within the recipe.
+  position   Int     @default(0)
+
+  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  // A food used by a recipe cannot be deleted.
+  foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+
+  @@index([recipeId])
+  @@index([foodItemId])
+  @@map("recipe_ingredients")
+}

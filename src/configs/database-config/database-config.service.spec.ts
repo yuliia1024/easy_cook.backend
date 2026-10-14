@@ -15,13 +15,13 @@ describe('DatabaseConfigService', () => {
     expect(adapter).toBeInstanceOf(PrismaPg);
   });
 
-  it('logs queries only when asked to', () => {
-    const quiet = new DatabaseConfigService(fakeConfig({ DATABASE_URL: url }));
-    const verbose = new DatabaseConfigService(
-      fakeConfig({ DATABASE_URL: url, POSTGRES_LOGGING: 'true' }),
-    );
+  it('emits queries, warnings and errors as events for the app logger', () => {
+    const { log } = new DatabaseConfigService(fakeConfig({ DATABASE_URL: url })).config();
 
-    expect(quiet.config().log).toEqual(['warn', 'error']);
-    expect(verbose.config().log).toEqual(['query', 'warn', 'error']);
+    expect(log).toEqual([
+      { emit: 'event', level: 'query' },
+      { emit: 'event', level: 'warn' },
+      { emit: 'event', level: 'error' },
+    ]);
   });
 });

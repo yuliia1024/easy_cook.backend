@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from './configs/config.module';
+import { ConversationControllerModule } from './entrypoints/api/conversation-controller/conversation-controller.module';
 import { FoodControllerModule } from './entrypoints/api/food-controller/food-controller.module';
 import { HealthController } from './entrypoints/api/health.controller';
 import { MenuControllerModule } from './entrypoints/api/menu-controller/menu-controller.module';
@@ -23,6 +24,7 @@ import { PrismaModule } from './providers/prisma/prisma.module';
     FoodControllerModule,
     RecipeControllerModule,
     MenuControllerModule,
+    ConversationControllerModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

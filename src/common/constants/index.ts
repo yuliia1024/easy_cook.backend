@@ -4,3 +4,6 @@ export * from './recipe';
 export * from './nutrition';
 export * from './pagination';
 export * from './query';
+export * from './menu';
+export * from './chat';
+export * from './logger';

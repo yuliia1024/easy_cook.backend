@@ -1,0 +1,57 @@
+// UserProfile and its targets and preferences.
+
+model UserProfile {
+  id            String   @id @default(uuid()) @db.Uuid
+  age           Int
+  heightCm      Decimal  @map("height_cm") @db.Decimal(5, 1)
+  weightKg      Decimal  @map("weight_kg") @db.Decimal(5, 1)
+  /// Input for the energy formula (`Sex`).
+  sex           String   @db.VarChar(16)
+  /// `ActivityLevel`
+  activityLevel String   @map("activity_level") @db.VarChar(32)
+  /// `Goal`
+  goal          String   @db.VarChar(32)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  nutritionGoals     NutritionGoal[]
+  dietaryPreferences DietaryPreference[]
+  menus              Menu[]
+  conversations      Conversation[]
+
+  @@map("user_profiles")
+}
+
+/// Daily targets. Rows are never updated: a new goal is a new row, the current one is the
+/// latest `effective_from` that is not in the future.
+model NutritionGoal {
+  id              String   @id @default(uuid()) @db.Uuid
+  profileId       String   @map("profile_id") @db.Uuid
+  caloriesKcal    Decimal  @map("calories_kcal") @db.Decimal(7, 1)
+  proteinG        Decimal  @map("protein_g") @db.Decimal(6, 1)
+  fatG            Decimal  @map("fat_g") @db.Decimal(6, 1)
+  carbsG          Decimal  @map("carbs_g") @db.Decimal(6, 1)
+  /// `CalculationMode`: manual | rule_based
+  calculationMode String   @map("calculation_mode") @db.VarChar(16)
+  /// Formula version for rule_based goals, null for manual ones.
+  ruleVersion     String?  @map("rule_version") @db.VarChar(32)
+  effectiveFrom   DateTime @default(now()) @map("effective_from") @db.Timestamptz(6)
+
+  profile UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, effectiveFrom(sort: Desc)])
+  @@map("nutrition_goals")
+}
+
+model DietaryPreference {
+  id             String @id @default(uuid()) @db.Uuid
+  profileId      String @map("profile_id") @db.Uuid
+  /// `PreferenceType`
+  preferenceType String @map("preference_type") @db.VarChar(32)
+  value          String @db.VarChar(120)
+
+  profile UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, preferenceType, value])
+  @@map("dietary_preferences")
+}

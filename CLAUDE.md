@@ -10,11 +10,15 @@ repository. Layout:
   from there (`../generated/prisma/client`), never from `@prisma/client`.
 - `src/modules/data-access/<name>/` - repository + repository module; the only code that touches Prisma.
   Payload types (`RecipeWithIngredients`, ...) are exported from the repository file.
-- `src/modules/services/<name>/` - business services. `NutritionService` and `energy-requirements.ts`
-  are pure and deterministic - keep the database and any LLM out of them.
+- `src/modules/services/<name>/` - business services. `NutritionService`, `energy-requirements.ts`
+  and the menu `menu-composition.ts` / `menu-rules.ts` are pure and deterministic - keep the
+  database and any LLM out of them.
+- `src/modules/services/assistant/` - the `Assistant` port to the LLM; `StubAssistant` is bound until
+  the LLM stage. Its output is untrusted: menus go through `MenuPlanner` / `MenuComposer`, and it
+  never writes to the database.
 - `src/entrypoints/api/<name>-controller/` - controller, controller service (orchestrates the flow,
   maps to response DTOs with `static from()`), DTOs.
-- `prisma/schema.prisma` + `prisma/migrations/` - create migrations with `NAME=... npm run migration:create`
+- `prisma/schema/*.prisma` (one file per domain) + `prisma/migrations/` - create migrations with `NAME=... npm run migration:create`
   (needs `npm run infra:up`); applied on start-up. Never edit a committed migration.
 - `scripts/` - dataset CLIs; their logic lives in `scripts/lib/` with specs. `data/seed/` is committed,
   `data/raw/` and `data/processed/` are not.

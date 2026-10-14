@@ -4,8 +4,8 @@ Menu planner API. NestJS 12 monolith · Prisma 7 (`pg` driver adapter) · Postgr
 Structure: `configs/`, `common/`, `providers/`, `modules/data-access`, `modules/services`, `entrypoints/api`.
 The web app lives in its own repository.
 
-Single user, no auth, local run. Menu generation (LLM, tool calling, RAG) is the next stage; the
-`menus` tables are ready for it.
+Single user, no auth, local run. Menus and the chat work end to end with a deterministic stub
+in place of the LLM (`StubAssistant`); the LLM itself, tool calling and RAG are the next stage.
 
 ## Ports
 
@@ -49,7 +49,7 @@ Node loads it through `require(esm)`, and Jest needs `--experimental-vm-modules`
 
 ## Database
 
-The schema is `prisma/schema.prisma`; migrations live in `prisma/migrations` and are applied on
+The schema is `prisma/schema/` (`schema.prisma` holds the generator and datasource, the models are split by domain); migrations live in `prisma/migrations` and are applied on
 start-up (`prisma migrate deploy`). The CLI reads `DATABASE_URL` through `prisma.config.ts`; the
 client is generated into `src/generated/prisma` (git-ignored) on `npm install` and connects through
 `@prisma/adapter-pg`.
@@ -69,7 +69,8 @@ npm run db:reset                              # drop everything, re-apply migrat
 | `food_items` | values per 100 g **in a given state** (raw, dried, boiled...); null = unknown; unique `source + source_id` |
 | `recipes` | meal type, diet tags (`varchar[]`), servings; unique `source + source_id` |
 | `recipe_ingredients` | grams for the whole recipe, optional flag, notes, display order |
-| `menus`, `menu_versions`, `menu_days`, `menu_meals` | for the AI flow; versions are immutable and keep snapshots of goals and recipes |
+| `menus`, `menu_versions`, `menu_days`, `menu_meals` | every change adds an immutable version with snapshots of the goal, recipes and nutrition; `menus.confirmed_version_id` is set only by an explicit confirm |
+| `conversations`, `messages` | chat with the assistant; a reply that planned a menu links its `menu_version_id` |
 
 Enum-like columns are `VARCHAR`; allowed values are in `src/common/constants` and are validated by
 the API (`GET /api/profile/options` lists them).
@@ -118,9 +119,29 @@ Everything is under `/api`; Swagger UI on `/docs`.
 | GET | `/recipes/:id/nutrition?includeOptional=` | per ingredient, total, per serving |
 | POST | `/recipes/:id/ingredients` | |
 | PATCH / DELETE | `/recipes/:id/ingredients/:ingredientId` | |
-| GET | `/menus`, `/menus/:id` | read only until the AI flow |
+| GET | `/menus`, `/menus/:id` | `:id` with every version, newest first, nutrition per meal and day, issues |
+| POST | `/menus` | by hand; 400 for unknown recipes or broken diets / allergies / excluded foods |
+| POST | `/menus/generate` | planned by the assistant (stub) for the current goal; 404 without a goal, 422 when nothing fits |
+| PATCH / DELETE | `/menus/:id` | rename / delete |
+| POST | `/menus/:id/versions` | the whole next version, by hand |
+| POST | `/menus/:id/replace-meal` | next version with one meal re-planned |
+| POST | `/menus/:id/versions/:versionId/confirm` | rechecked against the current preferences first |
+| GET / POST | `/conversations` | |
+| GET / PATCH / DELETE | `/conversations/:id` | |
+| POST | `/conversations/:id/messages` | saves the message and the assistant reply; "plan a menu for N days" plans one |
 
 Errors always look like `{ statusCode, message, error, path, timestamp }`.
+
+## Assistant (LLM boundary)
+
+`src/modules/services/assistant/assistant.ts` is the port to the language model: `planMenu`,
+`replaceMeal` and `reply` (a chat answer plus an optional action such as `plan_menu`).
+`StubAssistant` implements it with plain arithmetic (closest calories per meal, rotating recipes)
+and is bound in `AssistantModule`; the LLM implementation replaces it there. Its output is never
+trusted: `MenuPlanner` checks the shape, `MenuComposer` rebuilds every meal from the database,
+recalculates nutrition and validates diets, allergies and excluded ingredients
+(`menu-rules.ts`), and a rejected proposal goes back with the errors (3 attempts). The assistant
+never writes to the database; the chat runs its actions through `MenuService`.
 
 ## Datasets
 

@@ -3,7 +3,7 @@
  *
  *   npm run data:verify
  *
- * - every foreign key of prisma/schema.prisma has no orphan rows (LEFT JOIN per key);
+ * - every foreign key of prisma/schema has no orphan rows (LEFT JOIN per key);
  * - (source, source_id) is unique in food_items and recipes; every recipe has ingredients;
  * - the recipes of data/seed/control-recipes.json give the hand-computed nutrition when run
  *   through NutritionService;

@@ -1,19 +1,35 @@
-import { Prisma } from '../../../../generated/prisma/client';
-import { MealType, MenuGeneratedBy } from '../../../../common/constants';
+import {
+  CalculationMode,
+  MealType,
+  MenuGeneratedBy,
+  MenuIssueCode,
+  MenuIssueSeverity,
+} from '../../../../common/constants';
+import {
+  MenuComposition,
+  MenuIssue,
+  NutritionGoalSnapshot,
+  RecipeSnapshot,
+} from '../../../../common/types';
 import { toNumber } from '../../../../common/utils';
 import {
   MenuSummary,
+  MenuVersionWithDays,
   MenuWithVersions,
 } from '../../../../modules/data-access/menu/menu.repository';
+import { toIsoDate } from '../../../../modules/services/menu/menu-composition';
+import { MacrosResponseDto } from '../../recipe-controller/dto/recipe.response.dto';
 
-type Version = MenuWithVersions['versions'][number];
-type Day = Version['days'][number];
+type Day = MenuVersionWithDays['days'][number];
 type Meal = Day['meals'][number];
 
 export class MenuSummaryResponseDto {
   id: string;
   title: string;
   versionCount: number;
+  /** Null until a version is confirmed. */
+  confirmedVersionId: string | null;
+  confirmedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 
@@ -22,29 +38,80 @@ export class MenuSummaryResponseDto {
       id: menu.id,
       title: menu.title,
       versionCount: menu._count.versions,
+      confirmedVersionId: menu.confirmedVersionId,
+      confirmedAt: menu.confirmedAt,
       createdAt: menu.createdAt,
       updatedAt: menu.updatedAt,
     };
   }
 }
 
+export class NutritionGoalSnapshotResponseDto implements NutritionGoalSnapshot {
+  goalId: string;
+  caloriesKcal: number;
+  proteinG: number;
+  fatG: number;
+  carbsG: number;
+  calculationMode: CalculationMode;
+  ruleVersion: string | null;
+}
+
+export class MenuIssueResponseDto implements MenuIssue {
+  severity: MenuIssueSeverity;
+  code: MenuIssueCode;
+  message: string;
+  dayIndex?: number;
+  position?: number;
+  recipeId?: string | null;
+}
+
+export class RecipeSnapshotIngredientResponseDto {
+  foodItemId: string;
+  foodName: string;
+  foodNameEn: string | null;
+  state: string;
+  quantityG: number;
+  isOptional: boolean;
+}
+
+/** The recipe as it was when the version was built. */
+export class RecipeSnapshotResponseDto implements RecipeSnapshot {
+  id: string;
+  name: string;
+  mealType: string;
+  dietType: string[];
+  servings: number;
+  prepTimeMinutes: number | null;
+  perServing: MacrosResponseDto;
+  complete: boolean;
+  ingredients: RecipeSnapshotIngredientResponseDto[];
+}
+
 export class MenuMealResponseDto {
   id: string;
   mealType: MealType;
   position: number;
-  /** Null once the recipe was deleted; the snapshot still describes it. */
+  /** Null once the recipe was deleted; `recipe` still describes it. */
   recipeId: string | null;
+  /** Portions of the recipe eaten. */
   servings: number;
-  recipeSnapshot: Prisma.JsonValue;
+  /** Per serving times `servings`, from the snapshot. */
+  nutrition: MacrosResponseDto;
+  /** False when an ingredient has an unknown nutrient value. */
+  complete: boolean;
+  recipe: RecipeSnapshotResponseDto;
 
-  static from(meal: Meal): MenuMealResponseDto {
+  static from(meal: Meal, composition: MenuComposition['days'][number]): MenuMealResponseDto {
+    const composed = composition.meals[meal.position];
     return {
       id: meal.id,
       mealType: meal.mealType as MealType,
       position: meal.position,
       recipeId: meal.recipeId,
       servings: toNumber(meal.servings),
-      recipeSnapshot: meal.recipeSnapshot,
+      nutrition: composed.nutrition,
+      complete: composed.complete,
+      recipe: meal.recipeSnapshot as unknown as RecipeSnapshot,
     };
   }
 }
@@ -52,15 +119,21 @@ export class MenuMealResponseDto {
 export class MenuDayResponseDto {
   id: string;
   dayIndex: number;
-  date: Date | null;
+  /** `YYYY-MM-DD`. */
+  date: string | null;
+  totals: MacrosResponseDto;
+  complete: boolean;
   meals: MenuMealResponseDto[];
 
-  static from(day: Day): MenuDayResponseDto {
+  static from(day: Day, composition: MenuComposition): MenuDayResponseDto {
+    const composed = composition.days.find((d) => d.dayIndex === day.dayIndex);
     return {
       id: day.id,
       dayIndex: day.dayIndex,
-      date: day.date,
-      meals: day.meals.map(MenuMealResponseDto.from),
+      date: toIsoDate(day.date),
+      totals: composed.totals,
+      complete: composed.complete,
+      meals: day.meals.map((meal) => MenuMealResponseDto.from(meal, composed)),
     };
   }
 }
@@ -69,22 +142,36 @@ export class MenuVersionResponseDto {
   id: string;
   versionNumber: number;
   generatedBy: MenuGeneratedBy;
-  nutritionGoalsSnapshot: Prisma.JsonValue;
-  compositionSnapshot: Prisma.JsonValue;
   notes: string | null;
   createdAt: Date;
+  /** Whether this is the version the user confirmed. */
+  isConfirmed: boolean;
+  /** The goal the version was built for; null when there was none. */
+  nutritionGoal: NutritionGoalSnapshotResponseDto | null;
+  dailyAverage: MacrosResponseDto;
+  /**
+   * Found when the version was built: warnings, and errors of meals carried over from an earlier
+   * version. A version with errors cannot be confirmed.
+   */
+  issues: MenuIssueResponseDto[];
   days: MenuDayResponseDto[];
 
-  static from(version: Version): MenuVersionResponseDto {
+  static from(
+    version: MenuVersionWithDays,
+    confirmedVersionId: string | null,
+  ): MenuVersionResponseDto {
+    const composition = version.compositionSnapshot as unknown as MenuComposition;
     return {
       id: version.id,
       versionNumber: version.versionNumber,
       generatedBy: version.generatedBy as MenuGeneratedBy,
-      nutritionGoalsSnapshot: version.nutritionGoalsSnapshot,
-      compositionSnapshot: version.compositionSnapshot,
       notes: version.notes,
       createdAt: version.createdAt,
-      days: version.days.map(MenuDayResponseDto.from),
+      isConfirmed: version.id === confirmedVersionId,
+      nutritionGoal: version.nutritionGoalsSnapshot as unknown as NutritionGoalSnapshot | null,
+      dailyAverage: composition.dailyAverage,
+      issues: composition.issues,
+      days: version.days.map((day) => MenuDayResponseDto.from(day, composition)),
     };
   }
 }
@@ -92,6 +179,8 @@ export class MenuVersionResponseDto {
 export class MenuResponseDto {
   id: string;
   title: string;
+  confirmedVersionId: string | null;
+  confirmedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   /** Newest first. */
@@ -101,9 +190,13 @@ export class MenuResponseDto {
     return {
       id: menu.id,
       title: menu.title,
+      confirmedVersionId: menu.confirmedVersionId,
+      confirmedAt: menu.confirmedAt,
       createdAt: menu.createdAt,
       updatedAt: menu.updatedAt,
-      versions: menu.versions.map(MenuVersionResponseDto.from),
+      versions: menu.versions.map((version) =>
+        MenuVersionResponseDto.from(version, menu.confirmedVersionId),
+      ),
     };
   }
 }

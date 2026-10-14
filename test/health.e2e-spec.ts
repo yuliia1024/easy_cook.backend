@@ -18,6 +18,19 @@ describe('GET /api/health (e2e)', () => {
       .expect(200, { status: 'ok', database: 'up' });
   });
 
+  it('echoes the caller request id', async () => {
+    await request(ctx.app.getHttpServer())
+      .get('/api/health')
+      .set('x-request-id', 'trace-me')
+      .expect('x-request-id', 'trace-me');
+  });
+
+  it('generates a request id when the caller sent none', async () => {
+    const { headers } = await request(ctx.app.getHttpServer()).get('/api/nope').expect(404);
+
+    expect(headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
   it('answers unknown routes with the error shape', async () => {
     const { body } = await request(ctx.app.getHttpServer()).get('/api/nope').expect(404);
 

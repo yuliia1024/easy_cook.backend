@@ -264,7 +264,7 @@ describe('profile, nutrition goals and preferences (e2e)', () => {
     });
   });
 
-  it('/api/menus is empty until the AI flow creates menus', async () => {
+  it('/api/menus is empty for a new profile', async () => {
     await http().put('/api/profile').send(profile).expect(200);
 
     await http().get('/api/menus').expect(200, []);

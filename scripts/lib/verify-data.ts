@@ -21,14 +21,14 @@ export interface VerifyReport {
   summary: DataSummary;
 }
 
-/** A foreign key of prisma/schema.prisma: `child.column` -> `parent.id`. */
+/** A foreign key of prisma/schema: `child.column` -> `parent.id`. */
 export interface ForeignKey {
   child: string;
   column: string;
   parent: string;
 }
 
-/** Every foreign key of the schema. Keep in sync with prisma/schema.prisma. */
+/** Every foreign key of the schema. Keep in sync with prisma/schema. */
 export const FOREIGN_KEYS: readonly ForeignKey[] = [
   { child: 'recipe_ingredients', column: 'recipe_id', parent: 'recipes' },
   { child: 'recipe_ingredients', column: 'food_item_id', parent: 'food_items' },
@@ -39,6 +39,11 @@ export const FOREIGN_KEYS: readonly ForeignKey[] = [
   { child: 'menu_days', column: 'menu_version_id', parent: 'menu_versions' },
   { child: 'menu_meals', column: 'menu_day_id', parent: 'menu_days' },
   { child: 'menu_meals', column: 'recipe_id', parent: 'recipes' },
+  { child: 'menus', column: 'confirmed_version_id', parent: 'menu_versions' },
+  { child: 'conversations', column: 'profile_id', parent: 'user_profiles' },
+  { child: 'conversations', column: 'menu_id', parent: 'menus' },
+  { child: 'messages', column: 'conversation_id', parent: 'conversations' },
+  { child: 'messages', column: 'menu_version_id', parent: 'menu_versions' },
 ];
 
 /** Tables with a unique (`source`, `source_id`). */

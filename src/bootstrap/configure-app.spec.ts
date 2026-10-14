@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from '../common/exceptions';
+import { requestLoggingMiddleware } from '../common/logger';
 import { ApiConfigService } from '../configs/api-config/api-config.service';
 import { createMock } from '../test/create-mock';
 import { configureApp } from './configure-app';
@@ -16,6 +17,10 @@ describe('configureApp', () => {
 
   it('serves everything under /api', () => {
     expect(app.setGlobalPrefix).toHaveBeenCalledWith('api');
+  });
+
+  it('installs the request logging middleware before anything else', () => {
+    expect(app.use.mock.calls[0][0]).toBe(requestLoggingMiddleware);
   });
 
   it('installs the exception filter', () => {

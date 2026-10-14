@@ -22,6 +22,12 @@ export interface RecipeFilter {
   dietTypes?: string[];
 }
 
+export interface CandidateFilter {
+  mealTypes: string[];
+  /** The recipe must have every one of these tags. */
+  dietTypes: string[];
+}
+
 export interface RecipeData {
   name: string;
   description?: string | null;
@@ -65,6 +71,26 @@ export class RecipeRepository {
 
   public async findById(id: string): Promise<RecipeWithIngredients | null> {
     return this.prisma.recipe.findUnique({ where: { id }, include: RECIPE_INCLUDE });
+  }
+
+  public async findByIds(ids: string[]): Promise<RecipeWithIngredients[]> {
+    return this.prisma.recipe.findMany({ where: { id: { in: ids } }, include: RECIPE_INCLUDE });
+  }
+
+  /** Recipes a menu planner may use, by name; at most `limit` per call. */
+  public async findCandidates(
+    { mealTypes, dietTypes }: CandidateFilter,
+    limit: number,
+  ): Promise<RecipeWithIngredients[]> {
+    return this.prisma.recipe.findMany({
+      where: {
+        mealType: { in: mealTypes },
+        ...(dietTypes.length && { dietType: { hasEvery: dietTypes } }),
+      },
+      include: RECIPE_INCLUDE,
+      orderBy: [{ name: SortOrder.Asc }, { id: SortOrder.Asc }],
+      take: limit,
+    });
   }
 
   public async findBySource(source: string, sourceId: string): Promise<{ id: string } | null> {

@@ -30,6 +30,36 @@ describe('RecipeRepository', () => {
     });
   });
 
+  it('loads recipes by id with ingredients', async () => {
+    await repository.findByIds([RECIPE_ID]);
+
+    expect(prisma.recipe.findMany).toHaveBeenCalledWith({
+      where: { id: { in: [RECIPE_ID] } },
+      include: RECIPE_INCLUDE,
+    });
+  });
+
+  describe('findCandidates', () => {
+    it('filters by meal types and every diet tag, sorted by name', async () => {
+      await repository.findCandidates({ mealTypes: ['lunch'], dietTypes: ['vegan'] }, 50);
+
+      expect(prisma.recipe.findMany).toHaveBeenCalledWith({
+        where: { mealType: { in: ['lunch'] }, dietType: { hasEvery: ['vegan'] } },
+        include: RECIPE_INCLUDE,
+        orderBy: [{ name: SortOrder.Asc }, { id: SortOrder.Asc }],
+        take: 50,
+      });
+    });
+
+    it('skips the diet filter without diets', async () => {
+      await repository.findCandidates({ mealTypes: ['lunch', 'dinner'], dietTypes: [] }, 50);
+
+      expect(prisma.recipe.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { mealType: { in: ['lunch', 'dinner'] } } }),
+      );
+    });
+  });
+
   describe('findPage', () => {
     it('counts and pages with ingredients', async () => {
       const recipe = buildRecipe();

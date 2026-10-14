@@ -7,6 +7,7 @@ export enum CalculationMode {
 
 export enum MenuGeneratedBy {
   Manual = 'manual',
+  Stub = 'stub',
   Llm = 'llm',
 }
 

@@ -11,13 +11,18 @@ export class DatabaseConfigService {
     return this.configService.get('DATABASE_URL');
   }
 
-  /** Prisma 7 talks to Postgres through the `pg` driver adapter. */
+  /**
+   * Prisma 7 talks to Postgres through the `pg` driver adapter. Its logs are emitted as events so
+   * `PrismaService` can pass them to the app logger (level filter, request id).
+   */
   public config(): Prisma.PrismaClientOptions {
     return {
       adapter: new PrismaPg({ connectionString: this.url }),
-      log: this.configService.getBoolean('POSTGRES_LOGGING')
-        ? ['query', 'warn', 'error']
-        : ['warn', 'error'],
+      log: [
+        { emit: 'event', level: 'query' },
+        { emit: 'event', level: 'warn' },
+        { emit: 'event', level: 'error' },
+      ],
     };
   }
 }

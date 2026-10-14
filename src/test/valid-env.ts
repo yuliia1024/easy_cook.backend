@@ -5,5 +5,5 @@ export const VALID_ENV: Record<string, string> = {
   CORS_ORIGINS: '*',
   SWAGGER_ENABLED: 'true',
   DATABASE_URL: 'postgresql://easy_cook:easy_cook@localhost:5442/easy_cook?schema=public',
-  POSTGRES_LOGGING: 'false',
+  LOG_LEVEL: 'log',
 };

@@ -3,6 +3,7 @@ import * as badRequest from './bad-request';
 import * as conflict from './conflict';
 import * as notFound from './not-found';
 import * as serviceUnavailable from './service-unavailable';
+import * as unprocessableEntity from './unprocessable-entity';
 import { AppError } from './app-error';
 
 /** Constructor arguments for the exceptions that need them. */
@@ -20,6 +21,12 @@ const ARGS: Record<string, unknown[]> = {
   ServingTooManyKcalBadRequestException: [3000, 2500],
   ConflictingDietsBadRequestException: ['pescatarian', 'vegan'],
   TooManyPreferencesBadRequestException: [50],
+  RecipesNotFoundBadRequestException: [['a']],
+  MenuViolatesRulesBadRequestException: [['day 0: contains peanut']],
+  DuplicateMenuDayBadRequestException: [1],
+  MenuMealNotFoundException: [0, 2],
+  NoRecipeCandidatesException: ['lunch'],
+  MenuPlanningFailedException: [3, ['day 0: contains peanut']],
 };
 
 /**
@@ -32,6 +39,7 @@ describe('exception taxonomy', () => {
     ['not-found', notFound, HttpStatus.NOT_FOUND],
     ['conflict', conflict, HttpStatus.CONFLICT],
     ['service-unavailable', serviceUnavailable, HttpStatus.SERVICE_UNAVAILABLE],
+    ['unprocessable-entity', unprocessableEntity, HttpStatus.UNPROCESSABLE_ENTITY],
   ];
 
   const cases = groups.flatMap(([file, exports, status]) =>
@@ -88,6 +96,18 @@ describe('exception taxonomy', () => {
     [
       new badRequest.ConflictingDietsBadRequestException('pescatarian', 'vegan'),
       'Diet "pescatarian" conflicts with "vegan"',
+    ],
+    [
+      new badRequest.MenuViolatesRulesBadRequestException(['a', 'b']),
+      'The menu breaks the profile rules: a; b',
+    ],
+    [
+      new unprocessableEntity.MenuPlanningFailedException(3, ['a']),
+      'Could not plan a menu that follows the profile rules in 3 attempts: a',
+    ],
+    [
+      new unprocessableEntity.NoRecipeCandidatesException('lunch'),
+      'No lunch recipes match the dietary preferences',
     ],
   ])('formats %p', (error, message) => {
     expect(error.message).toBe(message);

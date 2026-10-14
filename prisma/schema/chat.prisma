@@ -1,0 +1,39 @@
+// Chat with the assistant (a stub until the LLM stage). The assistant never writes to the
+// database itself: it proposes actions, the backend validates and runs them.
+
+model Conversation {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  title     String   @db.VarChar(255)
+  /// The menu the conversation is about; the last one the assistant built or the user picked.
+  menuId    String?  @map("menu_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profile  UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  menu     Menu?       @relation(fields: [menuId], references: [id], onDelete: SetNull)
+  messages Message[]
+
+  @@index([profileId, updatedAt(sort: Desc)])
+  @@index([menuId])
+  @@map("conversations")
+}
+
+/// Never updated.
+model Message {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  /// `MessageRole`: user | assistant
+  role           String   @db.VarChar(16)
+  content        String
+  /// The menu version an assistant action created with this message.
+  menuVersionId  String?  @map("menu_version_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  menuVersion  MenuVersion? @relation(fields: [menuVersionId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+  @@index([menuVersionId])
+  @@map("messages")
+}

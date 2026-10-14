@@ -31,9 +31,30 @@ describe('ApiConfigService', () => {
     });
   });
 
+  describe('logLevels', () => {
+    it('defaults to log and everything more severe', () => {
+      expect(build({}).logLevels).toEqual(['fatal', 'error', 'warn', 'log']);
+    });
+
+    it('enables the configured level and the ones above it', () => {
+      expect(build({ LOG_LEVEL: 'warn' }).logLevels).toEqual(['fatal', 'error', 'warn']);
+      expect(build({ LOG_LEVEL: 'debug' }).logLevels).toEqual([
+        'fatal',
+        'error',
+        'warn',
+        'log',
+        'debug',
+      ]);
+    });
+  });
+
   describe('cors', () => {
     it('reflects any origin for "*"', () => {
-      expect(build({ CORS_ORIGINS: '*' }).cors()).toEqual({ origin: true, credentials: true });
+      expect(build({ CORS_ORIGINS: '*' }).cors()).toEqual({
+        origin: true,
+        credentials: true,
+        exposedHeaders: ['x-request-id'],
+      });
     });
 
     it('defaults to any origin when unset', () => {

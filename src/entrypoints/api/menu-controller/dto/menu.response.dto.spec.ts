@@ -1,49 +1,81 @@
-import { Prisma } from '../../../../generated/prisma/client';
-import { buildMenu, MENU_ID, RECIPE_ID } from '../../../../test/fixtures';
+import { CalculationMode, MealType, MenuGeneratedBy } from '../../../../common/constants';
+import {
+  buildMenu,
+  buildMenuVersion,
+  buildRecipeSnapshot,
+  MENU_ID,
+  MENU_VERSION_ID,
+  RECIPE_ID,
+} from '../../../../test/fixtures';
 import { MenuResponseDto, MenuSummaryResponseDto } from './menu.response.dto';
 
 describe('menu response DTOs', () => {
-  const createdAt = new Date('2026-01-01T00:00:00Z');
-
-  it('maps a summary with the version count', () => {
-    const { versions: _versions, ...menu } = buildMenu();
+  it('maps a summary with the version count and the confirmation', () => {
+    const { versions: _versions, ...menu } = buildMenu({ confirmedVersionId: MENU_VERSION_ID });
 
     expect(MenuSummaryResponseDto.from({ ...menu, _count: { versions: 3 } })).toEqual({
       id: MENU_ID,
       title: 'Week 1',
       versionCount: 3,
+      confirmedVersionId: MENU_VERSION_ID,
+      confirmedAt: null,
       createdAt: menu.createdAt,
       updatedAt: menu.updatedAt,
     });
   });
 
-  it('maps versions, days and meals', () => {
-    const menu = buildMenu({
+  it('maps versions with the stored nutrition and issues', () => {
+    const goal = {
+      goalId: 'g',
+      caloriesKcal: 2000,
+      proteinG: 100,
+      fatG: 60,
+      carbsG: 260,
+      calculationMode: CalculationMode.Manual,
+      ruleVersion: null,
+    };
+    const version = buildMenuVersion({
+      generatedBy: MenuGeneratedBy.Stub,
+      nutritionGoalsSnapshot: goal,
+    });
+    version.days[0].date = new Date('2026-10-20T00:00:00Z');
+    const menu = buildMenu({ confirmedVersionId: MENU_VERSION_ID, versions: [version] });
+
+    expect(MenuResponseDto.from(menu)).toEqual({
+      id: MENU_ID,
+      title: 'Week 1',
+      confirmedVersionId: MENU_VERSION_ID,
+      confirmedAt: null,
+      createdAt: menu.createdAt,
+      updatedAt: menu.updatedAt,
       versions: [
         {
-          id: 'v1',
-          menuId: MENU_ID,
+          id: MENU_VERSION_ID,
           versionNumber: 1,
-          generatedBy: 'llm',
-          nutritionGoalsSnapshot: { caloriesKcal: 2000 },
-          compositionSnapshot: { days: 1 },
+          generatedBy: MenuGeneratedBy.Stub,
           notes: null,
-          createdAt,
+          createdAt: version.createdAt,
+          isConfirmed: true,
+          nutritionGoal: goal,
+          dailyAverage: { kcal: 130, proteinG: 2.7, fatG: 0.3, carbsG: 28.2 },
+          issues: [],
           days: [
             {
-              id: 'd1',
-              menuVersionId: 'v1',
+              id: version.days[0].id,
               dayIndex: 0,
-              date: null,
+              date: '2026-10-20',
+              totals: { kcal: 130, proteinG: 2.7, fatG: 0.3, carbsG: 28.2 },
+              complete: true,
               meals: [
                 {
-                  id: 'm1',
-                  menuDayId: 'd1',
-                  mealType: 'lunch',
+                  id: version.days[0].meals[0].id,
+                  mealType: MealType.Lunch,
                   position: 0,
                   recipeId: RECIPE_ID,
-                  servings: new Prisma.Decimal(1.5),
-                  recipeSnapshot: { name: 'Soup' },
+                  servings: 1,
+                  nutrition: { kcal: 130, proteinG: 2.7, fatG: 0.3, carbsG: 28.2 },
+                  complete: true,
+                  recipe: buildRecipeSnapshot(),
                 },
               ],
             },
@@ -51,32 +83,14 @@ describe('menu response DTOs', () => {
         },
       ],
     });
+  });
 
-    expect(MenuResponseDto.from(menu).versions[0]).toEqual({
-      id: 'v1',
-      versionNumber: 1,
-      generatedBy: 'llm',
-      nutritionGoalsSnapshot: { caloriesKcal: 2000 },
-      compositionSnapshot: { days: 1 },
-      notes: null,
-      createdAt,
-      days: [
-        {
-          id: 'd1',
-          dayIndex: 0,
-          date: null,
-          meals: [
-            {
-              id: 'm1',
-              mealType: 'lunch',
-              position: 0,
-              recipeId: RECIPE_ID,
-              servings: 1.5,
-              recipeSnapshot: { name: 'Soup' },
-            },
-          ],
-        },
-      ],
+  it('marks other versions as not confirmed', () => {
+    const menu = buildMenu({ versions: [buildMenuVersion()] });
+
+    expect(MenuResponseDto.from(menu).versions[0]).toMatchObject({
+      isConfirmed: false,
+      nutritionGoal: null,
     });
   });
 });

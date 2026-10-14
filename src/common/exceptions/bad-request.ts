@@ -92,3 +92,21 @@ export class TooManyPreferencesBadRequestException extends BadRequestError {
     super(`A profile can have at most ${max} dietary preferences`);
   }
 }
+
+export class RecipesNotFoundBadRequestException extends BadRequestError {
+  constructor(ids: string[]) {
+    super(`Recipes not found: ${ids.join(', ')}`);
+  }
+}
+
+export class MenuViolatesRulesBadRequestException extends BadRequestError {
+  constructor(problems: string[]) {
+    super(`The menu breaks the profile rules: ${problems.join('; ')}`);
+  }
+}
+
+export class DuplicateMenuDayBadRequestException extends BadRequestError {
+  constructor(dayIndex: number) {
+    super(`Day ${dayIndex} is listed more than once`);
+  }
+}
