@@ -77,6 +77,12 @@ describe('ConfigService', () => {
     expect(() => new ConfigService()).toThrow(/DATABASE_URL/);
   });
 
+  it('fails fast without an OpenAI api key', () => {
+    process.env.OPEN_AI_API_KEY = '';
+
+    expect(() => new ConfigService()).toThrow(/OPEN_AI_API_KEY/);
+  });
+
   it('rejects an unknown environment name', () => {
     process.env.ENV = 'qa';
 

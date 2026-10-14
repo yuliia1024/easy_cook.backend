@@ -9,9 +9,12 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Res,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiProduces, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { pipeUIMessageStreamToResponse } from 'ai';
+import { Response } from 'express';
 import { ConversationControllerService } from './conversation-controller.service';
 import {
   CreateConversationDto,
@@ -23,7 +26,7 @@ import {
   ConversationSummaryResponseDto,
 } from './dto/conversation.response.dto';
 
-/** Conversations with the assistant (a deterministic stub until the LLM stage). */
+/** Conversations with the assistant (OpenAI). */
 @ApiTags('Conversations')
 @Controller('conversations')
 export class ConversationController {
@@ -62,16 +65,19 @@ export class ConversationController {
   }
 
   /**
-   * Saves the message and the assistant reply and returns the conversation. When the assistant
-   * plans a menu, the reply links the new version (`menuVersionId`) and the conversation the menu.
-   * Limited to 30 messages a minute: each one may plan a menu.
+   * Saves the message and streams the assistant reply as text (AI SDK UI message stream); the
+   * reply is saved once it is complete. 404 for an unknown conversation comes before the stream.
+   * Limited to 30 messages a minute: each one calls the model.
    */
   @Post(':id/messages')
   @Throttle({ default: { ttl: 60_000, limit: 30 } })
+  @ApiProduces('text/event-stream')
   async sendMessage(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SendMessageDto,
-  ): Promise<ConversationResponseDto> {
-    return this.conversationControllerService.sendMessage(id, dto);
+    @Res() response: Response,
+  ): Promise<void> {
+    const stream = await this.conversationControllerService.sendMessage(id, dto);
+    pipeUIMessageStreamToResponse({ response, status: HttpStatus.CREATED, stream });
   }
 }

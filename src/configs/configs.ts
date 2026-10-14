@@ -3,6 +3,7 @@ import {
   IsBooleanString,
   IsIn,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
@@ -52,6 +53,10 @@ export class Configs {
   /** Also read by the Prisma CLI (migrations, seed). */
   @Matches(/^postgres(ql)?:\/\//, { message: 'DATABASE_URL must be a postgres connection url' })
   DATABASE_URL: string;
+
+  @IsString()
+  @IsNotEmpty()
+  OPEN_AI_API_KEY: string;
 
   /** Minimum level printed (`log` when unset); `debug` adds the SQL queries. */
   @IsOptional()

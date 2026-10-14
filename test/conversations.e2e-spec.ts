@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { createMenuWorld } from './menu-fixtures';
-import { createTestApp, resetDatabase, TestApp } from './test-app';
+import { readStream } from './menu-stream';
+import { createTestApp, FAKE_OPEN_AI_DELTAS, resetDatabase, TestApp } from './test-app';
 
 describe('/api/conversations (e2e)', () => {
   let ctx: TestApp;
@@ -8,7 +9,7 @@ describe('/api/conversations (e2e)', () => {
   const start = async (body: object = {}): Promise<string> =>
     (await http().post('/api/conversations').send(body).expect(201)).body.id;
   const say = (id: string, content: string) =>
-    http().post(`/api/conversations/${id}/messages`).send({ content }).expect(201);
+    readStream(http().post(`/api/conversations/${id}/messages`).send({ content }).expect(201));
 
   beforeAll(async () => {
     ctx = await createTestApp();
@@ -22,51 +23,22 @@ describe('/api/conversations (e2e)', () => {
     await ctx.app.close();
   });
 
-  it('answers with the placeholder assistant and titles the conversation', async () => {
+  it('streams the reply, saves both messages and titles the conversation', async () => {
     await createMenuWorld(ctx);
     const id = await start();
 
-    const { body } = await say(id, 'Hello there');
+    const { chunks } = await say(id, 'Hello there');
 
+    expect(chunks.filter((chunk) => chunk.type === 'text-delta').map((c) => c.delta)).toEqual(
+      FAKE_OPEN_AI_DELTAS,
+    );
+    expect(chunks.at(-1)).toMatchObject({ type: 'finish' });
+    const { body } = await http().get(`/api/conversations/${id}`).expect(200);
     expect(body.title).toBe('Hello there');
-    expect(body.menuId).toBeNull();
     expect(body.messages).toEqual([
-      expect.objectContaining({ role: 'user', content: 'Hello there', menuVersionId: null }),
-      expect.objectContaining({
-        role: 'assistant',
-        content: expect.stringContaining('Your daily goal is 2172 kcal'),
-        menuVersionId: null,
-      }),
+      expect.objectContaining({ role: 'user', content: 'Hello there' }),
+      expect.objectContaining({ role: 'assistant', content: FAKE_OPEN_AI_DELTAS.join('') }),
     ]);
-  });
-
-  it('plans a menu from the chat and links it', async () => {
-    await createMenuWorld(ctx);
-    const id = await start();
-
-    const { body } = await say(id, 'Plan a menu for 2 days please');
-
-    const reply = body.messages[1];
-    expect(reply.content).toMatch(
-      /^Planning a 2-day menu around 2172 kcal a day\.\n\n"Menu for 2 days" is ready as a draft: 2 days/,
-    );
-    expect(body.menuId).toEqual(expect.any(String));
-    const menu = await http().get(`/api/menus/${body.menuId}`).expect(200);
-    expect(reply.menuId).toBe(body.menuId);
-    expect(menu.body.versions[0]).toMatchObject({ id: reply.menuVersionId, generatedBy: 'stub' });
-  });
-
-  it('explains why a menu could not be planned', async () => {
-    await createMenuWorld(ctx, { goal: false });
-    const id = await start();
-
-    const { body } = await say(id, 'plan a menu');
-
-    expect(body.messages[1].content).toBe(
-      'Planning a 7-day menu.\n\nI could not plan the menu: No nutrition goal is set yet',
-    );
-    expect(body.menuId).toBeNull();
-    expect(await ctx.prisma.menu.count()).toBe(0);
   });
 
   it('lists, renames, links and deletes conversations', async () => {

@@ -1,3 +1,4 @@
+import { UIMessageChunk } from 'ai';
 import { ChatService } from '../../../modules/services/chat/chat.service';
 import { createMock } from '../../../test/create-mock';
 import { buildConversation, CONVERSATION_ID, MENU_ID } from '../../../test/fixtures';
@@ -10,7 +11,7 @@ describe('ConversationControllerService', () => {
 
   beforeEach(() => {
     chatService = createMock<ChatService>();
-    for (const method of ['getById', 'create', 'update', 'sendMessage'] as const) {
+    for (const method of ['getById', 'create', 'update'] as const) {
       chatService[method].mockResolvedValue(conversation);
     }
     service = new ConversationControllerService(chatService);
@@ -31,13 +32,26 @@ describe('ConversationControllerService', () => {
     await expect(service.getById(CONVERSATION_ID)).resolves.toEqual(expected);
     await expect(service.create({ menuId: MENU_ID })).resolves.toEqual(expected);
     await expect(service.update(CONVERSATION_ID, { title: 'T' })).resolves.toEqual(expected);
-    await expect(service.sendMessage(CONVERSATION_ID, { content: 'Hi' })).resolves.toEqual(
-      expected,
-    );
 
     expect(chatService.create).toHaveBeenCalledWith({ menuId: MENU_ID });
     expect(chatService.update).toHaveBeenCalledWith(CONVERSATION_ID, { title: 'T' });
+  });
+
+  it('streams the reply as text chunks', async () => {
+    chatService.sendMessage.mockResolvedValue(
+      (async function* () {
+        yield 'Hello';
+      })(),
+    );
+
+    const stream = await service.sendMessage(CONVERSATION_ID, { content: 'Hi' });
+    const chunks: UIMessageChunk[] = [];
+    for await (const chunk of stream as unknown as AsyncIterable<UIMessageChunk>) {
+      chunks.push(chunk);
+    }
+
     expect(chatService.sendMessage).toHaveBeenCalledWith(CONVERSATION_ID, 'Hi');
+    expect(chunks).toContainEqual({ type: 'text-delta', id: 'text', delta: 'Hello' });
   });
 
   it('deletes', async () => {

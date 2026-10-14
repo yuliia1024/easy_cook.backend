@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { UIMessageChunk } from 'ai';
 import { ChatService } from '../../../modules/services/chat/chat.service';
 import {
   CreateConversationDto,
@@ -9,6 +10,7 @@ import {
   ConversationResponseDto,
   ConversationSummaryResponseDto,
 } from './dto/conversation.response.dto';
+import { toTextStream } from '../text-stream';
 
 @Injectable()
 export class ConversationControllerService {
@@ -38,7 +40,7 @@ export class ConversationControllerService {
   public async sendMessage(
     id: string,
     { content }: SendMessageDto,
-  ): Promise<ConversationResponseDto> {
-    return ConversationResponseDto.from(await this.chatService.sendMessage(id, content));
+  ): Promise<ReadableStream<UIMessageChunk>> {
+    return toTextStream(await this.chatService.sendMessage(id, content));
   }
 }

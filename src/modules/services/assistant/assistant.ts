@@ -1,4 +1,4 @@
-import { MealType, MenuGeneratedBy, MessageRole } from '../../../common/constants';
+import { MealType, MenuGeneratedBy } from '../../../common/constants';
 import {
   MacroValues,
   MenuDayDraft,
@@ -55,36 +55,6 @@ export interface MealReplacementProposal {
   notes: string | null;
 }
 
-export interface ChatMessageInput {
-  role: MessageRole;
-  content: string;
-}
-
-export interface ChatRequest {
-  /** Oldest first; the last one is the user message to answer. */
-  messages: ChatMessageInput[];
-  goal: NutritionGoalSnapshot | null;
-  rules: PreferenceRules;
-  /** The menu the conversation is about. */
-  menu: { id: string; title: string } | null;
-}
-
-/**
- * What the assistant asks the backend to do. The assistant never writes to the database: the
- * backend validates the action and runs it through the same services as the API.
- */
-export type AssistantAction = {
-  type: 'plan_menu';
-  days: number;
-  mealTypes: MealType[] | null;
-  instructions: string | null;
-};
-
-export interface ChatReply {
-  content: string;
-  action: AssistantAction | null;
-}
-
 /**
  * The boundary to the language model. `StubAssistant` implements it deterministically until the
  * LLM stage; an LLM implementation replaces it in `AssistantModule` without touching the callers.
@@ -97,6 +67,4 @@ export abstract class Assistant {
   public abstract planMenu(request: MenuPlanRequest): Promise<MenuPlanProposal>;
 
   public abstract replaceMeal(request: MealReplacementRequest): Promise<MealReplacementProposal>;
-
-  public abstract reply(request: ChatRequest): Promise<ChatReply>;
 }

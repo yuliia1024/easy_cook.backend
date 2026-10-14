@@ -6,4 +6,5 @@ export const VALID_ENV: Record<string, string> = {
   SWAGGER_ENABLED: 'true',
   DATABASE_URL: 'postgresql://easy_cook:easy_cook@localhost:5442/easy_cook?schema=public',
   LOG_LEVEL: 'log',
+  OPEN_AI_API_KEY: 'sk-test',
 };

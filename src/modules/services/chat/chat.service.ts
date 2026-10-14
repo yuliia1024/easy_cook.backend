@@ -1,21 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   ASSISTANT_HISTORY_LIMIT,
   AUTO_TITLE_LENGTH,
   DEFAULT_CONVERSATION_TITLE,
   MessageRole,
 } from '../../../common/constants';
-import { AppError, ConversationNotFoundException } from '../../../common/exceptions';
-import { MenuComposition } from '../../../common/types';
+import { ConversationNotFoundException } from '../../../common/exceptions';
+import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import {
   ConversationRepository,
   ConversationSummary,
   ConversationWithMessages,
 } from '../../data-access/conversation/conversation.repository';
-import { MenuWithVersions } from '../../data-access/menu/menu.repository';
-import { Assistant, AssistantAction } from '../assistant/assistant';
 import { MenuService } from '../menu/menu.service';
-import { MenuComposer } from '../menu/menu-composer';
 import { UserProfileService } from '../user-profile/user-profile.service';
 
 export interface ConversationInput {
@@ -23,27 +20,17 @@ export interface ConversationInput {
   menuId?: string | null;
 }
 
-interface ActionResult {
-  /** Appended to the assistant reply. */
-  summary: string;
-  menu: MenuWithVersions | null;
-}
-
 /**
- * Conversations with the assistant. A user message is saved first, then the assistant answers
- * from the recent history and the profile; an action it asks for (planning a menu) runs through
- * `MenuService` with the same validation as the API, and its outcome is part of the reply.
+ * Conversations with the assistant. A user message is saved first, then the model answers from
+ * the recent history as a text stream; the answer is saved once it is complete.
  */
 @Injectable()
 export class ChatService {
-  private readonly logger = new Logger(ChatService.name);
-
   constructor(
     private readonly conversationRepository: ConversationRepository,
     private readonly userProfileService: UserProfileService,
     private readonly menuService: MenuService,
-    private readonly menuComposer: MenuComposer,
-    private readonly assistant: Assistant,
+    private readonly openAiService: OpenAiService,
   ) {}
 
   public async getAll(): Promise<ConversationSummary[]> {
@@ -88,8 +75,11 @@ export class ChatService {
     await this.conversationRepository.delete(id);
   }
 
-  /** Saves the message and the assistant reply; returns the whole conversation. */
-  public async sendMessage(id: string, content: string): Promise<ConversationWithMessages> {
+  /**
+   * Saves the message and returns the stream of the reply. 404 for an unknown conversation comes
+   * before the stream; the reply is saved when the stream completes, not when it fails.
+   */
+  public async sendMessage(id: string, content: string): Promise<AsyncGenerator<string>> {
     const conversation = await this.getById(id);
 
     await this.conversationRepository.addMessage(id, { role: MessageRole.User, content });
@@ -97,66 +87,32 @@ export class ChatService {
       await this.conversationRepository.update(id, { title: this.titleFrom(content) });
     }
 
-    const context = await this.menuComposer.context();
     const history = await this.conversationRepository.findRecentMessages(
       id,
       ASSISTANT_HISTORY_LIMIT,
     );
-    const menu = conversation.menuId ? await this.menuService.getById(conversation.menuId) : null;
-
-    const reply = await this.assistant.reply({
-      messages: history.map((message) => ({
+    return this.streamReply(
+      id,
+      history.map((message) => ({
         role: message.role as MessageRole,
         content: message.content,
       })),
-      goal: context.goal,
-      rules: context.rules,
-      menu: menu && { id: menu.id, title: menu.title },
-    });
-    const result = reply.action ? await this.run(reply.action) : null;
+    );
+  }
 
+  private async *streamReply(
+    id: string,
+    history: Array<{ role: MessageRole; content: string }>,
+  ): AsyncGenerator<string> {
+    let reply = '';
+    for await (const delta of this.openAiService.streamText(history)) {
+      reply += delta;
+      yield delta;
+    }
     await this.conversationRepository.addMessage(id, {
       role: MessageRole.Assistant,
-      content: result ? `${reply.content}\n\n${result.summary}` : reply.content,
-      menuVersionId: result?.menu?.versions[0]?.id ?? null,
+      content: reply,
     });
-    if (result?.menu) {
-      await this.conversationRepository.update(id, { menuId: result.menu.id });
-    }
-
-    return this.getById(id);
-  }
-
-  /** Runs what the assistant asked for; a rejected action becomes part of the reply. */
-  private async run(action: AssistantAction): Promise<ActionResult> {
-    try {
-      const menu = await this.menuService.generate({
-        title: null,
-        days: action.days,
-        mealTypes: action.mealTypes,
-        startDate: null,
-        instructions: action.instructions,
-      });
-      return { summary: this.describeMenu(menu), menu };
-    } catch (error) {
-      if (!(error instanceof AppError)) {
-        throw error;
-      }
-      this.logger.warn(`Assistant action ${action.type} rejected: ${error.message}`);
-      return { summary: `I could not plan the menu: ${error.message}`, menu: null };
-    }
-  }
-
-  private describeMenu(menu: MenuWithVersions): string {
-    const composition = menu.versions[0].compositionSnapshot as unknown as MenuComposition;
-    const count = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
-    const warnings = composition.issues.length;
-    return (
-      `"${menu.title}" is ready as a draft: ${count(composition.days.length, 'day')}, about ` +
-      `${Math.round(composition.dailyAverage.kcal)} kcal a day` +
-      (warnings > 0 ? `, ${count(warnings, 'warning')}` : '') +
-      '. Open it to review and confirm.'
-    );
   }
 
   private titleFrom(content: string): string {

@@ -4,7 +4,6 @@ import {
   MenuGeneratedBy,
   MenuIssueCode,
   MenuIssueSeverity,
-  MessageRole,
 } from '../../../common/constants';
 import { NoRecipeCandidatesException } from '../../../common/exceptions';
 import { NutritionGoalSnapshot, PreferenceRules } from '../../../common/types';
@@ -175,63 +174,6 @@ describe('StubAssistant', () => {
           instructions: null,
         }),
       ).rejects.toBeInstanceOf(NoRecipeCandidatesException);
-    });
-  });
-
-  describe('reply', () => {
-    const ask = (content: string, overrides = {}) =>
-      assistant.reply({
-        messages: [
-          { role: MessageRole.User, content: 'hello' },
-          { role: MessageRole.Assistant, content: 'plan a menu?' },
-          { role: MessageRole.User, content },
-        ],
-        goal,
-        rules,
-        menu: null,
-        ...overrides,
-      });
-
-    it('asks to plan a menu for the requested days', async () => {
-      await expect(ask('Please plan a menu for 3 days')).resolves.toEqual({
-        content: 'Planning a 3-day menu around 2000 kcal a day.',
-        action: {
-          type: 'plan_menu',
-          days: 3,
-          mealTypes: null,
-          instructions: 'Please plan a menu for 3 days',
-        },
-      });
-    });
-
-    it('defaults to a week and caps the days', async () => {
-      await expect(ask('make me a menu', { goal: null })).resolves.toMatchObject({
-        content: 'Planning a 7-day menu.',
-        action: { days: 7 },
-      });
-      await expect(ask('plan 30 days')).resolves.toMatchObject({
-        content: expect.stringContaining('(A menu has 1 to 14 days.)'),
-        action: { days: 14 },
-      });
-    });
-
-    it('answers anything else with the goal, the preferences and a hint', async () => {
-      const reply = await ask('What is for dinner?', {
-        rules: { ...rules, diets: ['vegan'], allergies: ['peanut'] },
-      });
-
-      expect(reply.action).toBeNull();
-      expect(reply.content).toContain('placeholder assistant');
-      expect(reply.content).toContain('Your daily goal is 2000 kcal');
-      expect(reply.content).toContain('I follow your preferences: vegan, no peanut.');
-      expect(reply.content).toContain('plan a menu for 3 days');
-    });
-
-    it('asks for a goal when there is none', async () => {
-      const reply = await ask('hi', { goal: null });
-
-      expect(reply.content).toContain('Set a daily nutrition goal');
-      expect(reply.content).not.toContain('preferences');
     });
   });
 });

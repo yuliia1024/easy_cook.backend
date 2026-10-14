@@ -4,6 +4,7 @@ import { Test } from 'supertest';
 export interface StreamChunk {
   type: string;
   id?: string;
+  delta?: string;
   data?: any;
   errorText?: string;
 }

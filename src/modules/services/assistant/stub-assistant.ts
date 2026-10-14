@@ -1,19 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import {
-  MAX_MENU_DAYS,
   MEAL_CALORIE_SHARE,
   MealType,
   MENU_MEAL_SERVINGS,
   MenuGeneratedBy,
   MenuIssueSeverity,
-  MessageRole,
 } from '../../../common/constants';
 import { NoRecipeCandidatesException } from '../../../common/exceptions';
-import { MenuIssue, NutritionGoalSnapshot } from '../../../common/types';
+import { MenuIssue } from '../../../common/types';
 import {
   Assistant,
-  ChatReply,
-  ChatRequest,
   MealReplacementProposal,
   MealReplacementRequest,
   MenuPlanProposal,
@@ -25,10 +21,6 @@ import {
 const REPEAT_PENALTY = 0.25;
 /** The stub plans whole and half portions within this range. */
 const STUB_SERVINGS = { min: 0.5, max: 3 } as const;
-const DEFAULT_PLAN_DAYS = 7;
-
-const PLAN_REQUEST = /\b(menu|plan)\b/i;
-const DAYS_IN_REQUEST = /(\d+)\s*-?\s*days?\b/i;
 
 interface Pick {
   candidate: RecipeCandidate;
@@ -38,8 +30,7 @@ interface Pick {
 /**
  * Deterministic stand-in for the LLM. Plans by arithmetic: for every meal it takes the candidate
  * whose calories, scaled to whole or half portions, come closest to the meal's share of the daily
- * goal, and avoids repeating recipes. Ignores free-text instructions; in the chat it only
- * recognises "plan a menu (for N days)".
+ * goal, and avoids repeating recipes. Ignores free-text instructions.
  */
 @Injectable()
 export class StubAssistant extends Assistant {
@@ -113,46 +104,6 @@ export class StubAssistant extends Assistant {
       servings: goal ? pick.servings : current.servings,
       notes: `Replaced by the stub planner with ${pick.candidate.name}.`,
     };
-  }
-
-  public async reply({ messages, goal, rules }: ChatRequest): Promise<ChatReply> {
-    const last = [...messages].reverse().find((m) => m.role === MessageRole.User)?.content ?? '';
-
-    if (PLAN_REQUEST.test(last)) {
-      const requested = Number(DAYS_IN_REQUEST.exec(last)?.[1] ?? DEFAULT_PLAN_DAYS);
-      const days = Math.min(Math.max(requested, 1), MAX_MENU_DAYS);
-      return {
-        content:
-          `Planning a ${days}-day menu` +
-          (goal ? ` around ${goal.caloriesKcal} kcal a day.` : '.') +
-          (requested !== days ? ` (A menu has 1 to ${MAX_MENU_DAYS} days.)` : ''),
-        action: { type: 'plan_menu', days, mealTypes: null, instructions: last },
-      };
-    }
-
-    const preferences = [
-      ...rules.diets,
-      ...rules.allergies.map((value) => `no ${value}`),
-      ...rules.excludedIngredients.map((value) => `no ${value}`),
-    ];
-    return {
-      content: [
-        'I am a placeholder assistant; real answers come with the LLM stage.',
-        this.describeGoal(goal),
-        preferences.length > 0 ? `I follow your preferences: ${preferences.join(', ')}.` : null,
-        'Try: "plan a menu for 3 days".',
-      ]
-        .filter(Boolean)
-        .join(' '),
-      action: null,
-    };
-  }
-
-  private describeGoal(goal: NutritionGoalSnapshot | null): string {
-    return goal
-      ? `Your daily goal is ${goal.caloriesKcal} kcal (protein ${goal.proteinG} g, ` +
-          `fat ${goal.fatG} g, carbs ${goal.carbsG} g).`
-      : 'Set a daily nutrition goal on the profile page before planning menus.';
   }
 
   /** Recipes an earlier proposal was rejected for. */
