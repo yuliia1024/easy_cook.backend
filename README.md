@@ -4,8 +4,9 @@ Menu planner API. NestJS 12 monolith · Prisma 7 (`pg` driver adapter) · Postgr
 Structure: `configs/`, `common/`, `providers/`, `modules/data-access`, `modules/services`, `entrypoints/api`.
 The web app lives in its own repository.
 
-Single user, no auth, local run. Menus and the chat work end to end with a deterministic stub
-in place of the LLM (`StubAssistant`); the LLM itself, tool calling and RAG are the next stage.
+Single user, no auth, local run. Menus can be read, renamed, deleted and confirmed; the API does
+not create menus or add versions. The chat streams OpenAI replies; tool calling and RAG are the
+next stage.
 
 ## Ports
 
@@ -69,8 +70,8 @@ npm run db:reset                              # drop everything, re-apply migrat
 | `food_items` | values per 100 g **in a given state** (raw, dried, boiled...); null = unknown; unique `source + source_id` |
 | `recipes` | meal type, diet tags (`varchar[]`), servings; unique `source + source_id` |
 | `recipe_ingredients` | grams for the whole recipe, optional flag, notes, display order |
-| `menus`, `menu_versions`, `menu_days`, `menu_meals` | every change adds an immutable version with snapshots of the goal, recipes and nutrition; `menus.confirmed_version_id` is set only by an explicit confirm |
-| `conversations`, `messages` | chat with the assistant; a reply that planned a menu links its `menu_version_id` |
+| `menus`, `menu_versions`, `menu_days`, `menu_meals` | immutable versions with snapshots of the goal, recipes and nutrition; `menus.confirmed_version_id` is set only by an explicit confirm |
+| `conversations`, `messages` | chat with the assistant; a message may link a `menu_version_id` |
 
 Enum-like columns are `VARCHAR`; allowed values are in `src/common/constants` and are validated by
 the API (`GET /api/profile/options` lists them).
@@ -120,28 +121,13 @@ Everything is under `/api`; Swagger UI on `/docs`.
 | POST | `/recipes/:id/ingredients` | |
 | PATCH / DELETE | `/recipes/:id/ingredients/:ingredientId` | |
 | GET | `/menus`, `/menus/:id` | `:id` with every version, newest first, nutrition per meal and day, issues |
-| POST | `/menus` | by hand; 400 for unknown recipes or broken diets / allergies / excluded foods |
-| POST | `/menus/generate` | not implemented yet: an AI SDK UI message stream (SSE) of `start` and an `error` chunk; the body is still validated |
 | PATCH / DELETE | `/menus/:id` | rename / delete |
-| POST | `/menus/:id/versions` | the whole next version, by hand |
-| POST | `/menus/:id/replace-meal` | next version with one meal re-planned |
-| POST | `/menus/:id/versions/:versionId/confirm` | rechecked against the current preferences first |
+| POST | `/menus/:id/versions/:versionId/confirm` | rechecked against the current preferences first; 400 when it breaks diets / allergies / excluded foods |
 | GET / POST | `/conversations` | |
 | GET / PATCH / DELETE | `/conversations/:id` | |
-| POST | `/conversations/:id/messages` | saves the message and the assistant reply; "plan a menu for N days" plans one |
+| POST | `/conversations/:id/messages` | saves the message and the assistant reply |
 
 Errors always look like `{ statusCode, message, error, path, timestamp }`.
-
-## Assistant (LLM boundary)
-
-`src/modules/services/assistant/assistant.ts` is the port to the language model: `planMenu`,
-`replaceMeal` and `reply` (a chat answer plus an optional action such as `plan_menu`).
-`StubAssistant` implements it with plain arithmetic (closest calories per meal, rotating recipes)
-and is bound in `AssistantModule`; the LLM implementation replaces it there. Its output is never
-trusted: `MenuPlanner` checks the shape, `MenuComposer` rebuilds every meal from the database,
-recalculates nutrition and validates diets, allergies and excluded ingredients
-(`menu-rules.ts`), and a rejected proposal goes back with the errors (3 attempts). The assistant
-never writes to the database; the chat runs its actions through `MenuService`.
 
 ## Datasets
 

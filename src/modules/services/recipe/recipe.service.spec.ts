@@ -100,30 +100,6 @@ describe('RecipeService', () => {
     });
   });
 
-  describe('findByIds', () => {
-    it('maps the found recipes by id, asking once per id', async () => {
-      recipeRepository.findByIds.mockResolvedValue([recipe]);
-
-      const found = await service.findByIds([RECIPE_ID, RECIPE_ID, 'missing']);
-
-      expect([...found.keys()]).toEqual([RECIPE_ID]);
-      expect(recipeRepository.findByIds).toHaveBeenCalledWith([RECIPE_ID, 'missing']);
-    });
-
-    it('skips the query without ids', async () => {
-      await expect(service.findByIds([])).resolves.toEqual(new Map());
-      expect(recipeRepository.findByIds).not.toHaveBeenCalled();
-    });
-  });
-
-  it('passes the candidate filter through', async () => {
-    recipeRepository.findCandidates.mockResolvedValue([recipe]);
-    const filter = { mealTypes: [MealType.Lunch], dietTypes: [] };
-
-    await expect(service.getCandidates(filter, 10)).resolves.toEqual([recipe]);
-    expect(recipeRepository.findCandidates).toHaveBeenCalledWith(filter, 10);
-  });
-
   describe('create', () => {
     it('checks the foods and defaults the source to manual', async () => {
       await service.create(data, ingredients);

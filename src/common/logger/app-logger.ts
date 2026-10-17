@@ -22,6 +22,14 @@ export class AppLogger extends ConsoleLogger {
     return requestId ? `${formatted}[req ${requestId}] ` : formatted;
   }
 
+  /** Debug text (the SQL) keeps the terminal colour; only its `DEBUG` label is coloured. */
+  protected stringifyMessage(message: unknown, logLevel: LogLevel): string {
+    if (logLevel === 'debug' && typeof message === 'string') {
+      return message;
+    }
+    return super.stringifyMessage(message, logLevel);
+  }
+
   protected getJsonLogObject(
     message: unknown,
     options: JsonLogOptions,

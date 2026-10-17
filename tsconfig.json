@@ -11,7 +11,7 @@
     "useDefineForClassFields": false,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
@@ -22,5 +22,5 @@
     "resolveJsonModule": true,
     "types": ["node", "jest"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "scripts/**/*", "prisma/**/*.ts", "test/**/*", "prisma.config.ts"]
 }

@@ -14,7 +14,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "type-check": "tsc --noEmit && tsc -p tsconfig.scripts.json --noEmit",
+    "type-check": "tsc --noEmit",
     "infra:up": "docker compose up -d --wait postgres",
     "infra:down": "docker compose down",
     "compose": "docker compose up --build",
@@ -75,37 +75,6 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.2"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": ".",
-    "roots": [
-      "<rootDir>/src",
-      "<rootDir>/scripts"
-    ],
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.ts$": "ts-jest"
-    },
-    "testEnvironment": "node",
-    "setupFiles": [
-      "reflect-metadata"
-    ],
-    "clearMocks": true,
-    "restoreMocks": true,
-    "collectCoverageFrom": [
-      "src/**/*.ts",
-      "scripts/lib/**/*.ts",
-      "!src/main.ts",
-      "!**/index.ts",
-      "!**/*.module.ts",
-      "!src/test/**"
-    ],
-    "coverageDirectory": "./coverage"
   },
   "engines": {
     "node": ">=24.9"

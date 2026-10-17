@@ -3,5 +3,4 @@ export * from './bad-request';
 export * from './not-found';
 export * from './conflict';
 export * from './service-unavailable';
-export * from './unprocessable-entity';
 export * from './all-exceptions.filter';

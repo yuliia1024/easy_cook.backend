@@ -17,7 +17,6 @@ import { Page, PageQuery } from '../../../common/types';
 import { toNumber } from '../../../common/utils';
 import { RecipeIngredientRepository } from '../../data-access/recipe-ingredient/recipe-ingredient.repository';
 import {
-  CandidateFilter,
   IngredientData,
   RecipeData,
   RecipeFilter,
@@ -51,23 +50,6 @@ export class RecipeService {
       throw new RecipeNotFoundException();
     }
     return recipe;
-  }
-
-  /** The recipes that exist, by id; unknown ids are simply missing from the map. */
-  public async findByIds(ids: string[]): Promise<Map<string, RecipeWithIngredients>> {
-    const unique = [...new Set(ids)];
-    if (unique.length === 0) {
-      return new Map();
-    }
-    const recipes = await this.recipeRepository.findByIds(unique);
-    return new Map(recipes.map((recipe) => [recipe.id, recipe]));
-  }
-
-  public async getCandidates(
-    filter: CandidateFilter,
-    limit: number,
-  ): Promise<RecipeWithIngredients[]> {
-    return this.recipeRepository.findCandidates(filter, limit);
   }
 
   public async create(

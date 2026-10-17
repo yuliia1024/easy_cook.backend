@@ -1,19 +1,6 @@
 import { applyDecorators } from '@nestjs/common';
 import { Transform } from 'class-transformer';
-import {
-  IsNumber,
-  IsOptional,
-  isISO8601,
-  Max,
-  Min,
-  registerDecorator,
-  ValidateIf,
-  ValidationArguments,
-} from 'class-validator';
-import { toDate } from '../../../common/utils';
-
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { IsNumber, IsOptional, Max, Min, ValidateIf } from 'class-validator';
 
 /**
  * Optional, but `null` is validated (and rejected) instead of skipped like with `IsOptional`:
@@ -54,36 +41,3 @@ export const IsNutrientValue = (max: number): PropertyDecorator =>
     Min(0),
     Max(max),
   );
-
-/**
- * A `YYYY-MM-DD` day from today up to `maxDaysAhead` days ahead. "Today" is the client's: a day
- * of slack on both sides covers every time zone against the UTC date of the server.
- */
-export const IsUpcomingDate =
-  (maxDaysAhead: number): PropertyDecorator =>
-  (target, propertyName) =>
-    registerDecorator({
-      name: 'isUpcomingDate',
-      target: target.constructor,
-      propertyName: propertyName as string,
-      validator: {
-        validate: (value: unknown): boolean => upcomingDateError(value, maxDaysAhead) === null,
-        defaultMessage: ({ property, value }: ValidationArguments): string =>
-          `${property} ${upcomingDateError(value, maxDaysAhead)}`,
-      },
-    });
-
-function upcomingDateError(value: unknown, maxDaysAhead: number): string | null {
-  if (typeof value !== 'string' || !DATE_ONLY.test(value) || !isISO8601(value, { strict: true })) {
-    return 'must be YYYY-MM-DD';
-  }
-  const day = toDate(value)!.getTime();
-  const today = toDate(new Date().toISOString().slice(0, 10))!.getTime();
-  if (day < today - DAY_MS) {
-    return 'cannot be in the past';
-  }
-  if (day > today + (maxDaysAhead + 1) * DAY_MS) {
-    return `cannot be more than ${maxDaysAhead} days ahead`;
-  }
-  return null;
-}

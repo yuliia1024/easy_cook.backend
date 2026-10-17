@@ -27,6 +27,26 @@ describe('AppLogger', () => {
     });
   });
 
+  describe('colors', () => {
+    const logger = new AppLogger({ colors: true, logLevels: ['log', 'debug'] });
+    const MAGENTA = '\x1B[95m';
+    const GREEN = '\x1B[32m';
+
+    it('prints debug text uncoloured and keeps the DEBUG label coloured', () => {
+      logger.debug('SELECT 1', 'PrismaService');
+
+      expect(output()).toContain(`${MAGENTA}  DEBUG`);
+      expect(output()).not.toContain(`${MAGENTA}SELECT 1`);
+      expect(output()).toContain('SELECT 1');
+    });
+
+    it('still colours other levels', () => {
+      logger.log('hello', 'Menu');
+
+      expect(output()).toContain(`${GREEN}hello`);
+    });
+  });
+
   describe('json', () => {
     const logger = new AppLogger({ json: true });
 

@@ -48,12 +48,6 @@ export class MenuVersionNotFoundException extends NotFoundError {
   }
 }
 
-export class MenuMealNotFoundException extends NotFoundError {
-  constructor(dayIndex: number, position: number) {
-    super(`The menu has no meal ${position} on day ${dayIndex}`);
-  }
-}
-
 export class ConversationNotFoundException extends NotFoundError {
   constructor() {
     super('Conversation not found');

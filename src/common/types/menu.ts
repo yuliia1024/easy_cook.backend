@@ -32,24 +32,6 @@ export interface RecipeSnapshot {
   }>;
 }
 
-/** A meal of a menu being built: a live recipe, or the snapshot of a recipe deleted since. */
-export interface MenuMealDraft {
-  mealType: MealType;
-  /** Portions of the recipe eaten. */
-  servings: number;
-  /** Null for a deleted recipe; `recipeSnapshot` then describes it. */
-  recipeId: string | null;
-  recipeSnapshot?: RecipeSnapshot;
-}
-
-export interface MenuDayDraft {
-  /** 0-based. */
-  dayIndex: number;
-  date: Date | null;
-  /** In order of the day. */
-  meals: MenuMealDraft[];
-}
-
 export interface MenuIssue {
   severity: MenuIssueSeverity;
   code: MenuIssueCode;

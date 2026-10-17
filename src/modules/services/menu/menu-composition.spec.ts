@@ -1,20 +1,7 @@
 import { Prisma } from '../../../generated/prisma/client';
 import { MealType } from '../../../common/constants';
-import {
-  buildMenuVersion,
-  buildRecipe,
-  buildRecipeSnapshot,
-  RECIPE_ID,
-} from '../../../test/fixtures';
-import { NutritionService } from '../nutrition/nutrition.service';
-import {
-  composeMenu,
-  resolveVersion,
-  ResolvedDay,
-  snapshotRecipe,
-  toDraft,
-  toIsoDate,
-} from './menu-composition';
+import { buildMenuVersion, buildRecipeSnapshot, RECIPE_ID } from '../../../test/fixtures';
+import { composeMenu, resolveVersion, ResolvedDay, toIsoDate } from './menu-composition';
 
 describe('menu composition', () => {
   const rice = buildRecipeSnapshot();
@@ -24,15 +11,6 @@ describe('menu composition', () => {
     name: 'Soup',
     perServing: { kcal: 300, proteinG: 10, fatG: 5, carbsG: 50 },
     complete: false,
-  });
-
-  describe('snapshotRecipe', () => {
-    it('keeps the recipe, its ingredients and the nutrition per serving', () => {
-      const recipe = buildRecipe();
-      const nutrition = new NutritionService().calculateRecipe(recipe);
-
-      expect(snapshotRecipe(recipe, nutrition)).toEqual(buildRecipeSnapshot());
-    });
   });
 
   describe('composeMenu', () => {
@@ -126,19 +104,6 @@ describe('menu composition', () => {
           meals: [
             { mealType: MealType.Lunch, servings: 1, recipeId: RECIPE_ID, recipe: rice },
             { mealType: MealType.Dinner, servings: 2, recipeId: null, recipe: soup },
-          ],
-        },
-      ]);
-    });
-
-    it('drafts the next version: live recipes by id, deleted ones by snapshot', () => {
-      expect(toDraft(version)).toEqual([
-        {
-          dayIndex: 0,
-          date: null,
-          meals: [
-            { mealType: MealType.Lunch, servings: 1, recipeId: RECIPE_ID },
-            { mealType: MealType.Dinner, servings: 2, recipeId: null, recipeSnapshot: soup },
           ],
         },
       ]);

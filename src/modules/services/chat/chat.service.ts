@@ -91,13 +91,13 @@ export class ChatService {
       id,
       ASSISTANT_HISTORY_LIMIT,
     );
-    return this.streamReply(
-      id,
-      history.map((message) => ({
-        role: message.role as MessageRole,
-        content: message.content,
-      })),
-    );
+
+    const contextWithNewMessage = history.map((message) => ({
+      role: message.role as MessageRole,
+      content: message.content,
+    }));
+
+    return this.streamReply(id, contextWithNewMessage);
   }
 
   private async *streamReply(

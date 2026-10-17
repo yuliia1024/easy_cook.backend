@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { createMenuWorld } from './menu-fixtures';
+import { createMenuWorld, seedMenu } from './menu-fixtures';
 import { readStream } from './menu-stream';
 import { createTestApp, FAKE_OPEN_AI_DELTAS, resetDatabase, TestApp } from './test-app';
 
@@ -51,25 +51,16 @@ describe('/api/conversations (e2e)', () => {
     expect(list.body.map((c: { title: string }) => c.title)).toEqual(['Older', 'Newer']);
     expect(list.body[0].messageCount).toBe(2);
 
-    const menu = await http()
-      .post('/api/menus')
-      .send({
-        title: 'Week',
-        days: [
-          {
-            dayIndex: 0,
-            meals: [{ mealType: 'lunch', recipeId: world.recipe.chicken, servings: 1 }],
-          },
-        ],
-      })
-      .expect(201);
+    const menuId = await seedMenu(ctx, 'Week', [
+      { dayIndex: 0, meals: [{ mealType: 'lunch', recipeId: world.recipe.chicken, servings: 1 }] },
+    ]);
     const linked = await http()
       .patch(`/api/conversations/${newer}`)
-      .send({ title: 'About the menu', menuId: menu.body.id })
+      .send({ title: 'About the menu', menuId })
       .expect(200);
-    expect(linked.body).toMatchObject({ title: 'About the menu', menuId: menu.body.id });
+    expect(linked.body).toMatchObject({ title: 'About the menu', menuId });
 
-    await http().delete(`/api/menus/${menu.body.id}`).expect(204);
+    await http().delete(`/api/menus/${menuId}`).expect(204);
     const unlinked = await http().get(`/api/conversations/${newer}`).expect(200);
     expect(unlinked.body.menuId).toBeNull();
 
