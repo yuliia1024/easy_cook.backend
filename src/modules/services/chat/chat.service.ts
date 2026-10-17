@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ModelMessage } from 'ai';
 import {
   ASSISTANT_HISTORY_LIMIT,
   AUTO_TITLE_LENGTH,
@@ -92,18 +93,15 @@ export class ChatService {
       ASSISTANT_HISTORY_LIMIT,
     );
 
-    const contextWithNewMessage = history.map((message) => ({
-      role: message.role as MessageRole,
+    const contextWithNewMessage = history.map((message): ModelMessage => ({
+      role: message.role === MessageRole.Assistant ? 'assistant' : 'user',
       content: message.content,
     }));
 
     return this.streamReply(id, contextWithNewMessage);
   }
 
-  private async *streamReply(
-    id: string,
-    history: Array<{ role: MessageRole; content: string }>,
-  ): AsyncGenerator<string> {
+  private async *streamReply(id: string, history: ModelMessage[]): AsyncGenerator<string> {
     let reply = '';
     for await (const delta of this.openAiService.streamText(history)) {
       reply += delta;

@@ -1,65 +1,83 @@
+import { createOpenAI, OpenAIProvider } from '@ai-sdk/openai';
 import { Injectable, Logger } from '@nestjs/common';
-import OpenAI from 'openai';
-import type { Response, ResponseInput } from 'openai/resources/responses/responses';
+import { FinishReason, LanguageModelUsage, ModelMessage, streamText } from 'ai';
 import { MAX_OUTPUT_TOKENS, OPEN_AI_INSTRUCTIONS, OPEN_AI_MODEL } from '../../common/constants';
 import { OpenAiConfigService } from '../../configs/open-ai-config/open-ai-config.service';
+
+interface StepSummary {
+  modelId: string;
+  responseId: string;
+  finishReason: FinishReason;
+  rawFinishReason: string | undefined;
+  usage: LanguageModelUsage;
+}
 
 @Injectable()
 export class OpenAiService {
   private readonly logger = new Logger(OpenAiService.name);
-  private readonly client: OpenAI;
+  private readonly provider: OpenAIProvider;
 
   constructor(openAiConfig: OpenAiConfigService) {
-    this.client = new OpenAI({ apiKey: openAiConfig.apiKey });
+    this.provider = createOpenAI({ apiKey: openAiConfig.apiKey });
   }
 
   /**
-   * Streams text generation through the Responses API; yields the model's text deltas. `input` is
-   * a single prompt or a conversation, oldest message first.
+   * Streams text generation (AI SDK `streamText`, OpenAI Responses API); yields the model's text
+   * deltas. `input` is a single prompt or a conversation, oldest message first. A failed call
+   * throws from the generator.
    */
-  public async *streamText(input: string | ResponseInput): AsyncGenerator<string> {
+  public async *streamText(input: string | ModelMessage[]): AsyncGenerator<string> {
     const startedAt = Date.now();
     let firstDeltaAt: number | null = null;
-    const stream = await this.client.responses.create({
-      model: OPEN_AI_MODEL,
-      instructions: OPEN_AI_INSTRUCTIONS,
-      max_output_tokens: MAX_OUTPUT_TOKENS,
-      input,
-      stream: true,
+    const result = streamText({
+      model: this.provider.responses(OPEN_AI_MODEL),
+      system: OPEN_AI_INSTRUCTIONS,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      ...(typeof input === 'string' ? { prompt: input } : { messages: input }),
+      // Errors arrive as `error` parts and are rethrown below; skip the default console log.
+      onError: () => undefined,
     });
 
-    for await (const event of stream) {
-      if (event.type === 'response.output_text.delta') {
+    for await (const part of result.stream) {
+      if (part.type === 'text-delta') {
         firstDeltaAt ??= Date.now();
-        yield event.delta;
-      } else if (
-        event.type === 'response.completed' ||
-        event.type === 'response.incomplete' ||
-        event.type === 'response.failed'
-      ) {
-        this.logSummary(event.response, startedAt, firstDeltaAt);
+        yield part.text;
+      } else if (part.type === 'finish-step') {
+        this.logSummary(
+          {
+            modelId: part.response.modelId,
+            responseId: part.response.id,
+            finishReason: part.finishReason,
+            rawFinishReason: part.rawFinishReason,
+            usage: part.usage,
+          },
+          startedAt,
+          firstDeltaAt,
+        );
+      } else if (part.type === 'error') {
+        throw part.error;
       }
     }
   }
 
   /** Model, outcome, timings and token usage of a finished response. */
-  private logSummary(response: Response, startedAt: number, firstDeltaAt: number | null): void {
-    const { usage } = response;
-    const tokens = usage
-      ? `tokens: ${usage.input_tokens} in (${usage.input_tokens_details.cached_tokens} cached)` +
-        ` + ${usage.output_tokens} out (${usage.output_tokens_details.reasoning_tokens} reasoning)` +
-        ` = ${usage.total_tokens}`
-      : 'tokens: unknown';
+  private logSummary(step: StepSummary, startedAt: number, firstDeltaAt: number | null): void {
+    const { usage } = step;
+    const tokens =
+      usage.totalTokens === undefined
+        ? 'tokens: unknown'
+        : `tokens: ${usage.inputTokens} in (${usage.inputTokenDetails.cacheReadTokens ?? 0} cached)` +
+          ` + ${usage.outputTokens} out (${usage.outputTokenDetails.reasoningTokens ?? 0} reasoning)` +
+          ` = ${usage.totalTokens}`;
     const firstDelta = firstDeltaAt === null ? 'none' : `${firstDeltaAt - startedAt}ms`;
     const summary =
-      `${response.model} ${response.id} ${response.status} in ${Date.now() - startedAt}ms` +
+      `${step.modelId} ${step.responseId} ${step.finishReason} in ${Date.now() - startedAt}ms` +
       ` (first text after ${firstDelta}), ${tokens}`;
 
-    if (response.status === 'completed') {
+    if (step.finishReason === 'stop') {
       this.logger.log(summary);
     } else {
-      const reason = response.error?.message ?? response.incomplete_details?.reason ?? 'unknown';
-      this.logger.warn(`${summary}; reason: ${reason}`);
+      this.logger.warn(`${summary}; reason: ${step.rawFinishReason ?? step.finishReason}`);
     }
   }
 }
