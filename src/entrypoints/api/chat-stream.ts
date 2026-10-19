@@ -1,6 +1,6 @@
 import { createUIMessageStream, UIMessageChunk } from 'ai';
-import { INTERNAL_ERROR_REPLY } from '../../common/constants';
-import { ChatStreamEvent } from '../../common/contracts';
+import { ChatStreamEventType, INTERNAL_ERROR_REPLY } from '../../common/constants';
+import { ChatStreamEvent } from '../../common/types';
 
 const TEXT_ID = 'text';
 
@@ -37,10 +37,10 @@ export function toChatStream(
       writer.write({ type: 'start' });
       for await (const event of events) {
         switch (event.type) {
-          case 'text_delta':
+          case ChatStreamEventType.TextDelta:
             writeText(event.content);
             break;
-          case 'clarification':
+          case ChatStreamEventType.Clarification:
             writeText(event.message);
             endText();
             writer.write({
@@ -48,11 +48,11 @@ export function toChatStream(
               data: { missingFields: event.missingFields },
             });
             break;
-          case 'menu_ready':
+          case ChatStreamEventType.MenuReady:
             endText();
             writer.write({ type: 'data-menu', data: event.menu });
             break;
-          case 'error':
+          case ChatStreamEventType.Error:
             endText();
             failed = true;
             writer.write({
@@ -62,7 +62,7 @@ export function toChatStream(
             });
             writer.write({ type: 'error', errorText: event.message });
             break;
-          case 'done':
+          case ChatStreamEventType.Done:
             endText();
             if (!failed) {
               writer.write({ type: 'finish' });

@@ -1,6 +1,6 @@
 import { UIMessageChunk } from 'ai';
-import { INTERNAL_ERROR_REPLY } from '../../common/constants';
-import { ChatStreamEvent } from '../../common/contracts';
+import { ChatStreamEventType, INTERNAL_ERROR_REPLY } from '../../common/constants';
+import { ChatStreamEvent } from '../../common/types';
 import { toChatStream } from './chat-stream';
 
 const read = async (events: ChatStreamEvent[] | AsyncIterable<ChatStreamEvent>) => {
@@ -21,9 +21,9 @@ describe('toChatStream', () => {
   it('streams text deltas as one text part and finishes on done', async () => {
     await expect(
       read([
-        { type: 'text_delta', content: 'Day 1: ' },
-        { type: 'text_delta', content: 'oatmeal' },
-        { type: 'done' },
+        { type: ChatStreamEventType.TextDelta, content: 'Day 1: ' },
+        { type: ChatStreamEventType.TextDelta, content: 'oatmeal' },
+        { type: ChatStreamEventType.Done },
       ]),
     ).resolves.toEqual([
       expect.objectContaining({ type: 'start' }),
@@ -37,8 +37,12 @@ describe('toChatStream', () => {
 
   it('sends a clarification as text plus the missing fields', async () => {
     const chunks = await read([
-      { type: 'clarification', message: 'How many days?', missingFields: ['days'] },
-      { type: 'done' },
+      {
+        type: ChatStreamEventType.Clarification,
+        message: 'How many days?',
+        missingFields: ['days'],
+      },
+      { type: ChatStreamEventType.Done },
     ]);
 
     expect(chunks).toContainEqual({ type: 'text-delta', id: 'text', delta: 'How many days?' });
@@ -55,16 +59,24 @@ describe('toChatStream', () => {
       issues: [],
     };
 
-    const chunks = await read([{ type: 'menu_ready', menu }, { type: 'done' }]);
+    const chunks = await read([
+      { type: ChatStreamEventType.MenuReady, menu },
+      { type: ChatStreamEventType.Done },
+    ]);
 
     expect(chunks).toContainEqual({ type: 'data-menu', data: menu });
   });
 
   it('ends with the error code and its safe message', async () => {
     const chunks = await read([
-      { type: 'text_delta', content: 'Day 1' },
-      { type: 'error', code: 'assistant_unavailable', message: 'Try later', retryable: true },
-      { type: 'done' },
+      { type: ChatStreamEventType.TextDelta, content: 'Day 1' },
+      {
+        type: ChatStreamEventType.Error,
+        code: 'assistant_unavailable',
+        message: 'Try later',
+        retryable: true,
+      },
+      { type: ChatStreamEventType.Done },
     ]);
 
     expect(chunks.slice(-3)).toEqual([
@@ -81,7 +93,7 @@ describe('toChatStream', () => {
   it('hides an unexpected failure behind a generic message', async () => {
     const chunks = await read(
       (async function* (): AsyncGenerator<ChatStreamEvent> {
-        yield { type: 'text_delta', content: 'Day 1' };
+        yield { type: ChatStreamEventType.TextDelta, content: 'Day 1' };
         throw new Error('secret internals');
       })(),
     );

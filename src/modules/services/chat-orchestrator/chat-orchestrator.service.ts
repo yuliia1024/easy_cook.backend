@@ -5,12 +5,13 @@ import {
   CLARIFICATION_MISSING_FIELDS,
   CLARIFICATION_REPLY,
   ChatErrorCode,
+  ChatResponseType,
+  ChatStreamEventType,
   INTERNAL_ERROR_REPLY,
   Intent,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
-import { ChatResponse, ChatStreamEvent } from '../../../common/contracts';
-import { MenuComposition } from '../../../common/types';
+import { ChatResponse, ChatStreamEvent, MenuComposition } from '../../../common/types';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
@@ -21,10 +22,11 @@ import { IntentService } from '../intent/intent.service';
 import { MenuPlannerService } from '../menu/menu-planner.service';
 
 /**
- * Handles a chat message: saves it, classifies its intent and hands it to the service for that
- * intent. Only the intent picks the route, and every route is a fixed service call. The reply is
- * saved once it is complete, with the menu it suggests; a failure becomes an `error` event and is
- * not saved.
+ * Handles a chat message: saves it, classifies its intent within the conversation and hands it to
+ * the service for that intent. Only the intent picks the route, and every route is a fixed service
+ * call; a menu is planned from the request the classifier restated, so a follow-up such as "do it
+ * again" keeps the earlier details. The reply is saved once it is complete, with the menu it
+ * suggests; a failure becomes an `error` event and is not saved.
  */
 @Injectable()
 export class ChatOrchestratorService {
@@ -61,13 +63,13 @@ export class ChatOrchestratorService {
     let failed = false;
     try {
       for await (const event of this.route(conversationId, content, abortSignal)) {
-        if (event.type === 'text_delta') {
+        if (event.type === ChatStreamEventType.TextDelta) {
           reply += event.content;
-        } else if (event.type === 'clarification') {
+        } else if (event.type === ChatStreamEventType.Clarification) {
           reply += event.message;
-        } else if (event.type === 'menu_ready') {
+        } else if (event.type === ChatStreamEventType.MenuReady) {
           menu = event.menu;
-        } else if (event.type === 'error') {
+        } else if (event.type === ChatStreamEventType.Error) {
           failed = true;
         }
         yield event;
@@ -84,7 +86,7 @@ export class ChatOrchestratorService {
       }
       yield this.errorEvent(error);
     }
-    yield { type: 'done' };
+    yield { type: ChatStreamEventType.Done };
   }
 
   private async *route(
@@ -92,25 +94,25 @@ export class ChatOrchestratorService {
     content: string,
     abortSignal: AbortSignal | undefined,
   ): AsyncGenerator<ChatStreamEvent> {
-    const { intent } = await this.intentService.classify(content, abortSignal);
+    const { intent, request } = await this.intentService.classify(conversationId, abortSignal);
     switch (intent) {
       case Intent.GeneralChat:
         for await (const delta of this.generalChatService.reply(conversationId, abortSignal)) {
-          yield { type: 'text_delta', content: delta };
+          yield { type: ChatStreamEventType.TextDelta, content: delta };
         }
         return;
       case Intent.GenerateMenu:
-        yield* this.toEvents(await this.menuPlannerService.plan(content, abortSignal));
+        yield* this.toEvents(await this.menuPlannerService.plan(request ?? content, abortSignal));
         return;
       case Intent.Clarification:
         yield {
-          type: 'clarification',
+          type: ChatStreamEventType.Clarification,
           message: CLARIFICATION_REPLY,
           missingFields: CLARIFICATION_MISSING_FIELDS,
         };
         return;
       case Intent.OutOfScope:
-        yield { type: 'text_delta', content: OUT_OF_SCOPE_REPLY };
+        yield { type: ChatStreamEventType.TextDelta, content: OUT_OF_SCOPE_REPLY };
         return;
       default: {
         const unknown: never = intent;
@@ -122,15 +124,34 @@ export class ChatOrchestratorService {
   /** A menu comes with its message as text, so the message is saved with the reply. */
   private toEvents(response: ChatResponse): ChatStreamEvent[] {
     switch (response.type) {
-      case 'text':
-        return [{ type: 'text_delta', content: response.message }];
-      case 'menu_ready':
+      case ChatResponseType.Text:
+        return [{ type: ChatStreamEventType.TextDelta, content: response.message }];
+      case ChatResponseType.MenuReady:
         return [
-          { type: 'text_delta', content: response.message },
-          { type: 'menu_ready', menu: response.menu },
+          { type: ChatStreamEventType.TextDelta, content: response.message },
+          { type: ChatStreamEventType.MenuReady, menu: response.menu },
         ];
-      default:
-        return [response];
+      case ChatResponseType.Clarification:
+        return [
+          {
+            type: ChatStreamEventType.Clarification,
+            message: response.message,
+            missingFields: response.missingFields,
+          },
+        ];
+      case ChatResponseType.Error:
+        return [
+          {
+            type: ChatStreamEventType.Error,
+            code: response.code,
+            message: response.message,
+            retryable: response.retryable,
+          },
+        ];
+      default: {
+        const unknown: never = response;
+        throw new Error(`Unhandled response "${JSON.stringify(unknown)}"`);
+      }
     }
   }
 
@@ -141,7 +162,7 @@ export class ChatOrchestratorService {
     }
     if (error instanceof AssistantInvalidOutputException) {
       return {
-        type: 'error',
+        type: ChatStreamEventType.Error,
         code: ChatErrorCode.AssistantInvalidOutput,
         message: ASSISTANT_INVALID_OUTPUT_REPLY,
         retryable: true,
@@ -149,7 +170,7 @@ export class ChatOrchestratorService {
     }
     this.logger.error('Chat reply failed', error instanceof Error ? error.stack : String(error));
     return {
-      type: 'error',
+      type: ChatStreamEventType.Error,
       code: ChatErrorCode.InternalError,
       message: INTERNAL_ERROR_REPLY,
       retryable: false,
@@ -158,7 +179,7 @@ export class ChatOrchestratorService {
 
   private assistantUnavailable(retryable: boolean): ChatStreamEvent {
     return {
-      type: 'error',
+      type: ChatStreamEventType.Error,
       code: ChatErrorCode.AssistantUnavailable,
       message: ASSISTANT_UNAVAILABLE_REPLY,
       retryable,

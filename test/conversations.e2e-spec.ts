@@ -125,6 +125,34 @@ describe('/api/conversations (e2e)', () => {
     expect(await ctx.prisma.menu.count()).toBe(0);
   });
 
+  it('classifies a follow-up with the history and plans the restated request', async () => {
+    const { recipe } = await createMenuWorld(ctx);
+    const id = await start();
+    await say(id, 'Plan my day');
+    fakeOpenAiState.structuredInputs = [];
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.request = 'Plan a one-day menu.';
+    fakeOpenAiState.menuPlan = {
+      message: 'Here is your day.',
+      breakfast: recipe.oats,
+      lunch: recipe.chicken,
+      dinner: recipe.bowl,
+    };
+
+    const { chunks } = await say(id, 'done do it again');
+
+    expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(true);
+    const [classified, planned] = fakeOpenAiState.structuredInputs as Array<
+      Array<{ role: string; content: string }>
+    >;
+    expect(classified).toEqual([
+      { role: 'user', content: 'Plan my day' },
+      { role: 'assistant', content: FAKE_OPEN_AI_DELTAS.join('') },
+      { role: 'user', content: 'done do it again' },
+    ]);
+    expect(JSON.parse(planned[0].content).request).toBe('Plan a one-day menu.');
+  });
+
   it('reports a recipe outside the allowed ones as invalid output', async () => {
     const { recipe } = await createMenuWorld(ctx);
     await http()

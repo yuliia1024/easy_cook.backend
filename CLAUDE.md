@@ -4,7 +4,10 @@ NestJS 12 monolith, Prisma 7 (Postgres via `@prisma/adapter-pg`), Jest 30, TypeS
 repository. Layout:
 
 - `src/configs/` - one `*-config.service.ts` per area; every env var is declared and validated in `configs.ts`.
-- `src/common/` - constants (enums, limits), exceptions, shared types, utils (`toNumber` for Prisma `Decimal`).
+- `src/common/` - constants (enums, limits), exceptions, shared types, contracts, utils (`toNumber` for Prisma `Decimal`).
+  `contracts/` holds only zod schemas that validate data from outside at run time (model output)
+  and the types inferred from them; plain TypeScript types, the chat stream protocol included,
+  go into `types/`.
 - `src/providers/` - wrappers around external clients (`OpenAiService` and `PrismaService`).
 - `src/generated/prisma/` - Prisma client, generated on `npm install`, git-ignored. Import Prisma types
   from there (`../generated/prisma/client`), never from `@prisma/client`.

@@ -5,9 +5,10 @@ Structure: `configs/`, `common/`, `providers/`, `modules/data-access`, `modules/
 The web app lives in its own repository.
 
 Single user, no auth, local run. Menus can be read, renamed, deleted and confirmed; the API does
-not create menus or add versions. The chat classifies each message (OpenAI structured output) and
-routes it: small talk streams an OpenAI reply, unrelated requests and vague menu requests get fixed
-replies, and a menu request reaches the menu planner (a stub for now). Tool calling and RAG are the
+not create menus or add versions. The chat classifies each message with the recent history (OpenAI
+structured output) and routes it: small talk streams an OpenAI reply, unrelated requests and vague
+menu requests get fixed replies, and a menu request, restated from the conversation, reaches the
+menu planner. Tool calling and RAG are the
 next stage.
 
 ## Ports

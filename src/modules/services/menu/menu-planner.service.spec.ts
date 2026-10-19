@@ -1,4 +1,5 @@
 import {
+  ChatResponseType,
   MealType,
   MENU_PLAN_INSTRUCTIONS,
   MENU_PLAN_MAX_OUTPUT_TOKENS,
@@ -84,7 +85,7 @@ describe('MenuPlannerService', () => {
 
   it('composes the chosen recipes into a one-day menu, one serving each', async () => {
     await expect(service.plan('Light day')).resolves.toMatchObject({
-      type: 'menu_ready',
+      type: ChatResponseType.MenuReady,
       message: 'Here is your day.',
       menu: {
         days: [
@@ -112,7 +113,7 @@ describe('MenuPlannerService', () => {
     ]);
 
     await expect(service.plan('Light day')).resolves.toEqual({
-      type: 'text',
+      type: ChatResponseType.Text,
       message: NO_MENU_RECIPES_REPLY,
     });
     expect(openAiService.generateStructured).not.toHaveBeenCalled();

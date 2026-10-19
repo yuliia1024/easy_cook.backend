@@ -19,23 +19,30 @@ export const FAKE_OPEN_AI_DELTAS = ['Day 1: ', 'oatmeal'];
 /**
  * What the fake model answers. `intent` is the classification: an intent, `'unavailable'` to fail
  * like a broken API or `'invalid'` like output that does not match the schema; it fails the menu
- * plan the same way. `menuPlan` is the answer to any other structured call. Set them in a test;
- * `resetFakeOpenAi()` restores `general_chat` and no plan.
+ * plan the same way; `request` is the menu request it restates. `menuPlan` is the answer to any
+ * other structured call. `structuredInputs` records what each structured call was given. Set them in
+ * a test; `resetFakeOpenAi()` restores `general_chat` and no plan.
  */
 export const fakeOpenAiState: {
   intent: Intent | 'unavailable' | 'invalid';
+  request: string | null;
   menuPlan: MenuPlan | null;
   streamTextCalls: number;
+  structuredInputs: unknown[];
 } = {
   intent: Intent.GeneralChat,
+  request: null,
   menuPlan: null,
   streamTextCalls: 0,
+  structuredInputs: [],
 };
 
 export function resetFakeOpenAi(): void {
   fakeOpenAiState.intent = Intent.GeneralChat;
+  fakeOpenAiState.request = null;
   fakeOpenAiState.menuPlan = null;
   fakeOpenAiState.streamTextCalls = 0;
+  fakeOpenAiState.structuredInputs = [];
 }
 
 const fakeOpenAi: Pick<OpenAiService, 'streamText' | 'generateStructured'> = {
@@ -43,7 +50,8 @@ const fakeOpenAi: Pick<OpenAiService, 'streamText' | 'generateStructured'> = {
     fakeOpenAiState.streamTextCalls += 1;
     yield* FAKE_OPEN_AI_DELTAS;
   },
-  async generateStructured<T>(_input: unknown, schema: unknown): Promise<T> {
+  async generateStructured<T>(input: unknown, schema: unknown): Promise<T> {
+    fakeOpenAiState.structuredInputs.push(input);
     if (fakeOpenAiState.intent === 'unavailable') {
       throw new AssistantUnavailableException(true);
     }
@@ -56,7 +64,7 @@ const fakeOpenAi: Pick<OpenAiService, 'streamText' | 'generateStructured'> = {
       }
       return fakeOpenAiState.menuPlan as T;
     }
-    return { intent: fakeOpenAiState.intent } as T;
+    return { intent: fakeOpenAiState.intent, request: fakeOpenAiState.request } as T;
   },
 };
 

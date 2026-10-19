@@ -10,6 +10,21 @@ export enum Intent {
   OutOfScope = 'out_of_scope',
 }
 
+export enum ChatResponseType {
+  Text = 'text',
+  MenuReady = 'menu_ready',
+  Clarification = 'clarification',
+  Error = 'error',
+}
+
+export enum ChatStreamEventType {
+  TextDelta = 'text_delta',
+  MenuReady = 'menu_ready',
+  Clarification = 'clarification',
+  Error = 'error',
+  Done = 'done',
+}
+
 export enum ChatErrorCode {
   AssistantUnavailable = 'assistant_unavailable',
   AssistantInvalidOutput = 'assistant_invalid_output',
@@ -20,6 +35,8 @@ export const CONVERSATION_TITLE_MAX_LENGTH = 255;
 export const MESSAGE_MAX_LENGTH = 300;
 /** Latest messages the general chat sees, the new one included. */
 export const GENERAL_CHAT_HISTORY_LIMIT = 10;
+/** Latest messages the intent classifier sees, the new one included. */
+export const INTENT_HISTORY_LIMIT = 6;
 /** A new conversation is titled after the first message, cut to this length. */
 export const AUTO_TITLE_LENGTH = 60;
 export const DEFAULT_CONVERSATION_TITLE = 'New conversation';

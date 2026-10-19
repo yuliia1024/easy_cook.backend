@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import {
+  ChatResponseType,
   MENU_PLAN_INSTRUCTIONS,
   MENU_PLAN_MAX_OUTPUT_TOKENS,
   MENU_PLAN_MEAL_TYPES,
   NO_MENU_RECIPES_REPLY,
 } from '../../../common/constants';
-import { ChatResponse, MenuPlanSchema } from '../../../common/contracts';
+import { MenuPlanSchema } from '../../../common/contracts';
+import { ChatResponse } from '../../../common/types';
 import { AssistantInvalidOutputException } from '../../../common/exceptions';
 import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { DietaryPreferenceService } from '../dietary-preference/dietary-preference.service';
@@ -33,7 +35,7 @@ export class MenuPlannerService {
     const recipes = await this.recipeService.getAllowed(rules);
     const options = MENU_PLAN_MEAL_TYPES.map((type) => recipes.filter((r) => r.mealType === type));
     if (options.some((recipesOfMeal) => recipesOfMeal.length === 0)) {
-      return { type: 'text', message: NO_MENU_RECIPES_REPLY };
+      return { type: ChatResponseType.Text, message: NO_MENU_RECIPES_REPLY };
     }
 
     const plan = await this.openAiService.generateStructured(
@@ -76,7 +78,7 @@ export class MenuPlannerService {
       }),
     };
     return {
-      type: 'menu_ready',
+      type: ChatResponseType.MenuReady,
       message: plan.message,
       menu: { ...composeMenu([day]), issues: [] },
     };

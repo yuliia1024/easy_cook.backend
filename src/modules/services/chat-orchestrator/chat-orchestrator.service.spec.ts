@@ -3,12 +3,13 @@ import {
   ASSISTANT_UNAVAILABLE_REPLY,
   CLARIFICATION_MISSING_FIELDS,
   CLARIFICATION_REPLY,
+  ChatResponseType,
+  ChatStreamEventType,
   INTERNAL_ERROR_REPLY,
   Intent,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
-import { ChatStreamEvent } from '../../../common/contracts';
-import { MenuComposition } from '../../../common/types';
+import { ChatStreamEvent, MenuComposition } from '../../../common/types';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
@@ -44,8 +45,8 @@ describe('ChatOrchestratorService', () => {
   };
   const send = async (content = 'Hi', signal?: AbortSignal): Promise<ChatStreamEvent[]> =>
     collect(await service.handleMessage(CONVERSATION_ID, content, signal));
-  const classifyAs = (intent: Intent): void => {
-    intentService.classify.mockResolvedValue({ intent });
+  const classifyAs = (intent: Intent, request: string | null = null): void => {
+    intentService.classify.mockResolvedValue({ intent, request });
   };
 
   beforeEach(() => {
@@ -58,7 +59,11 @@ describe('ChatOrchestratorService', () => {
       yield 'reply';
     });
     menuPlannerService = createMock<MenuPlannerService>();
-    menuPlannerService.plan.mockResolvedValue({ type: 'menu_ready', message: 'Your day', menu });
+    menuPlannerService.plan.mockResolvedValue({
+      type: ChatResponseType.MenuReady,
+      message: 'Your day',
+      menu,
+    });
     service = new ChatOrchestratorService(
       conversationService,
       intentService,
@@ -87,11 +92,11 @@ describe('ChatOrchestratorService', () => {
     const abort = new AbortController();
 
     await expect(send('Hello there', abort.signal)).resolves.toEqual([
-      { type: 'text_delta', content: 'A ' },
-      { type: 'text_delta', content: 'reply' },
-      { type: 'done' },
+      { type: ChatStreamEventType.TextDelta, content: 'A ' },
+      { type: ChatStreamEventType.TextDelta, content: 'reply' },
+      { type: ChatStreamEventType.Done },
     ]);
-    expect(intentService.classify).toHaveBeenCalledWith('Hello there', abort.signal);
+    expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, abort.signal);
     expect(generalChatService.reply).toHaveBeenCalledWith(CONVERSATION_ID, abort.signal);
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
@@ -101,16 +106,17 @@ describe('ChatOrchestratorService', () => {
     expect(menuPlannerService.plan).not.toHaveBeenCalled();
   });
 
-  it('hands a menu request to MenuPlannerService and saves the message with the menu', async () => {
-    classifyAs(Intent.GenerateMenu);
+  it('hands the restated request to MenuPlannerService and saves the message with the menu', async () => {
+    classifyAs(Intent.GenerateMenu, 'Plan a one-day menu.');
     const abort = new AbortController();
 
-    await expect(send('Plan a day', abort.signal)).resolves.toEqual([
-      { type: 'text_delta', content: 'Your day' },
-      { type: 'menu_ready', menu },
-      { type: 'done' },
+    await expect(send('done do it again', abort.signal)).resolves.toEqual([
+      { type: ChatStreamEventType.TextDelta, content: 'Your day' },
+      { type: ChatStreamEventType.MenuReady, menu },
+      { type: ChatStreamEventType.Done },
     ]);
-    expect(menuPlannerService.plan).toHaveBeenCalledWith('Plan a day', abort.signal);
+    expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, abort.signal);
+    expect(menuPlannerService.plan).toHaveBeenCalledWith('Plan a one-day menu.', abort.signal);
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       'Your day',
@@ -119,23 +125,51 @@ describe('ChatOrchestratorService', () => {
     expect(generalChatService.reply).not.toHaveBeenCalled();
   });
 
+  it('plans from the message itself when the classifier restated no request', async () => {
+    classifyAs(Intent.GenerateMenu);
+
+    await send('Plan a day');
+
+    expect(menuPlannerService.plan).toHaveBeenCalledWith('Plan a day', undefined);
+  });
+
   it('streams a planner text reply as text', async () => {
     classifyAs(Intent.GenerateMenu);
-    menuPlannerService.plan.mockResolvedValue({ type: 'text', message: 'No recipes' });
+    menuPlannerService.plan.mockResolvedValue({
+      type: ChatResponseType.Text,
+      message: 'No recipes',
+    });
 
     await expect(send()).resolves.toEqual([
-      { type: 'text_delta', content: 'No recipes' },
-      { type: 'done' },
+      { type: ChatStreamEventType.TextDelta, content: 'No recipes' },
+      { type: ChatStreamEventType.Done },
     ]);
   });
 
-  it('passes a planner clarification or error through', async () => {
+  it('passes a planner error through and saves no reply', async () => {
     classifyAs(Intent.GenerateMenu);
-    const error = { type: 'error', code: 'x', message: 'No', retryable: false } as const;
-    menuPlannerService.plan.mockResolvedValue(error);
+    const error = { code: 'x', message: 'No', retryable: false };
+    menuPlannerService.plan.mockResolvedValue({ type: ChatResponseType.Error, ...error });
 
-    await expect(send()).resolves.toEqual([error, { type: 'done' }]);
+    await expect(send()).resolves.toEqual([
+      { type: ChatStreamEventType.Error, ...error },
+      { type: ChatStreamEventType.Done },
+    ]);
     expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
+  });
+
+  it('passes a planner clarification through', async () => {
+    classifyAs(Intent.GenerateMenu);
+    const clarification = { message: 'How many days?', missingFields: ['days'] };
+    menuPlannerService.plan.mockResolvedValue({
+      type: ChatResponseType.Clarification,
+      ...clarification,
+    });
+
+    await expect(send()).resolves.toEqual([
+      { type: ChatStreamEventType.Clarification, ...clarification },
+      { type: ChatStreamEventType.Done },
+    ]);
   });
 
   it('asks for clarification without the model or menu generation', async () => {
@@ -143,11 +177,11 @@ describe('ChatOrchestratorService', () => {
 
     await expect(send('Make a menu')).resolves.toEqual([
       {
-        type: 'clarification',
+        type: ChatStreamEventType.Clarification,
         message: CLARIFICATION_REPLY,
         missingFields: CLARIFICATION_MISSING_FIELDS,
       },
-      { type: 'done' },
+      { type: ChatStreamEventType.Done },
     ]);
     expect(generalChatService.reply).not.toHaveBeenCalled();
     expect(menuPlannerService.plan).not.toHaveBeenCalled();
@@ -162,8 +196,8 @@ describe('ChatOrchestratorService', () => {
     classifyAs(Intent.OutOfScope);
 
     await expect(send('Write a poem')).resolves.toEqual([
-      { type: 'text_delta', content: OUT_OF_SCOPE_REPLY },
-      { type: 'done' },
+      { type: ChatStreamEventType.TextDelta, content: OUT_OF_SCOPE_REPLY },
+      { type: ChatStreamEventType.Done },
     ]);
     expect(generalChatService.reply).not.toHaveBeenCalled();
     expect(menuPlannerService.plan).not.toHaveBeenCalled();
@@ -188,8 +222,8 @@ describe('ChatOrchestratorService', () => {
       intentService.classify.mockRejectedValue(error);
 
       await expect(send()).resolves.toEqual([
-        { type: 'error', code, message, retryable },
-        { type: 'done' },
+        { type: ChatStreamEventType.Error, code, message, retryable },
+        { type: ChatStreamEventType.Done },
       ]);
       expect(generalChatService.reply).not.toHaveBeenCalled();
       expect(menuPlannerService.plan).not.toHaveBeenCalled();
@@ -208,8 +242,13 @@ describe('ChatOrchestratorService', () => {
     const events = await send();
 
     expect(events.slice(1)).toEqual([
-      { type: 'error', code: 'internal_error', message: INTERNAL_ERROR_REPLY, retryable: false },
-      { type: 'done' },
+      {
+        type: ChatStreamEventType.Error,
+        code: 'internal_error',
+        message: INTERNAL_ERROR_REPLY,
+        retryable: false,
+      },
+      { type: ChatStreamEventType.Done },
     ]);
     expect(JSON.stringify(events)).not.toContain('secret');
     expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
@@ -225,7 +264,7 @@ describe('ChatOrchestratorService', () => {
     });
 
     await expect(send('Hi', abort.signal)).resolves.toEqual([
-      { type: 'text_delta', content: 'A ' },
+      { type: ChatStreamEventType.TextDelta, content: 'A ' },
     ]);
     expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
   });

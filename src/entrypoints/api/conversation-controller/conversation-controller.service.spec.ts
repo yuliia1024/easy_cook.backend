@@ -1,4 +1,5 @@
 import { UIMessageChunk } from 'ai';
+import { ChatStreamEventType } from '../../../common/constants';
 import { ChatOrchestratorService } from '../../../modules/services/chat-orchestrator/chat-orchestrator.service';
 import { ConversationService } from '../../../modules/services/conversation/conversation.service';
 import { createMock } from '../../../test/create-mock';
@@ -43,8 +44,8 @@ describe('ConversationControllerService', () => {
   it('streams the chat reply as UI message chunks', async () => {
     chatOrchestratorService.handleMessage.mockResolvedValue(
       (async function* () {
-        yield { type: 'text_delta' as const, content: 'Hello' };
-        yield { type: 'done' as const };
+        yield { type: ChatStreamEventType.TextDelta as const, content: 'Hello' };
+        yield { type: ChatStreamEventType.Done as const };
       })(),
     );
     const abort = new AbortController();
