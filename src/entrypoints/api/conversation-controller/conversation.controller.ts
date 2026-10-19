@@ -65,9 +65,10 @@ export class ConversationController {
   }
 
   /**
-   * Saves the message and streams the assistant reply as text (AI SDK UI message stream); the
-   * reply is saved once it is complete. 404 for an unknown conversation comes before the stream.
-   * Limited to 30 messages a minute: each one calls the model.
+   * Saves the message and streams the assistant reply (AI SDK UI message stream): text parts, plus
+   * `data-clarification` when details are missing and `data-error` + `error` when the reply
+   * failed. The reply is saved once it is complete. 400 and 404 come before the stream; a client
+   * that disconnects stops the model call. Limited to 30 messages a minute: each one calls the model.
    */
   @Post(':id/messages')
   @Throttle({ default: { ttl: 60_000, limit: 30 } })
@@ -77,7 +78,13 @@ export class ConversationController {
     @Body() dto: SendMessageDto,
     @Res() response: Response,
   ): Promise<void> {
-    const stream = await this.conversationControllerService.sendMessage(id, dto);
+    const abort = new AbortController();
+    response.on('close', () => {
+      if (!response.writableFinished) {
+        abort.abort();
+      }
+    });
+    const stream = await this.conversationControllerService.sendMessage(id, dto, abort.signal);
     pipeUIMessageStreamToResponse({ response, status: HttpStatus.CREATED, stream });
   }
 }

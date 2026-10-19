@@ -4,15 +4,38 @@ import { Prisma } from '../src/generated/prisma/client';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap';
+import { Intent } from '../src/common/constants';
+import { AssistantUnavailableException } from '../src/common/exceptions';
 import { OpenAiService } from '../src/providers/open-ai/open-ai.service';
 import { PrismaService } from '../src/providers/prisma/prisma.service';
 
 /** Text the fake OpenAI streams instead of calling the API. */
 export const FAKE_OPEN_AI_DELTAS = ['Day 1: ', 'oatmeal'];
 
-const fakeOpenAi: Pick<OpenAiService, 'streamText'> = {
+/**
+ * What the fake classifier answers: an intent, or `'unavailable'` to fail like a broken API. Set
+ * it in a test; `resetFakeOpenAi()` restores `general_chat`.
+ */
+export const fakeOpenAiState: { intent: Intent | 'unavailable'; streamTextCalls: number } = {
+  intent: Intent.GeneralChat,
+  streamTextCalls: 0,
+};
+
+export function resetFakeOpenAi(): void {
+  fakeOpenAiState.intent = Intent.GeneralChat;
+  fakeOpenAiState.streamTextCalls = 0;
+}
+
+const fakeOpenAi: Pick<OpenAiService, 'streamText' | 'generateStructured'> = {
   async *streamText(): AsyncGenerator<string> {
+    fakeOpenAiState.streamTextCalls += 1;
     yield* FAKE_OPEN_AI_DELTAS;
+  },
+  async generateStructured<T>(): Promise<T> {
+    if (fakeOpenAiState.intent === 'unavailable') {
+      throw new AssistantUnavailableException(true);
+    }
+    return { intent: fakeOpenAiState.intent } as T;
   },
 };
 

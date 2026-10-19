@@ -5,7 +5,9 @@ Structure: `configs/`, `common/`, `providers/`, `modules/data-access`, `modules/
 The web app lives in its own repository.
 
 Single user, no auth, local run. Menus can be read, renamed, deleted and confirmed; the API does
-not create menus or add versions. The chat streams OpenAI replies; tool calling and RAG are the
+not create menus or add versions. The chat classifies each message (OpenAI structured output) and
+routes it: small talk streams an OpenAI reply, unrelated requests and vague menu requests get fixed
+replies, and a menu request reaches the menu planner (a stub for now). Tool calling and RAG are the
 next stage.
 
 ## Ports
@@ -125,7 +127,7 @@ Everything is under `/api`; Swagger UI on `/docs`.
 | POST | `/menus/:id/versions/:versionId/confirm` | rechecked against the current preferences first; 400 when it breaks diets / allergies / excluded foods |
 | GET / POST | `/conversations` | |
 | GET / PATCH / DELETE | `/conversations/:id` | |
-| POST | `/conversations/:id/messages` | saves the message and the assistant reply |
+| POST | `/conversations/:id/messages` | at most 300 characters; saves the message and streams the reply (AI SDK UI message stream): text, `data-clarification` with the missing fields, or `data-error` (`code`, `message`, `retryable`) + `error`; the reply is saved once complete |
 
 Errors always look like `{ statusCode, message, error, path, timestamp }`.
 

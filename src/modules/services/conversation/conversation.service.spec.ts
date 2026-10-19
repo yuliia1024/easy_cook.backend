@@ -12,16 +12,14 @@ import {
   PROFILE_ID,
 } from '../../../test/fixtures';
 import { ConversationRepository } from '../../data-access/conversation/conversation.repository';
-import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { MenuService } from '../menu/menu.service';
 import { UserProfileService } from '../user-profile/user-profile.service';
-import { ChatService } from './chat.service';
+import { ConversationService } from './conversation.service';
 
-describe('ChatService', () => {
+describe('ConversationService', () => {
   let repository: jest.Mocked<ConversationRepository>;
   let menuService: jest.Mocked<MenuService>;
-  let openAiService: jest.Mocked<OpenAiService>;
-  let service: ChatService;
+  let service: ConversationService;
   const conversation = buildConversation();
   const menu = buildMenu({ versions: [buildMenuVersion()] });
 
@@ -32,8 +30,7 @@ describe('ChatService', () => {
     profileService.getCurrent.mockResolvedValue(buildProfile());
     menuService = createMock<MenuService>();
     menuService.getById.mockResolvedValue(menu);
-    openAiService = createMock<OpenAiService>();
-    service = new ChatService(repository, profileService, menuService, openAiService);
+    service = new ConversationService(repository, profileService, menuService);
   });
 
   it('lists the profile conversations', async () => {
@@ -119,69 +116,19 @@ describe('ChatService', () => {
     );
   });
 
-  describe('sendMessage', () => {
-    const history = [
-      buildMessage({ content: 'Hi' }),
-      buildMessage({ role: MessageRole.Assistant, content: 'Hello' }),
-    ];
-    const collect = async (stream: AsyncIterable<string>): Promise<string[]> => {
-      const deltas: string[] = [];
-      for await (const delta of stream) {
-        deltas.push(delta);
-      }
-      return deltas;
-    };
+  describe('addUserMessage', () => {
+    it('saves the message and titles a new conversation after its first line', async () => {
+      await service.addUserMessage(buildConversation(), 'Hi\nsecond line');
 
-    beforeEach(() => {
-      repository.findRecentMessages.mockResolvedValue(history);
-      openAiService.streamText.mockImplementation(async function* () {
-        yield 'A ';
-        yield 'reply';
-      });
-    });
-
-    it('saves the message, titles the conversation and streams the reply from the history', async () => {
-      const deltas = await collect(await service.sendMessage(CONVERSATION_ID, 'Hi\nsecond line'));
-
-      expect(deltas).toEqual(['A ', 'reply']);
-      expect(repository.addMessage).toHaveBeenNthCalledWith(1, CONVERSATION_ID, {
+      expect(repository.addMessage).toHaveBeenCalledWith(CONVERSATION_ID, {
         role: MessageRole.User,
         content: 'Hi\nsecond line',
       });
       expect(repository.update).toHaveBeenCalledWith(CONVERSATION_ID, { title: 'Hi' });
-      expect(repository.findRecentMessages).toHaveBeenCalledWith(CONVERSATION_ID, 20);
-      expect(openAiService.streamText).toHaveBeenCalledWith([
-        { role: MessageRole.User, content: 'Hi' },
-        { role: MessageRole.Assistant, content: 'Hello' },
-      ]);
-    });
-
-    it('saves the whole reply once the stream completes', async () => {
-      const stream = await service.sendMessage(CONVERSATION_ID, 'Hi');
-      expect(repository.addMessage).toHaveBeenCalledTimes(1);
-
-      await collect(stream);
-
-      expect(repository.addMessage).toHaveBeenNthCalledWith(2, CONVERSATION_ID, {
-        role: MessageRole.Assistant,
-        content: 'A reply',
-      });
-    });
-
-    it('does not save a reply that failed midway', async () => {
-      openAiService.streamText.mockImplementation(async function* () {
-        yield 'A ';
-        throw new Error('rate limited');
-      });
-
-      const stream = await service.sendMessage(CONVERSATION_ID, 'Hi');
-
-      await expect(collect(stream)).rejects.toThrow('rate limited');
-      expect(repository.addMessage).toHaveBeenCalledTimes(1);
     });
 
     it('cuts a long first message to a title', async () => {
-      await service.sendMessage(CONVERSATION_ID, 'x'.repeat(100));
+      await service.addUserMessage(buildConversation(), 'x'.repeat(100));
 
       expect(repository.update).toHaveBeenCalledWith(CONVERSATION_ID, {
         title: `${'x'.repeat(59)}…`,
@@ -189,22 +136,28 @@ describe('ChatService', () => {
     });
 
     it('keeps the title of a conversation with messages or a custom title', async () => {
-      repository.findById.mockResolvedValue(buildConversation({ messages: history }));
-      await service.sendMessage(CONVERSATION_ID, 'Hi');
+      await service.addUserMessage(buildConversation({ messages: [buildMessage()] }), 'Hi');
+      await service.addUserMessage(buildConversation({ title: 'Mine' }), 'Hi');
 
-      repository.findById.mockResolvedValue(buildConversation({ title: 'Mine' }));
-      await service.sendMessage(CONVERSATION_ID, 'Hi');
-
+      expect(repository.addMessage).toHaveBeenCalledTimes(2);
       expect(repository.update).not.toHaveBeenCalled();
     });
+  });
 
-    it('fails for an unknown conversation before saving anything', async () => {
-      repository.findById.mockResolvedValue(null);
+  it('saves an assistant message', async () => {
+    await service.addAssistantMessage(CONVERSATION_ID, 'Hello');
 
-      await expect(service.sendMessage(CONVERSATION_ID, 'Hi')).rejects.toBeInstanceOf(
-        ConversationNotFoundException,
-      );
-      expect(repository.addMessage).not.toHaveBeenCalled();
+    expect(repository.addMessage).toHaveBeenCalledWith(CONVERSATION_ID, {
+      role: MessageRole.Assistant,
+      content: 'Hello',
     });
+  });
+
+  it('returns the latest messages', async () => {
+    const messages = [buildMessage()];
+    repository.findRecentMessages.mockResolvedValue(messages);
+
+    await expect(service.getRecentMessages(CONVERSATION_ID, 10)).resolves.toBe(messages);
+    expect(repository.findRecentMessages).toHaveBeenCalledWith(CONVERSATION_ID, 10);
   });
 });

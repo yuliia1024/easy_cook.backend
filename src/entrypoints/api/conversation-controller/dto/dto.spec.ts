@@ -35,8 +35,8 @@ describe('conversation DTOs', () => {
 
   it('trims a message and limits its length', async () => {
     expect(plainToInstance(SendMessageDto, { content: ' hi ' }).content).toBe('hi');
-    expect(await errorsOf(SendMessageDto, { content: 'x'.repeat(4000) })).toEqual([]);
-    expect(await errorsOf(SendMessageDto, { content: 'x'.repeat(4001) })).toEqual(['content']);
+    expect(await errorsOf(SendMessageDto, { content: 'x'.repeat(300) })).toEqual([]);
+    expect(await errorsOf(SendMessageDto, { content: 'x'.repeat(301) })).toEqual(['content']);
     expect(await errorsOf(SendMessageDto, { content: '   ' })).toEqual(['content']);
     expect(await errorsOf(SendMessageDto, {})).toEqual(['content']);
   });

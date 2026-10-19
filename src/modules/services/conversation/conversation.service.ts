@@ -1,18 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { ModelMessage } from 'ai';
 import {
-  ASSISTANT_HISTORY_LIMIT,
   AUTO_TITLE_LENGTH,
   DEFAULT_CONVERSATION_TITLE,
   MessageRole,
 } from '../../../common/constants';
 import { ConversationNotFoundException } from '../../../common/exceptions';
-import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import {
   ConversationRepository,
   ConversationSummary,
   ConversationWithMessages,
 } from '../../data-access/conversation/conversation.repository';
+import { Message } from '../../../generated/prisma/client';
 import { MenuService } from '../menu/menu.service';
 import { UserProfileService } from '../user-profile/user-profile.service';
 
@@ -22,16 +20,15 @@ export interface ConversationInput {
 }
 
 /**
- * Conversations with the assistant. A user message is saved first, then the model answers from
- * the recent history as a text stream; the answer is saved once it is complete.
+ * Conversations of the profile: listed, read, created, renamed, linked to a menu and deleted, and
+ * their messages: saved as they are sent and read back for the model.
  */
 @Injectable()
-export class ChatService {
+export class ConversationService {
   constructor(
     private readonly conversationRepository: ConversationRepository,
     private readonly userProfileService: UserProfileService,
     private readonly menuService: MenuService,
-    private readonly openAiService: OpenAiService,
   ) {}
 
   public async getAll(): Promise<ConversationSummary[]> {
@@ -76,41 +73,30 @@ export class ChatService {
     await this.conversationRepository.delete(id);
   }
 
-  /**
-   * Saves the message and returns the stream of the reply. 404 for an unknown conversation comes
-   * before the stream; the reply is saved when the stream completes, not when it fails.
-   */
-  public async sendMessage(id: string, content: string): Promise<AsyncGenerator<string>> {
-    const conversation = await this.getById(id);
-
-    await this.conversationRepository.addMessage(id, { role: MessageRole.User, content });
+  /** The first message of an untitled conversation also becomes its title. */
+  public async addUserMessage(
+    conversation: ConversationWithMessages,
+    content: string,
+  ): Promise<void> {
+    await this.conversationRepository.addMessage(conversation.id, {
+      role: MessageRole.User,
+      content,
+    });
     if (conversation.messages.length === 0 && conversation.title === DEFAULT_CONVERSATION_TITLE) {
-      await this.conversationRepository.update(id, { title: this.titleFrom(content) });
+      await this.conversationRepository.update(conversation.id, { title: this.titleFrom(content) });
     }
-
-    const history = await this.conversationRepository.findRecentMessages(
-      id,
-      ASSISTANT_HISTORY_LIMIT,
-    );
-
-    const contextWithNewMessage = history.map((message): ModelMessage => ({
-      role: message.role === MessageRole.Assistant ? 'assistant' : 'user',
-      content: message.content,
-    }));
-
-    return this.streamReply(id, contextWithNewMessage);
   }
 
-  private async *streamReply(id: string, history: ModelMessage[]): AsyncGenerator<string> {
-    let reply = '';
-    for await (const delta of this.openAiService.streamText(history)) {
-      reply += delta;
-      yield delta;
-    }
-    await this.conversationRepository.addMessage(id, {
+  public async addAssistantMessage(conversationId: string, content: string): Promise<void> {
+    await this.conversationRepository.addMessage(conversationId, {
       role: MessageRole.Assistant,
-      content: reply,
+      content,
     });
+  }
+
+  /** The latest `limit` messages, oldest first. */
+  public async getRecentMessages(conversationId: string, limit: number): Promise<Message[]> {
+    return this.conversationRepository.findRecentMessages(conversationId, limit);
   }
 
   private titleFrom(content: string): string {

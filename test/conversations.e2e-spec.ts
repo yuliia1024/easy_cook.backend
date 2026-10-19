@@ -1,7 +1,21 @@
 import request from 'supertest';
 import { createMenuWorld, seedMenu } from './menu-fixtures';
 import { readStream } from './menu-stream';
-import { createTestApp, FAKE_OPEN_AI_DELTAS, resetDatabase, TestApp } from './test-app';
+import {
+  ASSISTANT_UNAVAILABLE_REPLY,
+  CLARIFICATION_REPLY,
+  Intent,
+  MENU_PLANNER_STUB_REPLY,
+  OUT_OF_SCOPE_REPLY,
+} from '../src/common/constants';
+import {
+  createTestApp,
+  FAKE_OPEN_AI_DELTAS,
+  fakeOpenAiState,
+  resetDatabase,
+  resetFakeOpenAi,
+  TestApp,
+} from './test-app';
 
 describe('/api/conversations (e2e)', () => {
   let ctx: TestApp;
@@ -17,6 +31,7 @@ describe('/api/conversations (e2e)', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
+    resetFakeOpenAi();
   });
 
   afterAll(async () => {
@@ -39,6 +54,76 @@ describe('/api/conversations (e2e)', () => {
       expect.objectContaining({ role: 'user', content: 'Hello there' }),
       expect.objectContaining({ role: 'assistant', content: FAKE_OPEN_AI_DELTAS.join('') }),
     ]);
+  });
+
+  const textOf = (chunks: Array<{ type: string; delta?: string }>): string =>
+    chunks
+      .filter((chunk) => chunk.type === 'text-delta')
+      .map((chunk) => chunk.delta)
+      .join('');
+  const savedMessages = async (id: string) =>
+    (await http().get(`/api/conversations/${id}`).expect(200)).body.messages.map(
+      ({ role, content }: { role: string; content: string }) => ({ role, content }),
+    );
+
+  it.each([
+    [Intent.OutOfScope, OUT_OF_SCOPE_REPLY],
+    [Intent.GenerateMenu, MENU_PLANNER_STUB_REPLY],
+  ])('answers %s with a fixed reply, without the chat model', async (intent, reply) => {
+    await createMenuWorld(ctx);
+    const id = await start();
+    fakeOpenAiState.intent = intent;
+
+    const { chunks } = await say(id, 'Write me a poem');
+
+    expect(textOf(chunks)).toBe(reply);
+    expect(chunks.at(-1)).toMatchObject({ type: 'finish' });
+    expect(fakeOpenAiState.streamTextCalls).toBe(0);
+    expect(await savedMessages(id)).toEqual([
+      { role: 'user', content: 'Write me a poem' },
+      { role: 'assistant', content: reply },
+    ]);
+  });
+
+  it('asks for the missing details instead of generating a menu', async () => {
+    await createMenuWorld(ctx);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.Clarification;
+
+    const { chunks } = await say(id, 'Make a menu');
+
+    expect(textOf(chunks)).toBe(CLARIFICATION_REPLY);
+    expect(chunks).toContainEqual(
+      expect.objectContaining({
+        type: 'data-clarification',
+        data: { missingFields: ['days', 'meals'] },
+      }),
+    );
+    expect(fakeOpenAiState.streamTextCalls).toBe(0);
+    expect(await ctx.prisma.menu.count()).toBe(0);
+  });
+
+  it('reports a failed classification as an error and saves no reply', async () => {
+    await createMenuWorld(ctx);
+    const id = await start();
+    fakeOpenAiState.intent = 'unavailable';
+
+    const { status, chunks } = await say(id, 'Hi');
+
+    expect(status).toBe(201);
+    expect(chunks.slice(-2)).toEqual([
+      expect.objectContaining({
+        type: 'data-error',
+        data: {
+          code: 'assistant_unavailable',
+          message: ASSISTANT_UNAVAILABLE_REPLY,
+          retryable: true,
+        },
+      }),
+      { type: 'error', errorText: ASSISTANT_UNAVAILABLE_REPLY },
+    ]);
+    expect(fakeOpenAiState.streamTextCalls).toBe(0);
+    expect(await savedMessages(id)).toEqual([{ role: 'user', content: 'Hi' }]);
   });
 
   it('lists, renames, links and deletes conversations', async () => {
@@ -74,6 +159,10 @@ describe('/api/conversations (e2e)', () => {
     const id = await start();
 
     await http().post(`/api/conversations/${id}/messages`).send({ content: '  ' }).expect(400);
+    await http()
+      .post(`/api/conversations/${id}/messages`)
+      .send({ content: 'x'.repeat(301) })
+      .expect(400);
     await http()
       .post('/api/conversations')
       .send({ menuId: '2b1e7f3a-5d47-4a8e-9f6c-1d2e3f4a5b6c' })
