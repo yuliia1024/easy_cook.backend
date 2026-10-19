@@ -10,6 +10,7 @@ import {
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
 import { ChatResponse, ChatStreamEvent } from '../../../common/contracts';
+import { MenuComposition } from '../../../common/types';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
@@ -22,7 +23,8 @@ import { MenuPlannerService } from '../menu/menu-planner.service';
 /**
  * Handles a chat message: saves it, classifies its intent and hands it to the service for that
  * intent. Only the intent picks the route, and every route is a fixed service call. The reply is
- * saved once it is complete; a failure becomes an `error` event and is not saved.
+ * saved once it is complete, with the menu it suggests; a failure becomes an `error` event and is
+ * not saved.
  */
 @Injectable()
 export class ChatOrchestratorService {
@@ -55,6 +57,7 @@ export class ChatOrchestratorService {
     abortSignal: AbortSignal | undefined,
   ): AsyncGenerator<ChatStreamEvent> {
     let reply = '';
+    let menu: MenuComposition | undefined;
     let failed = false;
     try {
       for await (const event of this.route(conversationId, content, abortSignal)) {
@@ -62,6 +65,8 @@ export class ChatOrchestratorService {
           reply += event.content;
         } else if (event.type === 'clarification') {
           reply += event.message;
+        } else if (event.type === 'menu_ready') {
+          menu = event.menu;
         } else if (event.type === 'error') {
           failed = true;
         }
@@ -71,7 +76,7 @@ export class ChatOrchestratorService {
         return;
       }
       if (!failed && reply) {
-        await this.conversationService.addAssistantMessage(conversationId, reply);
+        await this.conversationService.addAssistantMessage(conversationId, reply, menu);
       }
     } catch (error) {
       if (abortSignal?.aborted) {
@@ -95,7 +100,7 @@ export class ChatOrchestratorService {
         }
         return;
       case Intent.GenerateMenu:
-        yield this.toEvent(await this.menuPlannerService.plan(content));
+        yield* this.toEvents(await this.menuPlannerService.plan(content, abortSignal));
         return;
       case Intent.Clarification:
         yield {
@@ -114,8 +119,19 @@ export class ChatOrchestratorService {
     }
   }
 
-  private toEvent(response: ChatResponse): ChatStreamEvent {
-    return response.type === 'text' ? { type: 'text_delta', content: response.message } : response;
+  /** A menu comes with its message as text, so the message is saved with the reply. */
+  private toEvents(response: ChatResponse): ChatStreamEvent[] {
+    switch (response.type) {
+      case 'text':
+        return [{ type: 'text_delta', content: response.message }];
+      case 'menu_ready':
+        return [
+          { type: 'text_delta', content: response.message },
+          { type: 'menu_ready', menu: response.menu },
+        ];
+      default:
+        return [response];
+    }
   }
 
   /** What the client learns about a failure: a code and a fixed text, never the error itself. */

@@ -5,10 +5,10 @@ import {
   CLARIFICATION_REPLY,
   INTERNAL_ERROR_REPLY,
   Intent,
-  MENU_PLANNER_STUB_REPLY,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
 import { ChatStreamEvent } from '../../../common/contracts';
+import { MenuComposition } from '../../../common/types';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
@@ -37,6 +37,11 @@ describe('ChatOrchestratorService', () => {
     }
     return events;
   };
+  const menu: MenuComposition = {
+    days: [],
+    dailyAverage: { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 },
+    issues: [],
+  };
   const send = async (content = 'Hi', signal?: AbortSignal): Promise<ChatStreamEvent[]> =>
     collect(await service.handleMessage(CONVERSATION_ID, content, signal));
   const classifyAs = (intent: Intent): void => {
@@ -53,7 +58,7 @@ describe('ChatOrchestratorService', () => {
       yield 'reply';
     });
     menuPlannerService = createMock<MenuPlannerService>();
-    menuPlannerService.plan.mockResolvedValue({ type: 'text', message: MENU_PLANNER_STUB_REPLY });
+    menuPlannerService.plan.mockResolvedValue({ type: 'menu_ready', message: 'Your day', menu });
     service = new ChatOrchestratorService(
       conversationService,
       intentService,
@@ -91,19 +96,37 @@ describe('ChatOrchestratorService', () => {
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       'A reply',
+      undefined,
     );
     expect(menuPlannerService.plan).not.toHaveBeenCalled();
   });
 
-  it('hands a menu request to MenuPlannerService', async () => {
+  it('hands a menu request to MenuPlannerService and saves the message with the menu', async () => {
     classifyAs(Intent.GenerateMenu);
+    const abort = new AbortController();
 
-    await expect(send('Plan 3 days')).resolves.toEqual([
-      { type: 'text_delta', content: MENU_PLANNER_STUB_REPLY },
+    await expect(send('Plan a day', abort.signal)).resolves.toEqual([
+      { type: 'text_delta', content: 'Your day' },
+      { type: 'menu_ready', menu },
       { type: 'done' },
     ]);
-    expect(menuPlannerService.plan).toHaveBeenCalledWith('Plan 3 days');
+    expect(menuPlannerService.plan).toHaveBeenCalledWith('Plan a day', abort.signal);
+    expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+      CONVERSATION_ID,
+      'Your day',
+      menu,
+    );
     expect(generalChatService.reply).not.toHaveBeenCalled();
+  });
+
+  it('streams a planner text reply as text', async () => {
+    classifyAs(Intent.GenerateMenu);
+    menuPlannerService.plan.mockResolvedValue({ type: 'text', message: 'No recipes' });
+
+    await expect(send()).resolves.toEqual([
+      { type: 'text_delta', content: 'No recipes' },
+      { type: 'done' },
+    ]);
   });
 
   it('passes a planner clarification or error through', async () => {
@@ -131,6 +154,7 @@ describe('ChatOrchestratorService', () => {
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       CLARIFICATION_REPLY,
+      undefined,
     );
   });
 

@@ -13,7 +13,7 @@ import {
   ServingTooManyKcalBadRequestException,
   TooManyIngredientsBadRequestException,
 } from '../../../common/exceptions';
-import { Page, PageQuery } from '../../../common/types';
+import { Page, PageQuery, PreferenceRules } from '../../../common/types';
 import { toNumber } from '../../../common/utils';
 import { RecipeIngredientRepository } from '../../data-access/recipe-ingredient/recipe-ingredient.repository';
 import {
@@ -24,6 +24,7 @@ import {
   RecipeWithIngredients,
 } from '../../data-access/recipe/recipe.repository';
 import { FoodItemService } from '../food-item/food-item.service';
+import { mentions } from '../menu/menu-rules';
 import { NutritionIngredientInput, NutritionService } from '../nutrition/nutrition.service';
 
 export type NewRecipeData = Omit<RecipeData, 'source'> & { source?: string };
@@ -42,6 +43,25 @@ export class RecipeService {
     page: PageQuery,
   ): Promise<Page<RecipeWithIngredients>> {
     return this.recipeRepository.findPage({ ...filter, search: filter.search?.trim() }, page);
+  }
+
+  /**
+   * Recipes with every diet tag of the profile and no allergen or excluded ingredient (optional
+   * ones too). Disliked foods stay: they only warn.
+   */
+  public async getAllowed(rules: PreferenceRules): Promise<RecipeWithIngredients[]> {
+    const recipes = await this.recipeRepository.findAll({ dietTypes: rules.diets });
+    const forbidden = [...rules.allergies, ...rules.excludedIngredients];
+    return recipes.filter(
+      (recipe) =>
+        !recipe.ingredients.some(({ foodItem }) =>
+          forbidden.some(
+            (value) =>
+              mentions(foodItem.name, value) ||
+              (foodItem.nameEn !== null && mentions(foodItem.nameEn, value)),
+          ),
+        ),
+    );
   }
 
   public async getById(id: string): Promise<RecipeWithIngredients> {

@@ -1,19 +1,15 @@
 import request, { Test } from 'supertest';
 import { MealType, MenuGeneratedBy, MenuIssueSeverity } from '../src/common/constants';
-import { RecipeSnapshot } from '../src/common/types';
-import { toNumber } from '../src/common/utils';
 import { Prisma } from '../src/generated/prisma/client';
-import {
-  RECIPE_INCLUDE,
-  RecipeWithIngredients,
-} from '../src/modules/data-access/recipe/recipe.repository';
+import { RECIPE_INCLUDE } from '../src/modules/data-access/recipe/recipe.repository';
 import { MenuComposer } from '../src/modules/services/menu/menu-composer';
-import { composeMenu, ResolvedDay } from '../src/modules/services/menu/menu-composition';
-import { validateMenu } from '../src/modules/services/menu/menu-rules';
 import {
-  NutritionService,
-  RecipeNutrition,
-} from '../src/modules/services/nutrition/nutrition.service';
+  composeMenu,
+  ResolvedDay,
+  snapshotRecipe,
+} from '../src/modules/services/menu/menu-composition';
+import { validateMenu } from '../src/modules/services/menu/menu-rules';
+import { NutritionService } from '../src/modules/services/nutrition/nutrition.service';
 import { TestApp } from './test-app';
 
 export interface MenuDayBody {
@@ -162,7 +158,7 @@ export async function seedVersion(
         mealType: meal.mealType as MealType,
         servings: meal.servings,
         recipeId: recipe.id,
-        recipe: snapshot(recipe, nutrition.calculateRecipe(recipe)),
+        recipe: snapshotRecipe(recipe, nutrition.calculateRecipe(recipe)),
       };
     }),
   }));
@@ -201,26 +197,4 @@ export async function seedVersion(
     },
   });
   return version.id;
-}
-
-/** What a version keeps of a recipe; `nutrition` is the recipe without optional ingredients. */
-function snapshot(recipe: RecipeWithIngredients, nutrition: RecipeNutrition): RecipeSnapshot {
-  return {
-    id: recipe.id,
-    name: recipe.name,
-    mealType: recipe.mealType,
-    dietType: recipe.dietType,
-    servings: recipe.servings,
-    prepTimeMinutes: recipe.prepTimeMinutes,
-    perServing: nutrition.perServing,
-    complete: nutrition.complete,
-    ingredients: recipe.ingredients.map((ingredient) => ({
-      foodItemId: ingredient.foodItemId,
-      foodName: ingredient.foodItem.name,
-      foodNameEn: ingredient.foodItem.nameEn,
-      state: ingredient.foodItem.state,
-      quantityG: toNumber(ingredient.quantityG),
-      isOptional: ingredient.isOptional,
-    })),
-  };
 }

@@ -1,3 +1,5 @@
+import { MealType } from './recipe';
+
 export const MENU_TITLE_MAX_LENGTH = 255;
 
 /** How far a day may be from the calorie goal before the menu gets a warning. */
@@ -20,3 +22,6 @@ export enum MenuIssueCode {
   CaloriesOffTarget = 'calories_off_target',
   NutritionIncomplete = 'nutrition_incomplete',
 }
+
+/** The meals of a planned day, in order. */
+export const MENU_PLAN_MEAL_TYPES = [MealType.Breakfast, MealType.Lunch, MealType.Dinner] as const;

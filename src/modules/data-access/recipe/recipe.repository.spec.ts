@@ -84,6 +84,18 @@ describe('RecipeRepository', () => {
     });
   });
 
+  it('finds every matching recipe, unpaged, by name', async () => {
+    const recipe = buildRecipe();
+    prisma.recipe.findMany.mockResolvedValue([recipe]);
+
+    await expect(repository.findAll({ dietTypes: ['vegan'] })).resolves.toEqual([recipe]);
+    expect(prisma.recipe.findMany).toHaveBeenCalledWith({
+      where: { dietType: { hasEvery: ['vegan'] } },
+      include: RECIPE_INCLUDE,
+      orderBy: [{ name: SortOrder.Asc }, { id: SortOrder.Asc }],
+    });
+  });
+
   it('finds by id with ingredients', async () => {
     await repository.findById(RECIPE_ID);
 

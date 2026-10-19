@@ -8,7 +8,8 @@ import {
 } from '../../../common/types';
 import { parseEnum, round, toNumber } from '../../../common/utils';
 import { MenuVersionWithDays } from '../../data-access/menu/menu.repository';
-import { MACROS } from '../nutrition/nutrition.service';
+import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repository';
+import { MACROS, RecipeNutrition } from '../nutrition/nutrition.service';
 
 /** A day whose meals are resolved to recipe snapshots. */
 export interface ResolvedDay {
@@ -37,6 +38,31 @@ const roundMacros = (macros: MacroValues): MacroValues => ({
 /** `YYYY-MM-DD` of a date-only column. */
 export const toIsoDate = (date: Date | null): string | null =>
   date ? date.toISOString().slice(0, 10) : null;
+
+/** What a menu keeps of a recipe; `nutrition` is the recipe without optional ingredients. */
+export function snapshotRecipe(
+  recipe: RecipeWithIngredients,
+  nutrition: RecipeNutrition,
+): RecipeSnapshot {
+  return {
+    id: recipe.id,
+    name: recipe.name,
+    mealType: recipe.mealType,
+    dietType: recipe.dietType,
+    servings: recipe.servings,
+    prepTimeMinutes: recipe.prepTimeMinutes,
+    perServing: nutrition.perServing,
+    complete: nutrition.complete,
+    ingredients: recipe.ingredients.map((ingredient) => ({
+      foodItemId: ingredient.foodItemId,
+      foodName: ingredient.foodItem.name,
+      foodNameEn: ingredient.foodItem.nameEn,
+      state: ingredient.foodItem.state,
+      quantityG: toNumber(ingredient.quantityG),
+      isOptional: ingredient.isOptional,
+    })),
+  };
+}
 
 /**
  * Calories and macros of every meal (per serving of the recipe times the servings eaten), of

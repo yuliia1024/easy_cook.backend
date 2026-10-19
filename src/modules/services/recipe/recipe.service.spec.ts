@@ -9,6 +9,7 @@ import {
   ServingTooManyKcalBadRequestException,
   TooManyIngredientsBadRequestException,
 } from '../../../common/exceptions';
+import { PreferenceRules } from '../../../common/types';
 import { createMock } from '../../../test/create-mock';
 import {
   buildFoodItem,
@@ -86,6 +87,49 @@ describe('RecipeService', () => {
       { search: 'soup', dietTypes: ['vegan'] },
       page,
     );
+  });
+
+  describe('getAllowed', () => {
+    const rules: PreferenceRules = {
+      diets: ['vegan'],
+      allergies: [],
+      excludedIngredients: [],
+      dislikedFoods: ['rice'],
+    };
+    const rice = buildRecipe({
+      id: 'rice',
+      ingredients: [buildIngredient({ foodItem: buildFoodItem({ name: 'Rice, boiled' }) })],
+    });
+    const peanuts = buildRecipe({
+      id: 'peanuts',
+      ingredients: [
+        buildIngredient({
+          isOptional: true,
+          foodItem: buildFoodItem({ name: 'Арахіс', nameEn: 'Peanuts' }),
+        }),
+      ],
+    });
+
+    beforeEach(() => {
+      recipeRepository.findAll.mockResolvedValue([rice, peanuts]);
+    });
+
+    it('searches by the diets and keeps disliked foods', async () => {
+      await expect(service.getAllowed(rules)).resolves.toEqual([rice, peanuts]);
+      expect(recipeRepository.findAll).toHaveBeenCalledWith({ dietTypes: ['vegan'] });
+    });
+
+    it('drops an allergen in an optional ingredient, by its English name', async () => {
+      await expect(service.getAllowed({ ...rules, allergies: ['peanut'] })).resolves.toEqual([
+        rice,
+      ]);
+    });
+
+    it('drops an excluded ingredient', async () => {
+      await expect(
+        service.getAllowed({ ...rules, excludedIngredients: ['rice'] }),
+      ).resolves.toEqual([peanuts]);
+    });
   });
 
   describe('getById', () => {

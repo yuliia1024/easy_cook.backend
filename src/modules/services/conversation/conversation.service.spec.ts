@@ -144,12 +144,19 @@ describe('ConversationService', () => {
     });
   });
 
-  it('saves an assistant message', async () => {
-    await service.addAssistantMessage(CONVERSATION_ID, 'Hello');
+  it('saves an assistant message with the menu it suggests', async () => {
+    const menu = {
+      days: [],
+      dailyAverage: { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 },
+      issues: [],
+    };
+
+    await service.addAssistantMessage(CONVERSATION_ID, 'Hello', menu);
 
     expect(repository.addMessage).toHaveBeenCalledWith(CONVERSATION_ID, {
       role: MessageRole.Assistant,
       content: 'Hello',
+      suggestedMenu: menu,
     });
   });
 

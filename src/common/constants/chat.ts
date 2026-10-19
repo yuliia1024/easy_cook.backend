@@ -30,8 +30,8 @@ export const OUT_OF_SCOPE_REPLY =
 export const CLARIFICATION_REPLY =
   'Could you tell me a bit more? For example, how many days the menu should cover and which meals to include.';
 export const CLARIFICATION_MISSING_FIELDS = ['days', 'meals'];
-export const MENU_PLANNER_STUB_REPLY =
-  'Menu generation is not available yet. Meanwhile, I can talk through meal ideas with you.';
+export const NO_MENU_RECIPES_REPLY =
+  'I could not find recipes that fit your preferences for breakfast, lunch and dinner. Add more recipes or adjust your preferences and try again.';
 /** Sent instead of the error itself, which never reaches the client. */
 export const ASSISTANT_UNAVAILABLE_REPLY =
   'The assistant is unavailable right now. Please try again in a moment.';

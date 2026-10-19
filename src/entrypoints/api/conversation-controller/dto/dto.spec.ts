@@ -73,6 +73,7 @@ describe('conversation DTOs', () => {
           content: 'Plan a menu for 3 days',
           menuVersionId: null,
           menuId: null,
+          suggestedMenu: null,
           createdAt: message.createdAt,
         },
       ],
@@ -88,5 +89,19 @@ describe('conversation DTOs', () => {
       menuVersionId: 'v1',
       menuId: MENU_ID,
     });
+  });
+
+  it('returns the menu a reply suggested', () => {
+    const suggestedMenu = {
+      days: [],
+      dailyAverage: { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 },
+      issues: [],
+    };
+    const message = buildMessage({ role: 'assistant', suggestedMenu });
+
+    expect(
+      ConversationResponseDto.from(buildConversation({ messages: [message] })).messages[0]
+        .suggestedMenu,
+    ).toEqual(suggestedMenu);
   });
 });

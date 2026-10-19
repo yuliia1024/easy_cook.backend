@@ -5,6 +5,7 @@ import {
   MessageRole,
 } from '../../../common/constants';
 import { ConversationNotFoundException } from '../../../common/exceptions';
+import { MenuComposition } from '../../../common/types';
 import {
   ConversationRepository,
   ConversationSummary,
@@ -87,10 +88,16 @@ export class ConversationService {
     }
   }
 
-  public async addAssistantMessage(conversationId: string, content: string): Promise<void> {
+  /** `suggestedMenu` is the menu the reply suggests; it is kept with the message only. */
+  public async addAssistantMessage(
+    conversationId: string,
+    content: string,
+    suggestedMenu?: MenuComposition,
+  ): Promise<void> {
     await this.conversationRepository.addMessage(conversationId, {
       role: MessageRole.Assistant,
       content,
+      suggestedMenu,
     });
   }
 

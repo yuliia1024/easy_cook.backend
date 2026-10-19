@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Message, Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
 import { SortOrder } from '../../../common/constants';
+import { MenuComposition } from '../../../common/types';
 
 /** Oldest first; the id only makes ties deterministic. */
 const MESSAGE_ORDER = [
@@ -33,6 +34,7 @@ export interface MessageData {
   role: string;
   content: string;
   menuVersionId?: string | null;
+  suggestedMenu?: MenuComposition;
 }
 
 @Injectable()
@@ -89,7 +91,13 @@ export class ConversationRepository {
   /** Also marks the conversation as active, so it moves to the top of the list. */
   public async addMessage(conversationId: string, data: MessageData): Promise<Message> {
     const [message] = await this.prisma.$transaction([
-      this.prisma.message.create({ data: { conversationId, ...data } }),
+      this.prisma.message.create({
+        data: {
+          conversationId,
+          ...data,
+          suggestedMenu: data.suggestedMenu as unknown as Prisma.InputJsonObject | undefined,
+        },
+      }),
       this.prisma.conversation.update({
         where: { id: conversationId },
         data: { updatedAt: new Date() },

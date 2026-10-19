@@ -5,6 +5,7 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap';
 import { Intent } from '../src/common/constants';
+import { IntentResultSchema, MenuPlan } from '../src/common/contracts';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
@@ -16,20 +17,24 @@ import { PrismaService } from '../src/providers/prisma/prisma.service';
 export const FAKE_OPEN_AI_DELTAS = ['Day 1: ', 'oatmeal'];
 
 /**
- * What the fake classifier answers: an intent, `'unavailable'` to fail like a broken API or
- * `'invalid'` like output that does not match the schema. Set
- * it in a test; `resetFakeOpenAi()` restores `general_chat`.
+ * What the fake model answers. `intent` is the classification: an intent, `'unavailable'` to fail
+ * like a broken API or `'invalid'` like output that does not match the schema; it fails the menu
+ * plan the same way. `menuPlan` is the answer to any other structured call. Set them in a test;
+ * `resetFakeOpenAi()` restores `general_chat` and no plan.
  */
 export const fakeOpenAiState: {
   intent: Intent | 'unavailable' | 'invalid';
+  menuPlan: MenuPlan | null;
   streamTextCalls: number;
 } = {
   intent: Intent.GeneralChat,
+  menuPlan: null,
   streamTextCalls: 0,
 };
 
 export function resetFakeOpenAi(): void {
   fakeOpenAiState.intent = Intent.GeneralChat;
+  fakeOpenAiState.menuPlan = null;
   fakeOpenAiState.streamTextCalls = 0;
 }
 
@@ -38,12 +43,18 @@ const fakeOpenAi: Pick<OpenAiService, 'streamText' | 'generateStructured'> = {
     fakeOpenAiState.streamTextCalls += 1;
     yield* FAKE_OPEN_AI_DELTAS;
   },
-  async generateStructured<T>(): Promise<T> {
+  async generateStructured<T>(_input: unknown, schema: unknown): Promise<T> {
     if (fakeOpenAiState.intent === 'unavailable') {
       throw new AssistantUnavailableException(true);
     }
     if (fakeOpenAiState.intent === 'invalid') {
       throw new AssistantInvalidOutputException();
+    }
+    if (schema !== IntentResultSchema) {
+      if (!fakeOpenAiState.menuPlan) {
+        throw new AssistantInvalidOutputException();
+      }
+      return fakeOpenAiState.menuPlan as T;
     }
     return { intent: fakeOpenAiState.intent } as T;
   },

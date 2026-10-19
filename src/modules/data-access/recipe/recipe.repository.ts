@@ -63,6 +63,15 @@ export class RecipeRepository {
     return { items, total };
   }
 
+  /** Every matching recipe, unpaged, ordered by name. */
+  public async findAll(filter: RecipeFilter): Promise<RecipeWithIngredients[]> {
+    return this.prisma.recipe.findMany({
+      where: this.where(filter),
+      include: RECIPE_INCLUDE,
+      orderBy: [{ name: SortOrder.Asc }, { id: SortOrder.Asc }],
+    });
+  }
+
   public async findById(id: string): Promise<RecipeWithIngredients | null> {
     return this.prisma.recipe.findUnique({ where: { id }, include: RECIPE_INCLUDE });
   }

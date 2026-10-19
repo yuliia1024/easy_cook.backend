@@ -4,9 +4,10 @@ import { readStream } from './menu-stream';
 import {
   ASSISTANT_INVALID_OUTPUT_REPLY,
   ASSISTANT_UNAVAILABLE_REPLY,
+  ChatErrorCode,
   CLARIFICATION_REPLY,
   Intent,
-  MENU_PLANNER_STUB_REPLY,
+  NO_MENU_RECIPES_REPLY,
   OUT_OF_SCOPE_REPLY,
 } from '../src/common/constants';
 import {
@@ -67,23 +68,102 @@ describe('/api/conversations (e2e)', () => {
       ({ role, content }: { role: string; content: string }) => ({ role, content }),
     );
 
-  it.each([
-    [Intent.OutOfScope, OUT_OF_SCOPE_REPLY],
-    [Intent.GenerateMenu, MENU_PLANNER_STUB_REPLY],
-  ])('answers %s with a fixed reply, without the chat model', async (intent, reply) => {
-    await createMenuWorld(ctx);
+  it.each([[Intent.OutOfScope, OUT_OF_SCOPE_REPLY]])(
+    'answers %s with a fixed reply, without the chat model',
+    async (intent, reply) => {
+      await createMenuWorld(ctx);
+      const id = await start();
+      fakeOpenAiState.intent = intent;
+
+      const { chunks } = await say(id, 'Write me a poem');
+
+      expect(textOf(chunks)).toBe(reply);
+      expect(chunks.at(-1)).toMatchObject({ type: 'finish' });
+      expect(fakeOpenAiState.streamTextCalls).toBe(0);
+      expect(await savedMessages(id)).toEqual([
+        { role: 'user', content: 'Write me a poem' },
+        { role: 'assistant', content: reply },
+      ]);
+    },
+  );
+
+  it('plans a one-day menu from the model choice and saves its message', async () => {
+    const { recipe } = await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.intent = intent;
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuPlan = {
+      message: 'Here is your day.',
+      breakfast: recipe.oats,
+      lunch: recipe.chicken,
+      dinner: recipe.bowl,
+    };
 
-    const { chunks } = await say(id, 'Write me a poem');
+    const { chunks } = await say(id, 'Plan my day');
 
-    expect(textOf(chunks)).toBe(reply);
-    expect(chunks.at(-1)).toMatchObject({ type: 'finish' });
+    expect(textOf(chunks)).toBe('Here is your day.');
+    const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+    expect(menu.days).toHaveLength(1);
+    expect(
+      menu.days[0].meals.map((meal: { recipeId: string; servings: number }) => [
+        meal.recipeId,
+        meal.servings,
+      ]),
+    ).toEqual([
+      [recipe.oats, 1],
+      [recipe.chicken, 1],
+      [recipe.bowl, 1],
+    ]);
+    expect(menu.days[0].totals.kcal).toBeGreaterThan(0);
     expect(fakeOpenAiState.streamTextCalls).toBe(0);
     expect(await savedMessages(id)).toEqual([
-      { role: 'user', content: 'Write me a poem' },
-      { role: 'assistant', content: reply },
+      { role: 'user', content: 'Plan my day' },
+      { role: 'assistant', content: 'Here is your day.' },
     ]);
+    const { body } = await http().get(`/api/conversations/${id}`).expect(200);
+    expect(body.messages[0].suggestedMenu).toBeNull();
+    expect(body.messages[1].suggestedMenu).toEqual(menu);
+    expect(await ctx.prisma.menu.count()).toBe(0);
+  });
+
+  it('reports a recipe outside the allowed ones as invalid output', async () => {
+    const { recipe } = await createMenuWorld(ctx);
+    await http()
+      .post('/api/preferences')
+      .send({ preferenceType: 'allergy', value: 'peanut' })
+      .expect(201);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuPlan = {
+      message: 'Here is your day.',
+      breakfast: recipe.oats,
+      lunch: recipe.chicken,
+      dinner: recipe.satay,
+    };
+
+    const { chunks } = await say(id, 'Plan my day');
+
+    expect(chunks).toContainEqual(
+      expect.objectContaining({
+        type: 'data-error',
+        data: expect.objectContaining({ code: ChatErrorCode.AssistantInvalidOutput }),
+      }),
+    );
+    expect(await savedMessages(id)).toEqual([{ role: 'user', content: 'Plan my day' }]);
+  });
+
+  it('answers without the model when a meal has no allowed recipe', async () => {
+    await createMenuWorld(ctx);
+    await http()
+      .post('/api/preferences')
+      .send({ preferenceType: 'diet', value: 'vegan' })
+      .expect(201);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+
+    const { chunks } = await say(id, 'Plan my day');
+
+    expect(textOf(chunks)).toBe(NO_MENU_RECIPES_REPLY);
+    expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(false);
   });
 
   it('asks for the missing details instead of generating a menu', async () => {

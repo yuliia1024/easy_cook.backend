@@ -1,7 +1,19 @@
 import { Prisma } from '../../../generated/prisma/client';
 import { MealType } from '../../../common/constants';
-import { buildMenuVersion, buildRecipeSnapshot, RECIPE_ID } from '../../../test/fixtures';
-import { composeMenu, resolveVersion, ResolvedDay, toIsoDate } from './menu-composition';
+import {
+  buildMenuVersion,
+  buildRecipe,
+  buildRecipeSnapshot,
+  RECIPE_ID,
+} from '../../../test/fixtures';
+import { NutritionService } from '../nutrition/nutrition.service';
+import {
+  composeMenu,
+  resolveVersion,
+  ResolvedDay,
+  snapshotRecipe,
+  toIsoDate,
+} from './menu-composition';
 
 describe('menu composition', () => {
   const rice = buildRecipeSnapshot();
@@ -11,6 +23,14 @@ describe('menu composition', () => {
     name: 'Soup',
     perServing: { kcal: 300, proteinG: 10, fatG: 5, carbsG: 50 },
     complete: false,
+  });
+
+  it('snapshotRecipe keeps the recipe, its foods and its nutrition per serving', () => {
+    const recipe = buildRecipe();
+
+    expect(snapshotRecipe(recipe, new NutritionService().calculateRecipe(recipe))).toEqual(
+      buildRecipeSnapshot(),
+    );
   });
 
   describe('composeMenu', () => {

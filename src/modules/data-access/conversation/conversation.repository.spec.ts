@@ -87,6 +87,29 @@ describe('ConversationRepository', () => {
     });
   });
 
+  it('stores the suggested menu of a message as JSON', async () => {
+    const suggestedMenu = {
+      days: [],
+      dailyAverage: { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 },
+      issues: [],
+    };
+
+    await repository.addMessage(CONVERSATION_ID, {
+      role: MessageRole.Assistant,
+      content: 'Your day',
+      suggestedMenu,
+    });
+
+    expect(prisma.message.create).toHaveBeenCalledWith({
+      data: {
+        conversationId: CONVERSATION_ID,
+        role: MessageRole.Assistant,
+        content: 'Your day',
+        suggestedMenu,
+      },
+    });
+  });
+
   it('deletes a conversation', async () => {
     await repository.delete(CONVERSATION_ID);
 

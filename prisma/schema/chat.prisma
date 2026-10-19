@@ -28,6 +28,8 @@ model Message {
   content        String
   /// The menu version an assistant action created with this message.
   menuVersionId  String?  @map("menu_version_id") @db.Uuid
+  /// The menu the assistant suggested with this reply (`MenuComposition`); not a saved menu.
+  suggestedMenu  Json?    @map("suggested_menu")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)

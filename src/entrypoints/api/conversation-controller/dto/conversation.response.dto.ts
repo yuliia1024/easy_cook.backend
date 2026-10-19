@@ -1,9 +1,38 @@
-import { MessageRole } from '../../../../common/constants';
+import { MealType, MessageRole } from '../../../../common/constants';
+import { DayComposition, MealComposition, MenuComposition } from '../../../../common/types';
 import {
   ConversationSummary,
   ConversationWithMessages,
   MessageWithMenu,
 } from '../../../../modules/data-access/conversation/conversation.repository';
+import { MenuIssueResponseDto } from '../../menu-controller/dto/menu.response.dto';
+import { MacrosResponseDto } from '../../recipe-controller/dto/recipe.response.dto';
+
+export class SuggestedMealResponseDto implements MealComposition {
+  position: number;
+  mealType: MealType;
+  recipeId: string | null;
+  recipeName: string;
+  servings: number;
+  /** Per serving times `servings`. */
+  nutrition: MacrosResponseDto;
+  complete: boolean;
+}
+
+export class SuggestedDayResponseDto implements DayComposition {
+  dayIndex: number;
+  /** `YYYY-MM-DD`. */
+  date: string | null;
+  meals: SuggestedMealResponseDto[];
+  totals: MacrosResponseDto;
+  complete: boolean;
+}
+
+export class SuggestedMenuResponseDto implements MenuComposition {
+  days: SuggestedDayResponseDto[];
+  dailyAverage: MacrosResponseDto;
+  issues: MenuIssueResponseDto[];
+}
 
 export class MessageResponseDto {
   id: string;
@@ -12,6 +41,8 @@ export class MessageResponseDto {
   /** The menu version the assistant created with this reply, and its menu. */
   menuVersionId: string | null;
   menuId: string | null;
+  /** The menu the assistant suggested with this reply; not a saved menu. */
+  suggestedMenu: SuggestedMenuResponseDto | null;
   createdAt: Date;
 
   static from(message: MessageWithMenu): MessageResponseDto {
@@ -21,6 +52,7 @@ export class MessageResponseDto {
       content: message.content,
       menuVersionId: message.menuVersionId,
       menuId: message.menuVersion?.menuId ?? null,
+      suggestedMenu: message.suggestedMenu as unknown as MenuComposition | null,
       createdAt: message.createdAt,
     };
   }
