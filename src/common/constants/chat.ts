@@ -12,6 +12,7 @@ export enum Intent {
 
 export enum ChatErrorCode {
   AssistantUnavailable = 'assistant_unavailable',
+  AssistantInvalidOutput = 'assistant_invalid_output',
   InternalError = 'internal_error',
 }
 
@@ -34,4 +35,5 @@ export const MENU_PLANNER_STUB_REPLY =
 /** Sent instead of the error itself, which never reaches the client. */
 export const ASSISTANT_UNAVAILABLE_REPLY =
   'The assistant is unavailable right now. Please try again in a moment.';
+export const ASSISTANT_INVALID_OUTPUT_REPLY = "Sorry, I couldn't process that. Please try again.";
 export const INTERNAL_ERROR_REPLY = 'Something went wrong while answering. Please try again.';

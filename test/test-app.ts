@@ -5,7 +5,10 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap';
 import { Intent } from '../src/common/constants';
-import { AssistantUnavailableException } from '../src/common/exceptions';
+import {
+  AssistantInvalidOutputException,
+  AssistantUnavailableException,
+} from '../src/common/exceptions';
 import { OpenAiService } from '../src/providers/open-ai/open-ai.service';
 import { PrismaService } from '../src/providers/prisma/prisma.service';
 
@@ -13,10 +16,14 @@ import { PrismaService } from '../src/providers/prisma/prisma.service';
 export const FAKE_OPEN_AI_DELTAS = ['Day 1: ', 'oatmeal'];
 
 /**
- * What the fake classifier answers: an intent, or `'unavailable'` to fail like a broken API. Set
+ * What the fake classifier answers: an intent, `'unavailable'` to fail like a broken API or
+ * `'invalid'` like output that does not match the schema. Set
  * it in a test; `resetFakeOpenAi()` restores `general_chat`.
  */
-export const fakeOpenAiState: { intent: Intent | 'unavailable'; streamTextCalls: number } = {
+export const fakeOpenAiState: {
+  intent: Intent | 'unavailable' | 'invalid';
+  streamTextCalls: number;
+} = {
   intent: Intent.GeneralChat,
   streamTextCalls: 0,
 };
@@ -34,6 +41,9 @@ const fakeOpenAi: Pick<OpenAiService, 'streamText' | 'generateStructured'> = {
   async generateStructured<T>(): Promise<T> {
     if (fakeOpenAiState.intent === 'unavailable') {
       throw new AssistantUnavailableException(true);
+    }
+    if (fakeOpenAiState.intent === 'invalid') {
+      throw new AssistantInvalidOutputException();
     }
     return { intent: fakeOpenAiState.intent } as T;
   },

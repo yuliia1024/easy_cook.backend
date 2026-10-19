@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
+  ASSISTANT_INVALID_OUTPUT_REPLY,
   ASSISTANT_UNAVAILABLE_REPLY,
   CLARIFICATION_MISSING_FIELDS,
   CLARIFICATION_REPLY,
@@ -123,7 +124,12 @@ export class ChatOrchestratorService {
       return this.assistantUnavailable(error.retryable);
     }
     if (error instanceof AssistantInvalidOutputException) {
-      return this.assistantUnavailable(true);
+      return {
+        type: 'error',
+        code: ChatErrorCode.AssistantInvalidOutput,
+        message: ASSISTANT_INVALID_OUTPUT_REPLY,
+        retryable: true,
+      };
     }
     this.logger.error('Chat reply failed', error instanceof Error ? error.stack : String(error));
     return {

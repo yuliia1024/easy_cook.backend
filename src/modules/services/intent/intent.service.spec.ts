@@ -35,11 +35,10 @@ describe('IntentService', () => {
     );
   });
 
-  it('asks for clarification when the model output is invalid', async () => {
-    jest.spyOn(service['logger'], 'warn').mockImplementation();
+  it('rethrows invalid model output instead of guessing an intent', async () => {
     openAiService.generateStructured.mockRejectedValue(new AssistantInvalidOutputException());
 
-    await expect(service.classify('???')).resolves.toEqual({ intent: Intent.Clarification });
+    await expect(service.classify('???')).rejects.toBeInstanceOf(AssistantInvalidOutputException);
   });
 
   it('rethrows an API failure', async () => {

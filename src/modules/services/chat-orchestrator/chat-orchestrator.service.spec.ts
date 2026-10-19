@@ -1,4 +1,5 @@
 import {
+  ASSISTANT_INVALID_OUTPUT_REPLY,
   ASSISTANT_UNAVAILABLE_REPLY,
   CLARIFICATION_MISSING_FIELDS,
   CLARIFICATION_REPLY,
@@ -145,24 +146,32 @@ describe('ChatOrchestratorService', () => {
   });
 
   it.each([
-    [new AssistantUnavailableException(false), false],
-    [new AssistantInvalidOutputException(), true],
-  ])('turns a classification failure (%p) into an error event', async (error, retryable) => {
-    intentService.classify.mockRejectedValue(error);
+    [
+      new AssistantUnavailableException(false),
+      'assistant_unavailable',
+      ASSISTANT_UNAVAILABLE_REPLY,
+      false,
+    ],
+    [
+      new AssistantInvalidOutputException(),
+      'assistant_invalid_output',
+      ASSISTANT_INVALID_OUTPUT_REPLY,
+      true,
+    ],
+  ])(
+    'turns a classification failure (%p) into an error event',
+    async (error, code, message, retryable) => {
+      intentService.classify.mockRejectedValue(error);
 
-    await expect(send()).resolves.toEqual([
-      {
-        type: 'error',
-        code: 'assistant_unavailable',
-        message: ASSISTANT_UNAVAILABLE_REPLY,
-        retryable,
-      },
-      { type: 'done' },
-    ]);
-    expect(generalChatService.reply).not.toHaveBeenCalled();
-    expect(menuPlannerService.plan).not.toHaveBeenCalled();
-    expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
-  });
+      await expect(send()).resolves.toEqual([
+        { type: 'error', code, message, retryable },
+        { type: 'done' },
+      ]);
+      expect(generalChatService.reply).not.toHaveBeenCalled();
+      expect(menuPlannerService.plan).not.toHaveBeenCalled();
+      expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
+    },
+  );
 
   it('does not save a reply that failed midway and hides unexpected errors', async () => {
     jest.spyOn(service['logger'], 'error').mockImplementation();

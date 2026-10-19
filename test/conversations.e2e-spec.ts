@@ -2,6 +2,7 @@ import request from 'supertest';
 import { createMenuWorld, seedMenu } from './menu-fixtures';
 import { readStream } from './menu-stream';
 import {
+  ASSISTANT_INVALID_OUTPUT_REPLY,
   ASSISTANT_UNAVAILABLE_REPLY,
   CLARIFICATION_REPLY,
   Intent,
@@ -123,6 +124,27 @@ describe('/api/conversations (e2e)', () => {
       { type: 'error', errorText: ASSISTANT_UNAVAILABLE_REPLY },
     ]);
     expect(fakeOpenAiState.streamTextCalls).toBe(0);
+    expect(await savedMessages(id)).toEqual([{ role: 'user', content: 'Hi' }]);
+  });
+
+  it('reports invalid model output with its own error and saves no reply', async () => {
+    await createMenuWorld(ctx);
+    const id = await start();
+    fakeOpenAiState.intent = 'invalid';
+
+    const { chunks } = await say(id, 'Hi');
+
+    expect(chunks.slice(-2)).toEqual([
+      expect.objectContaining({
+        type: 'data-error',
+        data: {
+          code: 'assistant_invalid_output',
+          message: ASSISTANT_INVALID_OUTPUT_REPLY,
+          retryable: true,
+        },
+      }),
+      { type: 'error', errorText: ASSISTANT_INVALID_OUTPUT_REPLY },
+    ]);
     expect(await savedMessages(id)).toEqual([{ role: 'user', content: 'Hi' }]);
   });
 
