@@ -20,6 +20,8 @@ export interface RecipeFilter {
   mealType?: string;
   /** The recipe must have every one of these tags. */
   dietTypes?: string[];
+  /** The recipe must have at least one tag of each group. */
+  dietTypeGroups?: string[][];
 }
 
 export interface RecipeData {
@@ -129,11 +131,19 @@ export class RecipeRepository {
     await this.prisma.recipe.delete({ where: { id } });
   }
 
-  private where({ search, mealType, dietTypes }: RecipeFilter): Prisma.RecipeWhereInput {
+  private where({
+    search,
+    mealType,
+    dietTypes,
+    dietTypeGroups,
+  }: RecipeFilter): Prisma.RecipeWhereInput {
     return {
       ...(search && { name: { contains: search, mode: QueryMode.Insensitive } }),
       ...(mealType && { mealType }),
       ...(dietTypes?.length && { dietType: { hasEvery: dietTypes } }),
+      ...(dietTypeGroups?.length && {
+        AND: dietTypeGroups.map((tags) => ({ dietType: { hasSome: tags } })),
+      }),
     };
   }
 }

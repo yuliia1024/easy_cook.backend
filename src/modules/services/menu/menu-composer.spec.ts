@@ -77,13 +77,13 @@ describe('MenuComposer', () => {
     const issues = composer.revalidate(buildMenuVersion(), {
       ...context,
       goal: null,
-      rules: { ...context.rules, diets: ['vegetarian'] },
+      rules: { ...context.rules, diets: ['gluten_free'] },
     });
 
     expect(issues).toEqual([
       expect.objectContaining({
         code: MenuIssueCode.DietViolation,
-        message: 'Day 1, lunch: Rice with vegetables is not vegetarian',
+        message: 'Day 1, lunch: Rice with vegetables is not gluten_free',
       }),
     ]);
   });

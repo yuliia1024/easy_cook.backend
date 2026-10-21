@@ -118,6 +118,18 @@ describe('/api/menus (e2e)', () => {
     expect(res.body.message).toContain('Chicken with rice contains Chicken breast, cooked');
   });
 
+  it('lets vegan meals through a vegetarian diet, not the chicken', async () => {
+    const { body } = await http().get(`/api/menus/${menuId}`).expect(200);
+    await addPreference('diet', 'vegetarian');
+
+    const res = await http()
+      .post(`/api/menus/${menuId}/versions/${body.versions[0].id}/confirm`)
+      .expect(400);
+    expect(res.body.message).toContain('Chicken with rice is not vegetarian');
+    expect(res.body.message).not.toContain('Oatmeal');
+    expect(res.body.message).not.toContain('Rice bowl');
+  });
+
   it('keeps the snapshot of a deleted recipe', async () => {
     await http().delete(`/api/recipes/${world.recipe.oats}`).expect(204);
 

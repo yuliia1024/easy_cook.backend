@@ -42,3 +42,14 @@ export const CONFLICTING_DIETS: ReadonlyArray<readonly [DietTag, DietTag]> = [
   [DietTag.Pescatarian, DietTag.Vegetarian],
   [DietTag.Pescatarian, DietTag.Vegan],
 ];
+
+/** The recipe tags that satisfy a diet: a vegan recipe is also vegetarian and pescatarian. */
+export const DIET_SATISFIED_BY: Readonly<Record<DietTag, readonly DietTag[]>> = {
+  [DietTag.Vegan]: [DietTag.Vegan],
+  [DietTag.Vegetarian]: [DietTag.Vegetarian, DietTag.Vegan],
+  [DietTag.Pescatarian]: [DietTag.Pescatarian, DietTag.Vegetarian, DietTag.Vegan],
+  [DietTag.GlutenFree]: [DietTag.GlutenFree],
+  [DietTag.DairyFree]: [DietTag.DairyFree, DietTag.Vegan],
+  [DietTag.HighProtein]: [DietTag.HighProtein],
+  [DietTag.LowCarb]: [DietTag.LowCarb],
+};

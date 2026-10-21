@@ -1,5 +1,7 @@
 import { DietaryPreference } from '../../../generated/prisma/client';
 import {
+  DIET_SATISFIED_BY,
+  DietTag,
   MENU_DAY_KCAL_TOLERANCE,
   MenuIssueCode,
   MenuIssueSeverity,
@@ -26,6 +28,11 @@ export function toPreferenceRules(preferences: DietaryPreference[]): PreferenceR
     excludedIngredients: values(PreferenceType.ExcludedIngredient),
     dislikedFoods: values(PreferenceType.DislikedFood),
   };
+}
+
+/** The recipe tags that satisfy the diet; a diet outside `DIET_SATISFIED_BY` only by itself. */
+export function dietTagsSatisfying(diet: string): readonly string[] {
+  return DIET_SATISFIED_BY[diet as DietTag] ?? [diet];
 }
 
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -55,7 +62,7 @@ export function recipeIssues(recipe: RecipeSnapshot, rules: PreferenceRules): Re
   };
 
   for (const diet of rules.diets) {
-    if (!recipe.dietType.includes(diet)) {
+    if (!dietTagsSatisfying(diet).some((tag) => recipe.dietType.includes(tag))) {
       error(MenuIssueCode.DietViolation, `${recipe.name} is not ${diet}`);
     }
   }

@@ -66,9 +66,25 @@ describe('RecipeRepository', () => {
       });
     });
 
-    it('ignores an empty diet tag list', async () => {
+    it('needs one tag of each diet tag group', async () => {
       await repository.findPage(
-        { dietTypes: [] },
+        { dietTypeGroups: [['vegetarian', 'vegan'], ['gluten_free']] },
+        { page: 1, limit: 20, sortOrder: SortOrder.Asc },
+      );
+
+      expect(prisma.recipe.count).toHaveBeenCalledWith({
+        where: {
+          AND: [
+            { dietType: { hasSome: ['vegetarian', 'vegan'] } },
+            { dietType: { hasSome: ['gluten_free'] } },
+          ],
+        },
+      });
+    });
+
+    it('ignores empty diet tag lists', async () => {
+      await repository.findPage(
+        { dietTypes: [], dietTypeGroups: [] },
         { page: 1, limit: 20, sortOrder: SortOrder.Asc },
       );
 

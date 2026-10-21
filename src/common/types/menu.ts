@@ -44,7 +44,7 @@ export interface MenuIssue {
 
 /** The dietary preferences of the profile, as the rules a menu must follow. */
 export interface PreferenceRules {
-  /** Every recipe must carry each of these diet tags. */
+  /** Every recipe must satisfy each of these diets (`DIET_SATISFIED_BY`). */
   diets: string[];
   /** No ingredient may match one of these (optional ingredients included). */
   allergies: string[];
