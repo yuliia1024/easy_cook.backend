@@ -11,6 +11,7 @@ import {
   MenuVersionWithDays,
   MenuWithVersions,
 } from '../../data-access/menu/menu.repository';
+import { ProfileContextService } from '../profile-context/profile-context.service';
 import { UserProfileService } from '../user-profile/user-profile.service';
 import { MenuComposer } from './menu-composer';
 import { errorsOf } from './menu-rules';
@@ -25,6 +26,7 @@ export class MenuService {
     private readonly menuRepository: MenuRepository,
     private readonly userProfileService: UserProfileService,
     private readonly menuComposer: MenuComposer,
+    private readonly profileContextService: ProfileContextService,
   ) {}
 
   public async getAll(): Promise<MenuSummary[]> {
@@ -48,7 +50,9 @@ export class MenuService {
   public async confirm(id: string, versionId: string): Promise<MenuWithVersions> {
     const menu = await this.getById(id);
     const version = this.findVersion(menu, versionId);
-    this.assertNoErrors(this.menuComposer.revalidate(version, await this.menuComposer.context()));
+    this.assertNoErrors(
+      this.menuComposer.revalidate(version, await this.profileContextService.get()),
+    );
     return this.menuRepository.confirm(id, version.id);
   }
 

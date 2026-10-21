@@ -2,7 +2,6 @@ import request, { Test } from 'supertest';
 import { MealType, MenuGeneratedBy, MenuIssueSeverity } from '../src/common/constants';
 import { Prisma } from '../src/generated/prisma/client';
 import { RECIPE_INCLUDE } from '../src/modules/data-access/recipe/recipe.repository';
-import { MenuComposer } from '../src/modules/services/menu/menu-composer';
 import {
   composeMenu,
   ResolvedDay,
@@ -10,6 +9,7 @@ import {
 } from '../src/modules/services/menu/menu-composition';
 import { validateMenu } from '../src/modules/services/menu/menu-rules';
 import { NutritionService } from '../src/modules/services/nutrition/nutrition.service';
+import { ProfileContextService } from '../src/modules/services/profile-context/profile-context.service';
 import { TestApp } from './test-app';
 
 export interface MenuDayBody {
@@ -119,7 +119,7 @@ export async function seedMenu(
   days: MenuDayBody[],
   notes: string | null = null,
 ): Promise<string> {
-  const { profileId } = await ctx.app.get(MenuComposer).context();
+  const { profileId } = await ctx.app.get(ProfileContextService).get();
   const menu = await ctx.prisma.menu.create({ data: { profileId, title } });
   await seedVersion(ctx, menu.id, days, notes);
   return menu.id;
@@ -135,7 +135,7 @@ export async function seedVersion(
   days: MenuDayBody[],
   notes: string | null = null,
 ): Promise<string> {
-  const context = await ctx.app.get(MenuComposer).context();
+  const context = await ctx.app.get(ProfileContextService).get();
   const nutrition = ctx.app.get(NutritionService);
   const recipes = new Map(
     (
@@ -163,7 +163,7 @@ export async function seedVersion(
     }),
   }));
   const composed = composeMenu(resolved);
-  const issues = validateMenu(resolved, composed.days, context.rules, context.goal);
+  const issues = validateMenu(resolved, composed.days, context.rules, context.nutritionGoal);
   if (issues.some((issue) => issue.severity === MenuIssueSeverity.Error)) {
     throw new Error(`Cannot seed the menu: ${JSON.stringify(issues)}`);
   }
@@ -175,8 +175,8 @@ export async function seedVersion(
       versionNumber,
       generatedBy: MenuGeneratedBy.Manual,
       notes,
-      nutritionGoalsSnapshot: context.goal
-        ? (context.goal as unknown as Prisma.InputJsonObject)
+      nutritionGoalsSnapshot: context.nutritionGoal
+        ? (context.nutritionGoal as unknown as Prisma.InputJsonObject)
         : Prisma.JsonNull,
       compositionSnapshot: { ...composed, issues } as unknown as Prisma.InputJsonObject,
       days: {

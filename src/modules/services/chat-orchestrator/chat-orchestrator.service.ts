@@ -20,10 +20,11 @@ import { ConversationService } from '../conversation/conversation.service';
 import { GeneralChatService } from '../general-chat/general-chat.service';
 import { IntentService } from '../intent/intent.service';
 import { MenuPlannerService } from '../menu/menu-planner.service';
+import { ProfileContextService } from '../profile-context/profile-context.service';
 
 /**
- * Handles a chat message: saves it, classifies its intent within the conversation and hands it to
- * the service for that intent. Only the intent picks the route, and every route is a fixed service
+ * Handles a chat message: saves it, loads the profile once, classifies its intent within the
+ * conversation and hands it to the service for that intent; every model call sees the profile. Only the intent picks the route, and every route is a fixed service
  * call; a menu is planned from the request the classifier restated, so a follow-up such as "do it
  * again" keeps the earlier details. The reply is saved once it is complete, with the menu it
  * suggests; a failure becomes an `error` event and is not saved.
@@ -37,6 +38,7 @@ export class ChatOrchestratorService {
     private readonly intentService: IntentService,
     private readonly generalChatService: GeneralChatService,
     private readonly menuPlannerService: MenuPlannerService,
+    private readonly profileContextService: ProfileContextService,
   ) {}
 
   /**
@@ -94,15 +96,27 @@ export class ChatOrchestratorService {
     content: string,
     abortSignal: AbortSignal | undefined,
   ): AsyncGenerator<ChatStreamEvent> {
-    const { intent, request } = await this.intentService.classify(conversationId, abortSignal);
+    const profile = await this.profileContextService.find();
+    const { intent, request } = await this.intentService.classify(
+      conversationId,
+      profile,
+      abortSignal,
+    );
     switch (intent) {
       case Intent.GeneralChat:
-        for await (const delta of this.generalChatService.reply(conversationId, abortSignal)) {
+        for await (const delta of this.generalChatService.reply(
+          conversationId,
+          profile,
+          abortSignal,
+        )) {
           yield { type: ChatStreamEventType.TextDelta, content: delta };
         }
         return;
       case Intent.GenerateMenu:
-        yield* this.toEvents(await this.menuPlannerService.plan(request ?? content, abortSignal));
+        // TODO: add sort of stream text until get the menu
+        yield* this.toEvents(
+          await this.menuPlannerService.plan(request ?? content, profile, abortSignal),
+        );
         return;
       case Intent.Clarification:
         yield {

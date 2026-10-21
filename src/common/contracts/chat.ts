@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Intent } from '../constants';
+import { Intent, INTENT_REQUEST_MAX_LENGTH } from '../constants';
 
 /**
  * What `IntentService` accepts from the model; anything else is invalid output. `request` is the
@@ -7,7 +7,7 @@ import { Intent } from '../constants';
  */
 export const IntentResultSchema = z.object({
   intent: z.enum(Intent),
-  request: z.string().nullable(),
+  request: z.string().max(INTENT_REQUEST_MAX_LENGTH).nullable(),
 });
 
 export type IntentResult = z.infer<typeof IntentResultSchema>;

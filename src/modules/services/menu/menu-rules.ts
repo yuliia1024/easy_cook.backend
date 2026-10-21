@@ -1,11 +1,9 @@
-import { DietaryPreference } from '../../../generated/prisma/client';
 import {
   DIET_SATISFIED_BY,
   DietTag,
   MENU_DAY_KCAL_TOLERANCE,
   MenuIssueCode,
   MenuIssueSeverity,
-  PreferenceType,
 } from '../../../common/constants';
 import {
   DayComposition,
@@ -17,18 +15,6 @@ import {
 import { ResolvedDay } from './menu-composition';
 
 export type RecipeIssue = Pick<MenuIssue, 'severity' | 'code' | 'message'>;
-
-export function toPreferenceRules(preferences: DietaryPreference[]): PreferenceRules {
-  const values = (type: PreferenceType): string[] =>
-    preferences.filter((p) => p.preferenceType === type).map((p) => p.value);
-
-  return {
-    diets: values(PreferenceType.Diet),
-    allergies: values(PreferenceType.Allergy),
-    excludedIngredients: values(PreferenceType.ExcludedIngredient),
-    dislikedFoods: values(PreferenceType.DislikedFood),
-  };
-}
 
 /** The recipe tags that satisfy the diet; a diet outside `DIET_SATISFIED_BY` only by itself. */
 export function dietTagsSatisfying(diet: string): readonly string[] {

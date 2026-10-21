@@ -3,19 +3,11 @@ import {
   MealType,
   MenuIssueCode,
   MenuIssueSeverity,
-  PreferenceType,
 } from '../../../common/constants';
 import { NutritionGoalSnapshot, PreferenceRules } from '../../../common/types';
-import { buildPreference, buildRecipeSnapshot, RECIPE_ID } from '../../../test/fixtures';
+import { buildRecipeSnapshot, RECIPE_ID } from '../../../test/fixtures';
 import { composeMenu, ResolvedDay } from './menu-composition';
-import {
-  dietTagsSatisfying,
-  errorsOf,
-  mentions,
-  recipeIssues,
-  toPreferenceRules,
-  validateMenu,
-} from './menu-rules';
+import { dietTagsSatisfying, errorsOf, mentions, recipeIssues, validateMenu } from './menu-rules';
 
 const NO_RULES: PreferenceRules = {
   diets: [],
@@ -25,22 +17,6 @@ const NO_RULES: PreferenceRules = {
 };
 
 describe('menu rules', () => {
-  it('groups the preferences by type', () => {
-    expect(
-      toPreferenceRules([
-        buildPreference({ preferenceType: PreferenceType.Diet, value: 'vegan' }),
-        buildPreference({ preferenceType: PreferenceType.Allergy, value: 'peanut' }),
-        buildPreference({ preferenceType: PreferenceType.ExcludedIngredient, value: 'pork' }),
-        buildPreference({ preferenceType: PreferenceType.DislikedFood, value: 'mushroom' }),
-      ]),
-    ).toEqual({
-      diets: ['vegan'],
-      allergies: ['peanut'],
-      excludedIngredients: ['pork'],
-      dislikedFoods: ['mushroom'],
-    });
-  });
-
   describe('dietTagsSatisfying', () => {
     it.each([
       ['vegan', ['vegan']],

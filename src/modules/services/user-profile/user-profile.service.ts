@@ -18,11 +18,16 @@ export class UserProfileService {
   constructor(private readonly userProfileRepository: UserProfileRepository) {}
 
   public async getCurrent(): Promise<UserProfile> {
-    const profile = await this.userProfileRepository.findCurrent();
+    const profile = await this.findCurrent();
     if (!profile) {
       throw new ProfileNotFoundException();
     }
     return profile;
+  }
+
+  /** The profile, or null until it is filled in. */
+  public async findCurrent(): Promise<UserProfile | null> {
+    return this.userProfileRepository.findCurrent();
   }
 
   /** Creates the profile on the first save, replaces its fields afterwards. */
