@@ -8,7 +8,14 @@ import {
 import { NutritionGoalSnapshot, PreferenceRules } from '../../../common/types';
 import { buildPreference, buildRecipeSnapshot, RECIPE_ID } from '../../../test/fixtures';
 import { composeMenu, ResolvedDay } from './menu-composition';
-import { errorsOf, mentions, recipeIssues, toPreferenceRules, validateMenu } from './menu-rules';
+import {
+  dietTagsSatisfying,
+  errorsOf,
+  mentions,
+  recipeIssues,
+  toPreferenceRules,
+  validateMenu,
+} from './menu-rules';
 
 const NO_RULES: PreferenceRules = {
   diets: [],
@@ -31,6 +38,18 @@ describe('menu rules', () => {
       allergies: ['peanut'],
       excludedIngredients: ['pork'],
       dislikedFoods: ['mushroom'],
+    });
+  });
+
+  describe('dietTagsSatisfying', () => {
+    it.each([
+      ['vegan', ['vegan']],
+      ['vegetarian', ['vegetarian', 'vegan']],
+      ['pescatarian', ['pescatarian', 'vegetarian', 'vegan']],
+      ['gluten_free', ['gluten_free']],
+      ['paleo', ['paleo']],
+    ])('%s ← %j', (diet, tags) => {
+      expect(dietTagsSatisfying(diet)).toEqual(tags);
     });
   });
 
@@ -101,6 +120,32 @@ describe('menu rules', () => {
           message: 'Rice with vegetables contains Rice, boiled (excluded: rice)',
         },
       ]);
+    });
+
+    it.each([
+      ['vegan', 'vegetarian', true],
+      ['vegan', 'pescatarian', true],
+      ['vegetarian', 'pescatarian', true],
+      ['vegetarian', 'vegan', false],
+      ['pescatarian', 'vegetarian', false],
+      ['high_protein', 'vegetarian', false],
+      ['high_protein', 'pescatarian', false],
+    ])('a %s recipe for a %s diet → passes: %s', (tag, diet, passes) => {
+      const issues = recipeIssues(buildRecipeSnapshot({ dietType: [tag], ingredients: [] }), {
+        ...NO_RULES,
+        diets: [diet],
+      });
+
+      expect(issues).toEqual(
+        passes
+          ? []
+          : [
+              expect.objectContaining({
+                code: MenuIssueCode.DietViolation,
+                message: expect.stringContaining(`is not ${diet}`),
+              }),
+            ],
+      );
     });
 
     it('reports disliked foods as warnings', () => {
@@ -174,13 +219,13 @@ describe('menu rules', () => {
     });
 
     it('places recipe issues at their meal', () => {
-      const issues = validate([day(3, 2)], { ...NO_RULES, diets: ['vegetarian'] });
+      const issues = validate([day(3, 2)], { ...NO_RULES, diets: ['gluten_free'] });
 
       expect(issues).toEqual([
         {
           severity: MenuIssueSeverity.Error,
           code: MenuIssueCode.DietViolation,
-          message: 'Day 4, lunch: Rice with vegetables is not vegetarian',
+          message: 'Day 4, lunch: Rice with vegetables is not gluten_free',
           dayIndex: 3,
           position: 0,
           recipeId: RECIPE_ID,

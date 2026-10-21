@@ -91,7 +91,7 @@ describe('RecipeService', () => {
 
   describe('getAllowed', () => {
     const rules: PreferenceRules = {
-      diets: ['vegan'],
+      diets: ['vegetarian'],
       allergies: [],
       excludedIngredients: [],
       dislikedFoods: ['rice'],
@@ -114,9 +114,11 @@ describe('RecipeService', () => {
       recipeRepository.findAll.mockResolvedValue([rice, peanuts]);
     });
 
-    it('searches by the diets and keeps disliked foods', async () => {
+    it('searches by the tags that satisfy each diet and keeps disliked foods', async () => {
       await expect(service.getAllowed(rules)).resolves.toEqual([rice, peanuts]);
-      expect(recipeRepository.findAll).toHaveBeenCalledWith({ dietTypes: ['vegan'] });
+      expect(recipeRepository.findAll).toHaveBeenCalledWith({
+        dietTypeGroups: [['vegetarian', 'vegan']],
+      });
     });
 
     it('drops an allergen in an optional ingredient, by its English name', async () => {

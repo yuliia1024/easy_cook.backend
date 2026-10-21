@@ -194,6 +194,45 @@ describe('/api/conversations (e2e)', () => {
     expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(false);
   });
 
+  it('plans vegan recipes for a vegetarian', async () => {
+    const { recipe } = await createMenuWorld(ctx);
+    const rice = await ctx.prisma.foodItem.findFirstOrThrow({ where: { name: 'Rice, boiled' } });
+    const lunch = (
+      await http()
+        .post('/api/recipes')
+        .send({
+          name: 'Rice lunch',
+          instructions: 'Cook.',
+          mealType: 'lunch',
+          dietType: ['vegan'],
+          servings: 1,
+          ingredients: [{ foodItemId: rice.id, quantityG: 300 }],
+        })
+        .expect(201)
+    ).body.id as string;
+    await http()
+      .post('/api/preferences')
+      .send({ preferenceType: 'diet', value: 'vegetarian' })
+      .expect(201);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuPlan = {
+      message: 'Here is your day.',
+      breakfast: recipe.oats,
+      lunch,
+      dinner: recipe.bowl,
+    };
+
+    const { chunks } = await say(id, 'Plan my day');
+
+    const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+    expect(menu.days[0].meals.map((meal: { recipeId: string }) => meal.recipeId)).toEqual([
+      recipe.oats,
+      lunch,
+      recipe.bowl,
+    ]);
+  });
+
   it('asks for the missing details instead of generating a menu', async () => {
     await createMenuWorld(ctx);
     const id = await start();

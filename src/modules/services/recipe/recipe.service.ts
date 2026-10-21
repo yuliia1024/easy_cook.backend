@@ -24,7 +24,7 @@ import {
   RecipeWithIngredients,
 } from '../../data-access/recipe/recipe.repository';
 import { FoodItemService } from '../food-item/food-item.service';
-import { mentions } from '../menu/menu-rules';
+import { dietTagsSatisfying, mentions } from '../menu/menu-rules';
 import { NutritionIngredientInput, NutritionService } from '../nutrition/nutrition.service';
 
 export type NewRecipeData = Omit<RecipeData, 'source'> & { source?: string };
@@ -46,11 +46,13 @@ export class RecipeService {
   }
 
   /**
-   * Recipes with every diet tag of the profile and no allergen or excluded ingredient (optional
+   * Recipes that satisfy every diet of the profile (a vegan one fits a vegetarian) and no allergen or excluded ingredient (optional
    * ones too). Disliked foods stay: they only warn.
    */
   public async getAllowed(rules: PreferenceRules): Promise<RecipeWithIngredients[]> {
-    const recipes = await this.recipeRepository.findAll({ dietTypes: rules.diets });
+    const recipes = await this.recipeRepository.findAll({
+      dietTypeGroups: rules.diets.map((diet) => [...dietTagsSatisfying(diet)]),
+    });
     const forbidden = [...rules.allergies, ...rules.excludedIngredients];
     return recipes.filter(
       (recipe) =>
