@@ -49,6 +49,8 @@ export const CLARIFICATION_REPLY =
 export const CLARIFICATION_MISSING_FIELDS = ['days', 'meals'];
 export const NO_MENU_RECIPES_REPLY =
   'I could not find recipes that fit your preferences for breakfast, lunch and dinner. Add more recipes or adjust your preferences and try again.';
+export const NO_PROFILE_REPLY =
+  'Please fill in your profile first, so I can plan a menu for your goal and preferences.';
 /** Sent instead of the error itself, which never reaches the client. */
 export const ASSISTANT_UNAVAILABLE_REPLY =
   'The assistant is unavailable right now. Please try again in a moment.';

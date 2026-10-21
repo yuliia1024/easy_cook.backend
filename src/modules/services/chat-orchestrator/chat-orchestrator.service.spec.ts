@@ -4,23 +4,25 @@ import {
   CLARIFICATION_MISSING_FIELDS,
   CLARIFICATION_REPLY,
   ChatResponseType,
+  Goal,
   ChatStreamEventType,
   INTERNAL_ERROR_REPLY,
   Intent,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
-import { ChatStreamEvent, MenuComposition } from '../../../common/types';
+import { ChatStreamEvent, MenuComposition, ProfileContext } from '../../../common/types';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
   ConversationNotFoundException,
 } from '../../../common/exceptions';
 import { createMock } from '../../../test/create-mock';
-import { buildConversation, CONVERSATION_ID } from '../../../test/fixtures';
+import { buildConversation, CONVERSATION_ID, PROFILE_ID } from '../../../test/fixtures';
 import { ConversationService } from '../conversation/conversation.service';
 import { GeneralChatService } from '../general-chat/general-chat.service';
 import { IntentService } from '../intent/intent.service';
 import { MenuPlannerService } from '../menu/menu-planner.service';
+import { ProfileContextService } from '../profile-context/profile-context.service';
 import { ChatOrchestratorService } from './chat-orchestrator.service';
 
 describe('ChatOrchestratorService', () => {
@@ -28,8 +30,15 @@ describe('ChatOrchestratorService', () => {
   let intentService: jest.Mocked<IntentService>;
   let generalChatService: jest.Mocked<GeneralChatService>;
   let menuPlannerService: jest.Mocked<MenuPlannerService>;
+  let profileContextService: jest.Mocked<ProfileContextService>;
   let service: ChatOrchestratorService;
   const conversation = buildConversation();
+  const profile: ProfileContext = {
+    profileId: PROFILE_ID,
+    goal: Goal.Maintain,
+    nutritionGoal: null,
+    rules: { diets: [], allergies: [], excludedIngredients: [], dislikedFoods: [] },
+  };
 
   const collect = async (stream: AsyncIterable<ChatStreamEvent>): Promise<ChatStreamEvent[]> => {
     const events: ChatStreamEvent[] = [];
@@ -64,11 +73,14 @@ describe('ChatOrchestratorService', () => {
       message: 'Your day',
       menu,
     });
+    profileContextService = createMock<ProfileContextService>();
+    profileContextService.find.mockResolvedValue(profile);
     service = new ChatOrchestratorService(
       conversationService,
       intentService,
       generalChatService,
       menuPlannerService,
+      profileContextService,
     );
   });
 
@@ -96,8 +108,9 @@ describe('ChatOrchestratorService', () => {
       { type: ChatStreamEventType.TextDelta, content: 'reply' },
       { type: ChatStreamEventType.Done },
     ]);
-    expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, abort.signal);
-    expect(generalChatService.reply).toHaveBeenCalledWith(CONVERSATION_ID, abort.signal);
+    expect(profileContextService.find).toHaveBeenCalledTimes(1);
+    expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, profile, abort.signal);
+    expect(generalChatService.reply).toHaveBeenCalledWith(CONVERSATION_ID, profile, abort.signal);
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       'A reply',
@@ -115,8 +128,13 @@ describe('ChatOrchestratorService', () => {
       { type: ChatStreamEventType.MenuReady, menu },
       { type: ChatStreamEventType.Done },
     ]);
-    expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, abort.signal);
-    expect(menuPlannerService.plan).toHaveBeenCalledWith('Plan a one-day menu.', abort.signal);
+    expect(profileContextService.find).toHaveBeenCalledTimes(1);
+    expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, profile, abort.signal);
+    expect(menuPlannerService.plan).toHaveBeenCalledWith(
+      'Plan a one-day menu.',
+      profile,
+      abort.signal,
+    );
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       'Your day',
@@ -130,7 +148,17 @@ describe('ChatOrchestratorService', () => {
 
     await send('Plan a day');
 
-    expect(menuPlannerService.plan).toHaveBeenCalledWith('Plan a day', undefined);
+    expect(menuPlannerService.plan).toHaveBeenCalledWith('Plan a day', profile, undefined);
+  });
+
+  it('passes a missing profile on as null', async () => {
+    profileContextService.find.mockResolvedValue(null);
+    classifyAs(Intent.GenerateMenu);
+
+    await send('Plan a day');
+
+    expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, null, undefined);
+    expect(menuPlannerService.plan).toHaveBeenCalledWith('Plan a day', null, undefined);
   });
 
   it('streams a planner text reply as text', async () => {

@@ -40,6 +40,21 @@ describe('UserProfileService', () => {
     });
   });
 
+  describe('findCurrent', () => {
+    it('returns the profile', async () => {
+      const profile = buildProfile();
+      repository.findCurrent.mockResolvedValue(profile);
+
+      await expect(service.findCurrent()).resolves.toBe(profile);
+    });
+
+    it('returns null until the profile is filled in', async () => {
+      repository.findCurrent.mockResolvedValue(null);
+
+      await expect(service.findCurrent()).resolves.toBeNull();
+    });
+  });
+
   describe('save', () => {
     it('creates the first profile', async () => {
       const profile = buildProfile();

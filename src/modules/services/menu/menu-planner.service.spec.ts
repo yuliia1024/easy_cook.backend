@@ -1,23 +1,24 @@
 import {
   ChatResponseType,
+  Goal,
   MealType,
   MENU_PLAN_INSTRUCTIONS,
   MENU_PLAN_MAX_OUTPUT_TOKENS,
   NO_MENU_RECIPES_REPLY,
-  PreferenceType,
+  NO_PROFILE_REPLY,
 } from '../../../common/constants';
 import { MenuPlan, MenuPlanSchema } from '../../../common/contracts';
 import { AssistantInvalidOutputException } from '../../../common/exceptions';
+import { ProfileContext } from '../../../common/types';
 import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { createMock } from '../../../test/create-mock';
-import { buildPreference, buildRecipe } from '../../../test/fixtures';
-import { DietaryPreferenceService } from '../dietary-preference/dietary-preference.service';
+import { buildRecipe, PROFILE_ID } from '../../../test/fixtures';
 import { NutritionService } from '../nutrition/nutrition.service';
+import { toModelProfile } from '../profile-context/model-profile';
 import { RecipeService } from '../recipe/recipe.service';
 import { MenuPlannerService } from './menu-planner.service';
 
 describe('MenuPlannerService', () => {
-  let dietaryPreferenceService: jest.Mocked<DietaryPreferenceService>;
   let recipeService: jest.Mocked<RecipeService>;
   let openAiService: jest.Mocked<OpenAiService>;
   let service: MenuPlannerService;
@@ -31,41 +32,34 @@ describe('MenuPlannerService', () => {
     lunch: 'l',
     dinner: 'd',
   };
+  const profile: ProfileContext = {
+    profileId: PROFILE_ID,
+    goal: Goal.LoseWeight,
+    nutritionGoal: null,
+    rules: { diets: ['vegan'], allergies: [], excludedIngredients: [], dislikedFoods: [] },
+  };
 
   beforeEach(() => {
-    dietaryPreferenceService = createMock<DietaryPreferenceService>();
-    dietaryPreferenceService.getAll.mockResolvedValue([
-      buildPreference({ preferenceType: PreferenceType.Diet, value: 'vegan' }),
-    ]);
     recipeService = createMock<RecipeService>();
     recipeService.getAllowed.mockResolvedValue([breakfast, lunch, dinner]);
     openAiService = createMock<OpenAiService>();
     openAiService.generateStructured.mockResolvedValue(plan);
-    service = new MenuPlannerService(
-      dietaryPreferenceService,
-      recipeService,
-      new NutritionService(),
-      openAiService,
-    );
+    service = new MenuPlannerService(recipeService, new NutritionService(), openAiService);
   });
 
-  it('sends the model only the request and the recipes the preferences allow', async () => {
+  it('sends the model the request, the profile and the recipes the preferences allow', async () => {
     const abort = new AbortController();
 
-    await service.plan('Light day', abort.signal);
+    await service.plan('Light day', profile, abort.signal);
 
-    expect(recipeService.getAllowed).toHaveBeenCalledWith({
-      diets: ['vegan'],
-      allergies: [],
-      excludedIngredients: [],
-      dislikedFoods: [],
-    });
+    expect(recipeService.getAllowed).toHaveBeenCalledWith(profile.rules);
     expect(openAiService.generateStructured).toHaveBeenCalledWith(
       [
         {
           role: 'user',
           content: JSON.stringify({
             request: 'Light day',
+            profile: toModelProfile(profile),
             recipes: {
               breakfast: [{ id: 'b', name: 'Rice porridge' }],
               lunch: [{ id: 'l', name: 'Rice bowl' }],
@@ -84,7 +78,7 @@ describe('MenuPlannerService', () => {
   });
 
   it('composes the chosen recipes into a one-day menu, one serving each', async () => {
-    await expect(service.plan('Light day')).resolves.toMatchObject({
+    await expect(service.plan('Light day', profile)).resolves.toMatchObject({
       type: ChatResponseType.MenuReady,
       message: 'Here is your day.',
       menu: {
@@ -112,10 +106,19 @@ describe('MenuPlannerService', () => {
       dinner,
     ]);
 
-    await expect(service.plan('Light day')).resolves.toEqual({
+    await expect(service.plan('Light day', profile)).resolves.toEqual({
       type: ChatResponseType.Text,
       message: NO_MENU_RECIPES_REPLY,
     });
+    expect(openAiService.generateStructured).not.toHaveBeenCalled();
+  });
+
+  it('asks to fill in the profile first, without recipes or the model', async () => {
+    await expect(service.plan('Light day', null)).resolves.toEqual({
+      type: ChatResponseType.Text,
+      message: NO_PROFILE_REPLY,
+    });
+    expect(recipeService.getAllowed).not.toHaveBeenCalled();
     expect(openAiService.generateStructured).not.toHaveBeenCalled();
   });
 
@@ -125,6 +128,8 @@ describe('MenuPlannerService', () => {
   ])('rejects %s as invalid output', async (_case, choice) => {
     openAiService.generateStructured.mockResolvedValue({ ...plan, ...choice });
 
-    await expect(service.plan('Light day')).rejects.toBeInstanceOf(AssistantInvalidOutputException);
+    await expect(service.plan('Light day', profile)).rejects.toBeInstanceOf(
+      AssistantInvalidOutputException,
+    );
   });
 });

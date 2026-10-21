@@ -145,12 +145,41 @@ describe('/api/conversations (e2e)', () => {
     const [classified, planned] = fakeOpenAiState.structuredInputs as Array<
       Array<{ role: string; content: string }>
     >;
-    expect(classified).toEqual([
+    expect(JSON.parse(classified[0].content).profile).toMatchObject({ goal: 'maintain' });
+    expect(classified.slice(1)).toEqual([
       { role: 'user', content: 'Plan my day' },
       { role: 'assistant', content: FAKE_OPEN_AI_DELTAS.join('') },
       { role: 'user', content: 'done do it again' },
     ]);
     expect(JSON.parse(planned[0].content).request).toBe('Plan a one-day menu.');
+  });
+
+  it('gives the planner the profile, marking a missing goal as not set', async () => {
+    const { recipe } = await createMenuWorld(ctx, { goal: false });
+    await http()
+      .post('/api/preferences')
+      .send({ preferenceType: 'allergy', value: 'peanut' })
+      .expect(201);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuPlan = {
+      message: 'Here is your day.',
+      breakfast: recipe.oats,
+      lunch: recipe.chicken,
+      dinner: recipe.bowl,
+    };
+
+    await say(id, 'Plan my day');
+
+    const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+    expect(JSON.parse(planned[0].content).profile).toEqual({
+      goal: 'maintain',
+      dailyTarget: 'not set',
+      diets: [],
+      allergies: ['peanut'],
+      excludedIngredients: [],
+      dislikedFoods: [],
+    });
   });
 
   it('reports a recipe outside the allowed ones as invalid output', async () => {

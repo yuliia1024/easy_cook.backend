@@ -1,10 +1,10 @@
-import { MenuIssueCode, MenuIssueSeverity } from '../../../common/constants';
+import { Goal, MenuIssueCode, MenuIssueSeverity } from '../../../common/constants';
 import {
   MenuNotFoundException,
   MenuVersionNotFoundException,
   MenuViolatesRulesBadRequestException,
 } from '../../../common/exceptions';
-import { MenuIssue } from '../../../common/types';
+import { MenuIssue, ProfileContext } from '../../../common/types';
 import { createMock } from '../../../test/create-mock';
 import {
   buildMenu,
@@ -15,17 +15,19 @@ import {
   PROFILE_ID,
 } from '../../../test/fixtures';
 import { MenuRepository } from '../../data-access/menu/menu.repository';
+import { ProfileContextService } from '../profile-context/profile-context.service';
 import { UserProfileService } from '../user-profile/user-profile.service';
-import { MenuComposer, MenuContext } from './menu-composer';
+import { MenuComposer } from './menu-composer';
 import { MenuService } from './menu.service';
 
 describe('MenuService', () => {
   let repository: jest.Mocked<MenuRepository>;
   let composer: jest.Mocked<MenuComposer>;
   let service: MenuService;
-  const context: MenuContext = {
+  const context: ProfileContext = {
     profileId: PROFILE_ID,
-    goal: null,
+    goal: Goal.Maintain,
+    nutritionGoal: null,
     rules: { diets: [], allergies: [], excludedIngredients: [], dislikedFoods: [] },
   };
   const menu = buildMenu({ versions: [buildMenuVersion()] });
@@ -42,8 +44,9 @@ describe('MenuService', () => {
     const profileService = createMock<UserProfileService>();
     profileService.getCurrent.mockResolvedValue(buildProfile());
     composer = createMock<MenuComposer>();
-    composer.context.mockResolvedValue(context);
-    service = new MenuService(repository, profileService, composer);
+    const profileContextService = createMock<ProfileContextService>();
+    profileContextService.get.mockResolvedValue(context);
+    service = new MenuService(repository, profileService, composer, profileContextService);
   });
 
   it('lists the profile menus', async () => {

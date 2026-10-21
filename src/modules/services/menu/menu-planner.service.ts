@@ -5,34 +5,40 @@ import {
   MENU_PLAN_MAX_OUTPUT_TOKENS,
   MENU_PLAN_MEAL_TYPES,
   NO_MENU_RECIPES_REPLY,
+  NO_PROFILE_REPLY,
 } from '../../../common/constants';
 import { MenuPlanSchema } from '../../../common/contracts';
-import { ChatResponse } from '../../../common/types';
+import { ChatResponse, ProfileContext } from '../../../common/types';
 import { AssistantInvalidOutputException } from '../../../common/exceptions';
 import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
-import { DietaryPreferenceService } from '../dietary-preference/dietary-preference.service';
 import { NutritionService } from '../nutrition/nutrition.service';
+import { toModelProfile } from '../profile-context/model-profile';
 import { RecipeService } from '../recipe/recipe.service';
 import { composeMenu, ResolvedDay, snapshotRecipe } from './menu-composition';
-import { toPreferenceRules } from './menu-rules';
 
 /**
  * Plans a one-day menu from a chat request: the model picks a breakfast, a lunch and a dinner
- * among the recipes the dietary preferences allow, one serving each. A recipe that is not one of
- * them is invalid output. Nothing is saved.
+ * among the recipes the dietary preferences allow, one serving each, knowing the profile goal and
+ * daily target. A recipe that is not one of them is invalid output. Nothing is saved.
+ * Without a profile there are no rules to follow, so it asks to fill one in instead.
  */
 @Injectable()
 export class MenuPlannerService {
   constructor(
-    private readonly dietaryPreferenceService: DietaryPreferenceService,
     private readonly recipeService: RecipeService,
     private readonly nutritionService: NutritionService,
     private readonly openAiService: OpenAiService,
   ) {}
 
-  public async plan(message: string, abortSignal?: AbortSignal): Promise<ChatResponse> {
-    const rules = toPreferenceRules(await this.dietaryPreferenceService.getAll());
-    const recipes = await this.recipeService.getAllowed(rules);
+  public async plan(
+    message: string,
+    profile: ProfileContext | null,
+    abortSignal?: AbortSignal,
+  ): Promise<ChatResponse> {
+    if (!profile) {
+      return { type: ChatResponseType.Text, message: NO_PROFILE_REPLY };
+    }
+    const recipes = await this.recipeService.getAllowed(profile.rules);
     const options = MENU_PLAN_MEAL_TYPES.map((type) => recipes.filter((r) => r.mealType === type));
     if (options.some((recipesOfMeal) => recipesOfMeal.length === 0)) {
       return { type: ChatResponseType.Text, message: NO_MENU_RECIPES_REPLY };
@@ -44,6 +50,7 @@ export class MenuPlannerService {
           role: 'user',
           content: JSON.stringify({
             request: message,
+            profile: toModelProfile(profile),
             recipes: Object.fromEntries(
               MENU_PLAN_MEAL_TYPES.map((type, i) => [
                 type,
