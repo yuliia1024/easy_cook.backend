@@ -233,6 +233,48 @@ describe('OpenAiService', () => {
       );
     });
 
+    it('returns the model, latency and token usage with the object', async () => {
+      jest.spyOn(Logger.prototype, 'log').mockImplementation();
+      doGenerate.mockResolvedValue(generated('{"intent":"a"}'));
+
+      const result = await new OpenAiService(openAiConfig).generateStructuredResult(
+        'Hi',
+        schema,
+        OPTIONS,
+      );
+
+      expect(result).toEqual({
+        output: { intent: 'a' },
+        modelId: 'gpt-test',
+        latencyMs: expect.any(Number),
+        usage: { inputTokens: 12, cachedInputTokens: 2, outputTokens: 30 },
+      });
+    });
+
+    it('counts usage the API did not report as 0', async () => {
+      jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+      doGenerate.mockResolvedValue({
+        ...generated('{"intent":"a"}'),
+        usage: {
+          inputTokens: {
+            total: undefined,
+            noCache: undefined,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: { total: undefined, text: undefined, reasoning: undefined },
+        },
+      });
+
+      const { usage } = await new OpenAiService(openAiConfig).generateStructuredResult(
+        'Hi',
+        schema,
+        OPTIONS,
+      );
+
+      expect(usage).toEqual({ inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 });
+    });
+
     it.each([['{"intent":"c"}'], ['not json']])(
       'fails with invalid output for %s',
       async (text) => {
@@ -243,6 +285,38 @@ describe('OpenAiService', () => {
         ).rejects.toBeInstanceOf(AssistantInvalidOutputException);
       },
     );
+
+    it.each([['{"intent":"c"}'], ['not json']])(
+      'keeps the model and tokens of invalid output %s',
+      async (text) => {
+        doGenerate.mockResolvedValue(generated(text));
+
+        const error = await new OpenAiService(openAiConfig)
+          .generateStructuredResult('Hi', schema, OPTIONS)
+          .catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(AssistantInvalidOutputException);
+        expect((error as AssistantInvalidOutputException).call).toEqual({
+          modelId: 'gpt-test',
+          usage: { inputTokens: 12, cachedInputTokens: 2, outputTokens: 30 },
+        });
+      },
+    );
+
+    it('keeps the model and tokens when the output fails the schema check after generation', async () => {
+      jest.spyOn(Logger.prototype, 'log').mockImplementation();
+      doGenerate.mockResolvedValue(generated('{"intent":"a"}'));
+      const strict = z.object({ intent: z.enum(['a']) }).refine(() => false);
+
+      const error = await new OpenAiService(openAiConfig)
+        .generateStructuredResult('Hi', strict, OPTIONS)
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(AssistantInvalidOutputException);
+      expect((error as AssistantInvalidOutputException).call).toMatchObject({
+        modelId: 'gpt-test',
+      });
+    });
 
     it('maps an API failure', async () => {
       doGenerate.mockRejectedValue(apiError(false));

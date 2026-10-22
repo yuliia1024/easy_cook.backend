@@ -1,3 +1,4 @@
+import { ModelCallInfo } from '../types';
 import { ServiceUnavailableError } from './app-error';
 
 export class DatabaseUnavailableException extends ServiceUnavailableError {
@@ -13,9 +14,12 @@ export class AssistantUnavailableException extends ServiceUnavailableError {
   }
 }
 
-/** The model answered with output that does not match the expected schema. */
+/**
+ * The model answered with output that does not match the expected schema. `call` is the model and
+ * the tokens of that answer when the API reported them (evals count its cost).
+ */
 export class AssistantInvalidOutputException extends ServiceUnavailableError {
-  constructor() {
+  constructor(public readonly call: ModelCallInfo | null = null) {
     super('Assistant returned invalid output');
   }
 }

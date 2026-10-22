@@ -18,6 +18,7 @@ import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
 } from '../../common/exceptions';
+import { ModelCallInfo, ModelUsage } from '../../common/types';
 import { OpenAiConfigService } from '../../configs/open-ai-config/open-ai-config.service';
 
 /** A single prompt or a conversation, oldest message first. */
@@ -29,6 +30,18 @@ export interface ModelCallOptions {
   maxOutputTokens: number;
   abortSignal?: AbortSignal;
 }
+
+/** A structured output with what it cost: the model that answered, time and tokens. */
+export interface ModelResult<T> extends ModelCallInfo {
+  output: T;
+  latencyMs: number;
+}
+
+const toModelUsage = (usage: LanguageModelUsage): ModelUsage => ({
+  inputTokens: usage.inputTokens ?? 0,
+  cachedInputTokens: usage.inputTokenDetails.cacheReadTokens ?? 0,
+  outputTokens: usage.outputTokens ?? 0,
+});
 
 interface StepSummary {
   modelId: string;
@@ -97,23 +110,37 @@ export class OpenAiService {
     schema: z.ZodType<T>,
     options: ModelCallOptions,
   ): Promise<T> {
+    const { output } = await this.generateStructuredResult(input, schema, options);
+    return output;
+  }
+
+  /** `generateStructured` with the model id, latency and token usage of the call (evals). */
+  public async generateStructuredResult<T>(
+    input: ModelInput,
+    schema: z.ZodType<T>,
+    options: ModelCallOptions,
+  ): Promise<ModelResult<T>> {
     const startedAt = Date.now();
     try {
       const result = await generateText({
         ...this.callSettings(input, options),
         output: Output.object({ schema }),
       });
-      this.logSummary(
-        {
-          modelId: result.finalStep.response.modelId,
-          responseId: result.finalStep.response.id,
-          finishReason: result.finishReason,
-          rawFinishReason: result.rawFinishReason,
-          usage: result.usage,
-        },
-        startedAt,
-      );
-      return schema.parse(result.output);
+      const step: StepSummary = {
+        modelId: result.finalStep.response.modelId,
+        responseId: result.finalStep.response.id,
+        finishReason: result.finishReason,
+        rawFinishReason: result.rawFinishReason,
+        usage: result.usage,
+      };
+      this.logSummary(step, startedAt);
+      const call: ModelCallInfo = { modelId: step.modelId, usage: toModelUsage(result.usage) };
+      const parsed = schema.safeParse(result.output);
+      if (!parsed.success) {
+        this.logger.error(`OpenAI call failed: ${parsed.error.message}`);
+        throw new AssistantInvalidOutputException(call);
+      }
+      return { ...call, output: parsed.data, latencyMs: Date.now() - startedAt };
     } catch (error) {
       throw this.toAssistantError(error, options.abortSignal);
     }
@@ -134,17 +161,20 @@ export class OpenAiService {
   }
 
   private toAssistantError(error: unknown, abortSignal: AbortSignal | undefined): unknown {
-    if (abortSignal?.aborted) {
+    if (abortSignal?.aborted || error instanceof AssistantInvalidOutputException) {
       return error;
     }
     const cause = RetryError.isInstance(error) ? error.lastError : error;
     this.logger.error(`OpenAI call failed: ${cause instanceof Error ? cause.message : cause}`);
 
-    if (
-      NoObjectGeneratedError.isInstance(cause) ||
-      TypeValidationError.isInstance(cause) ||
-      cause instanceof z.ZodError
-    ) {
+    if (NoObjectGeneratedError.isInstance(cause)) {
+      return new AssistantInvalidOutputException(
+        cause.response && cause.usage
+          ? { modelId: cause.response.modelId, usage: toModelUsage(cause.usage) }
+          : null,
+      );
+    }
+    if (TypeValidationError.isInstance(cause) || cause instanceof z.ZodError) {
       return new AssistantInvalidOutputException();
     }
     return new AssistantUnavailableException(

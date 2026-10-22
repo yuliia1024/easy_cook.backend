@@ -6,10 +6,42 @@ import {
 } from '../../../common/constants';
 import { IntentResult, IntentResultSchema } from '../../../common/contracts';
 import { ProfileContext } from '../../../common/types';
-import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
+import { Message } from '../../../generated/prisma/client';
+import {
+  ModelCallOptions,
+  ModelInput,
+  OpenAiService,
+} from '../../../providers/open-ai/open-ai.service';
 import { ConversationService } from '../conversation/conversation.service';
 import { toModelMessages } from '../conversation/model-messages';
 import { profileMessage } from '../profile-context/model-profile';
+
+/** One classifier call: the input, the schema of the answer and the options. */
+export interface IntentModelCall {
+  input: ModelInput;
+  schema: typeof IntentResultSchema;
+  options: ModelCallOptions;
+}
+
+/**
+ * The classifier call for the profile and the recent messages, oldest first. The intent evals
+ * (`evals/suites/intent`) run the same call, so they measure the prompt the chat uses.
+ */
+export function intentModelCall(
+  profile: ProfileContext | null,
+  messages: Pick<Message, 'role' | 'content'>[],
+  abortSignal?: AbortSignal,
+): IntentModelCall {
+  return {
+    input: [profileMessage(profile), ...toModelMessages(messages)],
+    schema: IntentResultSchema,
+    options: {
+      instructions: INTENT_INSTRUCTIONS,
+      maxOutputTokens: INTENT_MAX_OUTPUT_TOKENS,
+      abortSignal,
+    },
+  };
+}
 
 /**
  * Classifies the latest message of a conversation by the model, which reads the recent history
@@ -34,14 +66,7 @@ export class IntentService {
       conversationId,
       INTENT_HISTORY_LIMIT,
     );
-    return this.openAiService.generateStructured(
-      [profileMessage(profile), ...toModelMessages(messages)],
-      IntentResultSchema,
-      {
-        instructions: INTENT_INSTRUCTIONS,
-        maxOutputTokens: INTENT_MAX_OUTPUT_TOKENS,
-        abortSignal,
-      },
-    );
+    const { input, schema, options } = intentModelCall(profile, messages, abortSignal);
+    return this.openAiService.generateStructured(input, schema, options);
   }
 }
