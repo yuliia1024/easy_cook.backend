@@ -14,12 +14,14 @@ import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { NutritionService } from '../nutrition/nutrition.service';
 import { toModelProfile } from '../profile-context/model-profile';
 import { RecipeService } from '../recipe/recipe.service';
-import { composeMenu, ResolvedDay, snapshotRecipe } from './menu-composition';
+import { MenuComposer } from './menu-composer';
+import { ResolvedDay, snapshotRecipe } from './menu-composition';
 
 /**
  * Plans a one-day menu from a chat request: the model picks a breakfast, a lunch and a dinner
  * among the recipes the dietary preferences allow, one serving each, knowing the profile goal and
- * daily target. A recipe that is not one of them is invalid output. Nothing is saved.
+ * daily target. A recipe that is not one of them is invalid output. The menu comes with its
+ * issues against the profile. Nothing is saved.
  * Without a profile there are no rules to follow, so it asks to fill one in instead.
  */
 @Injectable()
@@ -28,6 +30,7 @@ export class MenuPlannerService {
     private readonly recipeService: RecipeService,
     private readonly nutritionService: NutritionService,
     private readonly openAiService: OpenAiService,
+    private readonly menuComposer: MenuComposer,
   ) {}
 
   public async plan(
@@ -87,7 +90,7 @@ export class MenuPlannerService {
     return {
       type: ChatResponseType.MenuReady,
       message: plan.message,
-      menu: { ...composeMenu([day]), issues: [] },
+      menu: this.menuComposer.compose([day], profile),
     };
   }
 }

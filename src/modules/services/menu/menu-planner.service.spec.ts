@@ -1,7 +1,10 @@
 import {
   ChatResponseType,
   Goal,
+  CalculationMode,
   MealType,
+  MenuIssueCode,
+  MenuIssueSeverity,
   MENU_PLAN_INSTRUCTIONS,
   MENU_PLAN_MAX_OUTPUT_TOKENS,
   NO_MENU_RECIPES_REPLY,
@@ -16,6 +19,7 @@ import { buildRecipe, PROFILE_ID } from '../../../test/fixtures';
 import { NutritionService } from '../nutrition/nutrition.service';
 import { toModelProfile } from '../profile-context/model-profile';
 import { RecipeService } from '../recipe/recipe.service';
+import { MenuComposer } from './menu-composer';
 import { MenuPlannerService } from './menu-planner.service';
 
 describe('MenuPlannerService', () => {
@@ -44,7 +48,12 @@ describe('MenuPlannerService', () => {
     recipeService.getAllowed.mockResolvedValue([breakfast, lunch, dinner]);
     openAiService = createMock<OpenAiService>();
     openAiService.generateStructured.mockResolvedValue(plan);
-    service = new MenuPlannerService(recipeService, new NutritionService(), openAiService);
+    service = new MenuPlannerService(
+      recipeService,
+      new NutritionService(),
+      openAiService,
+      new MenuComposer(),
+    );
   });
 
   it('sends the model the request, the profile and the recipes the preferences allow', async () => {
@@ -77,7 +86,7 @@ describe('MenuPlannerService', () => {
     );
   });
 
-  it('composes the chosen recipes into a one-day menu, one serving each', async () => {
+  it('composes the chosen recipes into a one-day menu, one serving each, without issues when there is no goal', async () => {
     await expect(service.plan('Light day', profile)).resolves.toMatchObject({
       type: ChatResponseType.MenuReady,
       message: 'Here is your day.',
@@ -95,6 +104,78 @@ describe('MenuPlannerService', () => {
           },
         ],
         issues: [],
+      },
+    });
+  });
+
+  it('warns when the day is off the calorie goal', async () => {
+    const withGoal: ProfileContext = {
+      ...profile,
+      nutritionGoal: {
+        goalId: 'g',
+        caloriesKcal: 2000,
+        proteinG: 104,
+        fatG: 56,
+        carbsG: 270,
+        calculationMode: CalculationMode.Manual,
+        ruleVersion: null,
+      },
+    };
+
+    const response = await service.plan('Light day', withGoal);
+
+    expect(response).toMatchObject({
+      menu: {
+        issues: [
+          {
+            severity: MenuIssueSeverity.Warning,
+            code: MenuIssueCode.CaloriesOffTarget,
+            message: 'Day 1: 390 kcal is 81 % below the 2000 kcal goal',
+            dayIndex: 0,
+          },
+        ],
+      },
+    });
+  });
+
+  it('reports the issues of the chosen recipes against the preferences', async () => {
+    const response = await service.plan('Light day', {
+      ...profile,
+      rules: { ...profile.rules, dislikedFoods: ['rice'] },
+    });
+
+    expect(response).toMatchObject({
+      menu: {
+        issues: [
+          expect.objectContaining({ code: MenuIssueCode.DislikedFood, position: 0 }),
+          expect.objectContaining({ code: MenuIssueCode.DislikedFood, position: 1 }),
+          expect.objectContaining({ code: MenuIssueCode.DislikedFood, position: 2 }),
+        ],
+      },
+    });
+  });
+
+  it('reports a broken hard rule as an error, should the allowed recipes let one through', async () => {
+    recipeService.getAllowed.mockResolvedValue([
+      breakfast,
+      buildRecipe({ id: 'l', name: 'Rice bowl', dietType: [] }),
+      dinner,
+    ]);
+
+    const response = await service.plan('Light day', profile);
+
+    expect(response).toMatchObject({
+      menu: {
+        issues: [
+          {
+            severity: MenuIssueSeverity.Error,
+            code: MenuIssueCode.DietViolation,
+            message: 'Day 1, lunch: Rice bowl is not vegan',
+            dayIndex: 0,
+            position: 1,
+            recipeId: 'l',
+          },
+        ],
       },
     });
   });
