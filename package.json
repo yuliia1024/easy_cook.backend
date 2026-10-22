@@ -7,8 +7,8 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.ts\" \"prisma/**/*.ts\"",
-    "lint": "eslint \"{src,test,scripts,prisma}/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.ts\" \"evals/**/*.ts\" \"prisma/**/*.ts\"",
+    "lint": "eslint \"{src,test,scripts,evals,prisma}/**/*.ts\"",
     "start": "nest start",
     "prestart:dev": "prisma migrate deploy",
     "start:dev": "nest start --watch",
@@ -29,6 +29,7 @@
     "data:seed-recipes": "ts-node --transpile-only scripts/seed-recipes.ts",
     "data:validate": "ts-node --transpile-only scripts/validate-seed-data.ts",
     "data:verify": "ts-node --transpile-only scripts/verify-data.ts",
+    "eval": "ts-node --transpile-only evals/run.ts",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "test:cov": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",

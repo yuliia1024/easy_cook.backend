@@ -12,6 +12,10 @@ data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 
+# Eval reports, see README -> "Evals"
+evals/reports/*
+!evals/reports/.gitkeep
+
 # Prisma client, generated on `npm install`
 src/generated
 .vscode/launch.json

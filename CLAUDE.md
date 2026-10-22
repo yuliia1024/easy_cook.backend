@@ -25,6 +25,9 @@ repository. Layout:
   (needs `npm run infra:up`); applied on start-up. Never edit a committed migration.
 - `scripts/` - dataset CLIs; their logic lives in `scripts/lib/` with specs. `data/seed/` is committed,
   `data/raw/` and `data/processed/` are not.
+- `evals/` - prompt evals on the real model (`npm run eval`, not in `npm test`/CI): cases in
+  `suites/<name>/cases.jsonl`, runner logic in `lib/` with specs, committed `baselines/`,
+  git-ignored `reports/`. A prompt change must not be worse than the baseline.
 
 ## Rules
 

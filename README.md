@@ -170,6 +170,39 @@ present), keeps the chosen data types, and maps: energy 1008 → 2048 → 2047 �
 calorie factors → 4/9/4; protein 1003; fat 1004 → 1085; carbs 1005 → 1050. The state is detected
 from the description (`raw`, `boiled`, `dry`...). Names are English (`name` = `name_en`).
 
+## Evals
+
+Prompt quality measured on the real model (`OPEN_AI_API_KEY`, costs money: the intent suite is
+~$0.02 a run). Not part of `npm test` or CI; run it before and after a prompt change.
+
+```bash
+npm run eval                                   # every suite, compared with its baseline
+npm run eval -- --suite intent                 # one suite (comma separated or repeated)
+npm run eval -- --suite intent --save-baseline # record the current result as the baseline
+npm run eval -- --repeat 1 --concurrency 3     # runs per case (3 by default), parallel calls (5)
+```
+
+- `evals/suites/<name>/cases.jsonl` - one case per line: `id`, `tags`, the input and `expected`.
+  `evals/suites/<name>/<name>.suite.ts` runs a case through the same code the app uses and scores
+  every field of the answer.
+- The console prints the pass rate, the rate of every field and tag, tokens, latency (mean,
+  p50, p95), cost and the failed cases; the full report goes to `evals/reports/` (git-ignored).
+- `evals/baselines/<suite>.json` is committed. A run is worse - exit code 1 - when the pass rate or
+  a field rate drops more than two standard errors below it (one run at least); the same prompt
+  does not give the same answers every run, and every case runs 3 times to even that out. Exit
+  code 1 also when the run used another model than the baseline (save a new one).
+- Output that does not match the schema fails the case. A failed call (timeout, rate limit) is
+  left out of the rates; more than 10 % of them fail the run as incomplete, and `--save-baseline`
+  saves nothing after any.
+- The runner logic lives in `evals/lib/` with specs, which run with `npm test`.
+
+**intent** - the classifier of chat messages (`IntentService`): 53 messages in Ukrainian and
+English (direct, vague, more than 7 days, no days, surzhyk, out of scope, general chat,
+follow-ups). Fields: `intent`; `days` and `constraints` read from the restated request while the
+classifier returns them only as text. A constraint lists alternatives: `"vegetarian"` must be
+named as wanted, `"!meat"` as excluded ("without meat", "meat-free"). The baseline was taken on the prompt before CHAT-1, which
+must not be worse.
+
 ## Tests
 
 ```bash

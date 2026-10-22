@@ -17,7 +17,7 @@ import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { createMock } from '../../../test/create-mock';
 import { buildMessage, CONVERSATION_ID, PROFILE_ID } from '../../../test/fixtures';
 import { ConversationService } from '../conversation/conversation.service';
-import { IntentService } from './intent.service';
+import { intentModelCall, IntentService } from './intent.service';
 
 describe('IntentService', () => {
   let conversationService: jest.Mocked<ConversationService>;
@@ -131,5 +131,20 @@ describe('IntentService', () => {
       IntentResultSchema.safeParse({ intent: 'delete_everything', request: null }).success,
     ).toBe(false);
     expect(IntentResultSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('builds the same call for the evals without a stored conversation', () => {
+    expect(intentModelCall(null, [{ role: MessageRole.User, content: 'Hi' }])).toEqual({
+      input: [
+        { role: 'user', content: expect.stringContaining('"goal":"not set"') },
+        { role: 'user', content: 'Hi' },
+      ],
+      schema: IntentResultSchema,
+      options: {
+        instructions: INTENT_INSTRUCTIONS,
+        maxOutputTokens: INTENT_MAX_OUTPUT_TOKENS,
+        abortSignal: undefined,
+      },
+    });
   });
 });

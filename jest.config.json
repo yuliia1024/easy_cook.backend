@@ -1,7 +1,7 @@
 {
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
-  "roots": ["<rootDir>/src", "<rootDir>/scripts"],
+  "roots": ["<rootDir>/src", "<rootDir>/scripts", "<rootDir>/evals"],
   "testRegex": ".*\\.spec\\.ts$",
   "transform": {
     "^.+\\.ts$": "ts-jest"
@@ -13,6 +13,8 @@
   "collectCoverageFrom": [
     "src/**/*.ts",
     "scripts/lib/**/*.ts",
+    "evals/lib/**/*.ts",
+    "evals/suites/**/*.ts",
     "!src/main.ts",
     "!**/index.ts",
     "!**/*.module.ts",
