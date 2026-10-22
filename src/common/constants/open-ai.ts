@@ -48,11 +48,15 @@ export const MENU_PLAN_INSTRUCTIONS = `
   The user message is JSON: request is what the user asked for, profile is the user's goal,
   daily target and preferences, recipes are the only recipes you may use, grouped by meal.
   In profile "not set" means unknown: do not assume a value. An empty list means none.
+  perServing of a recipe is the kcal and grams of protein, fat and carbs of one serving;
+  complete false means some ingredients have unknown values and the real numbers are higher.
 
   RULES
   Return the id of one breakfast recipe as breakfast, one lunch recipe as lunch and one dinner
   recipe as dinner, each taken from its own group.
   Follow the request where the recipes allow it.
+  When dailyTarget is set, pick recipes whose kcal add up as close to dailyTarget kcal as the
+  recipes allow.
   Prefer recipes that fit the profile goal and avoid its dislikedFoods where you can.
   message is one or two short sentences in English that introduce the menu to the user.
 

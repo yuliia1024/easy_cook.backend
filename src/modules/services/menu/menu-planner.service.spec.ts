@@ -15,7 +15,7 @@ import { AssistantInvalidOutputException } from '../../../common/exceptions';
 import { ProfileContext } from '../../../common/types';
 import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { createMock } from '../../../test/create-mock';
-import { buildRecipe, PROFILE_ID } from '../../../test/fixtures';
+import { buildFoodItem, buildIngredient, buildRecipe, PROFILE_ID } from '../../../test/fixtures';
 import { NutritionService } from '../nutrition/nutrition.service';
 import { toModelProfile } from '../profile-context/model-profile';
 import { RecipeService } from '../recipe/recipe.service';
@@ -56,8 +56,9 @@ describe('MenuPlannerService', () => {
     );
   });
 
-  it('sends the model the request, the profile and the recipes the preferences allow', async () => {
+  it('sends the model the request, the profile and the allowed recipes with their nutrition', async () => {
     const abort = new AbortController();
+    const perServing = { kcal: 130, proteinG: 3, fatG: 0, carbsG: 28 };
 
     await service.plan('Light day', profile, abort.signal);
 
@@ -70,9 +71,9 @@ describe('MenuPlannerService', () => {
             request: 'Light day',
             profile: toModelProfile(profile),
             recipes: {
-              breakfast: [{ id: 'b', name: 'Rice porridge' }],
-              lunch: [{ id: 'l', name: 'Rice bowl' }],
-              dinner: [{ id: 'd', name: 'Rice salad' }],
+              breakfast: [{ id: 'b', name: 'Rice porridge', perServing, complete: true }],
+              lunch: [{ id: 'l', name: 'Rice bowl', perServing, complete: true }],
+              dinner: [{ id: 'd', name: 'Rice salad', perServing, complete: true }],
             },
           }),
         },
@@ -106,6 +107,24 @@ describe('MenuPlannerService', () => {
         issues: [],
       },
     });
+  });
+
+  it('tells the model a recipe with unknown values is incomplete', async () => {
+    const unknownFat = buildRecipe({
+      id: 'l',
+      name: 'Rice bowl',
+      ingredients: [buildIngredient({ foodItem: buildFoodItem({ fatG: null }) })],
+    });
+    recipeService.getAllowed.mockResolvedValue([breakfast, unknownFat, dinner]);
+
+    await service.plan('Light day', profile);
+
+    const [[[message]]] = openAiService.generateStructured.mock.calls as unknown as Array<
+      [Array<{ content: string }>]
+    >;
+    expect(JSON.parse(message.content).recipes.lunch).toEqual([
+      expect.objectContaining({ id: 'l', complete: false }),
+    ]);
   });
 
   it('warns when the day is off the calorie goal', async () => {

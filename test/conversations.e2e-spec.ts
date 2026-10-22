@@ -193,6 +193,32 @@ describe('/api/conversations (e2e)', () => {
     expect(menu.issues).toEqual([]);
   });
 
+  it('gives the planner the calories and macros of a serving of each recipe', async () => {
+    const { recipe } = await createMenuWorld(ctx);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuPlan = {
+      message: 'Here is your day.',
+      breakfast: recipe.oats,
+      lunch: recipe.chicken,
+      dinner: recipe.bowl,
+    };
+
+    await say(id, 'Plan my day');
+
+    const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+    const { profile, recipes } = JSON.parse(planned[0].content);
+    expect(profile.dailyTarget).toMatchObject({ kcal: 2172 });
+    expect(recipes.breakfast).toEqual([
+      {
+        id: recipe.oats,
+        name: 'Oatmeal',
+        perServing: { kcal: 444, proteinG: 16, fatG: 8, carbsG: 72 },
+        complete: true,
+      },
+    ]);
+  });
+
   it('reports a recipe outside the allowed ones as invalid output', async () => {
     const { recipe } = await createMenuWorld(ctx);
     await http()
