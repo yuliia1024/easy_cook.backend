@@ -1,0 +1,6327 @@
+[
+  {
+    "alias": "1% milk",
+    "food": "usda_fdc:746772",
+    "name": "Milk, lowfat, fluid, 1% milkfat, with added vitamin A and vitamin D"
+  },
+  {
+    "alias": "10x sugar",
+    "food": "usda_fdc:169656",
+    "name": "Sugars, powdered"
+  },
+  {
+    "alias": "2% milk",
+    "food": "usda_fdc:746778",
+    "name": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D"
+  },
+  {
+    "alias": "7-up",
+    "food": "usda_fdc:174846",
+    "name": "Beverages, carbonated, ginger ale"
+  },
+  {
+    "alias": "acorn squash",
+    "food": "usda_fdc:2685571",
+    "name": "Squash, winter, acorn, raw"
+  },
+  {
+    "alias": "active dry yeast",
+    "food": "usda_fdc:175043",
+    "name": "Leavening agents, yeast, baker's, active dry"
+  },
+  {
+    "alias": "ahi tuna",
+    "food": "usda_fdc:175159",
+    "name": "Fish, tuna, fresh, yellowfin, raw"
+  },
+  {
+    "alias": "albacore tuna",
+    "food": "usda_fdc:334194",
+    "name": "Fish, tuna, light, canned in water, drained solids"
+  },
+  {
+    "alias": "all purpose flour",
+    "food": "usda_fdc:168894",
+    "name": "Wheat flour, white, all-purpose, enriched, bleached"
+  },
+  {
+    "alias": "all-purpose",
+    "food": "usda_fdc:168894",
+    "name": "Wheat flour, white, all-purpose, enriched, bleached"
+  },
+  {
+    "alias": "all-purpose flour",
+    "food": "usda_fdc:168894",
+    "name": "Wheat flour, white, all-purpose, enriched, bleached"
+  },
+  {
+    "alias": "allspice",
+    "food": "usda_fdc:171315",
+    "name": "Spices, allspice, ground"
+  },
+  {
+    "alias": "almond",
+    "food": "usda_fdc:170567",
+    "name": "Nuts, almonds"
+  },
+  {
+    "alias": "almond flour",
+    "food": "usda_fdc:170568",
+    "name": "Nuts, almonds, blanched"
+  },
+  {
+    "alias": "almond meal",
+    "food": "usda_fdc:170568",
+    "name": "Nuts, almonds, blanched"
+  },
+  {
+    "alias": "almond milk",
+    "food": "usda_fdc:2257045",
+    "name": "Almond milk, unsweetened, plain, refrigerated"
+  },
+  {
+    "alias": "almond paste",
+    "food": "usda_fdc:170160",
+    "name": "Nuts, almond paste"
+  },
+  {
+    "alias": "almonds",
+    "food": "usda_fdc:170567",
+    "name": "Nuts, almonds"
+  },
+  {
+    "alias": "american cheese",
+    "food": "usda_fdc:170853",
+    "name": "Cheese, pasteurized process, American, fortified with vitamin D"
+  },
+  {
+    "alias": "anchovies",
+    "food": "usda_fdc:174183",
+    "name": "Fish, anchovy, european, canned in oil, drained solids"
+  },
+  {
+    "alias": "anchovy fillets",
+    "food": "usda_fdc:174183",
+    "name": "Fish, anchovy, european, canned in oil, drained solids"
+  },
+  {
+    "alias": "anchovy paste",
+    "food": "usda_fdc:174183",
+    "name": "Fish, anchovy, european, canned in oil, drained solids"
+  },
+  {
+    "alias": "andouille sausage",
+    "food": "usda_fdc:174584",
+    "name": "Sausage, smoked link sausage, pork"
+  },
+  {
+    "alias": "angel flake coconut",
+    "food": "usda_fdc:168586",
+    "name": "Nuts, coconut meat, dried (desiccated), sweetened, shredded"
+  },
+  {
+    "alias": "angel food cake",
+    "food": "usda_fdc:172694",
+    "name": "Cake, angelfood, commercially prepared"
+  },
+  {
+    "alias": "angel hair pasta",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "apple",
+    "food": "usda_fdc:171688",
+    "name": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "apple cider",
+    "food": "usda_fdc:173933",
+    "name": "Apple juice, canned or bottled, unsweetened, without added ascorbic acid"
+  },
+  {
+    "alias": "apple cider vinegar",
+    "food": "usda_fdc:173469",
+    "name": "Vinegar, cider"
+  },
+  {
+    "alias": "apple juice",
+    "food": "usda_fdc:173933",
+    "name": "Apple juice, canned or bottled, unsweetened, without added ascorbic acid"
+  },
+  {
+    "alias": "apple pie filling",
+    "food": "usda_fdc:168822",
+    "name": "Pie fillings, apple, canned"
+  },
+  {
+    "alias": "apple sauce",
+    "food": "usda_fdc:171695",
+    "name": "Applesauce, canned, unsweetened, without added ascorbic acid (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "apples",
+    "food": "usda_fdc:171688",
+    "name": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "applesauce",
+    "food": "usda_fdc:171695",
+    "name": "Applesauce, canned, unsweetened, without added ascorbic acid (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "apricot preserves",
+    "food": "usda_fdc:169641",
+    "name": "Jams and preserves"
+  },
+  {
+    "alias": "apricots",
+    "food": "usda_fdc:171697",
+    "name": "Apricots, raw"
+  },
+  {
+    "alias": "arborio rice",
+    "food": "usda_fdc:168881",
+    "name": "Rice, white, short-grain, enriched, uncooked"
+  },
+  {
+    "alias": "artichoke hearts",
+    "food": "usda_fdc:168387",
+    "name": "Artichokes, (globe or french), frozen, unprepared"
+  },
+  {
+    "alias": "artichokes",
+    "food": "usda_fdc:169205",
+    "name": "Artichokes, (globe or french), raw"
+  },
+  {
+    "alias": "arugula",
+    "food": "usda_fdc:169387",
+    "name": "Arugula, raw"
+  },
+  {
+    "alias": "asparagus",
+    "food": "usda_fdc:168389",
+    "name": "Asparagus, raw"
+  },
+  {
+    "alias": "aubergine",
+    "food": "usda_fdc:2685577",
+    "name": "Eggplant, raw"
+  },
+  {
+    "alias": "avocado",
+    "food": "usda_fdc:171705",
+    "name": "Avocados, raw, all commercial varieties"
+  },
+  {
+    "alias": "avocados",
+    "food": "usda_fdc:171705",
+    "name": "Avocados, raw, all commercial varieties"
+  },
+  {
+    "alias": "baby back ribs",
+    "food": "usda_fdc:167853",
+    "name": "Pork, fresh, spareribs, separable lean and fat, raw"
+  },
+  {
+    "alias": "baby bella mushrooms",
+    "food": "usda_fdc:168434",
+    "name": "Mushrooms, brown, italian, or crimini, raw"
+  },
+  {
+    "alias": "baby carrots",
+    "food": "usda_fdc:170393",
+    "name": "Carrots, raw"
+  },
+  {
+    "alias": "baby spinach",
+    "food": "usda_fdc:168462",
+    "name": "Spinach, raw"
+  },
+  {
+    "alias": "bacon",
+    "food": "usda_fdc:168277",
+    "name": "Pork, cured, bacon, unprepared"
+  },
+  {
+    "alias": "bacon slices",
+    "food": "usda_fdc:168277",
+    "name": "Pork, cured, bacon, unprepared"
+  },
+  {
+    "alias": "bagels",
+    "food": "usda_fdc:174899",
+    "name": "Bagels, plain, enriched, with calcium propionate (includes onion, poppy, sesame)"
+  },
+  {
+    "alias": "baguette",
+    "food": "usda_fdc:172675",
+    "name": "Bread, french or vienna (includes sourdough)"
+  },
+  {
+    "alias": "baked beans",
+    "food": "usda_fdc:175182",
+    "name": "Beans, baked, canned, plain or vegetarian"
+  },
+  {
+    "alias": "baking chocolate",
+    "food": "usda_fdc:167568",
+    "name": "Baking chocolate, unsweetened, squares"
+  },
+  {
+    "alias": "baking cocoa",
+    "food": "usda_fdc:169593",
+    "name": "Cocoa, dry powder, unsweetened"
+  },
+  {
+    "alias": "baking mix",
+    "food": "usda_fdc:172772",
+    "name": "Pancakes, plain, dry mix, complete (includes buttermilk)"
+  },
+  {
+    "alias": "baking potatoes",
+    "food": "usda_fdc:170026",
+    "name": "Potatoes, flesh and skin, raw"
+  },
+  {
+    "alias": "baking powder",
+    "food": "usda_fdc:172803",
+    "name": "Leavening agents, baking powder, double-acting, sodium aluminum sulfate"
+  },
+  {
+    "alias": "baking soda",
+    "food": "usda_fdc:175040",
+    "name": "Leavening agents, baking soda"
+  },
+  {
+    "alias": "balsamic vinegar",
+    "food": "usda_fdc:172241",
+    "name": "Vinegar, balsamic"
+  },
+  {
+    "alias": "bamboo shoots",
+    "food": "usda_fdc:169212",
+    "name": "Bamboo shoots, canned, drained solids"
+  },
+  {
+    "alias": "banana",
+    "food": "usda_fdc:173944",
+    "name": "Bananas, raw"
+  },
+  {
+    "alias": "bananas",
+    "food": "usda_fdc:173944",
+    "name": "Bananas, raw"
+  },
+  {
+    "alias": "barbecue sauce",
+    "food": "usda_fdc:174523",
+    "name": "Sauce, barbecue"
+  },
+  {
+    "alias": "barley",
+    "food": "usda_fdc:170284",
+    "name": "Barley, pearled, raw"
+  },
+  {
+    "alias": "basil",
+    "food": "usda_fdc:172232",
+    "name": "Basil, fresh"
+  },
+  {
+    "alias": "basil leaves",
+    "food": "usda_fdc:172232",
+    "name": "Basil, fresh"
+  },
+  {
+    "alias": "basmati rice",
+    "food": "usda_fdc:168877",
+    "name": "Rice, white, long-grain, regular, raw, enriched"
+  },
+  {
+    "alias": "bay leaf",
+    "food": "usda_fdc:170917",
+    "name": "Spices, bay leaf"
+  },
+  {
+    "alias": "bay leaves",
+    "food": "usda_fdc:170917",
+    "name": "Spices, bay leaf"
+  },
+  {
+    "alias": "bay scallops",
+    "food": "usda_fdc:174220",
+    "name": "Mollusks, scallop, mixed species, raw"
+  },
+  {
+    "alias": "bbq sauce",
+    "food": "usda_fdc:174523",
+    "name": "Sauce, barbecue"
+  },
+  {
+    "alias": "bean sprouts",
+    "food": "usda_fdc:169957",
+    "name": "Mung beans, mature seeds, sprouted, raw"
+  },
+  {
+    "alias": "beans",
+    "food": "usda_fdc:173745",
+    "name": "Beans, navy, mature seeds, raw"
+  },
+  {
+    "alias": "beaten eggs",
+    "food": "usda_fdc:171287",
+    "name": "Egg, whole, raw, fresh"
+  },
+  {
+    "alias": "beef",
+    "food": "usda_fdc:2514744",
+    "name": "Beef, ground, 80% lean meat / 20% fat, raw"
+  },
+  {
+    "alias": "beef bouillon",
+    "food": "usda_fdc:171538",
+    "name": "Soup, beef broth or bouillon canned, ready-to-serve"
+  },
+  {
+    "alias": "beef brisket",
+    "food": "usda_fdc:168714",
+    "name": "Beef, brisket, flat half, boneless, separable lean and fat, trimmed to 0\" fat, all grades, raw"
+  },
+  {
+    "alias": "beef broth",
+    "food": "usda_fdc:171538",
+    "name": "Soup, beef broth or bouillon canned, ready-to-serve"
+  },
+  {
+    "alias": "beef chuck",
+    "food": "usda_fdc:169491",
+    "name": "Beef, chuck, arm pot roast, separable lean and fat, trimmed to 1/8\" fat, all grades, raw"
+  },
+  {
+    "alias": "beef consomme",
+    "food": "usda_fdc:171538",
+    "name": "Soup, beef broth or bouillon canned, ready-to-serve"
+  },
+  {
+    "alias": "beef roast",
+    "food": "usda_fdc:169491",
+    "name": "Beef, chuck, arm pot roast, separable lean and fat, trimmed to 1/8\" fat, all grades, raw"
+  },
+  {
+    "alias": "beef steak",
+    "food": "usda_fdc:2727574",
+    "name": "Beef, top sirloin steak, raw"
+  },
+  {
+    "alias": "beef stew meat",
+    "food": "usda_fdc:171206",
+    "name": "Beef, chuck for stew, separable lean and fat, all grades, raw"
+  },
+  {
+    "alias": "beef stock",
+    "food": "usda_fdc:171538",
+    "name": "Soup, beef broth or bouillon canned, ready-to-serve"
+  },
+  {
+    "alias": "beef tenderloin",
+    "food": "usda_fdc:169542",
+    "name": "Beef, tenderloin, steak, separable lean and fat, trimmed to 1/8\" fat, all grades, raw"
+  },
+  {
+    "alias": "beer",
+    "food": "usda_fdc:168746",
+    "name": "Alcoholic beverage, beer, regular, all"
+  },
+  {
+    "alias": "beet",
+    "food": "usda_fdc:2685576",
+    "name": "Beets, raw"
+  },
+  {
+    "alias": "beetroot",
+    "food": "usda_fdc:2685576",
+    "name": "Beets, raw"
+  },
+  {
+    "alias": "beets",
+    "food": "usda_fdc:2685576",
+    "name": "Beets, raw"
+  },
+  {
+    "alias": "bell pepper",
+    "food": "usda_fdc:170427",
+    "name": "Peppers, sweet, green, raw"
+  },
+  {
+    "alias": "bell peppers",
+    "food": "usda_fdc:170427",
+    "name": "Peppers, sweet, green, raw"
+  },
+  {
+    "alias": "bicarbonate of soda",
+    "food": "usda_fdc:175040",
+    "name": "Leavening agents, baking soda"
+  },
+  {
+    "alias": "biscuit mix",
+    "food": "usda_fdc:172772",
+    "name": "Pancakes, plain, dry mix, complete (includes buttermilk)"
+  },
+  {
+    "alias": "biscuits",
+    "food": "usda_fdc:172668",
+    "name": "Biscuits, plain or buttermilk, refrigerated dough, higher fat"
+  },
+  {
+    "alias": "bisquick",
+    "food": "usda_fdc:172772",
+    "name": "Pancakes, plain, dry mix, complete (includes buttermilk)"
+  },
+  {
+    "alias": "bittersweet chocolate",
+    "food": "usda_fdc:170272",
+    "name": "Chocolate, dark, 60-69% cacao solids"
+  },
+  {
+    "alias": "black beans",
+    "food": "usda_fdc:175238",
+    "name": "Beans, black, mature seeds, canned, low sodium"
+  },
+  {
+    "alias": "black olives",
+    "food": "usda_fdc:169094",
+    "name": "Olives, ripe, canned (small-extra large)"
+  },
+  {
+    "alias": "black pepper",
+    "food": "usda_fdc:170931",
+    "name": "Spices, pepper, black"
+  },
+  {
+    "alias": "blackberries",
+    "food": "usda_fdc:173946",
+    "name": "Blackberries, raw"
+  },
+  {
+    "alias": "blanched almonds",
+    "food": "usda_fdc:170567",
+    "name": "Nuts, almonds"
+  },
+  {
+    "alias": "bleu cheese",
+    "food": "usda_fdc:172175",
+    "name": "Cheese, blue"
+  },
+  {
+    "alias": "blue cheese",
+    "food": "usda_fdc:172175",
+    "name": "Cheese, blue"
+  },
+  {
+    "alias": "blueberries",
+    "food": "usda_fdc:2346411",
+    "name": "Blueberries, raw"
+  },
+  {
+    "alias": "boiling water",
+    "food": "usda_fdc:173647",
+    "name": "Beverages, water, tap, drinking"
+  },
+  {
+    "alias": "bok choy",
+    "food": "usda_fdc:170390",
+    "name": "Cabbage, chinese (pak-choi), raw"
+  },
+  {
+    "alias": "bologna",
+    "food": "usda_fdc:172013",
+    "name": "Bologna, beef and pork"
+  },
+  {
+    "alias": "boneless chicken breasts",
+    "food": "usda_fdc:2646170",
+    "name": "Chicken, breast, boneless, skinless, raw"
+  },
+  {
+    "alias": "boneless chicken thighs",
+    "food": "usda_fdc:2646171",
+    "name": "Chicken, thigh, boneless, skinless, raw"
+  },
+  {
+    "alias": "boneless skinless chicken breast",
+    "food": "usda_fdc:2646170",
+    "name": "Chicken, breast, boneless, skinless, raw"
+  },
+  {
+    "alias": "boneless skinless chicken breasts",
+    "food": "usda_fdc:2646170",
+    "name": "Chicken, breast, boneless, skinless, raw"
+  },
+  {
+    "alias": "boneless skinless chicken thighs",
+    "food": "usda_fdc:2646171",
+    "name": "Chicken, thigh, boneless, skinless, raw"
+  },
+  {
+    "alias": "boston butt",
+    "food": "usda_fdc:167843",
+    "name": "Pork, fresh, shoulder, whole, separable lean and fat, raw"
+  },
+  {
+    "alias": "bouillon",
+    "food": "usda_fdc:171562",
+    "name": "Soup, chicken broth or bouillon, dry"
+  },
+  {
+    "alias": "bouillon cubes",
+    "food": "usda_fdc:171562",
+    "name": "Soup, chicken broth or bouillon, dry"
+  },
+  {
+    "alias": "bourbon",
+    "food": "usda_fdc:174815",
+    "name": "Alcoholic beverage, distilled, all (gin, rum, vodka, whiskey) 80 proof"
+  },
+  {
+    "alias": "bow tie pasta",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "brandy",
+    "food": "usda_fdc:174815",
+    "name": "Alcoholic beverage, distilled, all (gin, rum, vodka, whiskey) 80 proof"
+  },
+  {
+    "alias": "bread",
+    "food": "usda_fdc:174924",
+    "name": "Bread, white, commercially prepared (includes soft bread crumbs)"
+  },
+  {
+    "alias": "bread crumbs",
+    "food": "usda_fdc:174928",
+    "name": "Bread, crumbs, dry, grated, plain"
+  },
+  {
+    "alias": "bread flour",
+    "food": "usda_fdc:168896",
+    "name": "Wheat flour, white, bread, enriched"
+  },
+  {
+    "alias": "bread slices",
+    "food": "usda_fdc:174924",
+    "name": "Bread, white, commercially prepared (includes soft bread crumbs)"
+  },
+  {
+    "alias": "breadcrumbs",
+    "food": "usda_fdc:174928",
+    "name": "Bread, crumbs, dry, grated, plain"
+  },
+  {
+    "alias": "breakfast sausage",
+    "food": "usda_fdc:746783",
+    "name": "Sausage, turkey, breakfast links, mild, raw"
+  },
+  {
+    "alias": "brewed coffee",
+    "food": "usda_fdc:171890",
+    "name": "Beverages, coffee, brewed, prepared with tap water"
+  },
+  {
+    "alias": "brie",
+    "food": "usda_fdc:172177",
+    "name": "Cheese, brie"
+  },
+  {
+    "alias": "brisket",
+    "food": "usda_fdc:168714",
+    "name": "Beef, brisket, flat half, boneless, separable lean and fat, trimmed to 0\" fat, all grades, raw"
+  },
+  {
+    "alias": "broccoli",
+    "food": "usda_fdc:747447",
+    "name": "Broccoli, raw"
+  },
+  {
+    "alias": "broccoli florets",
+    "food": "usda_fdc:747447",
+    "name": "Broccoli, raw"
+  },
+  {
+    "alias": "broiler",
+    "food": "usda_fdc:171447",
+    "name": "Chicken, broilers or fryers, meat and skin, raw"
+  },
+  {
+    "alias": "broth",
+    "food": "usda_fdc:174536",
+    "name": "Soup, chicken broth, ready-to-serve"
+  },
+  {
+    "alias": "brown gravy mix",
+    "food": "usda_fdc:171565",
+    "name": "Gravy, brown, dry"
+  },
+  {
+    "alias": "brown lentils",
+    "food": "usda_fdc:172420",
+    "name": "Lentils, raw"
+  },
+  {
+    "alias": "brown rice",
+    "food": "usda_fdc:2512380",
+    "name": "Rice, brown, long grain, unenriched, raw"
+  },
+  {
+    "alias": "brown sugar",
+    "food": "usda_fdc:168833",
+    "name": "Sugars, brown"
+  },
+  {
+    "alias": "brussels sprouts",
+    "food": "usda_fdc:2685575",
+    "name": "Brussels sprouts, raw"
+  },
+  {
+    "alias": "bulgur",
+    "food": "usda_fdc:170688",
+    "name": "Bulgur, dry"
+  },
+  {
+    "alias": "bulgur wheat",
+    "food": "usda_fdc:170688",
+    "name": "Bulgur, dry"
+  },
+  {
+    "alias": "bulk sausage",
+    "food": "usda_fdc:171631",
+    "name": "Sausage, Italian, pork, mild, raw"
+  },
+  {
+    "alias": "buns",
+    "food": "usda_fdc:172796",
+    "name": "Rolls, hamburger or hotdog, plain"
+  },
+  {
+    "alias": "butter",
+    "food": "usda_fdc:173410",
+    "name": "Butter, salted"
+  },
+  {
+    "alias": "butter beans",
+    "food": "usda_fdc:174252",
+    "name": "Lima beans, large, mature seeds, raw"
+  },
+  {
+    "alias": "butter crackers",
+    "food": "usda_fdc:174982",
+    "name": "Crackers, standard snack-type, regular"
+  },
+  {
+    "alias": "butter or margarine",
+    "food": "usda_fdc:172346",
+    "name": "Margarine, regular, 80% fat, composite, stick, with salt"
+  },
+  {
+    "alias": "buttermilk",
+    "food": "usda_fdc:170874",
+    "name": "Milk, buttermilk, fluid, cultured, lowfat"
+  },
+  {
+    "alias": "buttermilk biscuits",
+    "food": "usda_fdc:172668",
+    "name": "Biscuits, plain or buttermilk, refrigerated dough, higher fat"
+  },
+  {
+    "alias": "butternut squash",
+    "food": "usda_fdc:2685570",
+    "name": "Squash, winter, butternut, raw"
+  },
+  {
+    "alias": "butterscotch chips",
+    "food": "usda_fdc:167972",
+    "name": "Candies, butterscotch"
+  },
+  {
+    "alias": "butterscotch morsels",
+    "food": "usda_fdc:167972",
+    "name": "Candies, butterscotch"
+  },
+  {
+    "alias": "button mushrooms",
+    "food": "usda_fdc:169251",
+    "name": "Mushrooms, white, raw"
+  },
+  {
+    "alias": "cabbage",
+    "food": "usda_fdc:169975",
+    "name": "Cabbage, raw"
+  },
+  {
+    "alias": "cake flour",
+    "food": "usda_fdc:169723",
+    "name": "Wheat flour, white, cake, enriched"
+  },
+  {
+    "alias": "cake mix",
+    "food": "usda_fdc:174947",
+    "name": "Cake, yellow, enriched, dry mix"
+  },
+  {
+    "alias": "cake yeast",
+    "food": "usda_fdc:175042",
+    "name": "Leavening agents, yeast, baker's, compressed"
+  },
+  {
+    "alias": "calamari",
+    "food": "usda_fdc:174223",
+    "name": "Mollusks, squid, mixed species, raw"
+  },
+  {
+    "alias": "canned black beans",
+    "food": "usda_fdc:175238",
+    "name": "Beans, black, mature seeds, canned, low sodium"
+  },
+  {
+    "alias": "canned chicken",
+    "food": "usda_fdc:171110",
+    "name": "Chicken, canned, no broth"
+  },
+  {
+    "alias": "canned clams",
+    "food": "usda_fdc:171976",
+    "name": "Mollusks, clam, mixed species, canned, drained solids"
+  },
+  {
+    "alias": "canned corn",
+    "food": "usda_fdc:169214",
+    "name": "Corn, sweet, yellow, canned, whole kernel, drained solids"
+  },
+  {
+    "alias": "canned green beans",
+    "food": "usda_fdc:321611",
+    "name": "Beans, snap, green, canned, regular pack, drained solids"
+  },
+  {
+    "alias": "canned mandarin oranges",
+    "food": "usda_fdc:169924",
+    "name": "Tangerines, (mandarin oranges), canned, light syrup pack"
+  },
+  {
+    "alias": "canned milk",
+    "food": "usda_fdc:171276",
+    "name": "Milk, canned, evaporated, with added vitamin D and without added vitamin A"
+  },
+  {
+    "alias": "canned mushrooms",
+    "food": "usda_fdc:169254",
+    "name": "Mushrooms, canned, drained solids"
+  },
+  {
+    "alias": "canned peaches",
+    "food": "usda_fdc:169111",
+    "name": "Peaches, canned, light syrup pack, solids and liquids"
+  },
+  {
+    "alias": "canned pineapple",
+    "food": "usda_fdc:169126",
+    "name": "Pineapple, canned, juice pack, solids and liquids"
+  },
+  {
+    "alias": "canned pumpkin",
+    "food": "usda_fdc:168450",
+    "name": "Pumpkin, canned, without salt"
+  },
+  {
+    "alias": "canned salmon",
+    "food": "usda_fdc:173690",
+    "name": "Fish, salmon, pink, canned, total can contents"
+  },
+  {
+    "alias": "canned tomato sauce",
+    "food": "usda_fdc:170054",
+    "name": "Tomato products, canned, sauce"
+  },
+  {
+    "alias": "canned tomatoes",
+    "food": "usda_fdc:170051",
+    "name": "Tomatoes, red, ripe, canned, packed in tomato juice"
+  },
+  {
+    "alias": "canned tuna",
+    "food": "usda_fdc:334194",
+    "name": "Fish, tuna, light, canned in water, drained solids"
+  },
+  {
+    "alias": "canned white beans",
+    "food": "usda_fdc:175204",
+    "name": "Beans, white, mature seeds, canned"
+  },
+  {
+    "alias": "cannellini beans",
+    "food": "usda_fdc:175204",
+    "name": "Beans, white, mature seeds, canned"
+  },
+  {
+    "alias": "canola oil",
+    "food": "usda_fdc:172336",
+    "name": "Oil, canola"
+  },
+  {
+    "alias": "cantaloupe",
+    "food": "usda_fdc:746770",
+    "name": "Melons, cantaloupe, raw"
+  },
+  {
+    "alias": "capers",
+    "food": "usda_fdc:172238",
+    "name": "Capers, canned"
+  },
+  {
+    "alias": "caraway seed",
+    "food": "usda_fdc:170918",
+    "name": "Spices, caraway seed"
+  },
+  {
+    "alias": "caraway seeds",
+    "food": "usda_fdc:170918",
+    "name": "Spices, caraway seed"
+  },
+  {
+    "alias": "cardamom",
+    "food": "usda_fdc:170919",
+    "name": "Spices, cardamom"
+  },
+  {
+    "alias": "carrot",
+    "food": "usda_fdc:170393",
+    "name": "Carrots, raw"
+  },
+  {
+    "alias": "carrots",
+    "food": "usda_fdc:170393",
+    "name": "Carrots, raw"
+  },
+  {
+    "alias": "cashew nuts",
+    "food": "usda_fdc:2515374",
+    "name": "Nuts, cashew nuts, raw"
+  },
+  {
+    "alias": "cashews",
+    "food": "usda_fdc:2515374",
+    "name": "Nuts, cashew nuts, raw"
+  },
+  {
+    "alias": "caster sugar",
+    "food": "usda_fdc:746784",
+    "name": "Sugars, granulated"
+  },
+  {
+    "alias": "catfish",
+    "food": "usda_fdc:175165",
+    "name": "Fish, catfish, channel, farmed, raw"
+  },
+  {
+    "alias": "catfish fillets",
+    "food": "usda_fdc:175165",
+    "name": "Fish, catfish, channel, farmed, raw"
+  },
+  {
+    "alias": "catsup",
+    "food": "usda_fdc:168556",
+    "name": "Catsup"
+  },
+  {
+    "alias": "cauliflower",
+    "food": "usda_fdc:2685573",
+    "name": "Cauliflower, raw"
+  },
+  {
+    "alias": "cauliflower florets",
+    "food": "usda_fdc:2685573",
+    "name": "Cauliflower, raw"
+  },
+  {
+    "alias": "cayenne",
+    "food": "usda_fdc:170932",
+    "name": "Spices, pepper, red or cayenne"
+  },
+  {
+    "alias": "cayenne pepper",
+    "food": "usda_fdc:170932",
+    "name": "Spices, pepper, red or cayenne"
+  },
+  {
+    "alias": "celery",
+    "food": "usda_fdc:2346405",
+    "name": "Celery, raw"
+  },
+  {
+    "alias": "celery ribs",
+    "food": "usda_fdc:2346405",
+    "name": "Celery, raw"
+  },
+  {
+    "alias": "celery seed",
+    "food": "usda_fdc:170920",
+    "name": "Spices, celery seed"
+  },
+  {
+    "alias": "celery stalk",
+    "food": "usda_fdc:2346405",
+    "name": "Celery, raw"
+  },
+  {
+    "alias": "celery stalks",
+    "food": "usda_fdc:2346405",
+    "name": "Celery, raw"
+  },
+  {
+    "alias": "chard",
+    "food": "usda_fdc:169991",
+    "name": "Chard, swiss, raw"
+  },
+  {
+    "alias": "cheddar",
+    "food": "usda_fdc:328637",
+    "name": "Cheese, cheddar"
+  },
+  {
+    "alias": "cheddar cheese",
+    "food": "usda_fdc:328637",
+    "name": "Cheese, cheddar"
+  },
+  {
+    "alias": "cheerios",
+    "food": "usda_fdc:173884",
+    "name": "Cereals ready-to-eat, GENERAL MILLS, CHEERIOS"
+  },
+  {
+    "alias": "cheese",
+    "food": "usda_fdc:328637",
+    "name": "Cheese, cheddar"
+  },
+  {
+    "alias": "cheese whiz",
+    "food": "usda_fdc:171254",
+    "name": "Cheese spread, pasteurized process, American"
+  },
+  {
+    "alias": "cherries",
+    "food": "usda_fdc:171719",
+    "name": "Cherries, sweet, raw"
+  },
+  {
+    "alias": "cherry pie filling",
+    "food": "usda_fdc:168824",
+    "name": "Pie fillings, canned, cherry"
+  },
+  {
+    "alias": "cherry tomatoes",
+    "food": "usda_fdc:321360",
+    "name": "Tomatoes, grape, raw"
+  },
+  {
+    "alias": "chia seeds",
+    "food": "usda_fdc:170554",
+    "name": "Seeds, chia seeds, dried"
+  },
+  {
+    "alias": "chicken",
+    "food": "usda_fdc:171447",
+    "name": "Chicken, broilers or fryers, meat and skin, raw"
+  },
+  {
+    "alias": "chicken bouillon",
+    "food": "usda_fdc:174536",
+    "name": "Soup, chicken broth, ready-to-serve"
+  },
+  {
+    "alias": "chicken bouillon cubes",
+    "food": "usda_fdc:171562",
+    "name": "Soup, chicken broth or bouillon, dry"
+  },
+  {
+    "alias": "chicken bouillon granules",
+    "food": "usda_fdc:171562",
+    "name": "Soup, chicken broth or bouillon, dry"
+  },
+  {
+    "alias": "chicken breast",
+    "food": "usda_fdc:2646170",
+    "name": "Chicken, breast, boneless, skinless, raw"
+  },
+  {
+    "alias": "chicken breast halves",
+    "food": "usda_fdc:2646170",
+    "name": "Chicken, breast, boneless, skinless, raw"
+  },
+  {
+    "alias": "chicken breasts",
+    "food": "usda_fdc:2646170",
+    "name": "Chicken, breast, boneless, skinless, raw"
+  },
+  {
+    "alias": "chicken broth",
+    "food": "usda_fdc:174536",
+    "name": "Soup, chicken broth, ready-to-serve"
+  },
+  {
+    "alias": "chicken drumsticks",
+    "food": "usda_fdc:172373",
+    "name": "Chicken, broilers or fryers, drumstick, meat and skin, raw"
+  },
+  {
+    "alias": "chicken legs",
+    "food": "usda_fdc:171447",
+    "name": "Chicken, broilers or fryers, meat and skin, raw"
+  },
+  {
+    "alias": "chicken meat",
+    "food": "usda_fdc:171054",
+    "name": "Chicken, broilers or fryers, meat only, cooked, roasted"
+  },
+  {
+    "alias": "chicken pieces",
+    "food": "usda_fdc:171447",
+    "name": "Chicken, broilers or fryers, meat and skin, raw"
+  },
+  {
+    "alias": "chicken stock",
+    "food": "usda_fdc:174536",
+    "name": "Soup, chicken broth, ready-to-serve"
+  },
+  {
+    "alias": "chicken thighs",
+    "food": "usda_fdc:2646171",
+    "name": "Chicken, thigh, boneless, skinless, raw"
+  },
+  {
+    "alias": "chicken wings",
+    "food": "usda_fdc:172390",
+    "name": "Chicken, broilers or fryers, wing, meat and skin, raw"
+  },
+  {
+    "alias": "chickpeas",
+    "food": "usda_fdc:173801",
+    "name": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained, rinsed in tap water"
+  },
+  {
+    "alias": "chiles",
+    "food": "usda_fdc:170426",
+    "name": "Peppers, hot chili, green, canned, pods, excluding seeds, solids and liquids"
+  },
+  {
+    "alias": "chili pepper",
+    "food": "usda_fdc:170106",
+    "name": "Peppers, hot chili, red, raw"
+  },
+  {
+    "alias": "chili peppers",
+    "food": "usda_fdc:170106",
+    "name": "Peppers, hot chili, red, raw"
+  },
+  {
+    "alias": "chili powder",
+    "food": "usda_fdc:171319",
+    "name": "Spices, chili powder"
+  },
+  {
+    "alias": "chipped beef",
+    "food": "usda_fdc:170604",
+    "name": "Beef, cured, dried"
+  },
+  {
+    "alias": "chives",
+    "food": "usda_fdc:169994",
+    "name": "Chives, raw"
+  },
+  {
+    "alias": "chocolate",
+    "food": "usda_fdc:167976",
+    "name": "Candies, semisweet chocolate"
+  },
+  {
+    "alias": "chocolate chips",
+    "food": "usda_fdc:167976",
+    "name": "Candies, semisweet chocolate"
+  },
+  {
+    "alias": "chocolate instant pudding",
+    "food": "usda_fdc:168779",
+    "name": "Puddings, chocolate, dry mix, instant"
+  },
+  {
+    "alias": "chocolate morsels",
+    "food": "usda_fdc:167976",
+    "name": "Candies, semisweet chocolate"
+  },
+  {
+    "alias": "chopped cilantro",
+    "food": "usda_fdc:169997",
+    "name": "Coriander (cilantro) leaves, raw"
+  },
+  {
+    "alias": "chopped clams",
+    "food": "usda_fdc:171976",
+    "name": "Mollusks, clam, mixed species, canned, drained solids"
+  },
+  {
+    "alias": "chopped dates",
+    "food": "usda_fdc:171726",
+    "name": "Dates, deglet noor"
+  },
+  {
+    "alias": "chopped green chilies",
+    "food": "usda_fdc:170426",
+    "name": "Peppers, hot chili, green, canned, pods, excluding seeds, solids and liquids"
+  },
+  {
+    "alias": "chopped nuts",
+    "food": "usda_fdc:170182",
+    "name": "Nuts, pecans"
+  },
+  {
+    "alias": "chopped onion",
+    "food": "usda_fdc:170000",
+    "name": "Onions, raw"
+  },
+  {
+    "alias": "chopped parsley",
+    "food": "usda_fdc:170416",
+    "name": "Parsley, fresh"
+  },
+  {
+    "alias": "chopped peanuts",
+    "food": "usda_fdc:174262",
+    "name": "Peanuts, all types, dry-roasted, with salt"
+  },
+  {
+    "alias": "chopped pecans",
+    "food": "usda_fdc:170182",
+    "name": "Nuts, pecans"
+  },
+  {
+    "alias": "chopped walnuts",
+    "food": "usda_fdc:170187",
+    "name": "Nuts, walnuts, english"
+  },
+  {
+    "alias": "chorizo",
+    "food": "usda_fdc:173859",
+    "name": "Sausage, pork, chorizo, link or ground, raw"
+  },
+  {
+    "alias": "chorizo sausage",
+    "food": "usda_fdc:173859",
+    "name": "Sausage, pork, chorizo, link or ground, raw"
+  },
+  {
+    "alias": "chow mein noodles",
+    "food": "usda_fdc:168905",
+    "name": "Noodles, chinese, chow mein"
+  },
+  {
+    "alias": "chuck roast",
+    "food": "usda_fdc:169491",
+    "name": "Beef, chuck, arm pot roast, separable lean and fat, trimmed to 1/8\" fat, all grades, raw"
+  },
+  {
+    "alias": "chunk light tuna",
+    "food": "usda_fdc:334194",
+    "name": "Fish, tuna, light, canned in water, drained solids"
+  },
+  {
+    "alias": "chunky salsa",
+    "food": "usda_fdc:746777",
+    "name": "Sauce, salsa, ready-to-serve"
+  },
+  {
+    "alias": "cider",
+    "food": "usda_fdc:173933",
+    "name": "Apple juice, canned or bottled, unsweetened, without added ascorbic acid"
+  },
+  {
+    "alias": "cider vinegar",
+    "food": "usda_fdc:173469",
+    "name": "Vinegar, cider"
+  },
+  {
+    "alias": "cilantro",
+    "food": "usda_fdc:169997",
+    "name": "Coriander (cilantro) leaves, raw"
+  },
+  {
+    "alias": "cilantro leaves",
+    "food": "usda_fdc:169997",
+    "name": "Coriander (cilantro) leaves, raw"
+  },
+  {
+    "alias": "cinnamon",
+    "food": "usda_fdc:171320",
+    "name": "Spices, cinnamon, ground"
+  },
+  {
+    "alias": "cinnamon stick",
+    "food": "usda_fdc:171320",
+    "name": "Spices, cinnamon, ground"
+  },
+  {
+    "alias": "cinnamon sticks",
+    "food": "usda_fdc:171320",
+    "name": "Spices, cinnamon, ground"
+  },
+  {
+    "alias": "clams",
+    "food": "usda_fdc:171976",
+    "name": "Mollusks, clam, mixed species, canned, drained solids"
+  },
+  {
+    "alias": "clarified butter",
+    "food": "usda_fdc:171314",
+    "name": "Butter, Clarified butter (ghee)"
+  },
+  {
+    "alias": "clove garlic",
+    "food": "usda_fdc:1104647",
+    "name": "Garlic, raw"
+  },
+  {
+    "alias": "cloves",
+    "food": "usda_fdc:171321",
+    "name": "Spices, cloves, ground"
+  },
+  {
+    "alias": "cloves garlic",
+    "food": "usda_fdc:1104647",
+    "name": "Garlic, raw"
+  },
+  {
+    "alias": "coarse salt",
+    "food": "usda_fdc:173468",
+    "name": "Salt, table"
+  },
+  {
+    "alias": "coca-cola",
+    "food": "usda_fdc:174852",
+    "name": "Beverages, carbonated, cola, regular"
+  },
+  {
+    "alias": "cocoa",
+    "food": "usda_fdc:169593",
+    "name": "Cocoa, dry powder, unsweetened"
+  },
+  {
+    "alias": "cocoa powder",
+    "food": "usda_fdc:169593",
+    "name": "Cocoa, dry powder, unsweetened"
+  },
+  {
+    "alias": "coconut",
+    "food": "usda_fdc:168586",
+    "name": "Nuts, coconut meat, dried (desiccated), sweetened, shredded"
+  },
+  {
+    "alias": "coconut milk",
+    "food": "usda_fdc:170173",
+    "name": "Nuts, coconut milk, canned (liquid expressed from grated meat and water)"
+  },
+  {
+    "alias": "coconut oil",
+    "food": "usda_fdc:330458",
+    "name": "Oil, coconut"
+  },
+  {
+    "alias": "cod",
+    "food": "usda_fdc:171955",
+    "name": "Fish, cod, Atlantic, raw"
+  },
+  {
+    "alias": "cod fillets",
+    "food": "usda_fdc:171955",
+    "name": "Fish, cod, Atlantic, raw"
+  },
+  {
+    "alias": "coffee",
+    "food": "usda_fdc:171890",
+    "name": "Beverages, coffee, brewed, prepared with tap water"
+  },
+  {
+    "alias": "coke",
+    "food": "usda_fdc:174852",
+    "name": "Beverages, carbonated, cola, regular"
+  },
+  {
+    "alias": "cola",
+    "food": "usda_fdc:174852",
+    "name": "Beverages, carbonated, cola, regular"
+  },
+  {
+    "alias": "colby cheese",
+    "food": "usda_fdc:173416",
+    "name": "Cheese, colby"
+  },
+  {
+    "alias": "colby jack cheese",
+    "food": "usda_fdc:173416",
+    "name": "Cheese, colby"
+  },
+  {
+    "alias": "cold water",
+    "food": "usda_fdc:173647",
+    "name": "Beverages, water, tap, drinking"
+  },
+  {
+    "alias": "collard greens",
+    "food": "usda_fdc:2685574",
+    "name": "Collards, raw"
+  },
+  {
+    "alias": "collards",
+    "food": "usda_fdc:2685574",
+    "name": "Collards, raw"
+  },
+  {
+    "alias": "condensed milk",
+    "food": "usda_fdc:171275",
+    "name": "Milk, canned, condensed, sweetened"
+  },
+  {
+    "alias": "confectioners sugar",
+    "food": "usda_fdc:169656",
+    "name": "Sugars, powdered"
+  },
+  {
+    "alias": "confectioners' sugar",
+    "food": "usda_fdc:169656",
+    "name": "Sugars, powdered"
+  },
+  {
+    "alias": "cooked chicken",
+    "food": "usda_fdc:171054",
+    "name": "Chicken, broilers or fryers, meat only, cooked, roasted"
+  },
+  {
+    "alias": "cooked chicken breast",
+    "food": "usda_fdc:171054",
+    "name": "Chicken, broilers or fryers, meat only, cooked, roasted"
+  },
+  {
+    "alias": "cooked ham",
+    "food": "usda_fdc:167872",
+    "name": "Pork, cured, ham, boneless, regular (approximately 11% fat), roasted"
+  },
+  {
+    "alias": "cooked macaroni",
+    "food": "usda_fdc:169737",
+    "name": "Pasta, cooked, enriched, without added salt"
+  },
+  {
+    "alias": "cooked pasta",
+    "food": "usda_fdc:169737",
+    "name": "Pasta, cooked, enriched, without added salt"
+  },
+  {
+    "alias": "cooked rice",
+    "food": "usda_fdc:168878",
+    "name": "Rice, white, long-grain, regular, enriched, cooked"
+  },
+  {
+    "alias": "cooked shrimp",
+    "food": "usda_fdc:175180",
+    "name": "Crustaceans, shrimp, cooked"
+  },
+  {
+    "alias": "cooked spaghetti",
+    "food": "usda_fdc:169737",
+    "name": "Pasta, cooked, enriched, without added salt"
+  },
+  {
+    "alias": "cooked turkey",
+    "food": "usda_fdc:171481",
+    "name": "Turkey, whole, meat only, cooked, roasted"
+  },
+  {
+    "alias": "cooked white rice",
+    "food": "usda_fdc:168878",
+    "name": "Rice, white, long-grain, regular, enriched, cooked"
+  },
+  {
+    "alias": "cooking apples",
+    "food": "usda_fdc:171688",
+    "name": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "cooking oil",
+    "food": "usda_fdc:171411",
+    "name": "Oil, soybean, salad or cooking"
+  },
+  {
+    "alias": "cooking spray",
+    "food": "usda_fdc:171430",
+    "name": "Oil, PAM cooking spray, original"
+  },
+  {
+    "alias": "cool whip",
+    "food": "usda_fdc:170868",
+    "name": "Dessert topping, semi solid, frozen"
+  },
+  {
+    "alias": "coriander",
+    "food": "usda_fdc:170922",
+    "name": "Spices, coriander seed"
+  },
+  {
+    "alias": "coriander leaves",
+    "food": "usda_fdc:169997",
+    "name": "Coriander (cilantro) leaves, raw"
+  },
+  {
+    "alias": "coriander seeds",
+    "food": "usda_fdc:170922",
+    "name": "Spices, coriander seed"
+  },
+  {
+    "alias": "corn",
+    "food": "usda_fdc:169998",
+    "name": "Corn, sweet, yellow, raw"
+  },
+  {
+    "alias": "corn chips",
+    "food": "usda_fdc:167558",
+    "name": "Snacks, tortilla chips, plain, white corn, salted"
+  },
+  {
+    "alias": "corn flakes",
+    "food": "usda_fdc:174648",
+    "name": "Cereals ready-to-eat, RALSTON Corn Flakes"
+  },
+  {
+    "alias": "corn kernels",
+    "food": "usda_fdc:169998",
+    "name": "Corn, sweet, yellow, raw"
+  },
+  {
+    "alias": "corn meal",
+    "food": "usda_fdc:169697",
+    "name": "Cornmeal, whole-grain, yellow"
+  },
+  {
+    "alias": "corn oil",
+    "food": "usda_fdc:171029",
+    "name": "Oil, corn, industrial and retail, all purpose salad or cooking"
+  },
+  {
+    "alias": "corn on the cob",
+    "food": "usda_fdc:169998",
+    "name": "Corn, sweet, yellow, raw"
+  },
+  {
+    "alias": "corn starch",
+    "food": "usda_fdc:169698",
+    "name": "Cornstarch"
+  },
+  {
+    "alias": "corn syrup",
+    "food": "usda_fdc:168837",
+    "name": "Syrups, corn, light"
+  },
+  {
+    "alias": "corn tortilla",
+    "food": "usda_fdc:175036",
+    "name": "Tortillas, ready-to-bake or -fry, corn"
+  },
+  {
+    "alias": "corn tortillas",
+    "food": "usda_fdc:175036",
+    "name": "Tortillas, ready-to-bake or -fry, corn"
+  },
+  {
+    "alias": "corned beef",
+    "food": "usda_fdc:170199",
+    "name": "Beef, cured, corned beef, brisket, raw"
+  },
+  {
+    "alias": "cornflakes",
+    "food": "usda_fdc:174648",
+    "name": "Cereals ready-to-eat, RALSTON Corn Flakes"
+  },
+  {
+    "alias": "cornmeal",
+    "food": "usda_fdc:169697",
+    "name": "Cornmeal, whole-grain, yellow"
+  },
+  {
+    "alias": "cornstarch",
+    "food": "usda_fdc:169698",
+    "name": "Cornstarch"
+  },
+  {
+    "alias": "cotija cheese",
+    "food": "usda_fdc:172201",
+    "name": "Cheese, mexican, queso anejo"
+  },
+  {
+    "alias": "cottage cheese",
+    "food": "usda_fdc:172179",
+    "name": "Cheese, cottage, creamed, large or small curd"
+  },
+  {
+    "alias": "courgette",
+    "food": "usda_fdc:169291",
+    "name": "Squash, summer, zucchini, includes skin, raw"
+  },
+  {
+    "alias": "couscous",
+    "food": "usda_fdc:169699",
+    "name": "Couscous, dry"
+  },
+  {
+    "alias": "crab",
+    "food": "usda_fdc:171966",
+    "name": "Crustaceans, crab, blue, canned"
+  },
+  {
+    "alias": "crab meat",
+    "food": "usda_fdc:171966",
+    "name": "Crustaceans, crab, blue, canned"
+  },
+  {
+    "alias": "crabmeat",
+    "food": "usda_fdc:171966",
+    "name": "Crustaceans, crab, blue, canned"
+  },
+  {
+    "alias": "crackers",
+    "food": "usda_fdc:172746",
+    "name": "Crackers, saltines (includes oyster, soda, soup)"
+  },
+  {
+    "alias": "craisins",
+    "food": "usda_fdc:171723",
+    "name": "Cranberries, dried, sweetened (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "cranberries",
+    "food": "usda_fdc:171722",
+    "name": "Cranberries, raw"
+  },
+  {
+    "alias": "cranberry sauce",
+    "food": "usda_fdc:173961",
+    "name": "Cranberry sauce, canned, sweetened"
+  },
+  {
+    "alias": "cream",
+    "food": "usda_fdc:170859",
+    "name": "Cream, fluid, heavy whipping"
+  },
+  {
+    "alias": "cream cheese",
+    "food": "usda_fdc:173418",
+    "name": "Cheese, cream"
+  },
+  {
+    "alias": "cream corn",
+    "food": "usda_fdc:169215",
+    "name": "Corn, sweet, yellow, canned, cream style, regular pack"
+  },
+  {
+    "alias": "cream of celery soup",
+    "food": "usda_fdc:171540",
+    "name": "Soup, cream of celery, canned, condensed"
+  },
+  {
+    "alias": "cream of chicken soup",
+    "food": "usda_fdc:171146",
+    "name": "Soup, cream of chicken, canned, condensed"
+  },
+  {
+    "alias": "cream of mushroom soup",
+    "food": "usda_fdc:171155",
+    "name": "Soup, cream of mushroom, canned, condensed"
+  },
+  {
+    "alias": "cream of tartar",
+    "food": "usda_fdc:175041",
+    "name": "Leavening agents, cream of tartar"
+  },
+  {
+    "alias": "cream-style corn",
+    "food": "usda_fdc:169215",
+    "name": "Corn, sweet, yellow, canned, cream style, regular pack"
+  },
+  {
+    "alias": "creamed corn",
+    "food": "usda_fdc:169215",
+    "name": "Corn, sweet, yellow, canned, cream style, regular pack"
+  },
+  {
+    "alias": "creamy peanut butter",
+    "food": "usda_fdc:324860",
+    "name": "Peanut butter, smooth style, with salt"
+  },
+  {
+    "alias": "cremini mushrooms",
+    "food": "usda_fdc:168434",
+    "name": "Mushrooms, brown, italian, or crimini, raw"
+  },
+  {
+    "alias": "crimini mushrooms",
+    "food": "usda_fdc:168434",
+    "name": "Mushrooms, brown, italian, or crimini, raw"
+  },
+  {
+    "alias": "crisco",
+    "food": "usda_fdc:171011",
+    "name": "Shortening, household, soybean (partially hydrogenated)-cottonseed (partially hydrogenated)"
+  },
+  {
+    "alias": "crisp rice cereal",
+    "food": "usda_fdc:172983",
+    "name": "Cereals ready-to-eat, MALT-O-MEAL, Crispy Rice"
+  },
+  {
+    "alias": "croutons",
+    "food": "usda_fdc:172752",
+    "name": "Croutons, seasoned"
+  },
+  {
+    "alias": "crumbled blue cheese",
+    "food": "usda_fdc:172175",
+    "name": "Cheese, blue"
+  },
+  {
+    "alias": "crumbled feta cheese",
+    "food": "usda_fdc:173420",
+    "name": "Cheese, feta"
+  },
+  {
+    "alias": "crunchy peanut butter",
+    "food": "usda_fdc:324860",
+    "name": "Peanut butter, smooth style, with salt"
+  },
+  {
+    "alias": "crushed pineapple",
+    "food": "usda_fdc:169126",
+    "name": "Pineapple, canned, juice pack, solids and liquids"
+  },
+  {
+    "alias": "crushed red pepper",
+    "food": "usda_fdc:170932",
+    "name": "Spices, pepper, red or cayenne"
+  },
+  {
+    "alias": "crushed red pepper flakes",
+    "food": "usda_fdc:170932",
+    "name": "Spices, pepper, red or cayenne"
+  },
+  {
+    "alias": "crushed tomatoes",
+    "food": "usda_fdc:170051",
+    "name": "Tomatoes, red, ripe, canned, packed in tomato juice"
+  },
+  {
+    "alias": "cucumber",
+    "food": "usda_fdc:2346406",
+    "name": "Cucumber, with peel, raw"
+  },
+  {
+    "alias": "cucumbers",
+    "food": "usda_fdc:2346406",
+    "name": "Cucumber, with peel, raw"
+  },
+  {
+    "alias": "cumin",
+    "food": "usda_fdc:170923",
+    "name": "Spices, cumin seed"
+  },
+  {
+    "alias": "cumin seed",
+    "food": "usda_fdc:170923",
+    "name": "Spices, cumin seed"
+  },
+  {
+    "alias": "cumin seeds",
+    "food": "usda_fdc:170923",
+    "name": "Spices, cumin seed"
+  },
+  {
+    "alias": "curry powder",
+    "food": "usda_fdc:170924",
+    "name": "Spices, curry powder"
+  },
+  {
+    "alias": "dark brown sugar",
+    "food": "usda_fdc:168833",
+    "name": "Sugars, brown"
+  },
+  {
+    "alias": "dark chocolate",
+    "food": "usda_fdc:170272",
+    "name": "Chocolate, dark, 60-69% cacao solids"
+  },
+  {
+    "alias": "dark corn syrup",
+    "food": "usda_fdc:168836",
+    "name": "Syrups, corn, dark"
+  },
+  {
+    "alias": "dark sesame oil",
+    "food": "usda_fdc:171016",
+    "name": "Oil, sesame, salad or cooking"
+  },
+  {
+    "alias": "dates",
+    "food": "usda_fdc:171726",
+    "name": "Dates, deglet noor"
+  },
+  {
+    "alias": "day-old bread",
+    "food": "usda_fdc:174924",
+    "name": "Bread, white, commercially prepared (includes soft bread crumbs)"
+  },
+  {
+    "alias": "desiccated coconut",
+    "food": "usda_fdc:170170",
+    "name": "Nuts, coconut meat, dried (desiccated), not sweetened"
+  },
+  {
+    "alias": "diced cooked chicken",
+    "food": "usda_fdc:171054",
+    "name": "Chicken, broilers or fryers, meat only, cooked, roasted"
+  },
+  {
+    "alias": "diced green chilies",
+    "food": "usda_fdc:170426",
+    "name": "Peppers, hot chili, green, canned, pods, excluding seeds, solids and liquids"
+  },
+  {
+    "alias": "diced ham",
+    "food": "usda_fdc:167872",
+    "name": "Pork, cured, ham, boneless, regular (approximately 11% fat), roasted"
+  },
+  {
+    "alias": "diced tomatoes",
+    "food": "usda_fdc:170051",
+    "name": "Tomatoes, red, ripe, canned, packed in tomato juice"
+  },
+  {
+    "alias": "dill",
+    "food": "usda_fdc:172233",
+    "name": "Dill weed, fresh"
+  },
+  {
+    "alias": "dill pickle",
+    "food": "usda_fdc:324653",
+    "name": "Pickles, cucumber, dill or kosher dill"
+  },
+  {
+    "alias": "dill pickles",
+    "food": "usda_fdc:324653",
+    "name": "Pickles, cucumber, dill or kosher dill"
+  },
+  {
+    "alias": "dill weed",
+    "food": "usda_fdc:171322",
+    "name": "Spices, dill weed, dried"
+  },
+  {
+    "alias": "dinner rolls",
+    "food": "usda_fdc:172793",
+    "name": "Rolls, dinner, plain, commercially prepared (includes brown-and-serve)"
+  },
+  {
+    "alias": "distilled white vinegar",
+    "food": "usda_fdc:172237",
+    "name": "Vinegar, distilled"
+  },
+  {
+    "alias": "dried apricots",
+    "food": "usda_fdc:173941",
+    "name": "Apricots, dried, sulfured, uncooked"
+  },
+  {
+    "alias": "dried basil",
+    "food": "usda_fdc:171317",
+    "name": "Spices, basil, dried"
+  },
+  {
+    "alias": "dried beans",
+    "food": "usda_fdc:173745",
+    "name": "Beans, navy, mature seeds, raw"
+  },
+  {
+    "alias": "dried beef",
+    "food": "usda_fdc:170604",
+    "name": "Beef, cured, dried"
+  },
+  {
+    "alias": "dried cranberries",
+    "food": "usda_fdc:171723",
+    "name": "Cranberries, dried, sweetened (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "dried dill",
+    "food": "usda_fdc:171322",
+    "name": "Spices, dill weed, dried"
+  },
+  {
+    "alias": "dried figs",
+    "food": "usda_fdc:746768",
+    "name": "Figs, dried, uncooked"
+  },
+  {
+    "alias": "dried minced onion",
+    "food": "usda_fdc:170002",
+    "name": "Onions, dehydrated flakes"
+  },
+  {
+    "alias": "dried onion",
+    "food": "usda_fdc:170002",
+    "name": "Onions, dehydrated flakes"
+  },
+  {
+    "alias": "dried oregano",
+    "food": "usda_fdc:171328",
+    "name": "Spices, oregano, dried"
+  },
+  {
+    "alias": "dried parsley",
+    "food": "usda_fdc:170930",
+    "name": "Spices, parsley, dried"
+  },
+  {
+    "alias": "dried plums",
+    "food": "usda_fdc:168162",
+    "name": "Plums, dried (prunes), uncooked"
+  },
+  {
+    "alias": "dried rosemary",
+    "food": "usda_fdc:171333",
+    "name": "Spices, rosemary, dried"
+  },
+  {
+    "alias": "dried thyme",
+    "food": "usda_fdc:170938",
+    "name": "Spices, thyme, dried"
+  },
+  {
+    "alias": "drumsticks",
+    "food": "usda_fdc:172373",
+    "name": "Chicken, broilers or fryers, drumstick, meat and skin, raw"
+  },
+  {
+    "alias": "dry bread crumbs",
+    "food": "usda_fdc:174928",
+    "name": "Bread, crumbs, dry, grated, plain"
+  },
+  {
+    "alias": "dry milk",
+    "food": "usda_fdc:170877",
+    "name": "Milk, dry, nonfat, regular, without added vitamin A and vitamin D"
+  },
+  {
+    "alias": "dry mustard",
+    "food": "usda_fdc:170929",
+    "name": "Spices, mustard seed, ground"
+  },
+  {
+    "alias": "dry onion soup mix",
+    "food": "usda_fdc:171165",
+    "name": "Soup, onion, dry, mix"
+  },
+  {
+    "alias": "dry red wine",
+    "food": "usda_fdc:173190",
+    "name": "Alcoholic beverage, wine, table, red"
+  },
+  {
+    "alias": "dry roasted peanuts",
+    "food": "usda_fdc:174262",
+    "name": "Peanuts, all types, dry-roasted, with salt"
+  },
+  {
+    "alias": "dry sherry",
+    "food": "usda_fdc:173176",
+    "name": "Alcoholic beverage, wine, dessert, sweet"
+  },
+  {
+    "alias": "dry white wine",
+    "food": "usda_fdc:174837",
+    "name": "Alcoholic beverage, wine, table, white"
+  },
+  {
+    "alias": "dry yeast",
+    "food": "usda_fdc:175043",
+    "name": "Leavening agents, yeast, baker's, active dry"
+  },
+  {
+    "alias": "eagle brand milk",
+    "food": "usda_fdc:171275",
+    "name": "Milk, canned, condensed, sweetened"
+  },
+  {
+    "alias": "ears corn",
+    "food": "usda_fdc:169998",
+    "name": "Corn, sweet, yellow, raw"
+  },
+  {
+    "alias": "edamame",
+    "food": "usda_fdc:168410",
+    "name": "Edamame, frozen, unprepared"
+  },
+  {
+    "alias": "egg",
+    "food": "usda_fdc:171287",
+    "name": "Egg, whole, raw, fresh"
+  },
+  {
+    "alias": "egg beaten",
+    "food": "usda_fdc:171287",
+    "name": "Egg, whole, raw, fresh"
+  },
+  {
+    "alias": "egg noodle",
+    "food": "usda_fdc:169731",
+    "name": "Noodles, egg, dry, enriched"
+  },
+  {
+    "alias": "egg noodles",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "egg white",
+    "food": "usda_fdc:172183",
+    "name": "Egg, white, raw, fresh"
+  },
+  {
+    "alias": "egg whites",
+    "food": "usda_fdc:172183",
+    "name": "Egg, white, raw, fresh"
+  },
+  {
+    "alias": "egg yolk",
+    "food": "usda_fdc:172184",
+    "name": "Egg, yolk, raw, fresh"
+  },
+  {
+    "alias": "egg yolks",
+    "food": "usda_fdc:172184",
+    "name": "Egg, yolk, raw, fresh"
+  },
+  {
+    "alias": "eggplant",
+    "food": "usda_fdc:2685577",
+    "name": "Eggplant, raw"
+  },
+  {
+    "alias": "eggs",
+    "food": "usda_fdc:171287",
+    "name": "Egg, whole, raw, fresh"
+  },
+  {
+    "alias": "elbow macaroni",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "english cucumber",
+    "food": "usda_fdc:2346406",
+    "name": "Cucumber, with peel, raw"
+  },
+  {
+    "alias": "english muffins",
+    "food": "usda_fdc:175063",
+    "name": "English muffins, plain, enriched, without calcium propionate(includes sourdough)"
+  },
+  {
+    "alias": "english walnuts",
+    "food": "usda_fdc:170187",
+    "name": "Nuts, walnuts, english"
+  },
+  {
+    "alias": "espresso powder",
+    "food": "usda_fdc:171893",
+    "name": "Beverages, coffee, instant, regular, powder"
+  },
+  {
+    "alias": "evaporated milk",
+    "food": "usda_fdc:171276",
+    "name": "Milk, canned, evaporated, with added vitamin D and without added vitamin A"
+  },
+  {
+    "alias": "extra virgin olive oil",
+    "food": "usda_fdc:171413",
+    "name": "Oil, olive, salad or cooking"
+  },
+  {
+    "alias": "extra-firm tofu",
+    "food": "usda_fdc:172475",
+    "name": "Tofu, raw, firm, prepared with calcium sulfate"
+  },
+  {
+    "alias": "extra-virgin olive oil",
+    "food": "usda_fdc:171413",
+    "name": "Oil, olive, salad or cooking"
+  },
+  {
+    "alias": "fat-free milk",
+    "food": "usda_fdc:746776",
+    "name": "Milk, nonfat, fluid, with added vitamin A and vitamin D (fat free or skim)"
+  },
+  {
+    "alias": "fennel",
+    "food": "usda_fdc:2747655",
+    "name": "Fennel, bulb, raw"
+  },
+  {
+    "alias": "fennel bulb",
+    "food": "usda_fdc:2747655",
+    "name": "Fennel, bulb, raw"
+  },
+  {
+    "alias": "fennel seed",
+    "food": "usda_fdc:171323",
+    "name": "Spices, fennel seed"
+  },
+  {
+    "alias": "fennel seeds",
+    "food": "usda_fdc:171323",
+    "name": "Spices, fennel seed"
+  },
+  {
+    "alias": "feta",
+    "food": "usda_fdc:173420",
+    "name": "Cheese, feta"
+  },
+  {
+    "alias": "feta cheese",
+    "food": "usda_fdc:173420",
+    "name": "Cheese, feta"
+  },
+  {
+    "alias": "fettuccine",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "figs",
+    "food": "usda_fdc:746768",
+    "name": "Figs, dried, uncooked"
+  },
+  {
+    "alias": "filberts",
+    "food": "usda_fdc:170581",
+    "name": "Nuts, hazelnuts or filberts"
+  },
+  {
+    "alias": "filet mignon",
+    "food": "usda_fdc:169542",
+    "name": "Beef, tenderloin, steak, separable lean and fat, trimmed to 1/8\" fat, all grades, raw"
+  },
+  {
+    "alias": "filo dough",
+    "food": "usda_fdc:172791",
+    "name": "Phyllo dough"
+  },
+  {
+    "alias": "fine dry bread crumbs",
+    "food": "usda_fdc:174928",
+    "name": "Bread, crumbs, dry, grated, plain"
+  },
+  {
+    "alias": "fine sea salt",
+    "food": "usda_fdc:173468",
+    "name": "Salt, table"
+  },
+  {
+    "alias": "firm tofu",
+    "food": "usda_fdc:172475",
+    "name": "Tofu, raw, firm, prepared with calcium sulfate"
+  },
+  {
+    "alias": "firmly packed brown sugar",
+    "food": "usda_fdc:168833",
+    "name": "Sugars, brown"
+  },
+  {
+    "alias": "fish",
+    "food": "usda_fdc:171955",
+    "name": "Fish, cod, Atlantic, raw"
+  },
+  {
+    "alias": "fish fillets",
+    "food": "usda_fdc:171955",
+    "name": "Fish, cod, Atlantic, raw"
+  },
+  {
+    "alias": "fish sauce",
+    "food": "usda_fdc:174531",
+    "name": "Sauce, fish, ready-to-serve"
+  },
+  {
+    "alias": "flaked coconut",
+    "food": "usda_fdc:168586",
+    "name": "Nuts, coconut meat, dried (desiccated), sweetened, shredded"
+  },
+  {
+    "alias": "flank steak",
+    "food": "usda_fdc:169563",
+    "name": "Beef, flank, steak, separable lean and fat, trimmed to 0\" fat, all grades, raw"
+  },
+  {
+    "alias": "flat-leaf parsley",
+    "food": "usda_fdc:170416",
+    "name": "Parsley, fresh"
+  },
+  {
+    "alias": "flavored gelatin",
+    "food": "usda_fdc:168775",
+    "name": "Gelatin desserts, dry mix"
+  },
+  {
+    "alias": "flax seed",
+    "food": "usda_fdc:169414",
+    "name": "Seeds, flaxseed"
+  },
+  {
+    "alias": "flaxseed",
+    "food": "usda_fdc:169414",
+    "name": "Seeds, flaxseed"
+  },
+  {
+    "alias": "flounder",
+    "food": "usda_fdc:174196",
+    "name": "Fish, flatfish (flounder and sole species), raw"
+  },
+  {
+    "alias": "flounder fillets",
+    "food": "usda_fdc:174196",
+    "name": "Fish, flatfish (flounder and sole species), raw"
+  },
+  {
+    "alias": "flour",
+    "food": "usda_fdc:168894",
+    "name": "Wheat flour, white, all-purpose, enriched, bleached"
+  },
+  {
+    "alias": "flour tortilla",
+    "food": "usda_fdc:175037",
+    "name": "Tortillas, ready-to-bake or -fry, flour, refrigerated"
+  },
+  {
+    "alias": "flour tortillas",
+    "food": "usda_fdc:175037",
+    "name": "Tortillas, ready-to-bake or -fry, flour, refrigerated"
+  },
+  {
+    "alias": "frankfurters",
+    "food": "usda_fdc:323121",
+    "name": "Frankfurter, beef, unheated"
+  },
+  {
+    "alias": "french bread",
+    "food": "usda_fdc:172675",
+    "name": "Bread, french or vienna (includes sourdough)"
+  },
+  {
+    "alias": "french fries",
+    "food": "usda_fdc:170523",
+    "name": "Potatoes, french fried, all types, salt not added in processing, frozen, as purchased"
+  },
+  {
+    "alias": "french-style green beans",
+    "food": "usda_fdc:321611",
+    "name": "Beans, snap, green, canned, regular pack, drained solids"
+  },
+  {
+    "alias": "fresh asparagus",
+    "food": "usda_fdc:168389",
+    "name": "Asparagus, raw"
+  },
+  {
+    "alias": "fresh basil",
+    "food": "usda_fdc:172232",
+    "name": "Basil, fresh"
+  },
+  {
+    "alias": "fresh basil leaves",
+    "food": "usda_fdc:172232",
+    "name": "Basil, fresh"
+  },
+  {
+    "alias": "fresh blueberries",
+    "food": "usda_fdc:2346411",
+    "name": "Blueberries, raw"
+  },
+  {
+    "alias": "fresh broccoli",
+    "food": "usda_fdc:747447",
+    "name": "Broccoli, raw"
+  },
+  {
+    "alias": "fresh cherries",
+    "food": "usda_fdc:171719",
+    "name": "Cherries, sweet, raw"
+  },
+  {
+    "alias": "fresh chili",
+    "food": "usda_fdc:170106",
+    "name": "Peppers, hot chili, red, raw"
+  },
+  {
+    "alias": "fresh chives",
+    "food": "usda_fdc:169994",
+    "name": "Chives, raw"
+  },
+  {
+    "alias": "fresh cilantro",
+    "food": "usda_fdc:169997",
+    "name": "Coriander (cilantro) leaves, raw"
+  },
+  {
+    "alias": "fresh corn",
+    "food": "usda_fdc:169998",
+    "name": "Corn, sweet, yellow, raw"
+  },
+  {
+    "alias": "fresh cranberries",
+    "food": "usda_fdc:171722",
+    "name": "Cranberries, raw"
+  },
+  {
+    "alias": "fresh dill",
+    "food": "usda_fdc:172233",
+    "name": "Dill weed, fresh"
+  },
+  {
+    "alias": "fresh flat-leaf parsley",
+    "food": "usda_fdc:170416",
+    "name": "Parsley, fresh"
+  },
+  {
+    "alias": "fresh garlic",
+    "food": "usda_fdc:1104647",
+    "name": "Garlic, raw"
+  },
+  {
+    "alias": "fresh ginger",
+    "food": "usda_fdc:169231",
+    "name": "Ginger root, raw"
+  },
+  {
+    "alias": "fresh ginger root",
+    "food": "usda_fdc:169231",
+    "name": "Ginger root, raw"
+  },
+  {
+    "alias": "fresh green beans",
+    "food": "usda_fdc:2346400",
+    "name": "Beans, snap, green, raw"
+  },
+  {
+    "alias": "fresh ground black pepper",
+    "food": "usda_fdc:170931",
+    "name": "Spices, pepper, black"
+  },
+  {
+    "alias": "fresh lemon juice",
+    "food": "usda_fdc:167747",
+    "name": "Lemon juice, raw"
+  },
+  {
+    "alias": "fresh lime juice",
+    "food": "usda_fdc:168156",
+    "name": "Lime juice, raw"
+  },
+  {
+    "alias": "fresh mint",
+    "food": "usda_fdc:173474",
+    "name": "Peppermint, fresh"
+  },
+  {
+    "alias": "fresh mint leaves",
+    "food": "usda_fdc:173474",
+    "name": "Peppermint, fresh"
+  },
+  {
+    "alias": "fresh mozzarella",
+    "food": "usda_fdc:170845",
+    "name": "Cheese, mozzarella, whole milk"
+  },
+  {
+    "alias": "fresh mushrooms",
+    "food": "usda_fdc:169251",
+    "name": "Mushrooms, white, raw"
+  },
+  {
+    "alias": "fresh orange juice",
+    "food": "usda_fdc:169098",
+    "name": "Orange juice, raw (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "fresh parsley",
+    "food": "usda_fdc:170416",
+    "name": "Parsley, fresh"
+  },
+  {
+    "alias": "fresh peaches",
+    "food": "usda_fdc:325430",
+    "name": "Peaches, yellow, raw"
+  },
+  {
+    "alias": "fresh peas",
+    "food": "usda_fdc:170419",
+    "name": "Peas, green, raw"
+  },
+  {
+    "alias": "fresh pineapple",
+    "food": "usda_fdc:169124",
+    "name": "Pineapple, raw, all varieties"
+  },
+  {
+    "alias": "fresh raspberries",
+    "food": "usda_fdc:2346410",
+    "name": "Raspberries, raw"
+  },
+  {
+    "alias": "fresh rosemary",
+    "food": "usda_fdc:173473",
+    "name": "Rosemary, fresh"
+  },
+  {
+    "alias": "fresh spinach",
+    "food": "usda_fdc:168462",
+    "name": "Spinach, raw"
+  },
+  {
+    "alias": "fresh strawberries",
+    "food": "usda_fdc:2346409",
+    "name": "Strawberries, raw"
+  },
+  {
+    "alias": "fresh thyme",
+    "food": "usda_fdc:173470",
+    "name": "Thyme, fresh"
+  },
+  {
+    "alias": "fresh thyme leaves",
+    "food": "usda_fdc:173470",
+    "name": "Thyme, fresh"
+  },
+  {
+    "alias": "fresh tomatoes",
+    "food": "usda_fdc:170457",
+    "name": "Tomatoes, red, ripe, raw, year round average"
+  },
+  {
+    "alias": "fresh tuna",
+    "food": "usda_fdc:175159",
+    "name": "Fish, tuna, fresh, yellowfin, raw"
+  },
+  {
+    "alias": "fresh yeast",
+    "food": "usda_fdc:175042",
+    "name": "Leavening agents, yeast, baker's, compressed"
+  },
+  {
+    "alias": "freshly grated parmesan cheese",
+    "food": "usda_fdc:325036",
+    "name": "Cheese, parmesan, grated"
+  },
+  {
+    "alias": "freshly ground black pepper",
+    "food": "usda_fdc:170931",
+    "name": "Spices, pepper, black"
+  },
+  {
+    "alias": "freshly ground pepper",
+    "food": "usda_fdc:170931",
+    "name": "Spices, pepper, black"
+  },
+  {
+    "alias": "fritos",
+    "food": "usda_fdc:167558",
+    "name": "Snacks, tortilla chips, plain, white corn, salted"
+  },
+  {
+    "alias": "frozen blueberries",
+    "food": "usda_fdc:173950",
+    "name": "Blueberries, frozen, unsweetened (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "frozen broccoli",
+    "food": "usda_fdc:169968",
+    "name": "Broccoli, frozen, chopped, unprepared"
+  },
+  {
+    "alias": "frozen chopped broccoli",
+    "food": "usda_fdc:169968",
+    "name": "Broccoli, frozen, chopped, unprepared"
+  },
+  {
+    "alias": "frozen chopped spinach",
+    "food": "usda_fdc:169287",
+    "name": "Spinach, frozen, chopped or leaf, unprepared (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "frozen corn",
+    "food": "usda_fdc:168398",
+    "name": "Corn, sweet, yellow, frozen, kernels cut off cob, unprepared (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "frozen corn kernels",
+    "food": "usda_fdc:168398",
+    "name": "Corn, sweet, yellow, frozen, kernels cut off cob, unprepared (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "frozen green beans",
+    "food": "usda_fdc:169962",
+    "name": "Beans, snap, green, frozen, all styles, unprepared (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "frozen hash browns",
+    "food": "usda_fdc:170043",
+    "name": "Potatoes, hash brown, frozen, plain, unprepared"
+  },
+  {
+    "alias": "frozen mixed vegetables",
+    "food": "usda_fdc:170471",
+    "name": "Vegetables, mixed, frozen, unprepared"
+  },
+  {
+    "alias": "frozen orange juice concentrate",
+    "food": "usda_fdc:169923",
+    "name": "Orange juice, frozen concentrate, unsweetened, undiluted"
+  },
+  {
+    "alias": "frozen peas",
+    "food": "usda_fdc:170016",
+    "name": "Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "frozen pie crust",
+    "food": "usda_fdc:175024",
+    "name": "Pie crust, standard-type, frozen, ready-to-bake, enriched"
+  },
+  {
+    "alias": "frozen spinach",
+    "food": "usda_fdc:169287",
+    "name": "Spinach, frozen, chopped or leaf, unprepared (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "frozen strawberries",
+    "food": "usda_fdc:168174",
+    "name": "Strawberries, frozen, sweetened, sliced"
+  },
+  {
+    "alias": "frozen whipped topping",
+    "food": "usda_fdc:170868",
+    "name": "Dessert topping, semi solid, frozen"
+  },
+  {
+    "alias": "fruit cocktail",
+    "food": "usda_fdc:174668",
+    "name": "Fruit cocktail, (peach and pineapple and pear and grape and cherry), canned, juice pack, solids and liquids"
+  },
+  {
+    "alias": "fryer",
+    "food": "usda_fdc:171447",
+    "name": "Chicken, broilers or fryers, meat and skin, raw"
+  },
+  {
+    "alias": "garbanzo beans",
+    "food": "usda_fdc:173801",
+    "name": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained, rinsed in tap water"
+  },
+  {
+    "alias": "garbanzos",
+    "food": "usda_fdc:173801",
+    "name": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained, rinsed in tap water"
+  },
+  {
+    "alias": "garlic",
+    "food": "usda_fdc:1104647",
+    "name": "Garlic, raw"
+  },
+  {
+    "alias": "garlic clove",
+    "food": "usda_fdc:1104647",
+    "name": "Garlic, raw"
+  },
+  {
+    "alias": "garlic cloves",
+    "food": "usda_fdc:1104647",
+    "name": "Garlic, raw"
+  },
+  {
+    "alias": "garlic powder",
+    "food": "usda_fdc:171325",
+    "name": "Spices, garlic powder"
+  },
+  {
+    "alias": "garlic salt",
+    "food": "usda_fdc:171325",
+    "name": "Spices, garlic powder"
+  },
+  {
+    "alias": "gelatin",
+    "food": "usda_fdc:168775",
+    "name": "Gelatin desserts, dry mix"
+  },
+  {
+    "alias": "ghee",
+    "food": "usda_fdc:171314",
+    "name": "Butter, Clarified butter (ghee)"
+  },
+  {
+    "alias": "ginger",
+    "food": "usda_fdc:169231",
+    "name": "Ginger root, raw"
+  },
+  {
+    "alias": "ginger ale",
+    "food": "usda_fdc:174846",
+    "name": "Beverages, carbonated, ginger ale"
+  },
+  {
+    "alias": "ginger root",
+    "food": "usda_fdc:169231",
+    "name": "Ginger root, raw"
+  },
+  {
+    "alias": "gingerroot",
+    "food": "usda_fdc:169231",
+    "name": "Ginger root, raw"
+  },
+  {
+    "alias": "goat cheese",
+    "food": "usda_fdc:173435",
+    "name": "Cheese, goat, soft type"
+  },
+  {
+    "alias": "golden raisins",
+    "food": "usda_fdc:168165",
+    "name": "Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "gorgonzola",
+    "food": "usda_fdc:172175",
+    "name": "Cheese, blue"
+  },
+  {
+    "alias": "gouda",
+    "food": "usda_fdc:171241",
+    "name": "Cheese, gouda"
+  },
+  {
+    "alias": "gouda cheese",
+    "food": "usda_fdc:171241",
+    "name": "Cheese, gouda"
+  },
+  {
+    "alias": "graham cracker crumbs",
+    "food": "usda_fdc:174957",
+    "name": "Cookies, graham crackers, plain or honey (includes cinnamon)"
+  },
+  {
+    "alias": "graham crackers",
+    "food": "usda_fdc:174957",
+    "name": "Cookies, graham crackers, plain or honey (includes cinnamon)"
+  },
+  {
+    "alias": "granny smith apples",
+    "food": "usda_fdc:171688",
+    "name": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "granulated garlic",
+    "food": "usda_fdc:171325",
+    "name": "Spices, garlic powder"
+  },
+  {
+    "alias": "granulated sugar",
+    "food": "usda_fdc:746784",
+    "name": "Sugars, granulated"
+  },
+  {
+    "alias": "grape tomatoes",
+    "food": "usda_fdc:321360",
+    "name": "Tomatoes, grape, raw"
+  },
+  {
+    "alias": "grapefruit",
+    "food": "usda_fdc:174673",
+    "name": "Grapefruit, raw, pink and red, all areas"
+  },
+  {
+    "alias": "grapes",
+    "food": "usda_fdc:174683",
+    "name": "Grapes, red or green (European type, such as Thompson seedless), raw"
+  },
+  {
+    "alias": "grated carrot",
+    "food": "usda_fdc:170393",
+    "name": "Carrots, raw"
+  },
+  {
+    "alias": "grated cheese",
+    "food": "usda_fdc:328637",
+    "name": "Cheese, cheddar"
+  },
+  {
+    "alias": "grated ginger",
+    "food": "usda_fdc:169231",
+    "name": "Ginger root, raw"
+  },
+  {
+    "alias": "grated lemon peel",
+    "food": "usda_fdc:167749",
+    "name": "Lemon peel, raw"
+  },
+  {
+    "alias": "grated lemon rind",
+    "food": "usda_fdc:167749",
+    "name": "Lemon peel, raw"
+  },
+  {
+    "alias": "grated orange peel",
+    "food": "usda_fdc:169103",
+    "name": "Orange peel, raw"
+  },
+  {
+    "alias": "grated orange rind",
+    "food": "usda_fdc:169103",
+    "name": "Orange peel, raw"
+  },
+  {
+    "alias": "grated parmesan cheese",
+    "food": "usda_fdc:325036",
+    "name": "Cheese, parmesan, grated"
+  },
+  {
+    "alias": "gravy mix",
+    "food": "usda_fdc:171565",
+    "name": "Gravy, brown, dry"
+  },
+  {
+    "alias": "great northern beans",
+    "food": "usda_fdc:173745",
+    "name": "Beans, navy, mature seeds, raw"
+  },
+  {
+    "alias": "greek yogurt",
+    "food": "usda_fdc:330137",
+    "name": "Yogurt, Greek, plain, nonfat"
+  },
+  {
+    "alias": "green apples",
+    "food": "usda_fdc:171688",
+    "name": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "green beans",
+    "food": "usda_fdc:2346400",
+    "name": "Beans, snap, green, raw"
+  },
+  {
+    "alias": "green bell pepper",
+    "food": "usda_fdc:170427",
+    "name": "Peppers, sweet, green, raw"
+  },
+  {
+    "alias": "green bell peppers",
+    "food": "usda_fdc:170427",
+    "name": "Peppers, sweet, green, raw"
+  },
+  {
+    "alias": "green cabbage",
+    "food": "usda_fdc:169975",
+    "name": "Cabbage, raw"
+  },
+  {
+    "alias": "green chiles",
+    "food": "usda_fdc:170426",
+    "name": "Peppers, hot chili, green, canned, pods, excluding seeds, solids and liquids"
+  },
+  {
+    "alias": "green chilies",
+    "food": "usda_fdc:170426",
+    "name": "Peppers, hot chili, green, canned, pods, excluding seeds, solids and liquids"
+  },
+  {
+    "alias": "green grapes",
+    "food": "usda_fdc:174683",
+    "name": "Grapes, red or green (European type, such as Thompson seedless), raw"
+  },
+  {
+    "alias": "green lentils",
+    "food": "usda_fdc:172420",
+    "name": "Lentils, raw"
+  },
+  {
+    "alias": "green olives",
+    "food": "usda_fdc:169096",
+    "name": "Olives, pickled, canned or bottled, green"
+  },
+  {
+    "alias": "green onion",
+    "food": "usda_fdc:170005",
+    "name": "Onions, spring or scallions (includes tops and bulb), raw"
+  },
+  {
+    "alias": "green onions",
+    "food": "usda_fdc:170005",
+    "name": "Onions, spring or scallions (includes tops and bulb), raw"
+  },
+  {
+    "alias": "green peas",
+    "food": "usda_fdc:170419",
+    "name": "Peas, green, raw"
+  },
+  {
+    "alias": "green pepper",
+    "food": "usda_fdc:170427",
+    "name": "Peppers, sweet, green, raw"
+  },
+  {
+    "alias": "green peppers",
+    "food": "usda_fdc:170427",
+    "name": "Peppers, sweet, green, raw"
+  },
+  {
+    "alias": "grits",
+    "food": "usda_fdc:171654",
+    "name": "Cereals, corn grits, white, regular and quick, enriched, dry"
+  },
+  {
+    "alias": "ground allspice",
+    "food": "usda_fdc:171315",
+    "name": "Spices, allspice, ground"
+  },
+  {
+    "alias": "ground almonds",
+    "food": "usda_fdc:170568",
+    "name": "Nuts, almonds, blanched"
+  },
+  {
+    "alias": "ground beef",
+    "food": "usda_fdc:2514744",
+    "name": "Beef, ground, 80% lean meat / 20% fat, raw"
+  },
+  {
+    "alias": "ground black pepper",
+    "food": "usda_fdc:170931",
+    "name": "Spices, pepper, black"
+  },
+  {
+    "alias": "ground cardamom",
+    "food": "usda_fdc:170919",
+    "name": "Spices, cardamom"
+  },
+  {
+    "alias": "ground chicken",
+    "food": "usda_fdc:171116",
+    "name": "Chicken, ground, raw"
+  },
+  {
+    "alias": "ground chuck",
+    "food": "usda_fdc:2514744",
+    "name": "Beef, ground, 80% lean meat / 20% fat, raw"
+  },
+  {
+    "alias": "ground cinnamon",
+    "food": "usda_fdc:171320",
+    "name": "Spices, cinnamon, ground"
+  },
+  {
+    "alias": "ground cloves",
+    "food": "usda_fdc:171321",
+    "name": "Spices, cloves, ground"
+  },
+  {
+    "alias": "ground coriander",
+    "food": "usda_fdc:170922",
+    "name": "Spices, coriander seed"
+  },
+  {
+    "alias": "ground cumin",
+    "food": "usda_fdc:170923",
+    "name": "Spices, cumin seed"
+  },
+  {
+    "alias": "ground flaxseed",
+    "food": "usda_fdc:169414",
+    "name": "Seeds, flaxseed"
+  },
+  {
+    "alias": "ground ginger",
+    "food": "usda_fdc:170926",
+    "name": "Spices, ginger, ground"
+  },
+  {
+    "alias": "ground lamb",
+    "food": "usda_fdc:2727570",
+    "name": "Lamb, ground, raw"
+  },
+  {
+    "alias": "ground mustard",
+    "food": "usda_fdc:170929",
+    "name": "Spices, mustard seed, ground"
+  },
+  {
+    "alias": "ground nutmeg",
+    "food": "usda_fdc:171326",
+    "name": "Spices, nutmeg, ground"
+  },
+  {
+    "alias": "ground pepper",
+    "food": "usda_fdc:170931",
+    "name": "Spices, pepper, black"
+  },
+  {
+    "alias": "ground pork",
+    "food": "usda_fdc:167902",
+    "name": "Pork, fresh, ground, raw"
+  },
+  {
+    "alias": "ground red pepper",
+    "food": "usda_fdc:170932",
+    "name": "Spices, pepper, red or cayenne"
+  },
+  {
+    "alias": "ground round",
+    "food": "usda_fdc:2514744",
+    "name": "Beef, ground, 80% lean meat / 20% fat, raw"
+  },
+  {
+    "alias": "ground sage",
+    "food": "usda_fdc:170935",
+    "name": "Spices, sage, ground"
+  },
+  {
+    "alias": "ground sausage",
+    "food": "usda_fdc:171631",
+    "name": "Sausage, Italian, pork, mild, raw"
+  },
+  {
+    "alias": "ground sirloin",
+    "food": "usda_fdc:2514744",
+    "name": "Beef, ground, 80% lean meat / 20% fat, raw"
+  },
+  {
+    "alias": "ground turkey",
+    "food": "usda_fdc:171505",
+    "name": "Turkey, Ground, raw"
+  },
+  {
+    "alias": "ground turmeric",
+    "food": "usda_fdc:172231",
+    "name": "Spices, turmeric, ground"
+  },
+  {
+    "alias": "ground veal",
+    "food": "usda_fdc:175290",
+    "name": "Veal, ground, raw"
+  },
+  {
+    "alias": "gruyere",
+    "food": "usda_fdc:171242",
+    "name": "Cheese, gruyere"
+  },
+  {
+    "alias": "gruyere cheese",
+    "food": "usda_fdc:171242",
+    "name": "Cheese, gruyere"
+  },
+  {
+    "alias": "haddock",
+    "food": "usda_fdc:333374",
+    "name": "Fish, haddock, raw"
+  },
+  {
+    "alias": "half and half",
+    "food": "usda_fdc:171255",
+    "name": "Cream, fluid, half and half"
+  },
+  {
+    "alias": "half-and-half",
+    "food": "usda_fdc:171255",
+    "name": "Cream, fluid, half and half"
+  },
+  {
+    "alias": "halibut",
+    "food": "usda_fdc:174200",
+    "name": "Fish, halibut, Atlantic and Pacific, raw"
+  },
+  {
+    "alias": "ham",
+    "food": "usda_fdc:167872",
+    "name": "Pork, cured, ham, boneless, regular (approximately 11% fat), roasted"
+  },
+  {
+    "alias": "ham slices",
+    "food": "usda_fdc:167872",
+    "name": "Pork, cured, ham, boneless, regular (approximately 11% fat), roasted"
+  },
+  {
+    "alias": "hamburger",
+    "food": "usda_fdc:2514744",
+    "name": "Beef, ground, 80% lean meat / 20% fat, raw"
+  },
+  {
+    "alias": "hamburger buns",
+    "food": "usda_fdc:172796",
+    "name": "Rolls, hamburger or hotdog, plain"
+  },
+  {
+    "alias": "hamburger meat",
+    "food": "usda_fdc:2514744",
+    "name": "Beef, ground, 80% lean meat / 20% fat, raw"
+  },
+  {
+    "alias": "hard boiled eggs",
+    "food": "usda_fdc:173424",
+    "name": "Egg, whole, cooked, hard-boiled"
+  },
+  {
+    "alias": "hard-boiled eggs",
+    "food": "usda_fdc:173424",
+    "name": "Egg, whole, cooked, hard-boiled"
+  },
+  {
+    "alias": "hard-cooked eggs",
+    "food": "usda_fdc:173424",
+    "name": "Egg, whole, cooked, hard-boiled"
+  },
+  {
+    "alias": "hash brown potatoes",
+    "food": "usda_fdc:170043",
+    "name": "Potatoes, hash brown, frozen, plain, unprepared"
+  },
+  {
+    "alias": "hash browns",
+    "food": "usda_fdc:170043",
+    "name": "Potatoes, hash brown, frozen, plain, unprepared"
+  },
+  {
+    "alias": "hazelnuts",
+    "food": "usda_fdc:170581",
+    "name": "Nuts, hazelnuts or filberts"
+  },
+  {
+    "alias": "head cabbage",
+    "food": "usda_fdc:169975",
+    "name": "Cabbage, raw"
+  },
+  {
+    "alias": "head lettuce",
+    "food": "usda_fdc:169248",
+    "name": "Lettuce, iceberg (includes crisphead types), raw"
+  },
+  {
+    "alias": "heavy cream",
+    "food": "usda_fdc:170859",
+    "name": "Cream, fluid, heavy whipping"
+  },
+  {
+    "alias": "heavy whipping cream",
+    "food": "usda_fdc:170859",
+    "name": "Cream, fluid, heavy whipping"
+  },
+  {
+    "alias": "hellmann's mayonnaise",
+    "food": "usda_fdc:171009",
+    "name": "Salad dressing, mayonnaise, regular"
+  },
+  {
+    "alias": "herb stuffing",
+    "food": "usda_fdc:174930",
+    "name": "Bread, stuffing, dry mix"
+  },
+  {
+    "alias": "hoisin sauce",
+    "food": "usda_fdc:172886",
+    "name": "Sauce, hoisin, ready-to-serve"
+  },
+  {
+    "alias": "honey",
+    "food": "usda_fdc:169640",
+    "name": "Honey"
+  },
+  {
+    "alias": "horseradish",
+    "food": "usda_fdc:173472",
+    "name": "Horseradish, prepared"
+  },
+  {
+    "alias": "hot dog buns",
+    "food": "usda_fdc:172796",
+    "name": "Rolls, hamburger or hotdog, plain"
+  },
+  {
+    "alias": "hot dogs",
+    "food": "usda_fdc:323121",
+    "name": "Frankfurter, beef, unheated"
+  },
+  {
+    "alias": "hot italian sausage",
+    "food": "usda_fdc:171631",
+    "name": "Sausage, Italian, pork, mild, raw"
+  },
+  {
+    "alias": "hot pepper sauce",
+    "food": "usda_fdc:174527",
+    "name": "Sauce, ready-to-serve, pepper or hot"
+  },
+  {
+    "alias": "hot sauce",
+    "food": "usda_fdc:174527",
+    "name": "Sauce, ready-to-serve, pepper or hot"
+  },
+  {
+    "alias": "hot water",
+    "food": "usda_fdc:173647",
+    "name": "Beverages, water, tap, drinking"
+  },
+  {
+    "alias": "ice",
+    "food": "usda_fdc:173647",
+    "name": "Beverages, water, tap, drinking"
+  },
+  {
+    "alias": "ice cream",
+    "food": "usda_fdc:167575",
+    "name": "Ice creams, vanilla"
+  },
+  {
+    "alias": "ice water",
+    "food": "usda_fdc:173647",
+    "name": "Beverages, water, tap, drinking"
+  },
+  {
+    "alias": "iceberg lettuce",
+    "food": "usda_fdc:169248",
+    "name": "Lettuce, iceberg (includes crisphead types), raw"
+  },
+  {
+    "alias": "icing sugar",
+    "food": "usda_fdc:169656",
+    "name": "Sugars, powdered"
+  },
+  {
+    "alias": "imitation crab",
+    "food": "usda_fdc:173702",
+    "name": "Fish, surimi"
+  },
+  {
+    "alias": "imitation crabmeat",
+    "food": "usda_fdc:173702",
+    "name": "Fish, surimi"
+  },
+  {
+    "alias": "imitation vanilla",
+    "food": "usda_fdc:172235",
+    "name": "Vanilla extract, imitation, alcohol"
+  },
+  {
+    "alias": "instant chocolate pudding",
+    "food": "usda_fdc:168779",
+    "name": "Puddings, chocolate, dry mix, instant"
+  },
+  {
+    "alias": "instant coffee",
+    "food": "usda_fdc:171893",
+    "name": "Beverages, coffee, instant, regular, powder"
+  },
+  {
+    "alias": "instant coffee granules",
+    "food": "usda_fdc:171893",
+    "name": "Beverages, coffee, instant, regular, powder"
+  },
+  {
+    "alias": "instant mashed potatoes",
+    "food": "usda_fdc:170445",
+    "name": "Potatoes, mashed, dehydrated, flakes without milk, dry form"
+  },
+  {
+    "alias": "instant minced onion",
+    "food": "usda_fdc:170002",
+    "name": "Onions, dehydrated flakes"
+  },
+  {
+    "alias": "instant pudding",
+    "food": "usda_fdc:168784",
+    "name": "Puddings, vanilla, dry mix, instant"
+  },
+  {
+    "alias": "instant rice",
+    "food": "usda_fdc:169709",
+    "name": "Rice, white, long-grain, precooked or instant, enriched, dry"
+  },
+  {
+    "alias": "instant vanilla pudding",
+    "food": "usda_fdc:168784",
+    "name": "Puddings, vanilla, dry mix, instant"
+  },
+  {
+    "alias": "instant yeast",
+    "food": "usda_fdc:175043",
+    "name": "Leavening agents, yeast, baker's, active dry"
+  },
+  {
+    "alias": "italian bread",
+    "food": "usda_fdc:172675",
+    "name": "Bread, french or vienna (includes sourdough)"
+  },
+  {
+    "alias": "italian bread crumbs",
+    "food": "usda_fdc:172806",
+    "name": "Bread, crumbs, dry, grated, seasoned"
+  },
+  {
+    "alias": "italian dressing",
+    "food": "usda_fdc:171019",
+    "name": "Salad dressing, italian dressing, commercial, regular"
+  },
+  {
+    "alias": "italian parsley",
+    "food": "usda_fdc:170416",
+    "name": "Parsley, fresh"
+  },
+  {
+    "alias": "italian salad dressing",
+    "food": "usda_fdc:171019",
+    "name": "Salad dressing, italian dressing, commercial, regular"
+  },
+  {
+    "alias": "italian sausage",
+    "food": "usda_fdc:171631",
+    "name": "Sausage, Italian, pork, mild, raw"
+  },
+  {
+    "alias": "italian seasoned bread crumbs",
+    "food": "usda_fdc:172806",
+    "name": "Bread, crumbs, dry, grated, seasoned"
+  },
+  {
+    "alias": "italian seasoning",
+    "food": "usda_fdc:171331",
+    "name": "Spices, poultry seasoning"
+  },
+  {
+    "alias": "italian tomatoes",
+    "food": "usda_fdc:170051",
+    "name": "Tomatoes, red, ripe, canned, packed in tomato juice"
+  },
+  {
+    "alias": "jack cheese",
+    "food": "usda_fdc:170844",
+    "name": "Cheese, monterey"
+  },
+  {
+    "alias": "jalapeno",
+    "food": "usda_fdc:168576",
+    "name": "Peppers, jalapeno, raw"
+  },
+  {
+    "alias": "jalapeno pepper",
+    "food": "usda_fdc:168576",
+    "name": "Peppers, jalapeno, raw"
+  },
+  {
+    "alias": "jalapeno peppers",
+    "food": "usda_fdc:168576",
+    "name": "Peppers, jalapeno, raw"
+  },
+  {
+    "alias": "jalapenos",
+    "food": "usda_fdc:168576",
+    "name": "Peppers, jalapeno, raw"
+  },
+  {
+    "alias": "jalapeño",
+    "food": "usda_fdc:168576",
+    "name": "Peppers, jalapeno, raw"
+  },
+  {
+    "alias": "jam",
+    "food": "usda_fdc:169641",
+    "name": "Jams and preserves"
+  },
+  {
+    "alias": "jasmine rice",
+    "food": "usda_fdc:168877",
+    "name": "Rice, white, long-grain, regular, raw, enriched"
+  },
+  {
+    "alias": "jell-o",
+    "food": "usda_fdc:168775",
+    "name": "Gelatin desserts, dry mix"
+  },
+  {
+    "alias": "jellied cranberry sauce",
+    "food": "usda_fdc:173961",
+    "name": "Cranberry sauce, canned, sweetened"
+  },
+  {
+    "alias": "jello",
+    "food": "usda_fdc:168775",
+    "name": "Gelatin desserts, dry mix"
+  },
+  {
+    "alias": "jelly",
+    "food": "usda_fdc:169641",
+    "name": "Jams and preserves"
+  },
+  {
+    "alias": "juice of lemon",
+    "food": "usda_fdc:167747",
+    "name": "Lemon juice, raw"
+  },
+  {
+    "alias": "jumbo shrimp",
+    "food": "usda_fdc:175179",
+    "name": "Crustaceans, shrimp, raw"
+  },
+  {
+    "alias": "kalamata olives",
+    "food": "usda_fdc:169094",
+    "name": "Olives, ripe, canned (small-extra large)"
+  },
+  {
+    "alias": "kale",
+    "food": "usda_fdc:323505",
+    "name": "Kale, raw"
+  },
+  {
+    "alias": "karo syrup",
+    "food": "usda_fdc:168837",
+    "name": "Syrups, corn, light"
+  },
+  {
+    "alias": "ketchup",
+    "food": "usda_fdc:168556",
+    "name": "Catsup"
+  },
+  {
+    "alias": "kidney beans",
+    "food": "usda_fdc:174285",
+    "name": "Beans, kidney, red, mature seeds, canned, drained solids"
+  },
+  {
+    "alias": "kielbasa",
+    "food": "usda_fdc:174584",
+    "name": "Sausage, smoked link sausage, pork"
+  },
+  {
+    "alias": "kiwi",
+    "food": "usda_fdc:327046",
+    "name": "Kiwifruit, green, raw"
+  },
+  {
+    "alias": "kiwifruit",
+    "food": "usda_fdc:327046",
+    "name": "Kiwifruit, green, raw"
+  },
+  {
+    "alias": "knox gelatine",
+    "food": "usda_fdc:169599",
+    "name": "Gelatins, dry powder, unsweetened"
+  },
+  {
+    "alias": "kosher salt",
+    "food": "usda_fdc:173468",
+    "name": "Salt, table"
+  },
+  {
+    "alias": "lamb",
+    "food": "usda_fdc:2727570",
+    "name": "Lamb, ground, raw"
+  },
+  {
+    "alias": "lamb leg",
+    "food": "usda_fdc:174311",
+    "name": "Lamb, leg, whole (shank and sirloin), separable lean and fat, trimmed to 1/4\" fat, choice, raw"
+  },
+  {
+    "alias": "lard",
+    "food": "usda_fdc:171401",
+    "name": "Lard"
+  },
+  {
+    "alias": "large egg",
+    "food": "usda_fdc:171287",
+    "name": "Egg, whole, raw, fresh"
+  },
+  {
+    "alias": "large eggs",
+    "food": "usda_fdc:171287",
+    "name": "Egg, whole, raw, fresh"
+  },
+  {
+    "alias": "large onion",
+    "food": "usda_fdc:170000",
+    "name": "Onions, raw"
+  },
+  {
+    "alias": "large shrimp",
+    "food": "usda_fdc:175179",
+    "name": "Crustaceans, shrimp, raw"
+  },
+  {
+    "alias": "lasagna noodles",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "lean ground beef",
+    "food": "usda_fdc:2514744",
+    "name": "Beef, ground, 80% lean meat / 20% fat, raw"
+  },
+  {
+    "alias": "leek",
+    "food": "usda_fdc:169246",
+    "name": "Leeks, (bulb and lower leaf-portion), raw"
+  },
+  {
+    "alias": "leeks",
+    "food": "usda_fdc:169246",
+    "name": "Leeks, (bulb and lower leaf-portion), raw"
+  },
+  {
+    "alias": "leftover turkey",
+    "food": "usda_fdc:171481",
+    "name": "Turkey, whole, meat only, cooked, roasted"
+  },
+  {
+    "alias": "leg of lamb",
+    "food": "usda_fdc:174311",
+    "name": "Lamb, leg, whole (shank and sirloin), separable lean and fat, trimmed to 1/4\" fat, choice, raw"
+  },
+  {
+    "alias": "lemon",
+    "food": "usda_fdc:167746",
+    "name": "Lemons, raw, without peel"
+  },
+  {
+    "alias": "lemon juice",
+    "food": "usda_fdc:167747",
+    "name": "Lemon juice, raw"
+  },
+  {
+    "alias": "lemon juice concentrate",
+    "food": "usda_fdc:167747",
+    "name": "Lemon juice, raw"
+  },
+  {
+    "alias": "lemon peel",
+    "food": "usda_fdc:167749",
+    "name": "Lemon peel, raw"
+  },
+  {
+    "alias": "lemon rind",
+    "food": "usda_fdc:167749",
+    "name": "Lemon peel, raw"
+  },
+  {
+    "alias": "lemon zest",
+    "food": "usda_fdc:167749",
+    "name": "Lemon peel, raw"
+  },
+  {
+    "alias": "lemon-lime soda",
+    "food": "usda_fdc:174846",
+    "name": "Beverages, carbonated, ginger ale"
+  },
+  {
+    "alias": "lemongrass",
+    "food": "usda_fdc:168573",
+    "name": "Lemon grass (citronella), raw"
+  },
+  {
+    "alias": "lemons",
+    "food": "usda_fdc:167746",
+    "name": "Lemons, raw, without peel"
+  },
+  {
+    "alias": "lentils",
+    "food": "usda_fdc:172420",
+    "name": "Lentils, raw"
+  },
+  {
+    "alias": "lettuce",
+    "food": "usda_fdc:169248",
+    "name": "Lettuce, iceberg (includes crisphead types), raw"
+  },
+  {
+    "alias": "light brown sugar",
+    "food": "usda_fdc:168833",
+    "name": "Sugars, brown"
+  },
+  {
+    "alias": "light coconut milk",
+    "food": "usda_fdc:170173",
+    "name": "Nuts, coconut milk, canned (liquid expressed from grated meat and water)"
+  },
+  {
+    "alias": "light corn syrup",
+    "food": "usda_fdc:168837",
+    "name": "Syrups, corn, light"
+  },
+  {
+    "alias": "light cream",
+    "food": "usda_fdc:170857",
+    "name": "Cream, fluid, light (coffee cream or table cream)"
+  },
+  {
+    "alias": "light olive oil",
+    "food": "usda_fdc:171413",
+    "name": "Oil, olive, salad or cooking"
+  },
+  {
+    "alias": "light sour cream",
+    "food": "usda_fdc:173443",
+    "name": "Sour cream, light"
+  },
+  {
+    "alias": "light soy sauce",
+    "food": "usda_fdc:174277",
+    "name": "Soy sauce made from soy and wheat (shoyu)"
+  },
+  {
+    "alias": "lima beans",
+    "food": "usda_fdc:174252",
+    "name": "Lima beans, large, mature seeds, raw"
+  },
+  {
+    "alias": "lime",
+    "food": "usda_fdc:168155",
+    "name": "Limes, raw"
+  },
+  {
+    "alias": "lime juice",
+    "food": "usda_fdc:168156",
+    "name": "Lime juice, raw"
+  },
+  {
+    "alias": "limes",
+    "food": "usda_fdc:168155",
+    "name": "Limes, raw"
+  },
+  {
+    "alias": "linguine",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "lipton onion soup mix",
+    "food": "usda_fdc:171165",
+    "name": "Soup, onion, dry, mix"
+  },
+  {
+    "alias": "lobster",
+    "food": "usda_fdc:174208",
+    "name": "Crustaceans, lobster, northern, raw"
+  },
+  {
+    "alias": "lobster tails",
+    "food": "usda_fdc:174208",
+    "name": "Crustaceans, lobster, northern, raw"
+  },
+  {
+    "alias": "long grain rice",
+    "food": "usda_fdc:168877",
+    "name": "Rice, white, long-grain, regular, raw, enriched"
+  },
+  {
+    "alias": "long-grain white rice",
+    "food": "usda_fdc:168877",
+    "name": "Rice, white, long-grain, regular, raw, enriched"
+  },
+  {
+    "alias": "louisiana hot sauce",
+    "food": "usda_fdc:174527",
+    "name": "Sauce, ready-to-serve, pepper or hot"
+  },
+  {
+    "alias": "low sodium chicken broth",
+    "food": "usda_fdc:174536",
+    "name": "Soup, chicken broth, ready-to-serve"
+  },
+  {
+    "alias": "low sodium soy sauce",
+    "food": "usda_fdc:174277",
+    "name": "Soy sauce made from soy and wheat (shoyu)"
+  },
+  {
+    "alias": "low-fat milk",
+    "food": "usda_fdc:746772",
+    "name": "Milk, lowfat, fluid, 1% milkfat, with added vitamin A and vitamin D"
+  },
+  {
+    "alias": "low-fat yogurt",
+    "food": "usda_fdc:170886",
+    "name": "Yogurt, plain, low fat"
+  },
+  {
+    "alias": "lowfat milk",
+    "food": "usda_fdc:746772",
+    "name": "Milk, lowfat, fluid, 1% milkfat, with added vitamin A and vitamin D"
+  },
+  {
+    "alias": "lox",
+    "food": "usda_fdc:173687",
+    "name": "Fish, salmon, chinook, smoked"
+  },
+  {
+    "alias": "lump crabmeat",
+    "food": "usda_fdc:171966",
+    "name": "Crustaceans, crab, blue, canned"
+  },
+  {
+    "alias": "macadamia nuts",
+    "food": "usda_fdc:2515378",
+    "name": "Nuts, macadamia nuts, raw"
+  },
+  {
+    "alias": "macaroni",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "mandarin oranges",
+    "food": "usda_fdc:169924",
+    "name": "Tangerines, (mandarin oranges), canned, light syrup pack"
+  },
+  {
+    "alias": "mango",
+    "food": "usda_fdc:169910",
+    "name": "Mangos, raw"
+  },
+  {
+    "alias": "mangoes",
+    "food": "usda_fdc:169910",
+    "name": "Mangos, raw"
+  },
+  {
+    "alias": "maple syrup",
+    "food": "usda_fdc:169661",
+    "name": "Syrups, maple"
+  },
+  {
+    "alias": "margarine",
+    "food": "usda_fdc:172346",
+    "name": "Margarine, regular, 80% fat, composite, stick, with salt"
+  },
+  {
+    "alias": "marinara sauce",
+    "food": "usda_fdc:332282",
+    "name": "Sauce, pasta, spaghetti/marinara, ready-to-serve"
+  },
+  {
+    "alias": "marinated artichoke hearts",
+    "food": "usda_fdc:168387",
+    "name": "Artichokes, (globe or french), frozen, unprepared"
+  },
+  {
+    "alias": "marjoram",
+    "food": "usda_fdc:170928",
+    "name": "Spices, marjoram, dried"
+  },
+  {
+    "alias": "marsala wine",
+    "food": "usda_fdc:173176",
+    "name": "Alcoholic beverage, wine, dessert, sweet"
+  },
+  {
+    "alias": "marshmallow cream",
+    "food": "usda_fdc:169664",
+    "name": "Toppings, marshmallow cream"
+  },
+  {
+    "alias": "marshmallow creme",
+    "food": "usda_fdc:169664",
+    "name": "Toppings, marshmallow cream"
+  },
+  {
+    "alias": "marshmallow fluff",
+    "food": "usda_fdc:169664",
+    "name": "Toppings, marshmallow cream"
+  },
+  {
+    "alias": "marshmallows",
+    "food": "usda_fdc:167995",
+    "name": "Candies, marshmallows"
+  },
+  {
+    "alias": "mashed bananas",
+    "food": "usda_fdc:173944",
+    "name": "Bananas, raw"
+  },
+  {
+    "alias": "mayo",
+    "food": "usda_fdc:171009",
+    "name": "Salad dressing, mayonnaise, regular"
+  },
+  {
+    "alias": "mayonnaise",
+    "food": "usda_fdc:171009",
+    "name": "Salad dressing, mayonnaise, regular"
+  },
+  {
+    "alias": "medium onion",
+    "food": "usda_fdc:170000",
+    "name": "Onions, raw"
+  },
+  {
+    "alias": "medium shrimp",
+    "food": "usda_fdc:175179",
+    "name": "Crustaceans, shrimp, raw"
+  },
+  {
+    "alias": "melted butter",
+    "food": "usda_fdc:173410",
+    "name": "Butter, salted"
+  },
+  {
+    "alias": "milk",
+    "food": "usda_fdc:746782",
+    "name": "Milk, whole, 3.25% milkfat, with added vitamin D"
+  },
+  {
+    "alias": "milk chocolate",
+    "food": "usda_fdc:167587",
+    "name": "Candies, milk chocolate"
+  },
+  {
+    "alias": "milk chocolate chips",
+    "food": "usda_fdc:167587",
+    "name": "Candies, milk chocolate"
+  },
+  {
+    "alias": "minced clams",
+    "food": "usda_fdc:171976",
+    "name": "Mollusks, clam, mixed species, canned, drained solids"
+  },
+  {
+    "alias": "minced garlic",
+    "food": "usda_fdc:1104647",
+    "name": "Garlic, raw"
+  },
+  {
+    "alias": "mini marshmallows",
+    "food": "usda_fdc:167995",
+    "name": "Candies, marshmallows"
+  },
+  {
+    "alias": "miniature marshmallows",
+    "food": "usda_fdc:167995",
+    "name": "Candies, marshmallows"
+  },
+  {
+    "alias": "mint",
+    "food": "usda_fdc:173474",
+    "name": "Peppermint, fresh"
+  },
+  {
+    "alias": "mint leaves",
+    "food": "usda_fdc:173474",
+    "name": "Peppermint, fresh"
+  },
+  {
+    "alias": "minute rice",
+    "food": "usda_fdc:169709",
+    "name": "Rice, white, long-grain, precooked or instant, enriched, dry"
+  },
+  {
+    "alias": "miracle whip",
+    "food": "usda_fdc:171403",
+    "name": "Salad dressing, mayonnaise type, regular, with salt"
+  },
+  {
+    "alias": "mixed vegetables",
+    "food": "usda_fdc:170471",
+    "name": "Vegetables, mixed, frozen, unprepared"
+  },
+  {
+    "alias": "molasses",
+    "food": "usda_fdc:168820",
+    "name": "Molasses"
+  },
+  {
+    "alias": "monterey jack",
+    "food": "usda_fdc:170844",
+    "name": "Cheese, monterey"
+  },
+  {
+    "alias": "monterey jack cheese",
+    "food": "usda_fdc:170844",
+    "name": "Cheese, monterey"
+  },
+  {
+    "alias": "mozzarella",
+    "food": "usda_fdc:170845",
+    "name": "Cheese, mozzarella, whole milk"
+  },
+  {
+    "alias": "mozzarella cheese",
+    "food": "usda_fdc:170845",
+    "name": "Cheese, mozzarella, whole milk"
+  },
+  {
+    "alias": "mushroom",
+    "food": "usda_fdc:169251",
+    "name": "Mushrooms, white, raw"
+  },
+  {
+    "alias": "mushroom pieces",
+    "food": "usda_fdc:169254",
+    "name": "Mushrooms, canned, drained solids"
+  },
+  {
+    "alias": "mushroom soup",
+    "food": "usda_fdc:171155",
+    "name": "Soup, cream of mushroom, canned, condensed"
+  },
+  {
+    "alias": "mushrooms",
+    "food": "usda_fdc:169251",
+    "name": "Mushrooms, white, raw"
+  },
+  {
+    "alias": "mussels",
+    "food": "usda_fdc:174216",
+    "name": "Mollusks, mussel, blue, raw"
+  },
+  {
+    "alias": "mustard",
+    "food": "usda_fdc:326698",
+    "name": "Mustard, prepared, yellow"
+  },
+  {
+    "alias": "mustard powder",
+    "food": "usda_fdc:170929",
+    "name": "Spices, mustard seed, ground"
+  },
+  {
+    "alias": "mustard seed",
+    "food": "usda_fdc:170929",
+    "name": "Spices, mustard seed, ground"
+  },
+  {
+    "alias": "navel oranges",
+    "food": "usda_fdc:169097",
+    "name": "Oranges, raw, all commercial varieties"
+  },
+  {
+    "alias": "navy beans",
+    "food": "usda_fdc:173745",
+    "name": "Beans, navy, mature seeds, raw"
+  },
+  {
+    "alias": "new potatoes",
+    "food": "usda_fdc:170026",
+    "name": "Potatoes, flesh and skin, raw"
+  },
+  {
+    "alias": "niblets",
+    "food": "usda_fdc:169214",
+    "name": "Corn, sweet, yellow, canned, whole kernel, drained solids"
+  },
+  {
+    "alias": "nonfat dry milk",
+    "food": "usda_fdc:170877",
+    "name": "Milk, dry, nonfat, regular, without added vitamin A and vitamin D"
+  },
+  {
+    "alias": "nonfat greek yogurt",
+    "food": "usda_fdc:330137",
+    "name": "Yogurt, Greek, plain, nonfat"
+  },
+  {
+    "alias": "nonfat milk",
+    "food": "usda_fdc:746776",
+    "name": "Milk, nonfat, fluid, with added vitamin A and vitamin D (fat free or skim)"
+  },
+  {
+    "alias": "nonstick cooking spray",
+    "food": "usda_fdc:171430",
+    "name": "Oil, PAM cooking spray, original"
+  },
+  {
+    "alias": "noodles",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "nori",
+    "food": "usda_fdc:168458",
+    "name": "Seaweed, laver, raw"
+  },
+  {
+    "alias": "nutmeg",
+    "food": "usda_fdc:171326",
+    "name": "Spices, nutmeg, ground"
+  },
+  {
+    "alias": "nuts",
+    "food": "usda_fdc:170182",
+    "name": "Nuts, pecans"
+  },
+  {
+    "alias": "oat bran",
+    "food": "usda_fdc:168872",
+    "name": "Oat bran, raw"
+  },
+  {
+    "alias": "oatmeal",
+    "food": "usda_fdc:173904",
+    "name": "Cereals, oats, regular and quick, not fortified, dry"
+  },
+  {
+    "alias": "oats",
+    "food": "usda_fdc:173904",
+    "name": "Cereals, oats, regular and quick, not fortified, dry"
+  },
+  {
+    "alias": "oil",
+    "food": "usda_fdc:171411",
+    "name": "Oil, soybean, salad or cooking"
+  },
+  {
+    "alias": "okra",
+    "food": "usda_fdc:169260",
+    "name": "Okra, raw"
+  },
+  {
+    "alias": "old fashioned oats",
+    "food": "usda_fdc:173904",
+    "name": "Cereals, oats, regular and quick, not fortified, dry"
+  },
+  {
+    "alias": "old-fashioned oats",
+    "food": "usda_fdc:173904",
+    "name": "Cereals, oats, regular and quick, not fortified, dry"
+  },
+  {
+    "alias": "oleo",
+    "food": "usda_fdc:172346",
+    "name": "Margarine, regular, 80% fat, composite, stick, with salt"
+  },
+  {
+    "alias": "olive oil",
+    "food": "usda_fdc:171413",
+    "name": "Oil, olive, salad or cooking"
+  },
+  {
+    "alias": "olives",
+    "food": "usda_fdc:169094",
+    "name": "Olives, ripe, canned (small-extra large)"
+  },
+  {
+    "alias": "onion",
+    "food": "usda_fdc:170000",
+    "name": "Onions, raw"
+  },
+  {
+    "alias": "onion flakes",
+    "food": "usda_fdc:170002",
+    "name": "Onions, dehydrated flakes"
+  },
+  {
+    "alias": "onion powder",
+    "food": "usda_fdc:171327",
+    "name": "Spices, onion powder"
+  },
+  {
+    "alias": "onion soup mix",
+    "food": "usda_fdc:171165",
+    "name": "Soup, onion, dry, mix"
+  },
+  {
+    "alias": "onions",
+    "food": "usda_fdc:170000",
+    "name": "Onions, raw"
+  },
+  {
+    "alias": "orange",
+    "food": "usda_fdc:169097",
+    "name": "Oranges, raw, all commercial varieties"
+  },
+  {
+    "alias": "orange juice",
+    "food": "usda_fdc:169098",
+    "name": "Orange juice, raw (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "orange juice concentrate",
+    "food": "usda_fdc:169923",
+    "name": "Orange juice, frozen concentrate, unsweetened, undiluted"
+  },
+  {
+    "alias": "orange peel",
+    "food": "usda_fdc:169103",
+    "name": "Orange peel, raw"
+  },
+  {
+    "alias": "orange rind",
+    "food": "usda_fdc:169103",
+    "name": "Orange peel, raw"
+  },
+  {
+    "alias": "orange zest",
+    "food": "usda_fdc:169103",
+    "name": "Orange peel, raw"
+  },
+  {
+    "alias": "oranges",
+    "food": "usda_fdc:169097",
+    "name": "Oranges, raw, all commercial varieties"
+  },
+  {
+    "alias": "oregano",
+    "food": "usda_fdc:171328",
+    "name": "Spices, oregano, dried"
+  },
+  {
+    "alias": "oreo cookies",
+    "food": "usda_fdc:172718",
+    "name": "Cookies, chocolate sandwich, with creme filling, regular"
+  },
+  {
+    "alias": "oreos",
+    "food": "usda_fdc:172718",
+    "name": "Cookies, chocolate sandwich, with creme filling, regular"
+  },
+  {
+    "alias": "oyster crackers",
+    "food": "usda_fdc:172746",
+    "name": "Crackers, saltines (includes oyster, soda, soup)"
+  },
+  {
+    "alias": "oyster sauce",
+    "food": "usda_fdc:174529",
+    "name": "Sauce, oyster, ready-to-serve"
+  },
+  {
+    "alias": "oysters",
+    "food": "usda_fdc:171978",
+    "name": "Mollusks, oyster, eastern, wild, raw"
+  },
+  {
+    "alias": "packed brown sugar",
+    "food": "usda_fdc:168833",
+    "name": "Sugars, brown"
+  },
+  {
+    "alias": "pam",
+    "food": "usda_fdc:171430",
+    "name": "Oil, PAM cooking spray, original"
+  },
+  {
+    "alias": "pancake mix",
+    "food": "usda_fdc:172772",
+    "name": "Pancakes, plain, dry mix, complete (includes buttermilk)"
+  },
+  {
+    "alias": "panko",
+    "food": "usda_fdc:174928",
+    "name": "Bread, crumbs, dry, grated, plain"
+  },
+  {
+    "alias": "panko bread crumbs",
+    "food": "usda_fdc:174928",
+    "name": "Bread, crumbs, dry, grated, plain"
+  },
+  {
+    "alias": "papaya",
+    "food": "usda_fdc:169926",
+    "name": "Papayas, raw"
+  },
+  {
+    "alias": "paprika",
+    "food": "usda_fdc:171329",
+    "name": "Spices, paprika"
+  },
+  {
+    "alias": "parmesan",
+    "food": "usda_fdc:325036",
+    "name": "Cheese, parmesan, grated"
+  },
+  {
+    "alias": "parmesan cheese",
+    "food": "usda_fdc:325036",
+    "name": "Cheese, parmesan, grated"
+  },
+  {
+    "alias": "parmesan cheese grated",
+    "food": "usda_fdc:325036",
+    "name": "Cheese, parmesan, grated"
+  },
+  {
+    "alias": "parmigiano reggiano",
+    "food": "usda_fdc:170848",
+    "name": "Cheese, parmesan, hard"
+  },
+  {
+    "alias": "parmigiano-reggiano",
+    "food": "usda_fdc:325036",
+    "name": "Cheese, parmesan, grated"
+  },
+  {
+    "alias": "parsley",
+    "food": "usda_fdc:170416",
+    "name": "Parsley, fresh"
+  },
+  {
+    "alias": "parsley flakes",
+    "food": "usda_fdc:170930",
+    "name": "Spices, parsley, dried"
+  },
+  {
+    "alias": "parsnips",
+    "food": "usda_fdc:2747659",
+    "name": "Parsnips, raw"
+  },
+  {
+    "alias": "part-skim mozzarella",
+    "food": "usda_fdc:329370",
+    "name": "Cheese, mozzarella, low moisture, part-skim"
+  },
+  {
+    "alias": "part-skim mozzarella cheese",
+    "food": "usda_fdc:329370",
+    "name": "Cheese, mozzarella, low moisture, part-skim"
+  },
+  {
+    "alias": "pasta",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "pasta sauce",
+    "food": "usda_fdc:332282",
+    "name": "Sauce, pasta, spaghetti/marinara, ready-to-serve"
+  },
+  {
+    "alias": "pastry",
+    "food": "usda_fdc:175024",
+    "name": "Pie crust, standard-type, frozen, ready-to-bake, enriched"
+  },
+  {
+    "alias": "pastry shell",
+    "food": "usda_fdc:175024",
+    "name": "Pie crust, standard-type, frozen, ready-to-bake, enriched"
+  },
+  {
+    "alias": "peach",
+    "food": "usda_fdc:325430",
+    "name": "Peaches, yellow, raw"
+  },
+  {
+    "alias": "peaches",
+    "food": "usda_fdc:325430",
+    "name": "Peaches, yellow, raw"
+  },
+  {
+    "alias": "peanut butter",
+    "food": "usda_fdc:324860",
+    "name": "Peanut butter, smooth style, with salt"
+  },
+  {
+    "alias": "peanut oil",
+    "food": "usda_fdc:171410",
+    "name": "Oil, peanut, salad or cooking"
+  },
+  {
+    "alias": "peanuts",
+    "food": "usda_fdc:174262",
+    "name": "Peanuts, all types, dry-roasted, with salt"
+  },
+  {
+    "alias": "pear",
+    "food": "usda_fdc:169118",
+    "name": "Pears, raw"
+  },
+  {
+    "alias": "pearl barley",
+    "food": "usda_fdc:170284",
+    "name": "Barley, pearled, raw"
+  },
+  {
+    "alias": "pears",
+    "food": "usda_fdc:169118",
+    "name": "Pears, raw"
+  },
+  {
+    "alias": "peas",
+    "food": "usda_fdc:170419",
+    "name": "Peas, green, raw"
+  },
+  {
+    "alias": "pecan halves",
+    "food": "usda_fdc:170182",
+    "name": "Nuts, pecans"
+  },
+  {
+    "alias": "pecan pieces",
+    "food": "usda_fdc:170182",
+    "name": "Nuts, pecans"
+  },
+  {
+    "alias": "pecans",
+    "food": "usda_fdc:170182",
+    "name": "Nuts, pecans"
+  },
+  {
+    "alias": "pecorino romano",
+    "food": "usda_fdc:171249",
+    "name": "Cheese, romano"
+  },
+  {
+    "alias": "peeled tomatoes",
+    "food": "usda_fdc:170051",
+    "name": "Tomatoes, red, ripe, canned, packed in tomato juice"
+  },
+  {
+    "alias": "penne",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "penne pasta",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "pepitas",
+    "food": "usda_fdc:170556",
+    "name": "Seeds, pumpkin and squash seed kernels, dried"
+  },
+  {
+    "alias": "pepper",
+    "food": "usda_fdc:170931",
+    "name": "Spices, pepper, black"
+  },
+  {
+    "alias": "pepper jack cheese",
+    "food": "usda_fdc:170844",
+    "name": "Cheese, monterey"
+  },
+  {
+    "alias": "peppercorns",
+    "food": "usda_fdc:170931",
+    "name": "Spices, pepper, black"
+  },
+  {
+    "alias": "pepperoni",
+    "food": "usda_fdc:174575",
+    "name": "Pepperoni, beef and pork, sliced"
+  },
+  {
+    "alias": "pesto",
+    "food": "usda_fdc:171579",
+    "name": "Sauce, pesto, ready-to-serve, refrigerated"
+  },
+  {
+    "alias": "pet milk",
+    "food": "usda_fdc:171276",
+    "name": "Milk, canned, evaporated, with added vitamin D and without added vitamin A"
+  },
+  {
+    "alias": "philadelphia cream cheese",
+    "food": "usda_fdc:173418",
+    "name": "Cheese, cream"
+  },
+  {
+    "alias": "phyllo dough",
+    "food": "usda_fdc:172791",
+    "name": "Phyllo dough"
+  },
+  {
+    "alias": "picante sauce",
+    "food": "usda_fdc:746777",
+    "name": "Sauce, salsa, ready-to-serve"
+  },
+  {
+    "alias": "pickle relish",
+    "food": "usda_fdc:168561",
+    "name": "Pickle relish, sweet"
+  },
+  {
+    "alias": "pickles",
+    "food": "usda_fdc:324653",
+    "name": "Pickles, cucumber, dill or kosher dill"
+  },
+  {
+    "alias": "pie crust",
+    "food": "usda_fdc:175024",
+    "name": "Pie crust, standard-type, frozen, ready-to-bake, enriched"
+  },
+  {
+    "alias": "pie shell",
+    "food": "usda_fdc:175024",
+    "name": "Pie crust, standard-type, frozen, ready-to-bake, enriched"
+  },
+  {
+    "alias": "pignoli",
+    "food": "usda_fdc:170591",
+    "name": "Nuts, pine nuts, dried"
+  },
+  {
+    "alias": "pimento",
+    "food": "usda_fdc:168559",
+    "name": "Pimento, canned"
+  },
+  {
+    "alias": "pimento stuffed olives",
+    "food": "usda_fdc:169096",
+    "name": "Olives, pickled, canned or bottled, green"
+  },
+  {
+    "alias": "pimentos",
+    "food": "usda_fdc:168559",
+    "name": "Pimento, canned"
+  },
+  {
+    "alias": "pimiento",
+    "food": "usda_fdc:168559",
+    "name": "Pimento, canned"
+  },
+  {
+    "alias": "pimientos",
+    "food": "usda_fdc:168559",
+    "name": "Pimento, canned"
+  },
+  {
+    "alias": "pine nuts",
+    "food": "usda_fdc:170591",
+    "name": "Nuts, pine nuts, dried"
+  },
+  {
+    "alias": "pineapple",
+    "food": "usda_fdc:169124",
+    "name": "Pineapple, raw, all varieties"
+  },
+  {
+    "alias": "pineapple chunks",
+    "food": "usda_fdc:169126",
+    "name": "Pineapple, canned, juice pack, solids and liquids"
+  },
+  {
+    "alias": "pineapple juice",
+    "food": "usda_fdc:169947",
+    "name": "Pineapple juice, canned or bottled, unsweetened, without added ascorbic acid"
+  },
+  {
+    "alias": "pineapple tidbits",
+    "food": "usda_fdc:169126",
+    "name": "Pineapple, canned, juice pack, solids and liquids"
+  },
+  {
+    "alias": "pink salmon",
+    "food": "usda_fdc:173690",
+    "name": "Fish, salmon, pink, canned, total can contents"
+  },
+  {
+    "alias": "pinto beans",
+    "food": "usda_fdc:2644292",
+    "name": "Beans, pinto, canned, sodium added, drained and rinsed"
+  },
+  {
+    "alias": "pistachio nuts",
+    "food": "usda_fdc:2515379",
+    "name": "Nuts, pistachio nuts, raw"
+  },
+  {
+    "alias": "pistachios",
+    "food": "usda_fdc:2515379",
+    "name": "Nuts, pistachio nuts, raw"
+  },
+  {
+    "alias": "pita",
+    "food": "usda_fdc:174915",
+    "name": "Bread, pita, white, enriched"
+  },
+  {
+    "alias": "pita bread",
+    "food": "usda_fdc:174915",
+    "name": "Bread, pita, white, enriched"
+  },
+  {
+    "alias": "pitted dates",
+    "food": "usda_fdc:171726",
+    "name": "Dates, deglet noor"
+  },
+  {
+    "alias": "plain flour",
+    "food": "usda_fdc:168894",
+    "name": "Wheat flour, white, all-purpose, enriched, bleached"
+  },
+  {
+    "alias": "plain greek yogurt",
+    "food": "usda_fdc:330137",
+    "name": "Yogurt, Greek, plain, nonfat"
+  },
+  {
+    "alias": "plain low-fat yogurt",
+    "food": "usda_fdc:170886",
+    "name": "Yogurt, plain, low fat"
+  },
+  {
+    "alias": "plain yogurt",
+    "food": "usda_fdc:2259793",
+    "name": "Yogurt, plain, whole milk"
+  },
+  {
+    "alias": "plum tomatoes",
+    "food": "usda_fdc:170457",
+    "name": "Tomatoes, red, ripe, raw, year round average"
+  },
+  {
+    "alias": "polish sausage",
+    "food": "usda_fdc:174584",
+    "name": "Sausage, smoked link sausage, pork"
+  },
+  {
+    "alias": "pomegranate",
+    "food": "usda_fdc:169134",
+    "name": "Pomegranates, raw"
+  },
+  {
+    "alias": "pomegranate seeds",
+    "food": "usda_fdc:169134",
+    "name": "Pomegranates, raw"
+  },
+  {
+    "alias": "popcorn",
+    "food": "usda_fdc:167959",
+    "name": "Snacks, popcorn, air-popped"
+  },
+  {
+    "alias": "popped popcorn",
+    "food": "usda_fdc:167959",
+    "name": "Snacks, popcorn, air-popped"
+  },
+  {
+    "alias": "poppy seed",
+    "food": "usda_fdc:171330",
+    "name": "Spices, poppy seed"
+  },
+  {
+    "alias": "poppy seeds",
+    "food": "usda_fdc:171330",
+    "name": "Spices, poppy seed"
+  },
+  {
+    "alias": "pork",
+    "food": "usda_fdc:168238",
+    "name": "Pork, fresh, loin, center loin (chops), bone-in, separable lean and fat, raw"
+  },
+  {
+    "alias": "pork and beans",
+    "food": "usda_fdc:175182",
+    "name": "Beans, baked, canned, plain or vegetarian"
+  },
+  {
+    "alias": "pork butt",
+    "food": "usda_fdc:167843",
+    "name": "Pork, fresh, shoulder, whole, separable lean and fat, raw"
+  },
+  {
+    "alias": "pork chops",
+    "food": "usda_fdc:168238",
+    "name": "Pork, fresh, loin, center loin (chops), bone-in, separable lean and fat, raw"
+  },
+  {
+    "alias": "pork loin",
+    "food": "usda_fdc:168238",
+    "name": "Pork, fresh, loin, center loin (chops), bone-in, separable lean and fat, raw"
+  },
+  {
+    "alias": "pork loin chops",
+    "food": "usda_fdc:168238",
+    "name": "Pork, fresh, loin, center loin (chops), bone-in, separable lean and fat, raw"
+  },
+  {
+    "alias": "pork ribs",
+    "food": "usda_fdc:167853",
+    "name": "Pork, fresh, spareribs, separable lean and fat, raw"
+  },
+  {
+    "alias": "pork roast",
+    "food": "usda_fdc:167843",
+    "name": "Pork, fresh, shoulder, whole, separable lean and fat, raw"
+  },
+  {
+    "alias": "pork sausage",
+    "food": "usda_fdc:171631",
+    "name": "Sausage, Italian, pork, mild, raw"
+  },
+  {
+    "alias": "pork shoulder",
+    "food": "usda_fdc:167843",
+    "name": "Pork, fresh, shoulder, whole, separable lean and fat, raw"
+  },
+  {
+    "alias": "pork tenderloin",
+    "food": "usda_fdc:168312",
+    "name": "Pork, fresh, loin, tenderloin, separable lean and fat, raw"
+  },
+  {
+    "alias": "port wine",
+    "food": "usda_fdc:173176",
+    "name": "Alcoholic beverage, wine, dessert, sweet"
+  },
+  {
+    "alias": "portabella mushrooms",
+    "food": "usda_fdc:169255",
+    "name": "Mushrooms, portabella, raw"
+  },
+  {
+    "alias": "portobello mushrooms",
+    "food": "usda_fdc:169255",
+    "name": "Mushrooms, portabella, raw"
+  },
+  {
+    "alias": "pot roast",
+    "food": "usda_fdc:169491",
+    "name": "Beef, chuck, arm pot roast, separable lean and fat, trimmed to 1/8\" fat, all grades, raw"
+  },
+  {
+    "alias": "potato",
+    "food": "usda_fdc:170026",
+    "name": "Potatoes, flesh and skin, raw"
+  },
+  {
+    "alias": "potato chips",
+    "food": "usda_fdc:169677",
+    "name": "Snacks, potato chips, plain, salted"
+  },
+  {
+    "alias": "potato flakes",
+    "food": "usda_fdc:170445",
+    "name": "Potatoes, mashed, dehydrated, flakes without milk, dry form"
+  },
+  {
+    "alias": "potatoes",
+    "food": "usda_fdc:170026",
+    "name": "Potatoes, flesh and skin, raw"
+  },
+  {
+    "alias": "poultry seasoning",
+    "food": "usda_fdc:171331",
+    "name": "Spices, poultry seasoning"
+  },
+  {
+    "alias": "powdered milk",
+    "food": "usda_fdc:170877",
+    "name": "Milk, dry, nonfat, regular, without added vitamin A and vitamin D"
+  },
+  {
+    "alias": "powdered sugar",
+    "food": "usda_fdc:169656",
+    "name": "Sugars, powdered"
+  },
+  {
+    "alias": "prawns",
+    "food": "usda_fdc:175179",
+    "name": "Crustaceans, shrimp, raw"
+  },
+  {
+    "alias": "prego",
+    "food": "usda_fdc:332282",
+    "name": "Sauce, pasta, spaghetti/marinara, ready-to-serve"
+  },
+  {
+    "alias": "prepared horseradish",
+    "food": "usda_fdc:173472",
+    "name": "Horseradish, prepared"
+  },
+  {
+    "alias": "prepared mustard",
+    "food": "usda_fdc:326698",
+    "name": "Mustard, prepared, yellow"
+  },
+  {
+    "alias": "preserves",
+    "food": "usda_fdc:169641",
+    "name": "Jams and preserves"
+  },
+  {
+    "alias": "pretzels",
+    "food": "usda_fdc:167555",
+    "name": "Snacks, pretzels, hard, plain, salted"
+  },
+  {
+    "alias": "processed cheese",
+    "food": "usda_fdc:170853",
+    "name": "Cheese, pasteurized process, American, fortified with vitamin D"
+  },
+  {
+    "alias": "provolone",
+    "food": "usda_fdc:170850",
+    "name": "Cheese, provolone"
+  },
+  {
+    "alias": "provolone cheese",
+    "food": "usda_fdc:170850",
+    "name": "Cheese, provolone"
+  },
+  {
+    "alias": "prunes",
+    "food": "usda_fdc:168162",
+    "name": "Plums, dried (prunes), uncooked"
+  },
+  {
+    "alias": "puff pastry",
+    "food": "usda_fdc:172790",
+    "name": "Puff pastry, frozen, ready-to-bake"
+  },
+  {
+    "alias": "pumpkin",
+    "food": "usda_fdc:168450",
+    "name": "Pumpkin, canned, without salt"
+  },
+  {
+    "alias": "pumpkin pie spice",
+    "food": "usda_fdc:171332",
+    "name": "Spices, pumpkin pie spice"
+  },
+  {
+    "alias": "pumpkin puree",
+    "food": "usda_fdc:168450",
+    "name": "Pumpkin, canned, without salt"
+  },
+  {
+    "alias": "pumpkin seeds",
+    "food": "usda_fdc:170556",
+    "name": "Seeds, pumpkin and squash seed kernels, dried"
+  },
+  {
+    "alias": "pure maple syrup",
+    "food": "usda_fdc:169661",
+    "name": "Syrups, maple"
+  },
+  {
+    "alias": "pure vanilla extract",
+    "food": "usda_fdc:173471",
+    "name": "Vanilla extract"
+  },
+  {
+    "alias": "queso fresco",
+    "food": "usda_fdc:172201",
+    "name": "Cheese, mexican, queso anejo"
+  },
+  {
+    "alias": "quick cooking oats",
+    "food": "usda_fdc:173904",
+    "name": "Cereals, oats, regular and quick, not fortified, dry"
+  },
+  {
+    "alias": "quick grits",
+    "food": "usda_fdc:171654",
+    "name": "Cereals, corn grits, white, regular and quick, enriched, dry"
+  },
+  {
+    "alias": "quick oats",
+    "food": "usda_fdc:173904",
+    "name": "Cereals, oats, regular and quick, not fortified, dry"
+  },
+  {
+    "alias": "quick-cooking oats",
+    "food": "usda_fdc:173904",
+    "name": "Cereals, oats, regular and quick, not fortified, dry"
+  },
+  {
+    "alias": "quinoa",
+    "food": "usda_fdc:168874",
+    "name": "Quinoa, uncooked"
+  },
+  {
+    "alias": "radish",
+    "food": "usda_fdc:169276",
+    "name": "Radishes, raw"
+  },
+  {
+    "alias": "radishes",
+    "food": "usda_fdc:169276",
+    "name": "Radishes, raw"
+  },
+  {
+    "alias": "raisins",
+    "food": "usda_fdc:168165",
+    "name": "Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "ranch dressing",
+    "food": "usda_fdc:173592",
+    "name": "Salad dressing, ranch dressing, regular"
+  },
+  {
+    "alias": "raspberries",
+    "food": "usda_fdc:2346410",
+    "name": "Raspberries, raw"
+  },
+  {
+    "alias": "raspberry jam",
+    "food": "usda_fdc:169641",
+    "name": "Jams and preserves"
+  },
+  {
+    "alias": "raw shrimp",
+    "food": "usda_fdc:175179",
+    "name": "Crustaceans, shrimp, raw"
+  },
+  {
+    "alias": "real mayonnaise",
+    "food": "usda_fdc:171009",
+    "name": "Salad dressing, mayonnaise, regular"
+  },
+  {
+    "alias": "red beans",
+    "food": "usda_fdc:174285",
+    "name": "Beans, kidney, red, mature seeds, canned, drained solids"
+  },
+  {
+    "alias": "red bell pepper",
+    "food": "usda_fdc:170108",
+    "name": "Peppers, sweet, red, raw"
+  },
+  {
+    "alias": "red bell peppers",
+    "food": "usda_fdc:170108",
+    "name": "Peppers, sweet, red, raw"
+  },
+  {
+    "alias": "red cabbage",
+    "food": "usda_fdc:2346408",
+    "name": "Cabbage, red, raw"
+  },
+  {
+    "alias": "red chile",
+    "food": "usda_fdc:170106",
+    "name": "Peppers, hot chili, red, raw"
+  },
+  {
+    "alias": "red chili",
+    "food": "usda_fdc:170106",
+    "name": "Peppers, hot chili, red, raw"
+  },
+  {
+    "alias": "red grapes",
+    "food": "usda_fdc:174683",
+    "name": "Grapes, red or green (European type, such as Thompson seedless), raw"
+  },
+  {
+    "alias": "red kidney beans",
+    "food": "usda_fdc:174285",
+    "name": "Beans, kidney, red, mature seeds, canned, drained solids"
+  },
+  {
+    "alias": "red lentils",
+    "food": "usda_fdc:172420",
+    "name": "Lentils, raw"
+  },
+  {
+    "alias": "red onion",
+    "food": "usda_fdc:790577",
+    "name": "Onions, red, raw"
+  },
+  {
+    "alias": "red onions",
+    "food": "usda_fdc:790577",
+    "name": "Onions, red, raw"
+  },
+  {
+    "alias": "red pepper",
+    "food": "usda_fdc:170932",
+    "name": "Spices, pepper, red or cayenne"
+  },
+  {
+    "alias": "red pepper flakes",
+    "food": "usda_fdc:170932",
+    "name": "Spices, pepper, red or cayenne"
+  },
+  {
+    "alias": "red peppers",
+    "food": "usda_fdc:170108",
+    "name": "Peppers, sweet, red, raw"
+  },
+  {
+    "alias": "red potatoes",
+    "food": "usda_fdc:170026",
+    "name": "Potatoes, flesh and skin, raw"
+  },
+  {
+    "alias": "red sweet pepper",
+    "food": "usda_fdc:170108",
+    "name": "Peppers, sweet, red, raw"
+  },
+  {
+    "alias": "red wine",
+    "food": "usda_fdc:173190",
+    "name": "Alcoholic beverage, wine, table, red"
+  },
+  {
+    "alias": "red wine vinegar",
+    "food": "usda_fdc:172240",
+    "name": "Vinegar, red wine"
+  },
+  {
+    "alias": "reduced fat milk",
+    "food": "usda_fdc:746778",
+    "name": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D"
+  },
+  {
+    "alias": "refried beans",
+    "food": "usda_fdc:172438",
+    "name": "Refried beans, canned, traditional style"
+  },
+  {
+    "alias": "refrigerated biscuits",
+    "food": "usda_fdc:172668",
+    "name": "Biscuits, plain or buttermilk, refrigerated dough, higher fat"
+  },
+  {
+    "alias": "relish",
+    "food": "usda_fdc:168561",
+    "name": "Pickle relish, sweet"
+  },
+  {
+    "alias": "rhubarb",
+    "food": "usda_fdc:167758",
+    "name": "Rhubarb, raw"
+  },
+  {
+    "alias": "rib celery",
+    "food": "usda_fdc:2346405",
+    "name": "Celery, raw"
+  },
+  {
+    "alias": "rib eye steak",
+    "food": "usda_fdc:168612",
+    "name": "Beef, rib, eye, small end (ribs 10-12), separable lean and fat, trimmed to 0\" fat, choice, raw"
+  },
+  {
+    "alias": "ribeye",
+    "food": "usda_fdc:168612",
+    "name": "Beef, rib, eye, small end (ribs 10-12), separable lean and fat, trimmed to 0\" fat, choice, raw"
+  },
+  {
+    "alias": "ribs",
+    "food": "usda_fdc:167853",
+    "name": "Pork, fresh, spareribs, separable lean and fat, raw"
+  },
+  {
+    "alias": "rice",
+    "food": "usda_fdc:168877",
+    "name": "Rice, white, long-grain, regular, raw, enriched"
+  },
+  {
+    "alias": "rice cereal",
+    "food": "usda_fdc:172983",
+    "name": "Cereals ready-to-eat, MALT-O-MEAL, Crispy Rice"
+  },
+  {
+    "alias": "rice krispies",
+    "food": "usda_fdc:172983",
+    "name": "Cereals ready-to-eat, MALT-O-MEAL, Crispy Rice"
+  },
+  {
+    "alias": "rice noodles",
+    "food": "usda_fdc:169742",
+    "name": "Rice noodles, dry"
+  },
+  {
+    "alias": "ricotta",
+    "food": "usda_fdc:746766",
+    "name": "Cheese, ricotta, whole milk"
+  },
+  {
+    "alias": "ricotta cheese",
+    "food": "usda_fdc:746766",
+    "name": "Cheese, ricotta, whole milk"
+  },
+  {
+    "alias": "rigatoni",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "ripe banana",
+    "food": "usda_fdc:173944",
+    "name": "Bananas, raw"
+  },
+  {
+    "alias": "ripe bananas",
+    "food": "usda_fdc:173944",
+    "name": "Bananas, raw"
+  },
+  {
+    "alias": "ripe olives",
+    "food": "usda_fdc:169094",
+    "name": "Olives, ripe, canned (small-extra large)"
+  },
+  {
+    "alias": "ripe tomatoes",
+    "food": "usda_fdc:170457",
+    "name": "Tomatoes, red, ripe, raw, year round average"
+  },
+  {
+    "alias": "ritz crackers",
+    "food": "usda_fdc:174982",
+    "name": "Crackers, standard snack-type, regular"
+  },
+  {
+    "alias": "ro-tel tomatoes",
+    "food": "usda_fdc:170053",
+    "name": "Tomatoes, red, ripe, canned, with green chilies"
+  },
+  {
+    "alias": "roast",
+    "food": "usda_fdc:169491",
+    "name": "Beef, chuck, arm pot roast, separable lean and fat, trimmed to 1/8\" fat, all grades, raw"
+  },
+  {
+    "alias": "roasting chicken",
+    "food": "usda_fdc:171447",
+    "name": "Chicken, broilers or fryers, meat and skin, raw"
+  },
+  {
+    "alias": "rolled oats",
+    "food": "usda_fdc:173904",
+    "name": "Cereals, oats, regular and quick, not fortified, dry"
+  },
+  {
+    "alias": "rolls",
+    "food": "usda_fdc:172793",
+    "name": "Rolls, dinner, plain, commercially prepared (includes brown-and-serve)"
+  },
+  {
+    "alias": "roma tomatoes",
+    "food": "usda_fdc:170457",
+    "name": "Tomatoes, red, ripe, raw, year round average"
+  },
+  {
+    "alias": "romaine",
+    "food": "usda_fdc:746769",
+    "name": "Lettuce, cos or romaine, raw"
+  },
+  {
+    "alias": "romaine lettuce",
+    "food": "usda_fdc:746769",
+    "name": "Lettuce, cos or romaine, raw"
+  },
+  {
+    "alias": "romano cheese",
+    "food": "usda_fdc:171249",
+    "name": "Cheese, romano"
+  },
+  {
+    "alias": "rosemary",
+    "food": "usda_fdc:173473",
+    "name": "Rosemary, fresh"
+  },
+  {
+    "alias": "rosemary sprigs",
+    "food": "usda_fdc:173473",
+    "name": "Rosemary, fresh"
+  },
+  {
+    "alias": "rotel",
+    "food": "usda_fdc:170053",
+    "name": "Tomatoes, red, ripe, canned, with green chilies"
+  },
+  {
+    "alias": "rotel tomatoes",
+    "food": "usda_fdc:170053",
+    "name": "Tomatoes, red, ripe, canned, with green chilies"
+  },
+  {
+    "alias": "rotini",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "rotisserie chicken",
+    "food": "usda_fdc:171054",
+    "name": "Chicken, broilers or fryers, meat only, cooked, roasted"
+  },
+  {
+    "alias": "round steak",
+    "food": "usda_fdc:2646173",
+    "name": "Beef, round, top round, boneless, choice, raw"
+  },
+  {
+    "alias": "rubbed sage",
+    "food": "usda_fdc:170935",
+    "name": "Spices, sage, ground"
+  },
+  {
+    "alias": "rum",
+    "food": "usda_fdc:174815",
+    "name": "Alcoholic beverage, distilled, all (gin, rum, vodka, whiskey) 80 proof"
+  },
+  {
+    "alias": "russet potatoes",
+    "food": "usda_fdc:170026",
+    "name": "Potatoes, flesh and skin, raw"
+  },
+  {
+    "alias": "rye bread",
+    "food": "usda_fdc:172684",
+    "name": "Bread, rye"
+  },
+  {
+    "alias": "sage",
+    "food": "usda_fdc:170935",
+    "name": "Spices, sage, ground"
+  },
+  {
+    "alias": "salad dressing",
+    "food": "usda_fdc:171403",
+    "name": "Salad dressing, mayonnaise type, regular, with salt"
+  },
+  {
+    "alias": "salad oil",
+    "food": "usda_fdc:171411",
+    "name": "Oil, soybean, salad or cooking"
+  },
+  {
+    "alias": "salami",
+    "food": "usda_fdc:172936",
+    "name": "Salami, cooked, beef and pork"
+  },
+  {
+    "alias": "salmon",
+    "food": "usda_fdc:175167",
+    "name": "Fish, salmon, Atlantic, farmed, raw"
+  },
+  {
+    "alias": "salmon fillet",
+    "food": "usda_fdc:175167",
+    "name": "Fish, salmon, Atlantic, farmed, raw"
+  },
+  {
+    "alias": "salmon fillets",
+    "food": "usda_fdc:175167",
+    "name": "Fish, salmon, Atlantic, farmed, raw"
+  },
+  {
+    "alias": "salmon steaks",
+    "food": "usda_fdc:175167",
+    "name": "Fish, salmon, Atlantic, farmed, raw"
+  },
+  {
+    "alias": "salsa",
+    "food": "usda_fdc:746777",
+    "name": "Sauce, salsa, ready-to-serve"
+  },
+  {
+    "alias": "salt",
+    "food": "usda_fdc:173468",
+    "name": "Salt, table"
+  },
+  {
+    "alias": "salt & pepper",
+    "food": "usda_fdc:170931",
+    "name": "Spices, pepper, black"
+  },
+  {
+    "alias": "salt and pepper",
+    "food": "usda_fdc:173468",
+    "name": "Salt, table"
+  },
+  {
+    "alias": "salt pork",
+    "food": "usda_fdc:168287",
+    "name": "Pork, cured, salt pork, raw"
+  },
+  {
+    "alias": "salted butter",
+    "food": "usda_fdc:173410",
+    "name": "Butter, salted"
+  },
+  {
+    "alias": "salted peanuts",
+    "food": "usda_fdc:174262",
+    "name": "Peanuts, all types, dry-roasted, with salt"
+  },
+  {
+    "alias": "saltine crackers",
+    "food": "usda_fdc:172746",
+    "name": "Crackers, saltines (includes oyster, soda, soup)"
+  },
+  {
+    "alias": "saltines",
+    "food": "usda_fdc:172746",
+    "name": "Crackers, saltines (includes oyster, soda, soup)"
+  },
+  {
+    "alias": "sandwich bread",
+    "food": "usda_fdc:174924",
+    "name": "Bread, white, commercially prepared (includes soft bread crumbs)"
+  },
+  {
+    "alias": "sardines",
+    "food": "usda_fdc:175139",
+    "name": "Fish, sardine, Atlantic, canned in oil, drained solids with bone"
+  },
+  {
+    "alias": "sauerkraut",
+    "food": "usda_fdc:169279",
+    "name": "Sauerkraut, canned, solids and liquids"
+  },
+  {
+    "alias": "sausage",
+    "food": "usda_fdc:171631",
+    "name": "Sausage, Italian, pork, mild, raw"
+  },
+  {
+    "alias": "savory",
+    "food": "usda_fdc:170936",
+    "name": "Spices, savory, ground"
+  },
+  {
+    "alias": "scallion",
+    "food": "usda_fdc:170005",
+    "name": "Onions, spring or scallions (includes tops and bulb), raw"
+  },
+  {
+    "alias": "scallions",
+    "food": "usda_fdc:170005",
+    "name": "Onions, spring or scallions (includes tops and bulb), raw"
+  },
+  {
+    "alias": "scallops",
+    "food": "usda_fdc:174220",
+    "name": "Mollusks, scallop, mixed species, raw"
+  },
+  {
+    "alias": "sea salt",
+    "food": "usda_fdc:173468",
+    "name": "Salt, table"
+  },
+  {
+    "alias": "sea scallops",
+    "food": "usda_fdc:174220",
+    "name": "Mollusks, scallop, mixed species, raw"
+  },
+  {
+    "alias": "seasoned bread crumbs",
+    "food": "usda_fdc:172806",
+    "name": "Bread, crumbs, dry, grated, seasoned"
+  },
+  {
+    "alias": "seedless grapes",
+    "food": "usda_fdc:174683",
+    "name": "Grapes, red or green (European type, such as Thompson seedless), raw"
+  },
+  {
+    "alias": "seedless raisins",
+    "food": "usda_fdc:168165",
+    "name": "Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "self-rising flour",
+    "food": "usda_fdc:168895",
+    "name": "Wheat flour, white, all-purpose, self-rising, enriched"
+  },
+  {
+    "alias": "semi-sweet chocolate",
+    "food": "usda_fdc:167976",
+    "name": "Candies, semisweet chocolate"
+  },
+  {
+    "alias": "semi-sweet chocolate chips",
+    "food": "usda_fdc:167976",
+    "name": "Candies, semisweet chocolate"
+  },
+  {
+    "alias": "semisweet chocolate",
+    "food": "usda_fdc:167976",
+    "name": "Candies, semisweet chocolate"
+  },
+  {
+    "alias": "semisweet chocolate chips",
+    "food": "usda_fdc:167976",
+    "name": "Candies, semisweet chocolate"
+  },
+  {
+    "alias": "serrano chile",
+    "food": "usda_fdc:169395",
+    "name": "Peppers, serrano, raw"
+  },
+  {
+    "alias": "serrano pepper",
+    "food": "usda_fdc:169395",
+    "name": "Peppers, serrano, raw"
+  },
+  {
+    "alias": "sesame oil",
+    "food": "usda_fdc:171016",
+    "name": "Oil, sesame, salad or cooking"
+  },
+  {
+    "alias": "sesame seed",
+    "food": "usda_fdc:170150",
+    "name": "Seeds, sesame seeds, whole, dried"
+  },
+  {
+    "alias": "sesame seeds",
+    "food": "usda_fdc:170150",
+    "name": "Seeds, sesame seeds, whole, dried"
+  },
+  {
+    "alias": "shallot",
+    "food": "usda_fdc:170499",
+    "name": "Shallots, raw"
+  },
+  {
+    "alias": "shallots",
+    "food": "usda_fdc:170499",
+    "name": "Shallots, raw"
+  },
+  {
+    "alias": "sharp cheddar",
+    "food": "usda_fdc:328637",
+    "name": "Cheese, cheddar"
+  },
+  {
+    "alias": "sharp cheddar cheese",
+    "food": "usda_fdc:328637",
+    "name": "Cheese, cheddar"
+  },
+  {
+    "alias": "shell macaroni",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "sherry",
+    "food": "usda_fdc:173176",
+    "name": "Alcoholic beverage, wine, dessert, sweet"
+  },
+  {
+    "alias": "shiitake mushrooms",
+    "food": "usda_fdc:169242",
+    "name": "Mushrooms, shiitake, raw"
+  },
+  {
+    "alias": "short grain rice",
+    "food": "usda_fdc:168881",
+    "name": "Rice, white, short-grain, enriched, uncooked"
+  },
+  {
+    "alias": "shortening",
+    "food": "usda_fdc:171011",
+    "name": "Shortening, household, soybean (partially hydrogenated)-cottonseed (partially hydrogenated)"
+  },
+  {
+    "alias": "shredded carrots",
+    "food": "usda_fdc:170393",
+    "name": "Carrots, raw"
+  },
+  {
+    "alias": "shredded cheddar cheese",
+    "food": "usda_fdc:328637",
+    "name": "Cheese, cheddar"
+  },
+  {
+    "alias": "shredded cheese",
+    "food": "usda_fdc:328637",
+    "name": "Cheese, cheddar"
+  },
+  {
+    "alias": "shredded chicken",
+    "food": "usda_fdc:171054",
+    "name": "Chicken, broilers or fryers, meat only, cooked, roasted"
+  },
+  {
+    "alias": "shredded coconut",
+    "food": "usda_fdc:168586",
+    "name": "Nuts, coconut meat, dried (desiccated), sweetened, shredded"
+  },
+  {
+    "alias": "shrimp",
+    "food": "usda_fdc:175179",
+    "name": "Crustaceans, shrimp, raw"
+  },
+  {
+    "alias": "sirloin",
+    "food": "usda_fdc:2727574",
+    "name": "Beef, top sirloin steak, raw"
+  },
+  {
+    "alias": "sirloin steak",
+    "food": "usda_fdc:2727574",
+    "name": "Beef, top sirloin steak, raw"
+  },
+  {
+    "alias": "skim milk",
+    "food": "usda_fdc:746776",
+    "name": "Milk, nonfat, fluid, with added vitamin A and vitamin D (fat free or skim)"
+  },
+  {
+    "alias": "skinless chicken breasts",
+    "food": "usda_fdc:2646170",
+    "name": "Chicken, breast, boneless, skinless, raw"
+  },
+  {
+    "alias": "sliced almonds",
+    "food": "usda_fdc:170567",
+    "name": "Nuts, almonds"
+  },
+  {
+    "alias": "sliced black olives",
+    "food": "usda_fdc:169094",
+    "name": "Olives, ripe, canned (small-extra large)"
+  },
+  {
+    "alias": "sliced mushrooms",
+    "food": "usda_fdc:169251",
+    "name": "Mushrooms, white, raw"
+  },
+  {
+    "alias": "sliced peaches",
+    "food": "usda_fdc:169111",
+    "name": "Peaches, canned, light syrup pack, solids and liquids"
+  },
+  {
+    "alias": "sliced pepperoni",
+    "food": "usda_fdc:174575",
+    "name": "Pepperoni, beef and pork, sliced"
+  },
+  {
+    "alias": "sliced water chestnuts",
+    "food": "usda_fdc:170067",
+    "name": "Waterchestnuts, chinese, canned, solids and liquids"
+  },
+  {
+    "alias": "slices bacon",
+    "food": "usda_fdc:168277",
+    "name": "Pork, cured, bacon, unprepared"
+  },
+  {
+    "alias": "slices bread",
+    "food": "usda_fdc:174924",
+    "name": "Bread, white, commercially prepared (includes soft bread crumbs)"
+  },
+  {
+    "alias": "slivered almonds",
+    "food": "usda_fdc:170567",
+    "name": "Nuts, almonds"
+  },
+  {
+    "alias": "small shrimp",
+    "food": "usda_fdc:175180",
+    "name": "Crustaceans, shrimp, cooked"
+  },
+  {
+    "alias": "smoked ham",
+    "food": "usda_fdc:167872",
+    "name": "Pork, cured, ham, boneless, regular (approximately 11% fat), roasted"
+  },
+  {
+    "alias": "smoked paprika",
+    "food": "usda_fdc:171329",
+    "name": "Spices, paprika"
+  },
+  {
+    "alias": "smoked salmon",
+    "food": "usda_fdc:173687",
+    "name": "Fish, salmon, chinook, smoked"
+  },
+  {
+    "alias": "smoked sausage",
+    "food": "usda_fdc:174584",
+    "name": "Sausage, smoked link sausage, pork"
+  },
+  {
+    "alias": "smooth peanut butter",
+    "food": "usda_fdc:324860",
+    "name": "Peanut butter, smooth style, with salt"
+  },
+  {
+    "alias": "snap peas",
+    "food": "usda_fdc:170010",
+    "name": "Peas, edible-podded, raw"
+  },
+  {
+    "alias": "snow peas",
+    "food": "usda_fdc:170010",
+    "name": "Peas, edible-podded, raw"
+  },
+  {
+    "alias": "soda",
+    "food": "usda_fdc:175040",
+    "name": "Leavening agents, baking soda"
+  },
+  {
+    "alias": "soda crackers",
+    "food": "usda_fdc:172746",
+    "name": "Crackers, saltines (includes oyster, soda, soup)"
+  },
+  {
+    "alias": "softened butter",
+    "food": "usda_fdc:173410",
+    "name": "Butter, salted"
+  },
+  {
+    "alias": "sole",
+    "food": "usda_fdc:174196",
+    "name": "Fish, flatfish (flounder and sole species), raw"
+  },
+  {
+    "alias": "solid pack pumpkin",
+    "food": "usda_fdc:168450",
+    "name": "Pumpkin, canned, without salt"
+  },
+  {
+    "alias": "solid shortening",
+    "food": "usda_fdc:171011",
+    "name": "Shortening, household, soybean (partially hydrogenated)-cottonseed (partially hydrogenated)"
+  },
+  {
+    "alias": "sour cherries",
+    "food": "usda_fdc:173954",
+    "name": "Cherries, sour, red, raw"
+  },
+  {
+    "alias": "sour cream",
+    "food": "usda_fdc:171257",
+    "name": "Cream, sour, cultured"
+  },
+  {
+    "alias": "sourdough bread",
+    "food": "usda_fdc:172675",
+    "name": "Bread, french or vienna (includes sourdough)"
+  },
+  {
+    "alias": "soy sauce",
+    "food": "usda_fdc:174277",
+    "name": "Soy sauce made from soy and wheat (shoyu)"
+  },
+  {
+    "alias": "spaghetti",
+    "food": "usda_fdc:169736",
+    "name": "Pasta, dry, enriched"
+  },
+  {
+    "alias": "spaghetti sauce",
+    "food": "usda_fdc:332282",
+    "name": "Sauce, pasta, spaghetti/marinara, ready-to-serve"
+  },
+  {
+    "alias": "spareribs",
+    "food": "usda_fdc:167853",
+    "name": "Pork, fresh, spareribs, separable lean and fat, raw"
+  },
+  {
+    "alias": "spinach",
+    "food": "usda_fdc:168462",
+    "name": "Spinach, raw"
+  },
+  {
+    "alias": "spinach leaves",
+    "food": "usda_fdc:168462",
+    "name": "Spinach, raw"
+  },
+  {
+    "alias": "spring onion",
+    "food": "usda_fdc:170005",
+    "name": "Onions, spring or scallions (includes tops and bulb), raw"
+  },
+  {
+    "alias": "spring onions",
+    "food": "usda_fdc:170005",
+    "name": "Onions, spring or scallions (includes tops and bulb), raw"
+  },
+  {
+    "alias": "sprite",
+    "food": "usda_fdc:174846",
+    "name": "Beverages, carbonated, ginger ale"
+  },
+  {
+    "alias": "squash",
+    "food": "usda_fdc:170487",
+    "name": "Squash, summer, all varieties, raw"
+  },
+  {
+    "alias": "squid",
+    "food": "usda_fdc:174223",
+    "name": "Mollusks, squid, mixed species, raw"
+  },
+  {
+    "alias": "sriracha",
+    "food": "usda_fdc:171186",
+    "name": "Sauce, hot chile, sriracha"
+  },
+  {
+    "alias": "stalks celery",
+    "food": "usda_fdc:2346405",
+    "name": "Celery, raw"
+  },
+  {
+    "alias": "steak",
+    "food": "usda_fdc:2727574",
+    "name": "Beef, top sirloin steak, raw"
+  },
+  {
+    "alias": "stew meat",
+    "food": "usda_fdc:171206",
+    "name": "Beef, chuck for stew, separable lean and fat, all grades, raw"
+  },
+  {
+    "alias": "stewed tomatoes",
+    "food": "usda_fdc:170051",
+    "name": "Tomatoes, red, ripe, canned, packed in tomato juice"
+  },
+  {
+    "alias": "stewing beef",
+    "food": "usda_fdc:171206",
+    "name": "Beef, chuck for stew, separable lean and fat, all grades, raw"
+  },
+  {
+    "alias": "stick butter",
+    "food": "usda_fdc:173410",
+    "name": "Butter, salted"
+  },
+  {
+    "alias": "stove top stuffing",
+    "food": "usda_fdc:174930",
+    "name": "Bread, stuffing, dry mix"
+  },
+  {
+    "alias": "strawberries",
+    "food": "usda_fdc:2346409",
+    "name": "Strawberries, raw"
+  },
+  {
+    "alias": "strawberry",
+    "food": "usda_fdc:2346409",
+    "name": "Strawberries, raw"
+  },
+  {
+    "alias": "strawberry jam",
+    "food": "usda_fdc:169641",
+    "name": "Jams and preserves"
+  },
+  {
+    "alias": "string beans",
+    "food": "usda_fdc:2346400",
+    "name": "Beans, snap, green, raw"
+  },
+  {
+    "alias": "strips bacon",
+    "food": "usda_fdc:168277",
+    "name": "Pork, cured, bacon, unprepared"
+  },
+  {
+    "alias": "strong coffee",
+    "food": "usda_fdc:171890",
+    "name": "Beverages, coffee, brewed, prepared with tap water"
+  },
+  {
+    "alias": "stuffed olives",
+    "food": "usda_fdc:169096",
+    "name": "Olives, pickled, canned or bottled, green"
+  },
+  {
+    "alias": "stuffing mix",
+    "food": "usda_fdc:174930",
+    "name": "Bread, stuffing, dry mix"
+  },
+  {
+    "alias": "sugar",
+    "food": "usda_fdc:746784",
+    "name": "Sugars, granulated"
+  },
+  {
+    "alias": "sugar snap peas",
+    "food": "usda_fdc:170010",
+    "name": "Peas, edible-podded, raw"
+  },
+  {
+    "alias": "summer squash",
+    "food": "usda_fdc:170487",
+    "name": "Squash, summer, all varieties, raw"
+  },
+  {
+    "alias": "sun dried tomatoes",
+    "food": "usda_fdc:168567",
+    "name": "Tomatoes, sun-dried"
+  },
+  {
+    "alias": "sun-dried tomatoes",
+    "food": "usda_fdc:168567",
+    "name": "Tomatoes, sun-dried"
+  },
+  {
+    "alias": "sunflower oil",
+    "food": "usda_fdc:171017",
+    "name": "Oil, sunflower, linoleic (less than 60%)"
+  },
+  {
+    "alias": "sunflower seeds",
+    "food": "usda_fdc:170562",
+    "name": "Seeds, sunflower seed kernels, dried"
+  },
+  {
+    "alias": "superfine sugar",
+    "food": "usda_fdc:746784",
+    "name": "Sugars, granulated"
+  },
+  {
+    "alias": "sushi rice",
+    "food": "usda_fdc:168881",
+    "name": "Rice, white, short-grain, enriched, uncooked"
+  },
+  {
+    "alias": "sweet butter",
+    "food": "usda_fdc:173430",
+    "name": "Butter, without salt"
+  },
+  {
+    "alias": "sweet cherries",
+    "food": "usda_fdc:171719",
+    "name": "Cherries, sweet, raw"
+  },
+  {
+    "alias": "sweet italian sausage",
+    "food": "usda_fdc:171631",
+    "name": "Sausage, Italian, pork, mild, raw"
+  },
+  {
+    "alias": "sweet milk",
+    "food": "usda_fdc:746782",
+    "name": "Milk, whole, 3.25% milkfat, with added vitamin D"
+  },
+  {
+    "alias": "sweet onion",
+    "food": "usda_fdc:170000",
+    "name": "Onions, raw"
+  },
+  {
+    "alias": "sweet paprika",
+    "food": "usda_fdc:171329",
+    "name": "Spices, paprika"
+  },
+  {
+    "alias": "sweet pickle relish",
+    "food": "usda_fdc:168561",
+    "name": "Pickle relish, sweet"
+  },
+  {
+    "alias": "sweet potato",
+    "food": "usda_fdc:2346404",
+    "name": "Sweet potatoes, orange flesh, without skin, raw"
+  },
+  {
+    "alias": "sweet potatoes",
+    "food": "usda_fdc:2346404",
+    "name": "Sweet potatoes, orange flesh, without skin, raw"
+  },
+  {
+    "alias": "sweetened coconut",
+    "food": "usda_fdc:168586",
+    "name": "Nuts, coconut meat, dried (desiccated), sweetened, shredded"
+  },
+  {
+    "alias": "sweetened condensed milk",
+    "food": "usda_fdc:171275",
+    "name": "Milk, canned, condensed, sweetened"
+  },
+  {
+    "alias": "swiss chard",
+    "food": "usda_fdc:169991",
+    "name": "Chard, swiss, raw"
+  },
+  {
+    "alias": "swiss cheese",
+    "food": "usda_fdc:746767",
+    "name": "Cheese, swiss"
+  },
+  {
+    "alias": "syrup",
+    "food": "usda_fdc:169661",
+    "name": "Syrups, maple"
+  },
+  {
+    "alias": "tabasco",
+    "food": "usda_fdc:174527",
+    "name": "Sauce, ready-to-serve, pepper or hot"
+  },
+  {
+    "alias": "tabasco sauce",
+    "food": "usda_fdc:174527",
+    "name": "Sauce, ready-to-serve, pepper or hot"
+  },
+  {
+    "alias": "table salt",
+    "food": "usda_fdc:173468",
+    "name": "Salt, table"
+  },
+  {
+    "alias": "taco shells",
+    "food": "usda_fdc:172800",
+    "name": "Taco shells, baked"
+  },
+  {
+    "alias": "tahini",
+    "food": "usda_fdc:170189",
+    "name": "Seeds, sesame butter, tahini, from roasted and toasted kernels (most common type)"
+  },
+  {
+    "alias": "tamari",
+    "food": "usda_fdc:174277",
+    "name": "Soy sauce made from soy and wheat (shoyu)"
+  },
+  {
+    "alias": "tarragon",
+    "food": "usda_fdc:170937",
+    "name": "Spices, tarragon, dried"
+  },
+  {
+    "alias": "tart apples",
+    "food": "usda_fdc:171688",
+    "name": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "tart cherries",
+    "food": "usda_fdc:173954",
+    "name": "Cherries, sour, red, raw"
+  },
+  {
+    "alias": "tea",
+    "food": "usda_fdc:173227",
+    "name": "Beverages, tea, black, brewed, prepared with tap water"
+  },
+  {
+    "alias": "tea bags",
+    "food": "usda_fdc:173227",
+    "name": "Beverages, tea, black, brewed, prepared with tap water"
+  },
+  {
+    "alias": "teriyaki sauce",
+    "food": "usda_fdc:171167",
+    "name": "Sauce, teriyaki, ready-to-serve"
+  },
+  {
+    "alias": "thick-cut bacon",
+    "food": "usda_fdc:168277",
+    "name": "Pork, cured, bacon, unprepared"
+  },
+  {
+    "alias": "thyme",
+    "food": "usda_fdc:173470",
+    "name": "Thyme, fresh"
+  },
+  {
+    "alias": "thyme leaves",
+    "food": "usda_fdc:173470",
+    "name": "Thyme, fresh"
+  },
+  {
+    "alias": "tilapia",
+    "food": "usda_fdc:175176",
+    "name": "Fish, tilapia, raw"
+  },
+  {
+    "alias": "tilapia fillets",
+    "food": "usda_fdc:175176",
+    "name": "Fish, tilapia, raw"
+  },
+  {
+    "alias": "toasted sesame oil",
+    "food": "usda_fdc:171016",
+    "name": "Oil, sesame, salad or cooking"
+  },
+  {
+    "alias": "toasted sesame seeds",
+    "food": "usda_fdc:170150",
+    "name": "Seeds, sesame seeds, whole, dried"
+  },
+  {
+    "alias": "tofu",
+    "food": "usda_fdc:172475",
+    "name": "Tofu, raw, firm, prepared with calcium sulfate"
+  },
+  {
+    "alias": "tomato",
+    "food": "usda_fdc:170457",
+    "name": "Tomatoes, red, ripe, raw, year round average"
+  },
+  {
+    "alias": "tomato juice",
+    "food": "usda_fdc:170458",
+    "name": "Tomato juice, canned, with salt added"
+  },
+  {
+    "alias": "tomato paste",
+    "food": "usda_fdc:2685580",
+    "name": "Tomato, paste, canned, without salt added"
+  },
+  {
+    "alias": "tomato puree",
+    "food": "usda_fdc:170460",
+    "name": "Tomato products, canned, puree, without salt added"
+  },
+  {
+    "alias": "tomato sauce",
+    "food": "usda_fdc:170054",
+    "name": "Tomato products, canned, sauce"
+  },
+  {
+    "alias": "tomato soup",
+    "food": "usda_fdc:172882",
+    "name": "Soup, tomato, canned, condensed"
+  },
+  {
+    "alias": "tomatoes",
+    "food": "usda_fdc:170457",
+    "name": "Tomatoes, red, ripe, raw, year round average"
+  },
+  {
+    "alias": "top round",
+    "food": "usda_fdc:2646173",
+    "name": "Beef, round, top round, boneless, choice, raw"
+  },
+  {
+    "alias": "tortilla chips",
+    "food": "usda_fdc:167558",
+    "name": "Snacks, tortilla chips, plain, white corn, salted"
+  },
+  {
+    "alias": "tortillas",
+    "food": "usda_fdc:175037",
+    "name": "Tortillas, ready-to-bake or -fry, flour, refrigerated"
+  },
+  {
+    "alias": "trout",
+    "food": "usda_fdc:173717",
+    "name": "Fish, trout, rainbow, farmed, raw"
+  },
+  {
+    "alias": "tuna",
+    "food": "usda_fdc:334194",
+    "name": "Fish, tuna, light, canned in water, drained solids"
+  },
+  {
+    "alias": "tuna fish",
+    "food": "usda_fdc:334194",
+    "name": "Fish, tuna, light, canned in water, drained solids"
+  },
+  {
+    "alias": "tuna in water",
+    "food": "usda_fdc:334194",
+    "name": "Fish, tuna, light, canned in water, drained solids"
+  },
+  {
+    "alias": "tuna steaks",
+    "food": "usda_fdc:175159",
+    "name": "Fish, tuna, fresh, yellowfin, raw"
+  },
+  {
+    "alias": "turkey",
+    "food": "usda_fdc:171081",
+    "name": "Turkey, whole, meat and skin, raw"
+  },
+  {
+    "alias": "turkey breast",
+    "food": "usda_fdc:171481",
+    "name": "Turkey, whole, meat only, cooked, roasted"
+  },
+  {
+    "alias": "turkey sausage",
+    "food": "usda_fdc:746783",
+    "name": "Sausage, turkey, breakfast links, mild, raw"
+  },
+  {
+    "alias": "turmeric",
+    "food": "usda_fdc:172231",
+    "name": "Spices, turmeric, ground"
+  },
+  {
+    "alias": "turnip",
+    "food": "usda_fdc:2747674",
+    "name": "Turnips, raw"
+  },
+  {
+    "alias": "turnips",
+    "food": "usda_fdc:2747674",
+    "name": "Turnips, raw"
+  },
+  {
+    "alias": "unbaked pie shell",
+    "food": "usda_fdc:175024",
+    "name": "Pie crust, standard-type, frozen, ready-to-bake, enriched"
+  },
+  {
+    "alias": "unbleached flour",
+    "food": "usda_fdc:168894",
+    "name": "Wheat flour, white, all-purpose, enriched, bleached"
+  },
+  {
+    "alias": "uncooked rice",
+    "food": "usda_fdc:168877",
+    "name": "Rice, white, long-grain, regular, raw, enriched"
+  },
+  {
+    "alias": "unflavored gelatin",
+    "food": "usda_fdc:169599",
+    "name": "Gelatins, dry powder, unsweetened"
+  },
+  {
+    "alias": "unsalted butter",
+    "food": "usda_fdc:173430",
+    "name": "Butter, without salt"
+  },
+  {
+    "alias": "unsweetened almond milk",
+    "food": "usda_fdc:2257045",
+    "name": "Almond milk, unsweetened, plain, refrigerated"
+  },
+  {
+    "alias": "unsweetened applesauce",
+    "food": "usda_fdc:171695",
+    "name": "Applesauce, canned, unsweetened, without added ascorbic acid (Includes foods for USDA's Food Distribution Program)"
+  },
+  {
+    "alias": "unsweetened chocolate",
+    "food": "usda_fdc:167568",
+    "name": "Baking chocolate, unsweetened, squares"
+  },
+  {
+    "alias": "unsweetened cocoa",
+    "food": "usda_fdc:169593",
+    "name": "Cocoa, dry powder, unsweetened"
+  },
+  {
+    "alias": "unsweetened cocoa powder",
+    "food": "usda_fdc:169593",
+    "name": "Cocoa, dry powder, unsweetened"
+  },
+  {
+    "alias": "unsweetened coconut",
+    "food": "usda_fdc:170170",
+    "name": "Nuts, coconut meat, dried (desiccated), not sweetened"
+  },
+  {
+    "alias": "unsweetened coconut milk",
+    "food": "usda_fdc:170173",
+    "name": "Nuts, coconut milk, canned (liquid expressed from grated meat and water)"
+  },
+  {
+    "alias": "v8 juice",
+    "food": "usda_fdc:170458",
+    "name": "Tomato juice, canned, with salt added"
+  },
+  {
+    "alias": "vanilla",
+    "food": "usda_fdc:173471",
+    "name": "Vanilla extract"
+  },
+  {
+    "alias": "vanilla extract",
+    "food": "usda_fdc:173471",
+    "name": "Vanilla extract"
+  },
+  {
+    "alias": "vanilla flavoring",
+    "food": "usda_fdc:173471",
+    "name": "Vanilla extract"
+  },
+  {
+    "alias": "vanilla ice cream",
+    "food": "usda_fdc:167575",
+    "name": "Ice creams, vanilla"
+  },
+  {
+    "alias": "vanilla instant pudding",
+    "food": "usda_fdc:168784",
+    "name": "Puddings, vanilla, dry mix, instant"
+  },
+  {
+    "alias": "vanilla pudding",
+    "food": "usda_fdc:168784",
+    "name": "Puddings, vanilla, dry mix, instant"
+  },
+  {
+    "alias": "vanilla wafers",
+    "food": "usda_fdc:174974",
+    "name": "Cookies, vanilla wafers, higher fat"
+  },
+  {
+    "alias": "veal",
+    "food": "usda_fdc:175290",
+    "name": "Veal, ground, raw"
+  },
+  {
+    "alias": "vegetable broth",
+    "food": "usda_fdc:171583",
+    "name": "Soup, vegetable broth, ready to serve"
+  },
+  {
+    "alias": "vegetable oil",
+    "food": "usda_fdc:171411",
+    "name": "Oil, soybean, salad or cooking"
+  },
+  {
+    "alias": "vegetable shortening",
+    "food": "usda_fdc:171011",
+    "name": "Shortening, household, soybean (partially hydrogenated)-cottonseed (partially hydrogenated)"
+  },
+  {
+    "alias": "vegetable stock",
+    "food": "usda_fdc:171583",
+    "name": "Soup, vegetable broth, ready to serve"
+  },
+  {
+    "alias": "velveeta",
+    "food": "usda_fdc:171254",
+    "name": "Cheese spread, pasteurized process, American"
+  },
+  {
+    "alias": "velveeta cheese",
+    "food": "usda_fdc:171254",
+    "name": "Cheese spread, pasteurized process, American"
+  },
+  {
+    "alias": "vidalia onion",
+    "food": "usda_fdc:170000",
+    "name": "Onions, raw"
+  },
+  {
+    "alias": "vinegar",
+    "food": "usda_fdc:172237",
+    "name": "Vinegar, distilled"
+  },
+  {
+    "alias": "virgin olive oil",
+    "food": "usda_fdc:171413",
+    "name": "Oil, olive, salad or cooking"
+  },
+  {
+    "alias": "vodka",
+    "food": "usda_fdc:174815",
+    "name": "Alcoholic beverage, distilled, all (gin, rum, vodka, whiskey) 80 proof"
+  },
+  {
+    "alias": "walnut pieces",
+    "food": "usda_fdc:170187",
+    "name": "Nuts, walnuts, english"
+  },
+  {
+    "alias": "walnuts",
+    "food": "usda_fdc:170187",
+    "name": "Nuts, walnuts, english"
+  },
+  {
+    "alias": "warm milk",
+    "food": "usda_fdc:746782",
+    "name": "Milk, whole, 3.25% milkfat, with added vitamin D"
+  },
+  {
+    "alias": "warm water",
+    "food": "usda_fdc:173647",
+    "name": "Beverages, water, tap, drinking"
+  },
+  {
+    "alias": "water",
+    "food": "usda_fdc:173647",
+    "name": "Beverages, water, tap, drinking"
+  },
+  {
+    "alias": "water chestnuts",
+    "food": "usda_fdc:170067",
+    "name": "Waterchestnuts, chinese, canned, solids and liquids"
+  },
+  {
+    "alias": "watercress",
+    "food": "usda_fdc:170068",
+    "name": "Watercress, raw"
+  },
+  {
+    "alias": "watermelon",
+    "food": "usda_fdc:167765",
+    "name": "Watermelon, raw"
+  },
+  {
+    "alias": "wesson oil",
+    "food": "usda_fdc:171411",
+    "name": "Oil, soybean, salad or cooking"
+  },
+  {
+    "alias": "wheat flour",
+    "food": "usda_fdc:790085",
+    "name": "Flour, whole wheat, unenriched"
+  },
+  {
+    "alias": "wheat germ",
+    "food": "usda_fdc:168892",
+    "name": "Wheat germ, crude"
+  },
+  {
+    "alias": "whipped cream",
+    "food": "usda_fdc:170859",
+    "name": "Cream, fluid, heavy whipping"
+  },
+  {
+    "alias": "whipped topping",
+    "food": "usda_fdc:170868",
+    "name": "Dessert topping, semi solid, frozen"
+  },
+  {
+    "alias": "whipping cream",
+    "food": "usda_fdc:170859",
+    "name": "Cream, fluid, heavy whipping"
+  },
+  {
+    "alias": "whiskey",
+    "food": "usda_fdc:174815",
+    "name": "Alcoholic beverage, distilled, all (gin, rum, vodka, whiskey) 80 proof"
+  },
+  {
+    "alias": "white beans",
+    "food": "usda_fdc:173745",
+    "name": "Beans, navy, mature seeds, raw"
+  },
+  {
+    "alias": "white bread",
+    "food": "usda_fdc:174924",
+    "name": "Bread, white, commercially prepared (includes soft bread crumbs)"
+  },
+  {
+    "alias": "white cake mix",
+    "food": "usda_fdc:174947",
+    "name": "Cake, yellow, enriched, dry mix"
+  },
+  {
+    "alias": "white chocolate",
+    "food": "usda_fdc:167571",
+    "name": "Candies, white chocolate"
+  },
+  {
+    "alias": "white chocolate chips",
+    "food": "usda_fdc:167571",
+    "name": "Candies, white chocolate"
+  },
+  {
+    "alias": "white fish",
+    "food": "usda_fdc:171955",
+    "name": "Fish, cod, Atlantic, raw"
+  },
+  {
+    "alias": "white flour",
+    "food": "usda_fdc:168894",
+    "name": "Wheat flour, white, all-purpose, enriched, bleached"
+  },
+  {
+    "alias": "white mushrooms",
+    "food": "usda_fdc:169251",
+    "name": "Mushrooms, white, raw"
+  },
+  {
+    "alias": "white onion",
+    "food": "usda_fdc:170000",
+    "name": "Onions, raw"
+  },
+  {
+    "alias": "white pepper",
+    "food": "usda_fdc:170933",
+    "name": "Spices, pepper, white"
+  },
+  {
+    "alias": "white rice",
+    "food": "usda_fdc:168877",
+    "name": "Rice, white, long-grain, regular, raw, enriched"
+  },
+  {
+    "alias": "white sugar",
+    "food": "usda_fdc:746784",
+    "name": "Sugars, granulated"
+  },
+  {
+    "alias": "white vinegar",
+    "food": "usda_fdc:172237",
+    "name": "Vinegar, distilled"
+  },
+  {
+    "alias": "white wine",
+    "food": "usda_fdc:174837",
+    "name": "Alcoholic beverage, wine, table, white"
+  },
+  {
+    "alias": "whitefish",
+    "food": "usda_fdc:171955",
+    "name": "Fish, cod, Atlantic, raw"
+  },
+  {
+    "alias": "whole almonds",
+    "food": "usda_fdc:170567",
+    "name": "Nuts, almonds"
+  },
+  {
+    "alias": "whole berry cranberry sauce",
+    "food": "usda_fdc:173961",
+    "name": "Cranberry sauce, canned, sweetened"
+  },
+  {
+    "alias": "whole chicken",
+    "food": "usda_fdc:171447",
+    "name": "Chicken, broilers or fryers, meat and skin, raw"
+  },
+  {
+    "alias": "whole cloves",
+    "food": "usda_fdc:171321",
+    "name": "Spices, cloves, ground"
+  },
+  {
+    "alias": "whole eggs",
+    "food": "usda_fdc:171287",
+    "name": "Egg, whole, raw, fresh"
+  },
+  {
+    "alias": "whole kernel corn",
+    "food": "usda_fdc:169214",
+    "name": "Corn, sweet, yellow, canned, whole kernel, drained solids"
+  },
+  {
+    "alias": "whole milk",
+    "food": "usda_fdc:746782",
+    "name": "Milk, whole, 3.25% milkfat, with added vitamin D"
+  },
+  {
+    "alias": "whole tomatoes",
+    "food": "usda_fdc:170051",
+    "name": "Tomatoes, red, ripe, canned, packed in tomato juice"
+  },
+  {
+    "alias": "whole turkey",
+    "food": "usda_fdc:171081",
+    "name": "Turkey, whole, meat and skin, raw"
+  },
+  {
+    "alias": "whole wheat bread",
+    "food": "usda_fdc:335240",
+    "name": "Bread, whole-wheat, commercially prepared"
+  },
+  {
+    "alias": "whole wheat flour",
+    "food": "usda_fdc:790085",
+    "name": "Flour, whole wheat, unenriched"
+  },
+  {
+    "alias": "whole-wheat flour",
+    "food": "usda_fdc:790085",
+    "name": "Flour, whole wheat, unenriched"
+  },
+  {
+    "alias": "wide egg noodles",
+    "food": "usda_fdc:169731",
+    "name": "Noodles, egg, dry, enriched"
+  },
+  {
+    "alias": "wieners",
+    "food": "usda_fdc:323121",
+    "name": "Frankfurter, beef, unheated"
+  },
+  {
+    "alias": "wild rice",
+    "food": "usda_fdc:169726",
+    "name": "Wild rice, raw"
+  },
+  {
+    "alias": "wings",
+    "food": "usda_fdc:172390",
+    "name": "Chicken, broilers or fryers, wing, meat and skin, raw"
+  },
+  {
+    "alias": "worcestershire",
+    "food": "usda_fdc:171610",
+    "name": "Sauce, worcestershire"
+  },
+  {
+    "alias": "worcestershire sauce",
+    "food": "usda_fdc:171610",
+    "name": "Sauce, worcestershire"
+  },
+  {
+    "alias": "yams",
+    "food": "usda_fdc:2346404",
+    "name": "Sweet potatoes, orange flesh, without skin, raw"
+  },
+  {
+    "alias": "yeast",
+    "food": "usda_fdc:175043",
+    "name": "Leavening agents, yeast, baker's, active dry"
+  },
+  {
+    "alias": "yellow bell pepper",
+    "food": "usda_fdc:169383",
+    "name": "Peppers, sweet, yellow, raw"
+  },
+  {
+    "alias": "yellow cake mix",
+    "food": "usda_fdc:174947",
+    "name": "Cake, yellow, enriched, dry mix"
+  },
+  {
+    "alias": "yellow cornmeal",
+    "food": "usda_fdc:169697",
+    "name": "Cornmeal, whole-grain, yellow"
+  },
+  {
+    "alias": "yellow mustard",
+    "food": "usda_fdc:326698",
+    "name": "Mustard, prepared, yellow"
+  },
+  {
+    "alias": "yellow onion",
+    "food": "usda_fdc:170000",
+    "name": "Onions, raw"
+  },
+  {
+    "alias": "yellow onions",
+    "food": "usda_fdc:790646",
+    "name": "Onions, yellow, raw"
+  },
+  {
+    "alias": "yellow pepper",
+    "food": "usda_fdc:169383",
+    "name": "Peppers, sweet, yellow, raw"
+  },
+  {
+    "alias": "yellow squash",
+    "food": "usda_fdc:170487",
+    "name": "Squash, summer, all varieties, raw"
+  },
+  {
+    "alias": "yogurt",
+    "food": "usda_fdc:2259793",
+    "name": "Yogurt, plain, whole milk"
+  },
+  {
+    "alias": "yukon gold potatoes",
+    "food": "usda_fdc:170026",
+    "name": "Potatoes, flesh and skin, raw"
+  },
+  {
+    "alias": "zucchini",
+    "food": "usda_fdc:169291",
+    "name": "Squash, summer, zucchini, includes skin, raw"
+  },
+  {
+    "alias": "zucchinis",
+    "food": "usda_fdc:169291",
+    "name": "Squash, summer, zucchini, includes skin, raw"
+  }
+]
