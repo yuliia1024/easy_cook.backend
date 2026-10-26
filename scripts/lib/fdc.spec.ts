@@ -2,7 +2,14 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { FoodState } from '../../src/common/constants';
-import { buildFoodItems, detectFoodState, FDC_NUTRIENT, pickNutrients, readFdcExport } from './fdc';
+import {
+  buildFoodItems,
+  detectFoodState,
+  FDC_NUTRIENT,
+  pickNutrients,
+  readFdcExport,
+  readFdcPortions,
+} from './fdc';
 
 const amounts = (entries: Array<[number, number]>): Map<number, number> => new Map(entries);
 
@@ -154,6 +161,44 @@ describe('USDA FDC import', () => {
       rmSync(join(dir, 'food_nutrient.csv'));
 
       await expect(readFdcExport(dir)).rejects.toThrow('food_nutrient.csv not found');
+    });
+  });
+
+  describe('readFdcPortions', () => {
+    let dir: string;
+    const write = (file: string, lines: string[]): void =>
+      writeFileSync(join(dir, file), lines.join('\n'));
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), 'fdc-portions-'));
+      write('measure_unit.csv', ['"id","name"', '"1000","cup"', '"9999","undetermined"']);
+      write('food_portion.csv', [
+        '"id","fdc_id","seq_num","amount","measure_unit_id","portion_description","modifier","gram_weight"',
+        '"1","100","1","1","1000","","chopped","160"',
+        '"2","100","2","1","9999","","medium (2-1/2"" dia)","110"',
+        '"3","100","3","0.5","9999","","tbsp","5"',
+        '"4","100","4","1","9999","","oz","28.35"',
+        '"5","200","1","1","9999","","large","50"',
+      ]);
+    });
+
+    afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+    it('reads volume and count portions per food, grams per one unit', async () => {
+      const portions = await readFdcPortions(dir, new Set(['100']));
+
+      expect([...portions.keys()]).toEqual(['100']);
+      expect(portions.get('100')).toEqual([
+        { unit: 'cup', grams: 160 },
+        { unit: 'piece', size: 'medium', grams: 110 },
+        { unit: 'tbsp', grams: 10 },
+      ]);
+    });
+
+    it('returns no portions when the export has no food_portion.csv', async () => {
+      rmSync(join(dir, 'food_portion.csv'));
+
+      expect((await readFdcPortions(dir)).size).toBe(0);
     });
   });
 });
