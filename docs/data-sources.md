@@ -7,7 +7,9 @@ Where the food and recipe data comes from, what is committed, and how to refresh
 | Data | Source | Licence | In the DB |
 |---|---|---|---|
 | `data/seed/foods.json` (45 base foods) | Derived from USDA FoodData Central, **SR Legacy**: values per 100 g, rounded; English display names and `state` added for the project | Public domain (CC0 1.0), see below | `food_items`, `source = seed`, `source_id` = slug |
-| `data/seed/recipes.json` (12 recipes) | Written for this project | Project's own | `recipes` + `recipe_ingredients`, `source = seed`, `source_id` = slug |
+| `data/seed/usda-foods.json` (478 foods) | USDA FoodData Central, **Foundation Foods** + **SR Legacy**, picked by hand from foods common in recipes, all four macros present | Public domain (CC0 1.0), see below | `food_items`, `source = usda_fdc`, `source_id` = FDC id |
+| `data/seed/recipes.json` (12 recipes), `data/seed/menu-recipes.json` (140 recipes) | Written for this project; some dish ideas come from Kyiv meal-plan menus (healthynutrition.kyiv.ua, kyiv.perfectbalance.ua), no text or quantities copied | Project's own | `recipes` + `recipe_ingredients`, `source = seed`, `source_id` = slug |
+| `data/seed/food-aliases.json` (1265 aliases) | Ingredient names as recipes write them (`scallion`), mapped by hand to the foods of `usda-foods.json` | Project's own; FDC descriptions are CC0 | Not loaded yet, for matching recipe ingredients to foods |
 | `data/seed/control-recipes.json` | Hand-computed nutrition of 3 seed recipes, the arithmetic is in the file | Project's own | Not loaded, used by `data:validate` / `data:verify` |
 | USDA FoodData Central **Foundation Foods** (default) and optionally **SR Legacy**, CSV | https://fdc.nal.usda.gov/download-datasets | Public domain (CC0 1.0), see below | `food_items`, `source = usda_fdc`, `source_id` = FDC id |
 | Foods created through the API | The user | | `food_items`, `source = manual` |
@@ -33,10 +35,13 @@ fat 1004 → 1085, carbs 1005 → 1050 (see `scripts/lib/fdc.ts`).
 
 ### Recipes
 
-Decision (spike before DATA-4): **the prototype uses RecipeNLG**; a first import of ~500 recipes
-is selected from it automatically, plus the project's own recipes (`data/seed/recipes.json`).
-RecipeNLG is for non-commercial use only, so **before production its recipes are replaced** by
-recipes with a reusable licence (Wikibooks Cookbook, own recipes).
+Current state: **the database is seeded with the project's own recipes only** (`recipes.json` +
+`menu-recipes.json`, 152 recipes), so no recipe licence applies. Dish ideas from other menus are
+fine (an idea is not protected), copying their text, photos or exact recipes is not.
+
+Spike before DATA-4: RecipeNLG was considered for a larger prototype import of ~500 recipes. It is
+for non-commercial use only, so if it is imported, **its recipes are replaced before production**
+by recipes with a reusable licence (Wikibooks Cookbook, own recipes).
 
 #### RecipeNLG (prototype)
 
@@ -73,7 +78,7 @@ What this means for us:
 - **Wikibooks Cookbook** (https://en.wikibooks.org/wiki/Cookbook:Recipes): several thousand
   recipes, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Credit the page
   (title, URL, "Wikibooks contributors"); rows derived from it stay under CC BY-SA 4.0.
-- **Own recipes**, written in grams like `data/seed/recipes.json`.
+- **Own recipes**, written in grams like `data/seed/recipes.json` (already 152).
 
 #### Rejected
 
@@ -137,9 +142,9 @@ filters above (5 breakfast, 5 lunch, 5 dinner, 3 snack) and 2 seed recipes.
 
 | Path | Committed | |
 |---|---|---|
-| `data/seed/*.json` | yes | small, reviewed by hand, loaded by `npm run db:seed` |
+| `data/seed/*.json` | yes | reviewed by hand; `foods.json`, `usda-foods.json`, `recipes.json`, `menu-recipes.json` are loaded by `npm run db:seed` |
 | `data/raw/` | no (git-ignored) | downloaded FDC exports and the RecipeNLG CSV, hundreds of MB |
-| `data/processed/` | no (git-ignored) | normalized output of the import (`usda-foods.json`) |
+| `data/processed/` | no (git-ignored) | normalized output of `data:import-foods` (the full FDC release, not the hand-picked `data/seed/usda-foods.json`) |
 
 Anyone can rebuild the imported foods from the public FDC release. The seed data alone is enough
 to run the app.
@@ -149,6 +154,8 @@ to run the app.
 Seed data (`data/seed/`):
 
 1. Edit the JSON. Food values stay per 100 g of the food in its `state`; unknown = `null`, never 0.
+   A recipe ingredient is a slug of `foods.json` or `usda_fdc:<FDC id>` of a food in `usda-foods.json`
+   (copy a food there from the FDC release when a recipe needs a new one).
 2. If a control recipe or a food it uses changed, recompute its values in `control-recipes.json` by hand.
 3. `npm run data:validate`, then `npm run db:seed` (upsert by slug, safe to repeat), then `npm run data:verify`.
 

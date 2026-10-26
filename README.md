@@ -24,7 +24,7 @@ next stage.
 cp .env.example .env
 npm install                   # also generates the Prisma client
 npm run infra:up              # postgres
-npm run db:seed               # base foods + recipes from data/seed (idempotent)
+npm run db:seed               # foods + recipes from data/seed (idempotent)
 npm run start:dev             # applies migrations, API on http://localhost:3100/api, Swagger on /docs
 # or everything in docker:
 npm run compose
@@ -141,14 +141,17 @@ Sources, licences (USDA FDC: public domain, CC0 1.0) and the update procedure:
 | Path | |
 |---|---|
 | `data/seed/foods.json` | ~45 base foods, values per 100 g (rounded USDA values), committed |
+| `data/seed/usda-foods.json` | 478 USDA foods (Foundation + SR Legacy) with full macros, committed |
 | `data/seed/recipes.json` | 12 recipes using those foods (`food` = slug, or `usda_fdc:<fdc_id>`), committed |
+| `data/seed/menu-recipes.json` | 140 more recipes in the same format, committed |
+| `data/seed/food-aliases.json` | ingredient name aliases (`scallion` -> `usda_fdc:170005`), not loaded |
 | `data/seed/control-recipes.json` | hand-computed nutrition of 3 seed recipes (arithmetic included), committed |
 | `data/raw/` | downloaded datasets |
 | `data/processed/` | normalized output of the import |
 
 ```bash
 npm run data:validate        # checks data/seed without a database (ranges, references, 4/9/4 kcal, control recipes)
-npm run db:seed              # upserts seed foods + recipes
+npm run db:seed              # upserts seed foods, USDA foods of usda-foods.json and recipes
 npm run data:seed-recipes    # recipes only (the foods must already exist)
 npm run data:verify          # checks the database: orphan rows per FK, duplicated source ids,
                              # recipes without ingredients, control recipes via NutritionService, counts

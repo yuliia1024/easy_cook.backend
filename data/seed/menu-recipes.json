@@ -1,0 +1,6435 @@
+{
+  "$comment": "Recipes written for this project (dish ideas from Kyiv healthy meal-plan menus). Same format as recipes.json: `food` is a slug from foods.json or usda_fdc:<FDC id> from usda-foods.json; quantityG is for the whole recipe, in the state of that food.",
+  "recipes": [
+    {
+      "slug": "pumpkin-oatmeal",
+      "name": "Oatmeal with pumpkin and cinnamon",
+      "description": "Creamy milk oatmeal with pumpkin puree and walnuts.",
+      "instructions": "Bring the milk to a simmer, add the oats and cook for 5 minutes, stirring. Stir in the pumpkin puree and cinnamon and warm through for 2 minutes. Serve topped with chopped walnuts and honey.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "oats-dry",
+          "quantityG": 80
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:168450",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:171320",
+          "quantityG": 1
+        },
+        {
+          "food": "walnuts",
+          "quantityG": 15,
+          "notes": "chopped"
+        },
+        {
+          "food": "honey",
+          "quantityG": 15,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "buckwheat-milk-apple",
+      "name": "Buckwheat porridge with milk and apple",
+      "description": "Soft buckwheat cooked in milk with a grated apple.",
+      "instructions": "Rinse the buckwheat, cover with 200 ml of water and cook for 10 minutes until the water is absorbed. Add the milk and cook for 5 more minutes. Stir in the grated apple and cinnamon, sweeten with honey.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "buckwheat-dry",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 200
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 250
+        },
+        {
+          "food": "apple-raw",
+          "quantityG": 150,
+          "notes": "grated"
+        },
+        {
+          "food": "usda_fdc:171320",
+          "quantityG": 1
+        },
+        {
+          "food": "honey",
+          "quantityG": 10,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "cottage-cheese-casserole",
+      "name": "Cottage cheese casserole with raisins",
+      "description": "Baked cottage cheese with oats, eggs and raisins.",
+      "instructions": "Mash the cottage cheese with the eggs, honey and half of the sour cream. Stir in the oats and raisins and leave for 10 minutes. Spread in a buttered dish, brush with the rest of the sour cream and bake at 180 °C for 35 minutes.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 50,
+      "ingredients": [
+        {
+          "food": "cottage-cheese-4pct",
+          "quantityG": 500
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "honey",
+          "quantityG": 30
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 60
+        },
+        {
+          "food": "oats-dry",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:168165",
+          "quantityG": 40
+        },
+        {
+          "food": "butter",
+          "quantityG": 5,
+          "isOptional": true,
+          "notes": "for the dish"
+        }
+      ]
+    },
+    {
+      "slug": "shakshuka",
+      "name": "Shakshuka",
+      "description": "Eggs poached in a spiced tomato and pepper sauce.",
+      "instructions": "Fry the onion and pepper in olive oil for 5 minutes, add the garlic, paprika and cumin. Add the tomatoes and salt and simmer for 8 minutes. Make four hollows, crack in the eggs, cover and cook for 5-6 minutes. Sprinkle with parsley.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 80,
+          "notes": "diced"
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 120,
+          "notes": "diced"
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:171329",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:170923",
+          "quantityG": 1
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:170416",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "avocado-egg-toast",
+      "name": "Avocado toast with poached egg",
+      "description": "Wholegrain toast with mashed avocado, egg and cherry tomatoes.",
+      "instructions": "Toast the bread. Mash the avocado with lemon juice, salt and pepper and spread it on the toast. Poach the eggs for 3 minutes in simmering water and place on top with halved cherry tomatoes.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "bread-whole-wheat",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:171705",
+          "quantityG": 140
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 5
+        },
+        {
+          "food": "salt",
+          "quantityG": 1
+        },
+        {
+          "food": "usda_fdc:170931",
+          "quantityG": 0.5
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:321360",
+          "quantityG": 80
+        }
+      ]
+    },
+    {
+      "slug": "yogurt-berry-parfait",
+      "name": "Greek yogurt parfait with berries",
+      "description": "Layers of yogurt, berries, toasted oats and almonds.",
+      "instructions": "Toast the oats and chopped almonds in a dry pan for 3 minutes. Layer the yogurt, berries and the oat mix in two glasses and drizzle with honey.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "high_protein"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:2346409",
+          "quantityG": 150
+        },
+        {
+          "food": "blueberries-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "oats-dry",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:170567",
+          "quantityG": 20
+        },
+        {
+          "food": "honey",
+          "quantityG": 20,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "mango-chia-pudding",
+      "name": "Chia pudding with mango",
+      "description": "Overnight chia pudding on almond milk with fresh mango.",
+      "instructions": "Stir the chia seeds into the almond milk with the maple syrup, wait 10 minutes and stir again. Refrigerate overnight. Serve topped with diced mango.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "usda_fdc:170554",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:2257045",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:169661",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:169910",
+          "quantityG": 200,
+          "notes": "diced"
+        }
+      ]
+    },
+    {
+      "slug": "spinach-feta-omelette",
+      "name": "Spinach and feta omelette",
+      "description": "A protein omelette with egg whites, spinach and feta.",
+      "instructions": "Whisk the eggs, egg whites, milk and salt. Wilt the spinach in olive oil for 1 minute, pour in the eggs, scatter the crumbled feta and cook covered over low heat for 4 minutes.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "egg-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:172183",
+          "quantityG": 66
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 30
+        },
+        {
+          "food": "salt",
+          "quantityG": 1
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 5
+        },
+        {
+          "food": "spinach-raw",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:173420",
+          "quantityG": 40
+        }
+      ]
+    },
+    {
+      "slug": "banana-oat-pancakes",
+      "name": "Banana oat pancakes",
+      "description": "Flourless pancakes from banana, eggs and oats with yogurt and blueberries.",
+      "instructions": "Blend the bananas, eggs, oats, baking powder and cinnamon into a batter. Fry small pancakes on a lightly oiled pan, 2 minutes per side. Serve with yogurt and blueberries.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 20,
+      "ingredients": [
+        {
+          "food": "banana-raw",
+          "quantityG": 240
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "oats-dry",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:172803",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:171320",
+          "quantityG": 1
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 5
+        },
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 100
+        },
+        {
+          "food": "blueberries-raw",
+          "quantityG": 80
+        }
+      ]
+    },
+    {
+      "slug": "tofu-scramble",
+      "name": "Tofu scramble with spinach and pepper",
+      "description": "A vegan scramble with turmeric, pepper and spinach.",
+      "instructions": "Fry the onion and pepper in olive oil for 4 minutes. Crumble in the tofu, add turmeric and salt and fry for 5 minutes. Stir in the spinach until it wilts.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 60
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "tofu-firm",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:172231",
+          "quantityG": 1
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "spinach-raw",
+          "quantityG": 60
+        }
+      ]
+    },
+    {
+      "slug": "quinoa-berry-bowl",
+      "name": "Quinoa breakfast bowl with berries",
+      "description": "Quinoa cooked in almond milk with banana, raspberries and pumpkin seeds.",
+      "instructions": "Rinse the quinoa and cook it in the almond milk for 15 minutes until soft. Sweeten with maple syrup, top with sliced banana, raspberries and pumpkin seeds.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "usda_fdc:168874",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:2257045",
+          "quantityG": 250
+        },
+        {
+          "food": "usda_fdc:169661",
+          "quantityG": 15
+        },
+        {
+          "food": "banana-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:2346410",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:170556",
+          "quantityG": 20
+        }
+      ]
+    },
+    {
+      "slug": "smoked-salmon-rye-toast",
+      "name": "Rye toast with smoked salmon",
+      "description": "Rye bread with cream cheese, smoked salmon, cucumber and dill.",
+      "instructions": "Spread the rye bread with cream cheese, top with sliced cucumber and smoked salmon and sprinkle with chopped dill.",
+      "mealType": "breakfast",
+      "dietType": [
+        "pescatarian"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "usda_fdc:172684",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:173418",
+          "quantityG": 40
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:173687",
+          "quantityG": 80
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 3
+        }
+      ]
+    },
+    {
+      "slug": "peanut-butter-overnight-oats",
+      "name": "Peanut butter overnight oats",
+      "description": "Oats soaked in milk and yogurt with banana and peanut butter.",
+      "instructions": "Mix the oats, milk, yogurt and chia seeds in two jars and refrigerate overnight. In the morning top with sliced banana and peanut butter.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "oats-dry",
+          "quantityG": 80
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 200
+        },
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:170554",
+          "quantityG": 10
+        },
+        {
+          "food": "banana-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:324860",
+          "quantityG": 30
+        }
+      ]
+    },
+    {
+      "slug": "vegetable-frittata",
+      "name": "Vegetable frittata",
+      "description": "Oven-finished frittata with zucchini, pepper and cheddar.",
+      "instructions": "Fry the onion, zucchini and pepper in olive oil for 6 minutes. Whisk the eggs with salt and pepper, pour over the vegetables, scatter the cheddar and cook for 3 minutes. Finish in the oven at 190 °C for 10 minutes.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "low_carb"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:169291",
+          "quantityG": 150
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:170931",
+          "quantityG": 0.5
+        },
+        {
+          "food": "cheese-cheddar",
+          "quantityG": 40
+        }
+      ]
+    },
+    {
+      "slug": "cottage-cheese-berries-flax",
+      "name": "Cottage cheese with blueberries and flax",
+      "description": "A quick high-protein breakfast bowl.",
+      "instructions": "Put the cottage cheese in a bowl, top with blueberries and ground flaxseed and drizzle with honey.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "cottage-cheese-4pct",
+          "quantityG": 200
+        },
+        {
+          "food": "blueberries-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:169414",
+          "quantityG": 10,
+          "notes": "ground"
+        },
+        {
+          "food": "honey",
+          "quantityG": 10,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "breakfast-burrito",
+      "name": "Breakfast burrito with beans",
+      "description": "Scrambled eggs, black beans, salsa and cheddar in a tortilla.",
+      "instructions": "Scramble the eggs over medium heat. Warm the beans. Fill the tortillas with eggs, beans, salsa and cheddar, roll up and toast seam side down for 1 minute.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "egg-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:175238",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:746777",
+          "quantityG": 60
+        },
+        {
+          "food": "cheese-cheddar",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:175037",
+          "quantityG": 140
+        }
+      ]
+    },
+    {
+      "slug": "rice-pumpkin-porridge",
+      "name": "Rice porridge with butternut squash",
+      "description": "Milk rice porridge with soft butternut squash.",
+      "instructions": "Cook the diced squash in 200 ml of water for 10 minutes. Add the rice and milk and simmer for 20 minutes, stirring, until thick. Stir in the butter and honey.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2685570",
+          "quantityG": 200,
+          "notes": "diced"
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 200
+        },
+        {
+          "food": "rice-white-dry",
+          "quantityG": 100
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 400
+        },
+        {
+          "food": "butter",
+          "quantityG": 10
+        },
+        {
+          "food": "honey",
+          "quantityG": 20
+        }
+      ]
+    },
+    {
+      "slug": "turkey-egg-muffins",
+      "name": "Turkey and egg muffins",
+      "description": "Egg muffins with ground turkey, spinach and pepper.",
+      "instructions": "Brown the turkey with salt for 6 minutes. Whisk the eggs, stir in the turkey, chopped spinach and pepper. Pour into 9 muffin cups and bake at 180 °C for 18 minutes.",
+      "mealType": "breakfast",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "usda_fdc:171505",
+          "quantityG": 200
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "spinach-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 80
+        }
+      ]
+    },
+    {
+      "slug": "fish-meatballs-couscous",
+      "name": "Fish meatballs with couscous",
+      "description": "Cod meatballs with dill, couscous and cherry tomatoes.",
+      "instructions": "Mince the cod with the onion, mix in the egg, oats, dill and salt and shape small balls. Bake at 200 °C for 15 minutes. Pour boiling water over the couscous with the olive oil, cover for 5 minutes and fluff. Serve with halved cherry tomatoes.",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "usda_fdc:171955",
+          "quantityG": 400
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 60
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "oats-dry",
+          "quantityG": 20
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:169699",
+          "quantityG": 160
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 240
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:321360",
+          "quantityG": 150
+        }
+      ]
+    },
+    {
+      "slug": "chicken-quinoa-salad",
+      "name": "Chicken quinoa salad",
+      "description": "Grilled chicken, quinoa, cucumber, tomatoes and feta with lemon dressing.",
+      "instructions": "Cook the quinoa for 15 minutes and cool. Season the chicken with salt and grill for 6 minutes per side, then slice. Toss the quinoa with cucumber, tomatoes, red onion, olive oil and lemon juice, top with the chicken and feta.",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "high_protein"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "usda_fdc:168874",
+          "quantityG": 120
+        },
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:321360",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:790577",
+          "quantityG": 40
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 20
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 20
+        },
+        {
+          "food": "usda_fdc:173420",
+          "quantityG": 60
+        }
+      ]
+    },
+    {
+      "slug": "beef-vegetable-soup",
+      "name": "Beef and vegetable soup",
+      "description": "A hearty soup with beef, potato and tomatoes.",
+      "instructions": "Cover the beef with water, bring to a boil, skim and simmer for 70 minutes. Add the potato, carrot, onion and celery and cook for 20 minutes. Add the tomatoes and salt and cook for 10 more minutes.",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 120,
+      "ingredients": [
+        {
+          "food": "usda_fdc:171206",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 1500
+        },
+        {
+          "food": "potato-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:2346405",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 200
+        },
+        {
+          "food": "salt",
+          "quantityG": 6
+        }
+      ]
+    },
+    {
+      "slug": "chicken-noodle-soup",
+      "name": "Chicken noodle soup",
+      "description": "Chicken broth with chicken breast, vegetables and noodles.",
+      "instructions": "Simmer the chicken in the broth for 20 minutes, take it out and shred. Add the carrot, onion and celery and cook for 10 minutes. Add the pasta and cook for 7 minutes, return the chicken, salt and add dill.",
+      "mealType": "lunch",
+      "dietType": [
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 5,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "usda_fdc:174536",
+          "quantityG": 1500
+        },
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:2346405",
+          "quantityG": 80
+        },
+        {
+          "food": "pasta-dry",
+          "quantityG": 120
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        }
+      ]
+    },
+    {
+      "slug": "cabbage-soup",
+      "name": "Cabbage soup (shchi)",
+      "description": "Fresh cabbage soup with potato and tomato.",
+      "instructions": "Fry the onion and carrot in oil for 5 minutes, add the tomato paste. Boil the potato in the water for 10 minutes, add the shredded cabbage and the fried vegetables and cook for 20 minutes. Season with salt and dill, serve with sour cream.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 50,
+      "ingredients": [
+        {
+          "food": "sunflower-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:2685580",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 1800
+        },
+        {
+          "food": "potato-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "cabbage-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 6
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 100,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "turkey-meatballs-buckwheat",
+      "name": "Turkey meatballs in tomato sauce with buckwheat",
+      "description": "Soft turkey meatballs stewed in tomatoes, served with buckwheat.",
+      "instructions": "Mix the turkey with the grated onion, egg and salt and shape meatballs. Brown them in oil, add the tomatoes and stew covered for 20 minutes. Cook the buckwheat in 450 ml of water for 15 minutes. Serve with dill.",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 45,
+      "ingredients": [
+        {
+          "food": "usda_fdc:171505",
+          "quantityG": 500
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 300
+        },
+        {
+          "food": "buckwheat-dry",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 450
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        }
+      ]
+    },
+    {
+      "slug": "chickpea-spinach-curry",
+      "name": "Chickpea and spinach curry with rice",
+      "description": "Coconut chickpea curry with tomatoes and spinach.",
+      "instructions": "Cook the rice. Fry the onion in oil for 5 minutes, add garlic, ginger and curry powder for 1 minute. Add the tomatoes, coconut milk, chickpeas and salt and simmer for 15 minutes. Stir in the spinach and serve with the rice.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "rice-white-dry",
+          "quantityG": 200
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:169231",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170924",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:170173",
+          "quantityG": 200
+        },
+        {
+          "food": "chickpeas-boiled",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "spinach-raw",
+          "quantityG": 100
+        }
+      ]
+    },
+    {
+      "slug": "tuna-pasta-salad",
+      "name": "Tuna pasta salad",
+      "description": "Pasta with tuna, vegetables and olives in a lemon dressing.",
+      "instructions": "Cook the pasta, rinse with cold water and drain. Mix with the drained tuna, tomatoes, cucumber, olives and red onion. Dress with olive oil, lemon juice and salt.",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "pasta-dry",
+          "quantityG": 200
+        },
+        {
+          "food": "tuna-canned-water",
+          "quantityG": 250
+        },
+        {
+          "food": "usda_fdc:321360",
+          "quantityG": 150
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:169094",
+          "quantityG": 50
+        },
+        {
+          "food": "usda_fdc:790577",
+          "quantityG": 40
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 20
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 15
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "lentil-vegetable-stew",
+      "name": "Lentil and vegetable stew",
+      "description": "Green lentils stewed with carrot, celery and tomatoes.",
+      "instructions": "Fry the onion, carrot, celery and garlic in olive oil for 7 minutes, add the cumin. Add the lentils, tomatoes and broth and simmer for 30 minutes until the lentils are soft. Season with salt.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 50,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:2346405",
+          "quantityG": 80
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170923",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:172420",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:171583",
+          "quantityG": 800
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        }
+      ]
+    },
+    {
+      "slug": "chicken-burrito-bowl",
+      "name": "Chicken burrito bowl",
+      "description": "Brown rice with chicken, black beans, corn, salsa and avocado.",
+      "instructions": "Cook the brown rice. Season the chicken with cumin and fry in oil for 6 minutes per side, then slice. Warm the beans and corn. Arrange rice, chicken, beans, corn, salsa and sliced avocado in bowls and squeeze over the lime juice.",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 45,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2512380",
+          "quantityG": 160
+        },
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:170923",
+          "quantityG": 3
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:175238",
+          "quantityG": 240
+        },
+        {
+          "food": "usda_fdc:168398",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:746777",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:171705",
+          "quantityG": 140
+        },
+        {
+          "food": "usda_fdc:168156",
+          "quantityG": 15
+        }
+      ]
+    },
+    {
+      "slug": "mushroom-cream-soup",
+      "name": "Mushroom soup with potato",
+      "description": "Creamy mushroom soup thickened with potato, no cream.",
+      "instructions": "Fry the onion and mushrooms in butter for 10 minutes. Add the potato and water and cook for 15 minutes. Add the milk and salt, blend until smooth and sprinkle with dill.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "butter",
+          "quantityG": 20
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "mushrooms-raw",
+          "quantityG": 500
+        },
+        {
+          "food": "potato-raw",
+          "quantityG": 250
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 600
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        }
+      ]
+    },
+    {
+      "slug": "greek-salad-chicken",
+      "name": "Greek salad with chicken",
+      "description": "Romaine, vegetables, olives and feta with grilled chicken.",
+      "instructions": "Grill the chicken for 6 minutes per side and slice. Chop the lettuce, cucumber, tomatoes, pepper and red onion. Toss with olives, olive oil, lemon juice and oregano, top with feta and chicken.",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:746769",
+          "quantityG": 200
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 250
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:790577",
+          "quantityG": 50
+        },
+        {
+          "food": "usda_fdc:169094",
+          "quantityG": 60
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 25
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:171328",
+          "quantityG": 1
+        },
+        {
+          "food": "usda_fdc:173420",
+          "quantityG": 100
+        }
+      ]
+    },
+    {
+      "slug": "pork-bulgur-green-beans",
+      "name": "Pork tenderloin with bulgur and green beans",
+      "description": "Roasted pork tenderloin with bulgur and garlicky green beans.",
+      "instructions": "Rub the pork with salt and half the oil and roast at 200 °C for 25 minutes, then rest and slice. Cook the bulgur in 360 ml of water for 12 minutes. Blanch the green beans for 4 minutes and toss with garlic and the rest of the oil.",
+      "mealType": "lunch",
+      "dietType": [
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "usda_fdc:168312",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:170688",
+          "quantityG": 180
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 360
+        },
+        {
+          "food": "usda_fdc:2346400",
+          "quantityG": 300
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        }
+      ]
+    },
+    {
+      "slug": "beef-stroganoff-buckwheat",
+      "name": "Beef stroganoff with buckwheat",
+      "description": "Strips of beef with mushrooms in sour cream sauce, served with buckwheat.",
+      "instructions": "Cook the buckwheat in 450 ml of water. Fry the beef strips in hot oil for 3 minutes and set aside. Fry the onion and mushrooms for 8 minutes, stir in the flour, then the sour cream and 100 ml of water. Return the beef, salt and warm for 3 minutes.",
+      "mealType": "lunch",
+      "dietType": [],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "buckwheat-dry",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 550
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:2727574",
+          "quantityG": 400
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "mushrooms-raw",
+          "quantityG": 250
+        },
+        {
+          "food": "wheat-flour",
+          "quantityG": 10
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 150
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        }
+      ]
+    },
+    {
+      "slug": "shrimp-fried-rice",
+      "name": "Shrimp fried rice",
+      "description": "Rice stir-fried with shrimp, egg, peas and carrot.",
+      "instructions": "Cook the rice and cool it. Scramble the eggs in a little oil and set aside. Stir-fry the shrimp for 3 minutes, add carrot and peas for 3 minutes, then the rice, eggs, soy sauce and sesame oil. Finish with green onion.",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "rice-white-dry",
+          "quantityG": 200
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:175179",
+          "quantityG": 300
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:170016",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:174277",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:171016",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170005",
+          "quantityG": 40
+        }
+      ]
+    },
+    {
+      "slug": "chicken-veggie-wrap",
+      "name": "Chicken and vegetable wrap",
+      "description": "Tortilla with chicken, crisp vegetables and garlic yogurt sauce.",
+      "instructions": "Fry the chicken in oil for 6 minutes per side and slice. Mix the yogurt with grated garlic. Fill the tortillas with lettuce, tomato, cucumber, chicken and sauce and roll up.",
+      "mealType": "lunch",
+      "dietType": [],
+      "servings": 4,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 120
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:175037",
+          "quantityG": 280
+        },
+        {
+          "food": "usda_fdc:746769",
+          "quantityG": 100
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 100
+        }
+      ]
+    },
+    {
+      "slug": "salmon-sweet-potato-broccoli",
+      "name": "Baked salmon with sweet potato and broccoli",
+      "description": "One-tray dinner of salmon, sweet potato and broccoli.",
+      "instructions": "Toss the sweet potato cubes with half the oil and bake at 200 °C for 15 minutes. Add the broccoli and the salmon, season with salt, pepper and the rest of the oil and bake for 12 more minutes. Squeeze over the lemon juice.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2346404",
+          "quantityG": 500
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 20
+        },
+        {
+          "food": "broccoli-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "salmon-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:170931",
+          "quantityG": 1
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 15
+        }
+      ]
+    },
+    {
+      "slug": "chicken-roll-ricotta-brussels",
+      "name": "Chicken roll with ricotta and Brussels sprouts",
+      "description": "Chicken breast rolled around ricotta and spinach, roasted with Brussels sprouts.",
+      "instructions": "Butterfly and flatten the chicken breasts, season with salt. Mix the ricotta with chopped spinach and garlic, spread over the chicken and roll up. Roast at 190 °C for 30 minutes with the halved sprouts tossed in olive oil.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 50,
+      "ingredients": [
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 600
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:746766",
+          "quantityG": 150
+        },
+        {
+          "food": "spinach-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 5
+        },
+        {
+          "food": "usda_fdc:2685575",
+          "quantityG": 400
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        }
+      ]
+    },
+    {
+      "slug": "turkey-stuffed-peppers",
+      "name": "Turkey stuffed peppers",
+      "description": "Peppers stuffed with turkey and rice, baked in tomato sauce.",
+      "instructions": "Cook the rice for 10 minutes. Fry the onion and carrot, mix with the turkey, rice and salt. Stuff the halved peppers, pour over the tomatoes and bake covered at 190 °C for 40 minutes. Serve with sour cream.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 60,
+      "ingredients": [
+        {
+          "food": "rice-white-dry",
+          "quantityG": 100
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:171505",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 600
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 300
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 80,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "cod-mediterranean-bake",
+      "name": "Mediterranean baked cod",
+      "description": "Cod baked on zucchini, tomatoes and red onion.",
+      "instructions": "Slice the zucchini and red onion, halve the tomatoes and toss with oil, oregano and salt in a baking dish. Lay the cod on top, drizzle with lemon juice and bake at 200 °C for 20 minutes.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "usda_fdc:169291",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:790577",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:321360",
+          "quantityG": 250
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 20
+        },
+        {
+          "food": "usda_fdc:171328",
+          "quantityG": 1
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:171955",
+          "quantityG": 600
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 15
+        }
+      ]
+    },
+    {
+      "slug": "beef-stir-fry-rice-noodles",
+      "name": "Beef stir-fry with rice noodles",
+      "description": "Beef and crunchy vegetables with ginger and soy sauce.",
+      "instructions": "Soak the noodles in hot water for 8 minutes and drain. Stir-fry the beef strips in oil for 2 minutes and set aside. Stir-fry broccoli, pepper and carrot for 4 minutes with ginger and garlic, add the beef, noodles, soy sauce and sesame oil and toss.",
+      "mealType": "dinner",
+      "dietType": [
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "usda_fdc:169742",
+          "quantityG": 200
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:2727574",
+          "quantityG": 400
+        },
+        {
+          "food": "broccoli-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:169231",
+          "quantityG": 10
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 8
+        },
+        {
+          "food": "usda_fdc:174277",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:171016",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "tofu-edamame-stir-fry",
+      "name": "Tofu and edamame stir-fry with brown rice",
+      "description": "Crispy tofu with broccoli, pepper and edamame.",
+      "instructions": "Cook the brown rice. Fry the tofu cubes in sesame oil until golden. Add broccoli, pepper and edamame with ginger and stir-fry for 5 minutes. Add soy sauce, sprinkle with sesame seeds and serve with the rice.",
+      "mealType": "dinner",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 45,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2512380",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:171016",
+          "quantityG": 10
+        },
+        {
+          "food": "tofu-firm",
+          "quantityG": 400
+        },
+        {
+          "food": "broccoli-raw",
+          "quantityG": 250
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:168410",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:169231",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:174277",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:170150",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "chicken-thighs-roast-vegetables",
+      "name": "Chicken thighs with roasted vegetables",
+      "description": "Paprika chicken thighs roasted with potato, carrot and onion.",
+      "instructions": "Toss the potato, carrot and onion wedges with half the oil and salt. Rub the chicken with paprika, garlic, salt and the rest of the oil. Roast everything at 200 °C for 40 minutes.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 55,
+      "ingredients": [
+        {
+          "food": "potato-raw",
+          "quantityG": 600
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 20
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:2646171",
+          "quantityG": 600
+        },
+        {
+          "food": "usda_fdc:171329",
+          "quantityG": 3
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "trout-quinoa-asparagus",
+      "name": "Trout with quinoa and asparagus",
+      "description": "Pan-seared trout with lemony quinoa and asparagus.",
+      "instructions": "Cook the quinoa for 15 minutes. Season the trout with salt and fry skin side down in half the oil for 4 minutes, turn and cook for 2 minutes. Fry the asparagus in the rest of the oil for 4 minutes. Dress the quinoa with lemon juice and dill.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "usda_fdc:168874",
+          "quantityG": 160
+        },
+        {
+          "food": "usda_fdc:173717",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:168389",
+          "quantityG": 300
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 15
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        }
+      ]
+    },
+    {
+      "slug": "turkey-bolognese",
+      "name": "Pasta with turkey bolognese",
+      "description": "Lean turkey ragù with carrot and basil over pasta.",
+      "instructions": "Fry the onion, carrot and garlic in olive oil for 6 minutes. Add the turkey and brown it. Add the tomatoes and salt and simmer for 25 minutes. Cook the pasta and toss with the sauce, basil and parmesan.",
+      "mealType": "dinner",
+      "dietType": [],
+      "servings": 5,
+      "prepTimeMinutes": 50,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 8
+        },
+        {
+          "food": "usda_fdc:171505",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 600
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "pasta-dry",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:172232",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:325036",
+          "quantityG": 40,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "eggplant-chickpea-stew",
+      "name": "Eggplant and chickpea stew with couscous",
+      "description": "Spiced eggplant, chickpeas and tomatoes over couscous.",
+      "instructions": "Fry the eggplant cubes in olive oil for 8 minutes, add onion and garlic for 4 minutes, then cumin and paprika. Add the tomatoes and chickpeas and simmer for 20 minutes. Pour boiling water over the couscous and leave for 5 minutes. Serve with parsley.",
+      "mealType": "dinner",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 45,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 20
+        },
+        {
+          "food": "usda_fdc:2685577",
+          "quantityG": 500
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 8
+        },
+        {
+          "food": "usda_fdc:170923",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:171329",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 400
+        },
+        {
+          "food": "chickpeas-boiled",
+          "quantityG": 300
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:169699",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:170416",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "garlic-shrimp-cauliflower-rice",
+      "name": "Garlic shrimp with cauliflower rice",
+      "description": "A low-carb dinner of buttery garlic shrimp on cauliflower rice.",
+      "instructions": "Grate the cauliflower and fry it in half the butter for 6 minutes with salt. Fry the shrimp with garlic in the rest of the butter for 3-4 minutes, add lemon juice and parsley and serve over the cauliflower.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2685573",
+          "quantityG": 600
+        },
+        {
+          "food": "butter",
+          "quantityG": 20
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:175179",
+          "quantityG": 400
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:170416",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "beef-bean-chili",
+      "name": "Beef and bean chili",
+      "description": "Lean beef chili with kidney beans and peppers.",
+      "instructions": "Brown the beef in oil, add onion, pepper and garlic and fry for 5 minutes. Add the chili powder and cumin, then the tomatoes, beans and salt. Simmer covered for 40 minutes.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 60,
+      "ingredients": [
+        {
+          "food": "sunflower-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "beef-ground-lean-raw",
+          "quantityG": 500
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:171319",
+          "quantityG": 8
+        },
+        {
+          "food": "usda_fdc:170923",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 600
+        },
+        {
+          "food": "usda_fdc:174285",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        }
+      ]
+    },
+    {
+      "slug": "chicken-mushroom-buckwheat",
+      "name": "Buckwheat with chicken and mushrooms",
+      "description": "One-pot buckwheat with chicken, mushrooms and carrot.",
+      "instructions": "Fry the chicken pieces in oil for 5 minutes, add onion, carrot and mushrooms and fry for 8 minutes. Add the buckwheat, broth and salt, cover and cook on low heat for 20 minutes.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 45,
+      "ingredients": [
+        {
+          "food": "sunflower-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "mushrooms-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "buckwheat-dry",
+          "quantityG": 240
+        },
+        {
+          "food": "usda_fdc:174536",
+          "quantityG": 500
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        }
+      ]
+    },
+    {
+      "slug": "tilapia-bulgur-tomato-salad",
+      "name": "Tilapia with bulgur and tomato salad",
+      "description": "Pan-fried tilapia with bulgur, tomato and cucumber salad.",
+      "instructions": "Cook the bulgur in 320 ml of water for 12 minutes. Season the tilapia with salt and fry in half the oil for 3 minutes per side. Dice tomatoes and cucumber, dress with the rest of the oil, lemon juice and parsley.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "usda_fdc:170688",
+          "quantityG": 160
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 320
+        },
+        {
+          "food": "usda_fdc:175176",
+          "quantityG": 500
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 20
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:170416",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "pork-braised-cabbage",
+      "name": "Pork with braised cabbage",
+      "description": "Pork tenderloin braised with cabbage, carrot and tomato.",
+      "instructions": "Brown the pork pieces in oil. Add onion and carrot for 5 minutes, then the shredded cabbage, tomato paste, salt and 150 ml of water. Cover and braise for 35 minutes.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 60,
+      "ingredients": [
+        {
+          "food": "sunflower-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:168312",
+          "quantityG": 500
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "cabbage-raw",
+          "quantityG": 600
+        },
+        {
+          "food": "usda_fdc:2685580",
+          "quantityG": 30
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 150
+        }
+      ]
+    },
+    {
+      "slug": "stuffed-sweet-potatoes",
+      "name": "Stuffed sweet potatoes with black beans",
+      "description": "Baked sweet potatoes filled with beans, corn, salsa and yogurt.",
+      "instructions": "Bake the sweet potatoes at 200 °C for 45 minutes. Warm the beans and corn with cumin. Split the potatoes, fill with the beans, corn, salsa and cheddar and top with yogurt.",
+      "mealType": "dinner",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 60,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2346404",
+          "quantityG": 800
+        },
+        {
+          "food": "usda_fdc:175238",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:168398",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:170923",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:746777",
+          "quantityG": 100
+        },
+        {
+          "food": "cheese-cheddar",
+          "quantityG": 60
+        },
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 150
+        }
+      ]
+    },
+    {
+      "slug": "apple-peanut-butter",
+      "name": "Apple with peanut butter",
+      "description": "Apple slices with a spoon of peanut butter.",
+      "instructions": "Core and slice the apple and serve with the peanut butter for dipping.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "apple-raw",
+          "quantityG": 180
+        },
+        {
+          "food": "usda_fdc:324860",
+          "quantityG": 30
+        }
+      ]
+    },
+    {
+      "slug": "roasted-chickpeas",
+      "name": "Crispy roasted chickpeas",
+      "description": "Oven-roasted chickpeas with smoked paprika.",
+      "instructions": "Pat the chickpeas dry, toss with oil, paprika and salt and roast at 200 °C for 30 minutes, shaking the tray halfway.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "chickpeas-boiled",
+          "quantityG": 300
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:171329",
+          "quantityG": 3
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "cottage-cheese-cucumber-dill",
+      "name": "Cottage cheese with cucumber and dill",
+      "description": "Savoury cottage cheese with fresh cucumber, dill and garlic.",
+      "instructions": "Mix the cottage cheese with diced cucumber, chopped dill, grated garlic and salt.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "cottage-cheese-4pct",
+          "quantityG": 200
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 2
+        },
+        {
+          "food": "salt",
+          "quantityG": 1
+        }
+      ]
+    },
+    {
+      "slug": "date-cocoa-energy-balls",
+      "name": "Date and cocoa energy balls",
+      "description": "No-bake balls of dates, oats, almonds and cocoa.",
+      "instructions": "Blend the almonds and oats into crumbs, add the dates, cocoa and peanut butter and blend into a sticky mass. Roll into 16 balls and chill for 30 minutes.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "servings": 8,
+      "prepTimeMinutes": 20,
+      "ingredients": [
+        {
+          "food": "usda_fdc:170567",
+          "quantityG": 60
+        },
+        {
+          "food": "oats-dry",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:171726",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:169593",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:324860",
+          "quantityG": 30
+        }
+      ]
+    },
+    {
+      "slug": "strawberry-banana-smoothie",
+      "name": "Strawberry banana smoothie",
+      "description": "A thick smoothie with yogurt, milk and oats.",
+      "instructions": "Blend the yogurt, banana, strawberries, milk and oats until smooth.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 150
+        },
+        {
+          "food": "banana-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:2346409",
+          "quantityG": 150
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 150
+        },
+        {
+          "food": "oats-dry",
+          "quantityG": 20
+        }
+      ]
+    },
+    {
+      "slug": "green-mango-smoothie",
+      "name": "Green mango smoothie",
+      "description": "Spinach, mango and banana on almond milk.",
+      "instructions": "Blend the spinach, mango, banana, almond milk and chia seeds until smooth.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "spinach-raw",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:169910",
+          "quantityG": 150
+        },
+        {
+          "food": "banana-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:2257045",
+          "quantityG": 250
+        },
+        {
+          "food": "usda_fdc:170554",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "boiled-eggs-vegetables",
+      "name": "Boiled eggs with fresh vegetables",
+      "description": "Two boiled eggs with cherry tomatoes and cucumber.",
+      "instructions": "Boil the eggs for 9 minutes, cool in cold water and peel. Serve with tomatoes, cucumber sticks and a pinch of salt.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "egg-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:321360",
+          "quantityG": 100
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "salt",
+          "quantityG": 1
+        }
+      ]
+    },
+    {
+      "slug": "nut-dried-fruit-mix",
+      "name": "Nut and dried fruit mix",
+      "description": "Almonds, walnuts, pumpkin seeds, raisins and apricots.",
+      "instructions": "Chop the apricots and mix with the nuts, seeds and raisins. Divide into 5 portions.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 5,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "usda_fdc:170567",
+          "quantityG": 40
+        },
+        {
+          "food": "walnuts",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:170556",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:168165",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:173941",
+          "quantityG": 50
+        }
+      ]
+    },
+    {
+      "slug": "tuna-stuffed-avocado",
+      "name": "Tuna stuffed avocado",
+      "description": "Avocado halves filled with a light tuna salad.",
+      "instructions": "Mix the tuna with yogurt, finely chopped red onion, lemon juice and salt. Halve and pit the avocados and fill them with the tuna.",
+      "mealType": "snack",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "low_carb"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "tuna-canned-water",
+          "quantityG": 150
+        },
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:790577",
+          "quantityG": 20
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 10
+        },
+        {
+          "food": "salt",
+          "quantityG": 1
+        },
+        {
+          "food": "usda_fdc:171705",
+          "quantityG": 280
+        }
+      ]
+    },
+    {
+      "slug": "ricotta-pear-toast",
+      "name": "Ricotta toast with pear and honey",
+      "description": "Wholegrain toast with ricotta, pear, walnuts and honey.",
+      "instructions": "Toast the bread, spread with ricotta, top with sliced pear and walnuts and drizzle with honey.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "bread-whole-wheat",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:746766",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:169118",
+          "quantityG": 100
+        },
+        {
+          "food": "walnuts",
+          "quantityG": 10
+        },
+        {
+          "food": "honey",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "cottage-cheese-waffles",
+      "name": "Cottage cheese waffles",
+      "description": "Belgian-style waffles made with cottage cheese.",
+      "instructions": "Blend the cottage cheese, eggs and honey, stir in the flour and baking powder. Bake in a buttered waffle iron for 4-5 minutes each.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "cottage-cheese-4pct",
+          "quantityG": 300
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "honey",
+          "quantityG": 20
+        },
+        {
+          "food": "wheat-flour",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:172803",
+          "quantityG": 4
+        },
+        {
+          "food": "butter",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "edamame-sesame",
+      "name": "Edamame with sesame",
+      "description": "Steamed edamame with sesame oil and salt.",
+      "instructions": "Boil the edamame for 5 minutes, drain and toss with sesame oil and salt.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "usda_fdc:168410",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:171016",
+          "quantityG": 5
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "lazy-varenyky",
+      "name": "Lazy varenyky",
+      "description": "Soft cottage cheese dumplings with butter and sour cream.",
+      "instructions": "Mash the cottage cheese with the egg, sugar and salt, then knead in the flour. Roll into a log, cut into small pieces and boil in salted water for 3 minutes after they float. Toss with butter and serve with sour cream.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "cottage-cheese-4pct",
+          "quantityG": 400
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "usda_fdc:746784",
+          "quantityG": 15
+        },
+        {
+          "food": "salt",
+          "quantityG": 1
+        },
+        {
+          "food": "wheat-flour",
+          "quantityG": 100
+        },
+        {
+          "food": "butter",
+          "quantityG": 10
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 80,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "cornmeal-porridge-feta",
+      "name": "Cornmeal porridge with feta",
+      "description": "Hutsul-style mamalyha with butter and crumbled feta.",
+      "instructions": "Bring the water with salt to a boil and pour in the cornmeal in a thin stream, whisking. Cook on low heat for 15 minutes, stirring often. Stir in the butter and serve topped with crumbled feta.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 600
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:169697",
+          "quantityG": 120
+        },
+        {
+          "food": "butter",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:173420",
+          "quantityG": 80
+        }
+      ]
+    },
+    {
+      "slug": "sweet-potato-hash-eggs",
+      "name": "Sweet potato hash with eggs",
+      "description": "Crispy sweet potato, pepper and onion with fried eggs.",
+      "instructions": "Fry the diced sweet potato in olive oil for 10 minutes. Add the onion, pepper, paprika and salt and fry for 6 more minutes. Make four hollows, crack in the eggs, cover and cook for 4 minutes.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2346404",
+          "quantityG": 400,
+          "notes": "diced"
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:171329",
+          "quantityG": 2
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 200
+        }
+      ]
+    },
+    {
+      "slug": "yogurt-granola-kiwi",
+      "name": "Greek yogurt with homemade granola and kiwi",
+      "description": "Crunchy honey-almond granola over yogurt with kiwi.",
+      "instructions": "Mix the oats, chopped almonds, honey and melted coconut oil and bake at 170 °C for 15 minutes, stirring once. Cool and serve over the yogurt with sliced kiwi.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "oats-dry",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:170567",
+          "quantityG": 20
+        },
+        {
+          "food": "honey",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:330458",
+          "quantityG": 10
+        },
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:327046",
+          "quantityG": 150
+        }
+      ]
+    },
+    {
+      "slug": "ham-cheese-omelette",
+      "name": "Ham and cheese omelette",
+      "description": "A fluffy omelette with ham, Swiss cheese and chives.",
+      "instructions": "Whisk the eggs with the milk and salt. Melt the butter, pour in the eggs and cook for 2 minutes. Add the diced ham and cheese to one half, fold and cook for 1 more minute. Sprinkle with chives.",
+      "mealType": "breakfast",
+      "dietType": [
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "egg-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 30
+        },
+        {
+          "food": "salt",
+          "quantityG": 1
+        },
+        {
+          "food": "butter",
+          "quantityG": 5
+        },
+        {
+          "food": "usda_fdc:167872",
+          "quantityG": 50
+        },
+        {
+          "food": "usda_fdc:746767",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:169994",
+          "quantityG": 5
+        }
+      ]
+    },
+    {
+      "slug": "egg-white-veggie-omelette",
+      "name": "Egg white omelette with vegetables",
+      "description": "A light egg white omelette with tomato, spinach and mozzarella.",
+      "instructions": "Whisk the egg whites with salt. Wilt the spinach in olive oil, add the diced tomato, pour over the whites and scatter the mozzarella. Cover and cook on low heat for 4 minutes.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "usda_fdc:172183",
+          "quantityG": 200
+        },
+        {
+          "food": "salt",
+          "quantityG": 1
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 5
+        },
+        {
+          "food": "spinach-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:329370",
+          "quantityG": 30
+        }
+      ]
+    },
+    {
+      "slug": "oat-bran-blackberry-porridge",
+      "name": "Oat bran porridge with blackberries",
+      "description": "Quick oat bran porridge on milk with fresh blackberries.",
+      "instructions": "Bring the milk to a simmer, whisk in the oat bran and cook for 3 minutes, stirring. Serve topped with blackberries and honey.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "milk-2pct",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:168872",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:173946",
+          "quantityG": 120
+        },
+        {
+          "food": "honey",
+          "quantityG": 10,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "sardine-sourdough-toast",
+      "name": "Sourdough toast with sardines and tomato",
+      "description": "Toasted sourdough with sardines, tomato and red onion.",
+      "instructions": "Toast the bread. Top with sliced tomato, the sardines and thin red onion, drizzle with lemon juice and sprinkle with parsley.",
+      "mealType": "breakfast",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "usda_fdc:172675",
+          "quantityG": 120
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:175139",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:790577",
+          "quantityG": 20
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 5
+        },
+        {
+          "food": "usda_fdc:170416",
+          "quantityG": 5
+        }
+      ]
+    },
+    {
+      "slug": "breakfast-tacos-beans",
+      "name": "Breakfast tacos with eggs and black beans",
+      "description": "Corn tortillas with scrambled eggs, beans, avocado and salsa.",
+      "instructions": "Scramble the eggs over medium heat. Warm the beans and the tortillas. Fill the tortillas with eggs, beans, sliced avocado and salsa and sprinkle with cilantro.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "egg-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:175238",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:175036",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:171705",
+          "quantityG": 70
+        },
+        {
+          "food": "usda_fdc:746777",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:169997",
+          "quantityG": 5
+        }
+      ]
+    },
+    {
+      "slug": "baked-oatmeal-berries",
+      "name": "Baked oatmeal with berries",
+      "description": "Oven-baked oatmeal with banana and mixed berries.",
+      "instructions": "Mash the banana, whisk in the milk, egg, maple syrup, cinnamon and baking powder and stir in the oats. Fold in the berries, pour into a dish and bake at 180 °C for 30 minutes.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "banana-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 400
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "usda_fdc:169661",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:171320",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:172803",
+          "quantityG": 4
+        },
+        {
+          "food": "oats-dry",
+          "quantityG": 160
+        },
+        {
+          "food": "usda_fdc:173950",
+          "quantityG": 200
+        }
+      ]
+    },
+    {
+      "slug": "whole-wheat-pancakes",
+      "name": "Whole wheat buttermilk pancakes",
+      "description": "Fluffy wholemeal pancakes with yogurt and strawberries.",
+      "instructions": "Whisk the flour, sugar, baking powder and baking soda. Add the buttermilk, egg and oil and stir until just combined. Fry small pancakes on a hot pan, 2 minutes per side. Serve with yogurt and sliced strawberries.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "usda_fdc:790085",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:746784",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:172803",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:175040",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:170874",
+          "quantityG": 300
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170886",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:2346409",
+          "quantityG": 150
+        }
+      ]
+    },
+    {
+      "slug": "turkey-sausage-potato-skillet",
+      "name": "Turkey sausage and potato skillet",
+      "description": "Pan-fried potatoes with turkey sausage, onion and pepper.",
+      "instructions": "Fry the diced potato in oil for 12 minutes. Add the sliced sausage, onion and green pepper and fry for 8 minutes, stirring. Season with salt.",
+      "mealType": "breakfast",
+      "dietType": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "potato-raw",
+          "quantityG": 400,
+          "notes": "diced"
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:746783",
+          "quantityG": 200
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:170427",
+          "quantityG": 100
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "apple-cinnamon-quinoa",
+      "name": "Apple cinnamon quinoa porridge",
+      "description": "Quinoa simmered in almond milk with apple and walnuts.",
+      "instructions": "Rinse the quinoa and simmer it in the almond milk with the diced apple and cinnamon for 15 minutes. Sweeten with maple syrup and top with chopped walnuts.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "usda_fdc:168874",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:2257045",
+          "quantityG": 300
+        },
+        {
+          "food": "apple-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:171320",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:169661",
+          "quantityG": 15
+        },
+        {
+          "food": "walnuts",
+          "quantityG": 20
+        }
+      ]
+    },
+    {
+      "slug": "spinach-goat-cheese-egg-muffins",
+      "name": "Spinach and goat cheese egg muffins",
+      "description": "Baked egg cups with spinach, tomatoes and goat cheese.",
+      "instructions": "Whisk the eggs with salt. Divide the chopped spinach, halved tomatoes and goat cheese between 12 muffin cups, pour in the eggs and bake at 180 °C for 18 minutes.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "egg-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "spinach-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:321360",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:173435",
+          "quantityG": 60
+        }
+      ]
+    },
+    {
+      "slug": "berry-smoothie-bowl",
+      "name": "Berry smoothie bowl",
+      "description": "Thick berry and yogurt smoothie topped with oats, chia and coconut.",
+      "instructions": "Blend the frozen berries, banana and yogurt until thick. Pour into bowls and top with oats, chia seeds and coconut.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "usda_fdc:173950",
+          "quantityG": 200
+        },
+        {
+          "food": "banana-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:170886",
+          "quantityG": 150
+        },
+        {
+          "food": "oats-dry",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:170554",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170170",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "tahini-banana-toast",
+      "name": "Tahini toast with banana",
+      "description": "Wholegrain toast with tahini, banana, honey and sesame.",
+      "instructions": "Toast the bread, spread with tahini, top with sliced banana, drizzle with honey and sprinkle with sesame seeds.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "bread-whole-wheat",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:170189",
+          "quantityG": 30
+        },
+        {
+          "food": "banana-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "honey",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170150",
+          "quantityG": 4
+        }
+      ]
+    },
+    {
+      "slug": "egg-avocado-breakfast-salad",
+      "name": "Egg and avocado breakfast salad",
+      "description": "Arugula with soft-boiled eggs, avocado and cherry tomatoes.",
+      "instructions": "Boil the eggs for 7 minutes, cool and halve. Toss the arugula and tomatoes with olive oil, lemon juice and salt and top with sliced avocado and the eggs.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free",
+        "low_carb"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "egg-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:169387",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:321360",
+          "quantityG": 120
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 10
+        },
+        {
+          "food": "salt",
+          "quantityG": 1
+        },
+        {
+          "food": "usda_fdc:171705",
+          "quantityG": 140
+        }
+      ]
+    },
+    {
+      "slug": "mushroom-cheese-crepes",
+      "name": "Crepes with mushrooms and cheese",
+      "description": "Thin crepes filled with fried mushrooms and melted Swiss cheese.",
+      "instructions": "Whisk the flour, milk, eggs, salt and half the oil into a thin batter and cook 8 crepes. Fry the onion and mushrooms in the rest of the oil for 10 minutes. Fill the crepes with the mushrooms and cheese, fold and warm for 1 minute per side.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "wheat-flour",
+          "quantityG": 120
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 300
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 60
+        },
+        {
+          "food": "mushrooms-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:746767",
+          "quantityG": 60
+        }
+      ]
+    },
+    {
+      "slug": "coconut-rice-pudding-mango",
+      "name": "Coconut rice pudding with mango",
+      "description": "Creamy vegan rice pudding with cardamom and mango.",
+      "instructions": "Simmer the rice in the coconut and almond milk with the cardamom for 25 minutes, stirring often, until creamy. Sweeten with maple syrup and serve with diced mango.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "rice-white-dry",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:170173",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:2257045",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:170919",
+          "quantityG": 1
+        },
+        {
+          "food": "usda_fdc:169661",
+          "quantityG": 25
+        },
+        {
+          "food": "usda_fdc:169910",
+          "quantityG": 200
+        }
+      ]
+    },
+    {
+      "slug": "pita-eggs-vegetables",
+      "name": "Pita with eggs and vegetables",
+      "description": "Pita pockets with boiled eggs, tomato, cucumber and dill yogurt.",
+      "instructions": "Boil the eggs for 9 minutes, cool and slice. Mix the yogurt with dill and salt. Fill the pita with eggs, sliced tomato and cucumber and the yogurt sauce.",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "egg-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:170886",
+          "quantityG": 60
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 3
+        },
+        {
+          "food": "salt",
+          "quantityG": 1
+        },
+        {
+          "food": "usda_fdc:174915",
+          "quantityG": 120
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 100
+        }
+      ]
+    },
+    {
+      "slug": "ukrainian-borscht",
+      "name": "Ukrainian borscht",
+      "description": "Red beet soup with beef, cabbage and potato, served with sour cream.",
+      "instructions": "Simmer the beef in the water for 60 minutes, skimming. Fry the onion, carrot and grated beet in oil for 10 minutes, add the tomato paste and vinegar. Add the potato to the broth for 10 minutes, then the cabbage and the beet mix and cook for 15 minutes. Add garlic, bay leaf and salt, rest for 15 minutes and serve with dill and sour cream.",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "high_protein"
+      ],
+      "servings": 8,
+      "prepTimeMinutes": 120,
+      "ingredients": [
+        {
+          "food": "usda_fdc:171206",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 2000
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "beetroot-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:2685580",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:173469",
+          "quantityG": 10
+        },
+        {
+          "food": "potato-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "cabbage-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:170917",
+          "quantityG": 0.5
+        },
+        {
+          "food": "salt",
+          "quantityG": 8
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 120,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "green-spinach-soup-egg",
+      "name": "Green spinach soup with egg",
+      "description": "Light green borscht with spinach, potato and boiled egg.",
+      "instructions": "Cook the potato, onion and carrot in the broth for 15 minutes. Add the chopped spinach and salt and cook for 5 minutes. Serve with halved boiled eggs, dill and sour cream.",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "usda_fdc:174536",
+          "quantityG": 1500
+        },
+        {
+          "food": "potato-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "spinach-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 200,
+          "notes": "hard-boiled"
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 80,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "butternut-coconut-soup",
+      "name": "Butternut squash soup with coconut",
+      "description": "Velvety vegan squash soup with ginger and toasted pumpkin seeds.",
+      "instructions": "Fry the onion, carrot, garlic and ginger in olive oil for 6 minutes. Add the diced squash and broth and simmer for 20 minutes. Add the coconut milk and salt and blend until smooth. Serve sprinkled with toasted pumpkin seeds.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 5,
+      "prepTimeMinutes": 45,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:169231",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:2685570",
+          "quantityG": 700
+        },
+        {
+          "food": "usda_fdc:171583",
+          "quantityG": 700
+        },
+        {
+          "food": "usda_fdc:170173",
+          "quantityG": 150
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:170556",
+          "quantityG": 30
+        }
+      ]
+    },
+    {
+      "slug": "white-bean-kale-soup",
+      "name": "White bean and kale soup",
+      "description": "Tuscan-style bean soup with kale, tomatoes and thyme.",
+      "instructions": "Fry the onion, carrot, celery and garlic in olive oil for 7 minutes. Add the tomatoes, beans, broth and thyme and simmer for 20 minutes. Add the chopped kale and salt and cook for 5 minutes.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 45,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:2346405",
+          "quantityG": 80
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 8
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:175204",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:171583",
+          "quantityG": 1000
+        },
+        {
+          "food": "usda_fdc:173470",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:323505",
+          "quantityG": 150
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        }
+      ]
+    },
+    {
+      "slug": "holubtsi",
+      "name": "Holubtsi (cabbage rolls)",
+      "description": "Cabbage leaves stuffed with beef and rice, stewed in tomato and sour cream.",
+      "instructions": "Blanch the cabbage leaves for 3 minutes. Fry the onion and carrot in oil, mix half with the beef, half-cooked rice and salt. Wrap the filling in the leaves, lay them in a pot, cover with the rest of the vegetables, tomato puree, sour cream and water and stew covered for 50 minutes.",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 90,
+      "ingredients": [
+        {
+          "food": "cabbage-raw",
+          "quantityG": 800
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "beef-ground-lean-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "rice-white-dry",
+          "quantityG": 100
+        },
+        {
+          "food": "salt",
+          "quantityG": 5
+        },
+        {
+          "food": "usda_fdc:170460",
+          "quantityG": 300
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 200
+        }
+      ]
+    },
+    {
+      "slug": "chicken-shawarma-bowl",
+      "name": "Chicken shawarma bowl",
+      "description": "Spiced chicken thighs over bulgur with salad and tahini sauce.",
+      "instructions": "Marinate the chicken in yogurt, garlic, cumin, paprika, half the lemon juice and salt for 15 minutes, then fry in oil for 6 minutes per side and slice. Cook the bulgur in the water for 12 minutes. Serve with chopped cucumber, tomato, red onion and parsley, drizzled with tahini mixed with the rest of the lemon juice.",
+      "mealType": "lunch",
+      "dietType": [],
+      "servings": 4,
+      "prepTimeMinutes": 45,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2646171",
+          "quantityG": 500
+        },
+        {
+          "food": "usda_fdc:170886",
+          "quantityG": 100
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:170923",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:171329",
+          "quantityG": 2
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 20
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170688",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 400
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:790577",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:170416",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170189",
+          "quantityG": 30
+        }
+      ]
+    },
+    {
+      "slug": "baked-falafel-pita",
+      "name": "Baked falafel in pita",
+      "description": "Oven-baked chickpea patties with salad and tahini in pita.",
+      "instructions": "Blend the chickpeas, onion, garlic, parsley, cilantro, cumin, flour and salt into a coarse paste. Shape 16 patties, brush with oil and bake at 200 °C for 25 minutes, turning once. Fill the pita with falafel, tomato, cucumber and tahini thinned with lemon juice.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 45,
+      "ingredients": [
+        {
+          "food": "chickpeas-boiled",
+          "quantityG": 400
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 60
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:170416",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:169997",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170923",
+          "quantityG": 3
+        },
+        {
+          "food": "wheat-flour",
+          "quantityG": 30
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:174915",
+          "quantityG": 240
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:170189",
+          "quantityG": 40
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 15
+        }
+      ]
+    },
+    {
+      "slug": "salmon-poke-bowl",
+      "name": "Salmon poke bowl",
+      "description": "Rice bowl with salmon, edamame, cucumber and avocado.",
+      "instructions": "Cook the rice and season with the vinegar. Dice the salmon and toss with soy sauce and sesame oil. Boil the edamame for 4 minutes. Arrange rice, salmon, edamame, cucumber and avocado in bowls and sprinkle with sesame and green onion.",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "rice-white-dry",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:173469",
+          "quantityG": 10
+        },
+        {
+          "food": "salmon-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:174277",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:171016",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:168410",
+          "quantityG": 150
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:171705",
+          "quantityG": 140
+        },
+        {
+          "food": "usda_fdc:170150",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:170005",
+          "quantityG": 20
+        }
+      ]
+    },
+    {
+      "slug": "beef-rice-noodle-soup",
+      "name": "Beef and rice noodle soup",
+      "description": "Pho-style broth with thin beef, rice noodles and herbs.",
+      "instructions": "Simmer the broth with the halved onion, sliced ginger and cinnamon for 20 minutes and strain. Add the fish sauce. Soak the noodles in hot water for 8 minutes. Put noodles, raw thin beef slices and bean sprouts in bowls and pour over the boiling broth. Finish with cilantro and lime juice.",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "usda_fdc:171538",
+          "quantityG": 1600
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:169231",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:171320",
+          "quantityG": 1
+        },
+        {
+          "food": "usda_fdc:174531",
+          "quantityG": 20
+        },
+        {
+          "food": "usda_fdc:169742",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:2727574",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:169957",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:169997",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:168156",
+          "quantityG": 20
+        }
+      ]
+    },
+    {
+      "slug": "green-pea-mint-soup",
+      "name": "Green pea soup with mint",
+      "description": "Bright green pea soup with potato and fresh mint.",
+      "instructions": "Fry the onion in oil for 5 minutes, add the potato and broth and cook for 12 minutes. Add the peas and cook for 4 minutes. Add the mint and salt, blend and serve with a spoon of yogurt.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "potato-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:171583",
+          "quantityG": 900
+        },
+        {
+          "food": "usda_fdc:170016",
+          "quantityG": 500
+        },
+        {
+          "food": "usda_fdc:173474",
+          "quantityG": 5
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:170886",
+          "quantityG": 80,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "tuna-nicoise-salad",
+      "name": "Tuna niçoise salad",
+      "description": "Potato, green beans, egg, tomatoes and tuna with mustard dressing.",
+      "instructions": "Boil the potatoes for 15 minutes and the eggs for 9 minutes, blanch the green beans for 4 minutes. Whisk the oil, vinegar, mustard and salt. Arrange lettuce, sliced potatoes, beans, halved eggs, tomatoes, olives and tuna and pour over the dressing.",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "potato-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:2346400",
+          "quantityG": 200
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 25
+        },
+        {
+          "food": "usda_fdc:172240",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:326698",
+          "quantityG": 5
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:746769",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:321360",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:169094",
+          "quantityG": 50
+        },
+        {
+          "food": "tuna-canned-water",
+          "quantityG": 300
+        }
+      ]
+    },
+    {
+      "slug": "light-chicken-caesar",
+      "name": "Light chicken caesar salad",
+      "description": "Romaine, grilled chicken and croutons with a yogurt caesar dressing.",
+      "instructions": "Grill the chicken for 6 minutes per side and slice. Toast the bread cubes with the olive oil. Whisk the yogurt, mayonnaise, lemon juice, garlic, mustard, salt and half the parmesan. Toss the lettuce with the dressing and top with chicken, croutons and the rest of the parmesan.",
+      "mealType": "lunch",
+      "dietType": [
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "bread-whole-wheat",
+          "quantityG": 80
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170886",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:171009",
+          "quantityG": 20
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 15
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:326698",
+          "quantityG": 5
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:325036",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:746769",
+          "quantityG": 300
+        }
+      ]
+    },
+    {
+      "slug": "pasta-primavera",
+      "name": "Pasta primavera",
+      "description": "Pasta with spring vegetables, garlic, parmesan and basil.",
+      "instructions": "Cook the pasta, adding the broccoli and peas for the last 3 minutes. Fry the zucchini and garlic in olive oil for 5 minutes, add the tomatoes for 2 minutes. Toss with the drained pasta, salt, parmesan and basil.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 5,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "pasta-dry",
+          "quantityG": 300
+        },
+        {
+          "food": "broccoli-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:170016",
+          "quantityG": 100
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 25
+        },
+        {
+          "food": "usda_fdc:169291",
+          "quantityG": 200
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:321360",
+          "quantityG": 150
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:325036",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:172232",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "mushroom-barley-soup",
+      "name": "Mushroom and barley soup (krupnyk)",
+      "description": "Hearty soup with pearl barley, mushrooms and potato.",
+      "instructions": "Rinse the barley and simmer it in the water for 30 minutes. Fry the onion, carrot and mushrooms in oil for 10 minutes. Add them with the potato to the pot and cook for 20 minutes. Season with salt and dill.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 70,
+      "ingredients": [
+        {
+          "food": "usda_fdc:170284",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 1800
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "mushrooms-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "potato-raw",
+          "quantityG": 250
+        },
+        {
+          "food": "salt",
+          "quantityG": 6
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        }
+      ]
+    },
+    {
+      "slug": "chicken-plov",
+      "name": "Chicken plov",
+      "description": "Rice pilaf with chicken thighs, lots of carrot, garlic and cumin.",
+      "instructions": "Brown the chicken pieces in oil, add the onion and the carrot cut in strips and fry for 10 minutes. Add the cumin, salt and water and bring to a boil. Spread the rinsed rice on top, push in the whole garlic, cover and cook on low heat for 25 minutes without stirring.",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 70,
+      "ingredients": [
+        {
+          "food": "sunflower-oil",
+          "quantityG": 25
+        },
+        {
+          "food": "usda_fdc:2646171",
+          "quantityG": 500
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 250
+        },
+        {
+          "food": "usda_fdc:170923",
+          "quantityG": 3
+        },
+        {
+          "food": "salt",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 600
+        },
+        {
+          "food": "rice-white-dry",
+          "quantityG": 300
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 15
+        }
+      ]
+    },
+    {
+      "slug": "quinoa-tabbouleh-chickpeas",
+      "name": "Quinoa tabbouleh with chickpeas",
+      "description": "Herby quinoa salad with chickpeas, tomato and cucumber.",
+      "instructions": "Cook the quinoa for 15 minutes and cool. Chop the parsley, mint, tomato, cucumber and red onion. Toss everything with the chickpeas, olive oil, lemon juice and salt.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "usda_fdc:168874",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:170416",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:173474",
+          "quantityG": 10
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 250
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:790577",
+          "quantityG": 40
+        },
+        {
+          "food": "chickpeas-boiled",
+          "quantityG": 300
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 25
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 30
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        }
+      ]
+    },
+    {
+      "slug": "chicken-pesto-pasta",
+      "name": "Chicken pesto pasta",
+      "description": "Pasta with chicken, pesto, cherry tomatoes and arugula.",
+      "instructions": "Cook the pasta. Season the chicken with salt and fry in oil for 6 minutes per side, then slice. Toss the pasta with pesto, halved tomatoes, chicken and arugula.",
+      "mealType": "lunch",
+      "dietType": [],
+      "servings": 5,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "pasta-dry",
+          "quantityG": 300
+        },
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:171579",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:321360",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:169387",
+          "quantityG": 60
+        }
+      ]
+    },
+    {
+      "slug": "teriyaki-shrimp-noodles",
+      "name": "Teriyaki shrimp noodles",
+      "description": "Egg noodles stir-fried with shrimp, snow peas and pepper.",
+      "instructions": "Cook the noodles. Stir-fry the shrimp in oil for 3 minutes and set aside. Stir-fry the carrot, pepper, snow peas, garlic and ginger for 4 minutes. Add the noodles, shrimp and teriyaki sauce and toss. Sprinkle with green onion.",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "usda_fdc:169731",
+          "quantityG": 250
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:175179",
+          "quantityG": 400
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:170010",
+          "quantityG": 150
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:169231",
+          "quantityG": 8
+        },
+        {
+          "food": "usda_fdc:171167",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:170005",
+          "quantityG": 20
+        }
+      ]
+    },
+    {
+      "slug": "deruny-sour-cream",
+      "name": "Deruny (potato pancakes)",
+      "description": "Crispy Ukrainian potato pancakes with sour cream.",
+      "instructions": "Finely grate the potato and onion and squeeze out the liquid. Mix with the egg, flour and salt. Fry spoonfuls in hot oil for 3-4 minutes per side. Serve with sour cream.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "potato-raw",
+          "quantityG": 800
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "wheat-flour",
+          "quantityG": 40
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 40
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 150
+        }
+      ]
+    },
+    {
+      "slug": "potato-varenyky",
+      "name": "Varenyky with potato and fried onion",
+      "description": "Ukrainian dumplings filled with mashed potato, topped with fried onion.",
+      "instructions": "Knead the flour, water, a spoon of oil and salt into a soft dough and rest for 20 minutes. Boil and mash the potato. Fry the onion in the rest of the oil until golden and mix a third of it into the potato. Roll the dough thin, cut circles, fill and seal. Boil for 5 minutes after they float and serve with the rest of the onion.",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 90,
+      "ingredients": [
+        {
+          "food": "wheat-flour",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 160
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 30
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "potato-raw",
+          "quantityG": 600
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 150
+        }
+      ]
+    },
+    {
+      "slug": "lamb-white-bean-stew",
+      "name": "Lamb and white bean stew",
+      "description": "Slow-cooked lamb with white beans, tomatoes and rosemary.",
+      "instructions": "Brown the lamb pieces in olive oil, add the onion, carrot and garlic and fry for 5 minutes. Add the tomatoes, broth, rosemary and salt, cover and simmer for 60 minutes. Add the beans and cook for 15 more minutes.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 5,
+      "prepTimeMinutes": 100,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:174311",
+          "quantityG": 500
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:171538",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:173473",
+          "quantityG": 3
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:175204",
+          "quantityG": 400
+        }
+      ]
+    },
+    {
+      "slug": "haddock-mash-peas",
+      "name": "Haddock with mashed potato and peas",
+      "description": "Pan-fried haddock with creamy mash and buttered peas.",
+      "instructions": "Boil the potatoes for 20 minutes and mash with the hot milk, half the butter and salt. Cook the peas for 4 minutes. Fry the seasoned haddock in the rest of the butter for 3 minutes per side, drizzle with lemon juice and sprinkle with dill.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "potato-raw",
+          "quantityG": 800
+        },
+        {
+          "food": "milk-2pct",
+          "quantityG": 150
+        },
+        {
+          "food": "butter",
+          "quantityG": 20
+        },
+        {
+          "food": "salt",
+          "quantityG": 5
+        },
+        {
+          "food": "usda_fdc:170016",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:333374",
+          "quantityG": 600
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 15
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        }
+      ]
+    },
+    {
+      "slug": "chicken-fajitas",
+      "name": "Chicken fajitas",
+      "description": "Spiced chicken strips with peppers and onion in corn tortillas.",
+      "instructions": "Toss the chicken strips with chili powder, cumin, salt and lime juice. Fry in oil for 5 minutes, add the sliced peppers and onion and fry for 6 more minutes. Serve in warm tortillas with salsa and sour cream.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 500
+        },
+        {
+          "food": "usda_fdc:171319",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:170923",
+          "quantityG": 3
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:168156",
+          "quantityG": 20
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:170427",
+          "quantityG": 150
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:175036",
+          "quantityG": 240
+        },
+        {
+          "food": "usda_fdc:746777",
+          "quantityG": 120
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 80,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "pork-apples-red-cabbage",
+      "name": "Pork tenderloin with apples and red cabbage",
+      "description": "Roasted pork with sweet-sour braised red cabbage and apples.",
+      "instructions": "Fry the onion in half the oil, add the shredded cabbage, sliced apples, vinegar and half the salt and braise covered for 30 minutes. Rub the pork with thyme, salt and the rest of the oil and roast at 200 °C for 25 minutes. Slice and serve with the cabbage.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 50,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:2346408",
+          "quantityG": 500
+        },
+        {
+          "food": "apple-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:173469",
+          "quantityG": 20
+        },
+        {
+          "food": "salt",
+          "quantityG": 5
+        },
+        {
+          "food": "usda_fdc:168312",
+          "quantityG": 600
+        },
+        {
+          "food": "usda_fdc:173470",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "teriyaki-salmon-bok-choy",
+      "name": "Teriyaki salmon with rice and bok choy",
+      "description": "Glazed salmon with steamed rice and garlicky bok choy.",
+      "instructions": "Cook the rice. Brush the salmon with teriyaki sauce and bake at 200 °C for 12 minutes. Stir-fry the bok choy with ginger in sesame oil for 3 minutes. Serve sprinkled with sesame seeds.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "rice-white-dry",
+          "quantityG": 200
+        },
+        {
+          "food": "salmon-raw",
+          "quantityG": 500
+        },
+        {
+          "food": "usda_fdc:171167",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:170390",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:169231",
+          "quantityG": 8
+        },
+        {
+          "food": "usda_fdc:171016",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170150",
+          "quantityG": 6
+        }
+      ]
+    },
+    {
+      "slug": "turkey-zucchini-boats",
+      "name": "Turkey stuffed zucchini boats",
+      "description": "Zucchini halves filled with turkey in marinara, baked with mozzarella.",
+      "instructions": "Halve the zucchini and scoop out the middle. Fry the onion, garlic and chopped zucchini flesh in oil, add the turkey and brown. Stir in the marinara and salt. Fill the zucchini, top with mozzarella and bake at 190 °C for 25 minutes.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 50,
+      "ingredients": [
+        {
+          "food": "usda_fdc:169291",
+          "quantityG": 800
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 80
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:171505",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:332282",
+          "quantityG": 300
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:329370",
+          "quantityG": 100
+        }
+      ]
+    },
+    {
+      "slug": "chicken-yogurt-curry",
+      "name": "Chicken curry with brown rice",
+      "description": "Tikka-style chicken in a spiced tomato and yogurt sauce.",
+      "instructions": "Cook the brown rice. Marinate the chicken in half the yogurt with curry powder, ginger, garlic and salt. Fry the onion in oil for 6 minutes, add the chicken and fry for 5 minutes. Add the tomato puree and simmer for 15 minutes, then stir in the rest of the yogurt off the heat. Serve with cilantro.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "high_protein"
+      ],
+      "servings": 5,
+      "prepTimeMinutes": 60,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2512380",
+          "quantityG": 240
+        },
+        {
+          "food": "chicken-breast-raw",
+          "quantityG": 600
+        },
+        {
+          "food": "usda_fdc:170886",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:170924",
+          "quantityG": 8
+        },
+        {
+          "food": "usda_fdc:169231",
+          "quantityG": 15
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "salt",
+          "quantityG": 5
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:170460",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:169997",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "mussels-tomato-garlic",
+      "name": "Mussels in tomato and garlic sauce",
+      "description": "Mussels cooked in tomato, shallot and garlic with sourdough.",
+      "instructions": "Fry the shallot and garlic in olive oil for 3 minutes, add the tomatoes and salt and simmer for 10 minutes. Add the mussels, cover and cook for 5-6 minutes until they open. Sprinkle with parsley and serve with toasted sourdough.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:170499",
+          "quantityG": 60
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 400
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:174216",
+          "quantityG": 500
+        },
+        {
+          "food": "usda_fdc:170416",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:172675",
+          "quantityG": 200
+        }
+      ]
+    },
+    {
+      "slug": "mushroom-barley-risotto",
+      "name": "Mushroom barley risotto",
+      "description": "Creamy pearl barley with mushrooms, thyme and parmesan.",
+      "instructions": "Fry the shallot, garlic and mushrooms in olive oil for 8 minutes. Add the barley and thyme, then the hot broth a ladle at a time, stirring, for 40 minutes until creamy. Stir in the parmesan and salt.",
+      "mealType": "dinner",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 55,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:170499",
+          "quantityG": 60
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "mushrooms-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:170284",
+          "quantityG": 280
+        },
+        {
+          "food": "usda_fdc:173470",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:171583",
+          "quantityG": 1200
+        },
+        {
+          "food": "usda_fdc:325036",
+          "quantityG": 50
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        }
+      ]
+    },
+    {
+      "slug": "beef-root-vegetable-stew",
+      "name": "Beef stew with root vegetables",
+      "description": "Tender beef braised with potato, carrot and parsnip.",
+      "instructions": "Toss the beef in the flour and brown it in oil. Add the onion and tomato paste, then the broth, bay leaf, thyme and salt. Cover and simmer for 80 minutes. Add the potato, carrot and parsnip and cook for 30 more minutes.",
+      "mealType": "dinner",
+      "dietType": [
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 130,
+      "ingredients": [
+        {
+          "food": "usda_fdc:171206",
+          "quantityG": 700
+        },
+        {
+          "food": "wheat-flour",
+          "quantityG": 20
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 20
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:2685580",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:171538",
+          "quantityG": 800
+        },
+        {
+          "food": "usda_fdc:170917",
+          "quantityG": 0.5
+        },
+        {
+          "food": "usda_fdc:173470",
+          "quantityG": 2
+        },
+        {
+          "food": "salt",
+          "quantityG": 6
+        },
+        {
+          "food": "potato-raw",
+          "quantityG": 500
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:2747659",
+          "quantityG": 200
+        }
+      ]
+    },
+    {
+      "slug": "black-bean-burgers-wedges",
+      "name": "Black bean burgers with sweet potato wedges",
+      "description": "Baked bean patties with oven sweet potato wedges and lettuce.",
+      "instructions": "Toss the sweet potato wedges with half the oil and salt and bake at 210 °C for 35 minutes. Mash the beans with the oats, grated onion, garlic, cumin, egg and the rest of the salt. Shape 8 patties and fry in the rest of the oil for 4 minutes per side. Serve with lettuce.",
+      "mealType": "dinner",
+      "dietType": [
+        "vegetarian",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 55,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2346404",
+          "quantityG": 600
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 25
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:175238",
+          "quantityG": 480
+        },
+        {
+          "food": "oats-dry",
+          "quantityG": 60
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 60
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:170923",
+          "quantityG": 3
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "usda_fdc:746769",
+          "quantityG": 100
+        }
+      ]
+    },
+    {
+      "slug": "halibut-fennel-orange",
+      "name": "Halibut with fennel and orange",
+      "description": "Halibut baked on sliced fennel with orange and olives.",
+      "instructions": "Toss the sliced fennel with half the oil and salt and bake at 200 °C for 12 minutes. Add the halibut, orange segments, olives and thyme, drizzle with the rest of the oil and bake for 12 more minutes.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2747655",
+          "quantityG": 400
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 20
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:174200",
+          "quantityG": 600
+        },
+        {
+          "food": "usda_fdc:169097",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:169094",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:173470",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "pork-green-bean-stir-fry",
+      "name": "Pork and green bean stir-fry",
+      "description": "Ground pork stir-fried with green beans, ginger and chili, with rice.",
+      "instructions": "Cook the rice. Fry the pork in oil until browned. Add the green beans, garlic and ginger and stir-fry for 6 minutes. Add the soy sauce and sriracha and toss. Serve with rice and green onion.",
+      "mealType": "dinner",
+      "dietType": [
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "rice-white-dry",
+          "quantityG": 240
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:167902",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:2346400",
+          "quantityG": 400
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:169231",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:174277",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:171186",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170005",
+          "quantityG": 20
+        }
+      ]
+    },
+    {
+      "slug": "chicken-meatballs-zoodles",
+      "name": "Chicken meatballs with zucchini noodles",
+      "description": "Baked chicken meatballs in marinara over zucchini noodles.",
+      "instructions": "Mix the chicken with the egg, breadcrumbs, garlic, parmesan and salt and shape 20 meatballs. Bake at 200 °C for 15 minutes, then simmer in the marinara for 5 minutes. Fry the spiralized zucchini in olive oil for 2 minutes and serve with the meatballs and basil.",
+      "mealType": "dinner",
+      "dietType": [
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "usda_fdc:171116",
+          "quantityG": 500
+        },
+        {
+          "food": "egg-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "usda_fdc:174928",
+          "quantityG": 30
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:325036",
+          "quantityG": 30
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:332282",
+          "quantityG": 400
+        },
+        {
+          "food": "usda_fdc:169291",
+          "quantityG": 800
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:172232",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "seafood-paella",
+      "name": "Seafood paella",
+      "description": "Saffron-yellow rice with shrimp, squid, mussels, peppers and peas.",
+      "instructions": "Fry the onion, pepper and garlic in olive oil for 6 minutes, add the paprika and turmeric. Add the rice and tomatoes, then the broth and salt and simmer without stirring for 15 minutes. Press in the shrimp, squid rings, mussels and peas, cover and cook for 8 minutes. Serve with lemon juice.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 50,
+      "ingredients": [
+        {
+          "food": "olive-oil",
+          "quantityG": 25
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:171329",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:172231",
+          "quantityG": 1
+        },
+        {
+          "food": "rice-white-dry",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:170051",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:171583",
+          "quantityG": 900
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:175179",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:174223",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:174216",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:170016",
+          "quantityG": 150
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 20
+        }
+      ]
+    },
+    {
+      "slug": "lentil-shepherds-pie",
+      "name": "Lentil shepherd's pie",
+      "description": "Vegan lentil and mushroom filling under a mashed potato crust.",
+      "instructions": "Boil the potatoes and mash with the almond milk, half the oil and salt. Fry the onion, carrot, celery and mushrooms in the rest of the oil for 8 minutes, add the tomato paste, lentils, broth and thyme and simmer for 25 minutes. Spread in a dish, cover with the mash and bake at 200 °C for 20 minutes.",
+      "mealType": "dinner",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 75,
+      "ingredients": [
+        {
+          "food": "potato-raw",
+          "quantityG": 1000
+        },
+        {
+          "food": "usda_fdc:2257045",
+          "quantityG": 150
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 25
+        },
+        {
+          "food": "salt",
+          "quantityG": 6
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "carrot-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:2346405",
+          "quantityG": 80
+        },
+        {
+          "food": "mushrooms-raw",
+          "quantityG": 250
+        },
+        {
+          "food": "usda_fdc:2685580",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:172420",
+          "quantityG": 250
+        },
+        {
+          "food": "usda_fdc:171583",
+          "quantityG": 700
+        },
+        {
+          "food": "usda_fdc:173470",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "garlic-drumsticks-buckwheat",
+      "name": "Garlic chicken drumsticks with buckwheat",
+      "description": "Roasted paprika drumsticks with buckwheat and cucumber salad.",
+      "instructions": "Rub the drumsticks with garlic, paprika, salt and oil and roast at 200 °C for 40 minutes. Cook the buckwheat in water for 15 minutes. Mix the sliced cucumber with dill and sour cream.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free"
+      ],
+      "servings": 5,
+      "prepTimeMinutes": 55,
+      "ingredients": [
+        {
+          "food": "usda_fdc:172373",
+          "quantityG": 700
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:171329",
+          "quantityG": 3
+        },
+        {
+          "food": "salt",
+          "quantityG": 5
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "buckwheat-dry",
+          "quantityG": 240
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 60
+        }
+      ]
+    },
+    {
+      "slug": "coconut-tofu-curry",
+      "name": "Coconut tofu curry with rice",
+      "description": "Vegan curry of tofu, pepper, zucchini and green beans in coconut milk.",
+      "instructions": "Cook the rice. Fry the onion, garlic and ginger in oil for 4 minutes, add the curry powder. Add the coconut milk, tofu cubes, pepper, zucchini, green beans and salt and simmer for 12 minutes. Finish with lime juice.",
+      "mealType": "dinner",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 5,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "rice-white-dry",
+          "quantityG": 240
+        },
+        {
+          "food": "sunflower-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "onion-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "usda_fdc:169231",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:170924",
+          "quantityG": 8
+        },
+        {
+          "food": "usda_fdc:170173",
+          "quantityG": 300
+        },
+        {
+          "food": "tofu-firm",
+          "quantityG": 400
+        },
+        {
+          "food": "bell-pepper-red-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:169291",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:2346400",
+          "quantityG": 150
+        },
+        {
+          "food": "salt",
+          "quantityG": 4
+        },
+        {
+          "food": "usda_fdc:168156",
+          "quantityG": 15
+        }
+      ]
+    },
+    {
+      "slug": "baked-flounder-potatoes",
+      "name": "Baked flounder with potatoes and dill",
+      "description": "Flounder fillets baked over thin potato slices with lemon and dill.",
+      "instructions": "Toss the thinly sliced potatoes with the oil, garlic and half the salt and bake at 200 °C for 25 minutes. Lay the flounder on top, season with the rest of the salt and the lemon juice and bake for 10 minutes. Sprinkle with dill.",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 50,
+      "ingredients": [
+        {
+          "food": "potato-raw",
+          "quantityG": 700
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 25
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "salt",
+          "quantityG": 5
+        },
+        {
+          "food": "usda_fdc:174196",
+          "quantityG": 600
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 20
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "stuffed-portobello-quinoa",
+      "name": "Stuffed portobello mushrooms with quinoa",
+      "description": "Portobellos filled with spinach, feta and sun-dried tomatoes, with quinoa.",
+      "instructions": "Cook the quinoa. Wilt the spinach with garlic in half the oil, mix with the feta, chopped sun-dried tomatoes and pine nuts. Brush the mushrooms with the rest of the oil and salt, fill and bake at 200 °C for 18 minutes. Serve with the quinoa.",
+      "mealType": "dinner",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 40,
+      "ingredients": [
+        {
+          "food": "usda_fdc:168874",
+          "quantityG": 160
+        },
+        {
+          "food": "spinach-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 6
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:173420",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:168567",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:170591",
+          "quantityG": 20
+        },
+        {
+          "food": "usda_fdc:169255",
+          "quantityG": 600
+        },
+        {
+          "food": "salt",
+          "quantityG": 3
+        }
+      ]
+    },
+    {
+      "slug": "flank-steak-chimichurri",
+      "name": "Flank steak with chimichurri and potatoes",
+      "description": "Grilled flank steak with parsley chimichurri and roasted potatoes.",
+      "instructions": "Toss the potato wedges with a third of the oil and half the salt and roast at 210 °C for 35 minutes. Chop the parsley and garlic and mix with the vinegar, oregano and the rest of the oil. Season the steak with the rest of the salt and grill for 4-5 minutes per side, rest and slice across the grain. Spoon over the chimichurri.",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 50,
+      "ingredients": [
+        {
+          "food": "potato-raw",
+          "quantityG": 700
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 40
+        },
+        {
+          "food": "salt",
+          "quantityG": 5
+        },
+        {
+          "food": "usda_fdc:170416",
+          "quantityG": 30
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 8
+        },
+        {
+          "food": "usda_fdc:172240",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:171328",
+          "quantityG": 1
+        },
+        {
+          "food": "usda_fdc:169563",
+          "quantityG": 600
+        }
+      ]
+    },
+    {
+      "slug": "baked-kale-chips",
+      "name": "Baked kale chips",
+      "description": "Crisp oven-baked kale with olive oil and smoked paprika.",
+      "instructions": "Tear the kale off the stems, toss with the oil, paprika and salt and bake in one layer at 150 °C for 15-18 minutes until crisp.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free",
+        "low_carb"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "usda_fdc:323505",
+          "quantityG": 200
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:171329",
+          "quantityG": 1
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "yogurt-figs-pistachios",
+      "name": "Greek yogurt with figs and pistachios",
+      "description": "Yogurt topped with chopped dried figs and pistachios.",
+      "instructions": "Spoon the yogurt into a bowl and top with the chopped figs and pistachios.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 3,
+      "ingredients": [
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:746768",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:2515379",
+          "quantityG": 15
+        }
+      ]
+    },
+    {
+      "slug": "kiwi-orange-pomegranate-salad",
+      "name": "Kiwi, orange and pomegranate salad",
+      "description": "Fresh fruit salad with mint and a spoon of yogurt.",
+      "instructions": "Peel and slice the kiwi and orange, sprinkle with pomegranate seeds and chopped mint. Serve with yogurt.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "usda_fdc:327046",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:169097",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:169134",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:173474",
+          "quantityG": 3
+        },
+        {
+          "food": "usda_fdc:170886",
+          "quantityG": 100,
+          "isOptional": true
+        }
+      ]
+    },
+    {
+      "slug": "baked-apples-cottage-cheese",
+      "name": "Baked apples with cottage cheese",
+      "description": "Apples stuffed with cottage cheese and raisins, baked with cinnamon.",
+      "instructions": "Core the apples. Mix the cottage cheese with the raisins, honey and cinnamon, fill the apples and bake at 180 °C for 25 minutes.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 35,
+      "ingredients": [
+        {
+          "food": "apple-raw",
+          "quantityG": 400
+        },
+        {
+          "food": "cottage-cheese-4pct",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:168165",
+          "quantityG": 30
+        },
+        {
+          "food": "honey",
+          "quantityG": 20
+        },
+        {
+          "food": "usda_fdc:171320",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "banana-oat-cookies",
+      "name": "Banana oat cookies",
+      "description": "Two-ingredient cookies with raisins, walnuts and cinnamon.",
+      "instructions": "Mash the bananas and mix with the oats, raisins, chopped walnuts and cinnamon. Shape 16 cookies and bake at 180 °C for 15 minutes.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "servings": 8,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "banana-raw",
+          "quantityG": 240
+        },
+        {
+          "food": "oats-dry",
+          "quantityG": 160
+        },
+        {
+          "food": "usda_fdc:168165",
+          "quantityG": 40
+        },
+        {
+          "food": "walnuts",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:171320",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "peanut-cocoa-protein-smoothie",
+      "name": "Peanut butter cocoa smoothie",
+      "description": "A filling smoothie with milk, yogurt, banana, peanut butter and cocoa.",
+      "instructions": "Blend the milk, yogurt, banana, peanut butter and cocoa until smooth.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "milk-2pct",
+          "quantityG": 300
+        },
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 100
+        },
+        {
+          "food": "banana-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:324860",
+          "quantityG": 20
+        },
+        {
+          "food": "usda_fdc:169593",
+          "quantityG": 8
+        }
+      ]
+    },
+    {
+      "slug": "dark-chocolate-almonds",
+      "name": "Dark chocolate with almonds",
+      "description": "A small square of dark chocolate with a handful of almonds.",
+      "instructions": "Serve the chocolate with the almonds.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 1,
+      "ingredients": [
+        {
+          "food": "usda_fdc:170272",
+          "quantityG": 20
+        },
+        {
+          "food": "usda_fdc:170567",
+          "quantityG": 20
+        }
+      ]
+    },
+    {
+      "slug": "guacamole-baked-tortilla-chips",
+      "name": "Guacamole with baked tortilla chips",
+      "description": "Chunky guacamole with oven-baked corn tortilla chips.",
+      "instructions": "Cut the tortillas into wedges, brush with the oil and bake at 190 °C for 10 minutes. Mash the avocado with lime juice and salt and stir in the diced tomato, red onion, jalapeño and cilantro.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 25,
+      "ingredients": [
+        {
+          "food": "usda_fdc:175036",
+          "quantityG": 200
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:171705",
+          "quantityG": 300
+        },
+        {
+          "food": "usda_fdc:168156",
+          "quantityG": 20
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "tomato-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:790577",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:168576",
+          "quantityG": 15
+        },
+        {
+          "food": "usda_fdc:169997",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "tzatziki-pita",
+      "name": "Tzatziki with warm pita",
+      "description": "Cucumber yogurt dip with garlic and dill, served with pita.",
+      "instructions": "Grate the cucumber and squeeze out the juice. Mix with the yogurt, garlic, dill, olive oil, lemon juice and salt. Serve with warm pita wedges.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian"
+      ],
+      "servings": 6,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "cucumber-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 300
+        },
+        {
+          "food": "garlic-raw",
+          "quantityG": 5
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        },
+        {
+          "food": "olive-oil",
+          "quantityG": 10
+        },
+        {
+          "food": "lemon-juice",
+          "quantityG": 10
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        },
+        {
+          "food": "usda_fdc:174915",
+          "quantityG": 240
+        }
+      ]
+    },
+    {
+      "slug": "watermelon-feta-salad",
+      "name": "Watermelon and feta salad",
+      "description": "Watermelon, cucumber and feta with mint and lime.",
+      "instructions": "Cube the watermelon and cucumber, crumble over the feta, sprinkle with mint and drizzle with lime juice.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 4,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "usda_fdc:167765",
+          "quantityG": 600
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:173420",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:173474",
+          "quantityG": 5
+        },
+        {
+          "food": "usda_fdc:168156",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "egg-salad-lettuce-cups",
+      "name": "Egg salad lettuce cups",
+      "description": "Creamy egg salad with yogurt and chives in lettuce leaves.",
+      "instructions": "Boil the eggs for 10 minutes, cool and chop. Mix with the yogurt, mustard, chives and salt and spoon into the lettuce leaves.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "servings": 3,
+      "prepTimeMinutes": 20,
+      "ingredients": [
+        {
+          "food": "egg-raw",
+          "quantityG": 300
+        },
+        {
+          "food": "greek-yogurt-nonfat",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:326698",
+          "quantityG": 5
+        },
+        {
+          "food": "usda_fdc:169994",
+          "quantityG": 5
+        },
+        {
+          "food": "salt",
+          "quantityG": 1
+        },
+        {
+          "food": "usda_fdc:746769",
+          "quantityG": 100
+        }
+      ]
+    },
+    {
+      "slug": "cottage-cheese-peach",
+      "name": "Cottage cheese with peach and almonds",
+      "description": "Cottage cheese with sliced peach and toasted almonds.",
+      "instructions": "Top the cottage cheese with the sliced peach and chopped almonds.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "cottage-cheese-4pct",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:325430",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:170567",
+          "quantityG": 10
+        }
+      ]
+    },
+    {
+      "slug": "celery-peanut-butter",
+      "name": "Celery with peanut butter and raisins",
+      "description": "Crunchy celery sticks filled with peanut butter and raisins.",
+      "instructions": "Cut the celery into sticks, fill with peanut butter and dot with raisins.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 1,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2346405",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:324860",
+          "quantityG": 30
+        },
+        {
+          "food": "usda_fdc:168165",
+          "quantityG": 15
+        }
+      ]
+    },
+    {
+      "slug": "chocolate-chia-pudding",
+      "name": "Chocolate chia pudding with raspberries",
+      "description": "Vegan cocoa chia pudding on almond milk.",
+      "instructions": "Whisk the almond milk with the cocoa and maple syrup, stir in the chia seeds and refrigerate for at least 4 hours. Serve with raspberries.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 10,
+      "ingredients": [
+        {
+          "food": "usda_fdc:2257045",
+          "quantityG": 350
+        },
+        {
+          "food": "usda_fdc:169593",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:169661",
+          "quantityG": 20
+        },
+        {
+          "food": "usda_fdc:170554",
+          "quantityG": 50
+        },
+        {
+          "food": "usda_fdc:2346410",
+          "quantityG": 120
+        }
+      ]
+    },
+    {
+      "slug": "seed-cranberry-bars",
+      "name": "Seed and cranberry oat bars",
+      "description": "No-bake oat bars with pumpkin and sunflower seeds and cranberries.",
+      "instructions": "Warm the honey with the peanut butter and cinnamon until smooth. Stir in the oats, seeds and cranberries, press into a lined tin and chill for 2 hours. Cut into 10 bars.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "dairy_free"
+      ],
+      "servings": 10,
+      "prepTimeMinutes": 30,
+      "ingredients": [
+        {
+          "food": "honey",
+          "quantityG": 80
+        },
+        {
+          "food": "usda_fdc:324860",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:171320",
+          "quantityG": 2
+        },
+        {
+          "food": "oats-dry",
+          "quantityG": 150
+        },
+        {
+          "food": "usda_fdc:170556",
+          "quantityG": 60
+        },
+        {
+          "food": "usda_fdc:170562",
+          "quantityG": 40
+        },
+        {
+          "food": "usda_fdc:171723",
+          "quantityG": 60
+        }
+      ]
+    },
+    {
+      "slug": "radish-cucumber-egg-salad",
+      "name": "Radish, cucumber and egg salad",
+      "description": "Spring salad of radish, cucumber and egg with sour cream and dill.",
+      "instructions": "Boil the eggs for 9 minutes and chop. Slice the radish, cucumber and green onion and mix with the eggs, dill, sour cream and salt.",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 15,
+      "ingredients": [
+        {
+          "food": "egg-raw",
+          "quantityG": 100
+        },
+        {
+          "food": "usda_fdc:169276",
+          "quantityG": 200
+        },
+        {
+          "food": "cucumber-raw",
+          "quantityG": 200
+        },
+        {
+          "food": "usda_fdc:170005",
+          "quantityG": 20
+        },
+        {
+          "food": "dill-raw",
+          "quantityG": 5
+        },
+        {
+          "food": "sour-cream",
+          "quantityG": 60
+        },
+        {
+          "food": "salt",
+          "quantityG": 2
+        }
+      ]
+    },
+    {
+      "slug": "pineapple-spinach-smoothie",
+      "name": "Pineapple and spinach smoothie",
+      "description": "Vegan green smoothie with pineapple, banana and ginger.",
+      "instructions": "Blend the pineapple, spinach, banana, ginger, lime juice and cold water until smooth.",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "servings": 2,
+      "prepTimeMinutes": 5,
+      "ingredients": [
+        {
+          "food": "usda_fdc:169124",
+          "quantityG": 200
+        },
+        {
+          "food": "spinach-raw",
+          "quantityG": 50
+        },
+        {
+          "food": "banana-raw",
+          "quantityG": 120
+        },
+        {
+          "food": "usda_fdc:169231",
+          "quantityG": 5
+        },
+        {
+          "food": "usda_fdc:168156",
+          "quantityG": 10
+        },
+        {
+          "food": "usda_fdc:173647",
+          "quantityG": 200
+        }
+      ]
+    }
+  ]
+}

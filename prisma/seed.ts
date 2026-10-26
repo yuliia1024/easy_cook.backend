@@ -1,10 +1,11 @@
 /**
- * `npm run db:seed` (also run by `prisma migrate reset`): the base foods and recipes of
- * data/seed. Idempotent - rows are keyed by (`seed`, slug) and refreshed on every run.
+ * `npm run db:seed` (also run by `prisma migrate reset`): the base foods, the USDA foods the
+ * recipes use and the recipes of data/seed. Idempotent - rows are keyed by (source, source id)
+ * and refreshed on every run.
  */
 import { loadSeedData, validateSeedData } from '../scripts/lib/seed-data';
 import { createPrismaClient } from '../scripts/lib/prisma';
-import { upsertSeedFoods, upsertSeedRecipes } from '../scripts/lib/seed-db';
+import { upsertExternalFoods, upsertSeedFoods, upsertSeedRecipes } from '../scripts/lib/seed-db';
 
 async function main(): Promise<void> {
   const data = loadSeedData();
@@ -17,6 +18,9 @@ async function main(): Promise<void> {
   try {
     const foods = await upsertSeedFoods(prisma, data.foods);
     console.log(`Foods: ${foods.created} created, ${foods.updated} updated`);
+
+    const imported = await upsertExternalFoods(prisma, data.importedFoods);
+    console.log(`USDA foods: ${imported} upserted`);
 
     const recipes = await upsertSeedRecipes(prisma, data.recipes);
     console.log(`Recipes: ${recipes.created} created, ${recipes.updated} updated`);
