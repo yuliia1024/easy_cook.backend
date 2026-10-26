@@ -1,6 +1,6 @@
 /**
- * Upserts data/seed/recipes.json (source `seed`, source_id = slug). The foods they use must be in
- * the database already: `npm run db:seed` loads the seed foods, `data:import-foods` USDA ones.
+ * Upserts data/seed/recipes.json and menu-recipes.json (source `seed`, source_id = slug). The
+ * foods they use must be in the database already: `npm run db:seed` loads them.
  *
  *   npm run data:seed-recipes
  */

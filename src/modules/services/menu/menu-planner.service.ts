@@ -96,26 +96,34 @@ export class MenuPlannerService {
       },
     );
 
+    const meals = MENU_PLAN_MEAL_TYPES.map((mealType, i) => {
+      const option = options[i].find(({ recipe }) => recipe.id === plan[mealType]);
+
+      if (!option) {
+        throw new AssistantInvalidOutputException();
+      }
+
+      const recipe = snapshotRecipe(option.recipe, option.nutrition);
+
+      return {
+        mealType,
+        servings: 1,
+        recipeId: option.recipe.id,
+        recipe,
+      };
+    });
     const day: ResolvedDay = {
       dayIndex: 0,
       date: null,
-      meals: MENU_PLAN_MEAL_TYPES.map((mealType, i) => {
-        const option = options[i].find(({ recipe }) => recipe.id === plan[mealType]);
-        if (!option) {
-          throw new AssistantInvalidOutputException();
-        }
-        return {
-          mealType,
-          servings: 1,
-          recipeId: option.recipe.id,
-          recipe: snapshotRecipe(option.recipe, option.nutrition),
-        };
-      }),
+      meals,
     };
+
+    const menu = this.menuComposer.compose([day], profile);
+
     return {
       type: ChatResponseType.MenuReady,
       message: plan.message,
-      menu: this.menuComposer.compose([day], profile),
+      menu,
     };
   }
 }

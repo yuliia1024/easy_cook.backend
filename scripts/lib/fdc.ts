@@ -2,6 +2,7 @@ import { parse } from 'csv-parse';
 import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
 import { FoodSource, FoodState, KCAL_PER_GRAM } from '../../src/common/constants';
+import { FoodPortion, parsePortionUnit } from './units';
 
 /**
  * USDA FoodData Central CSV export (https://fdc.nal.usda.gov/download-datasets).
@@ -213,4 +214,53 @@ async function readCalorieFactors(
     }
   }
   return factors;
+}
+
+/**
+ * Volume and count portions per FDC id from `food_portion.csv` (+ `measure_unit.csv`):
+ * "1 cup, chopped = 160 g" -> { unit: 'cup', grams: 160 }. Mass and unparseable portions are skipped.
+ */
+export async function readFdcPortions(
+  dir: string,
+  fdcIds?: Set<string>,
+): Promise<Map<string, FoodPortion[]>> {
+  const portions = new Map<string, FoodPortion[]>();
+  const file = join(dir, 'food_portion.csv');
+  if (!existsSync(file)) {
+    return portions;
+  }
+
+  const unitNames = new Map<string, string>();
+  const units = join(dir, 'measure_unit.csv');
+  if (existsSync(units)) {
+    for await (const row of readCsv(units)) {
+      unitNames.set(row.id, row.name);
+    }
+  }
+
+  for await (const row of readCsv(file)) {
+    if (fdcIds && !fdcIds.has(row.fdc_id)) {
+      continue;
+    }
+    const unitName = unitNames.get(row.measure_unit_id);
+    const description = [
+      unitName === 'undetermined' ? '' : unitName,
+      row.portion_description,
+      row.modifier,
+    ]
+      .filter(Boolean)
+      .join(', ');
+    const unit = parsePortionUnit(description);
+    const amount = Number(row.amount) || 1;
+    const grams = Number(row.gram_weight) / amount;
+    if (!unit || !Number.isFinite(grams) || grams <= 0) {
+      continue;
+    }
+
+    if (!portions.has(row.fdc_id)) {
+      portions.set(row.fdc_id, []);
+    }
+    portions.get(row.fdc_id).push({ ...unit, grams });
+  }
+  return portions;
 }

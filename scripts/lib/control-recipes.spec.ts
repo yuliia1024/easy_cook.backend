@@ -39,6 +39,7 @@ describe('control recipes', () => {
         carbsG: 0,
       },
     ],
+    importedFoods: [],
     recipes: [
       {
         slug: 'rice',

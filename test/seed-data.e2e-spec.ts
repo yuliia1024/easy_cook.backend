@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { compareNutrition, loadControlRecipes } from '../scripts/lib/control-recipes';
 import { loadSeedData } from '../scripts/lib/seed-data';
-import { upsertSeedFoods, upsertSeedRecipes } from '../scripts/lib/seed-db';
+import { upsertExternalFoods, upsertSeedFoods, upsertSeedRecipes } from '../scripts/lib/seed-db';
 import { verifyData } from '../scripts/lib/verify-data';
 import { createTestApp, resetDatabase, TestApp } from './test-app';
 import { SortOrder } from '../src/common/constants';
@@ -15,6 +15,7 @@ describe('seed data (e2e)', () => {
 
   const seed = async () => ({
     foods: await upsertSeedFoods(ctx.prisma, data.foods),
+    importedFoods: await upsertExternalFoods(ctx.prisma, data.importedFoods),
     recipes: await upsertSeedRecipes(ctx.prisma, data.recipes),
   });
   const snapshot = async () => ({
@@ -46,13 +47,15 @@ describe('seed data (e2e)', () => {
 
     expect(first).toEqual({
       foods: { created: data.foods.length, updated: 0 },
+      importedFoods: data.importedFoods.length,
       recipes: { created: data.recipes.length, updated: 0 },
     });
     expect(second).toEqual({
       foods: { created: 0, updated: data.foods.length },
+      importedFoods: data.importedFoods.length,
       recipes: { created: 0, updated: data.recipes.length },
     });
-    expect(before.foods).toHaveLength(data.foods.length);
+    expect(before.foods).toHaveLength(data.foods.length + data.importedFoods.length);
     expect(before.recipes).toHaveLength(data.recipes.length);
     expect(before.ingredients).toBe(data.recipes.reduce((n, r) => n + r.ingredients.length, 0));
     expect(after).toEqual(before);
@@ -64,7 +67,7 @@ describe('seed data (e2e)', () => {
     expect(report.checks.filter((c) => !c.ok)).toEqual([]);
     expect(report.ok).toBe(true);
     expect(report.summary).toEqual({
-      foodsBySource: { seed: data.foods.length },
+      foodsBySource: { seed: data.foods.length, usda_fdc: data.importedFoods.length },
       recipes: data.recipes.length,
       recipeIngredients: expect.any(Number),
     });

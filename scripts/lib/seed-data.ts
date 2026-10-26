@@ -8,6 +8,7 @@ import {
   MAX_KCAL_PER_100G,
   MealType,
 } from '../../src/common/constants';
+import { ImportedFood } from './fdc';
 
 export const SEED_DIR = resolve(__dirname, '../../data/seed');
 
@@ -31,7 +32,7 @@ export interface SeedIngredient {
   notes?: string | null;
 }
 
-/** A row of `data/seed/recipes.json`. */
+/** A row of `data/seed/recipes.json` or `data/seed/menu-recipes.json`. */
 export interface SeedRecipe {
   slug: string;
   name: string;
@@ -46,6 +47,8 @@ export interface SeedRecipe {
 
 export interface SeedData {
   foods: SeedFood[];
+  /** `data/seed/usda-foods.json`: the USDA foods the recipes use, referenced as `usda_fdc:<id>`. */
+  importedFoods: ImportedFood[];
   recipes: SeedRecipe[];
 }
 
@@ -66,12 +69,17 @@ const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const KCAL_TOLERANCE = { absolute: 15, relative: 0.15 };
 
 export function loadSeedData(dir: string = SEED_DIR): SeedData {
+  const json = (file: string): unknown => JSON.parse(readFileSync(join(dir, file), 'utf8'));
   const read = <T>(file: string, key: string): T[] =>
-    JSON.parse(readFileSync(join(dir, file), 'utf8'))[key] ?? [];
+    (json(file) as Record<string, T[]>)[key] ?? [];
 
   return {
     foods: read<SeedFood>('foods.json', 'foods'),
-    recipes: read<SeedRecipe>('recipes.json', 'recipes'),
+    importedFoods: json('usda-foods.json') as ImportedFood[],
+    recipes: [
+      ...read<SeedRecipe>('recipes.json', 'recipes'),
+      ...read<SeedRecipe>('menu-recipes.json', 'recipes'),
+    ],
   };
 }
 
@@ -92,7 +100,7 @@ export function estimateKcal({
 }
 
 /** Checks the seed files without a database: shapes, ranges and references between them. */
-export function validateSeedData({ foods, recipes }: SeedData): ValidationReport {
+export function validateSeedData({ foods, importedFoods, recipes }: SeedData): ValidationReport {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -141,6 +149,7 @@ export function validateSeedData({ foods, recipes }: SeedData): ValidationReport
     }
   });
 
+  const importedRefs = new Set(importedFoods.map((f) => `${f.source}:${f.sourceId}`));
   const recipeSlugs = new Set<string>();
   recipes.forEach((recipe, index) => {
     const at = `recipes[${index}] "${recipe.slug}"`;
@@ -183,7 +192,7 @@ export function validateSeedData({ foods, recipes }: SeedData): ValidationReport
 
       if (ref.source === FoodSource.Seed && !foodSlugs.has(ref.sourceId)) {
         errors.push(`${ingredientAt}: unknown food`);
-      } else if (ref.source !== FoodSource.Seed) {
+      } else if (ref.source !== FoodSource.Seed && !importedRefs.has(ingredient.food)) {
         warnings.push(`${ingredientAt}: imported food, checked when seeding`);
       }
       if (typeof ingredient.quantityG !== 'number' || ingredient.quantityG <= 0) {
