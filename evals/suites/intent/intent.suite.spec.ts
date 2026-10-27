@@ -1,16 +1,9 @@
-import { Intent, MessageRole } from '../../../src/common/constants';
-import { IntentResultSchema } from '../../../src/common/contracts';
+import { Intent, MealType, MenuTargetScope, MessageRole } from '../../../src/common/constants';
+import { IntentResult, IntentResultSchema } from '../../../src/common/contracts';
 import { OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
 import { createMock } from '../../../src/test/create-mock';
 import { loadCases } from '../../lib/cases';
-import {
-  IntentCase,
-  IntentCaseSchema,
-  intentSuite,
-  mentions,
-  parseDays,
-  scoreIntent,
-} from './intent.suite';
+import { IntentCase, IntentCaseSchema, intentSuite, mentions, scoreIntent } from './intent.suite';
 
 describe('intent suite', () => {
   const testCase = (expected: IntentCase['expected']): IntentCase => ({
@@ -20,54 +13,39 @@ describe('intent suite', () => {
     messages: [{ role: MessageRole.User, content: 'x' }],
     expected,
   });
-
-  describe('parseDays', () => {
-    it.each([
-      ['Plan a 3-day menu', 3],
-      ['Plan a menu for 5 days', 5],
-      ['Plan a one-day menu', 1],
-      ['Plan a menu for a single day', 1],
-      ['Plan a 10 day menu without pork', 10],
-      ['Plan meals for two weeks', 14],
-      ['Plan a 1-week menu', 7],
-      ['Plan a weekly menu', 7],
-      ['Plan a meal plan for a month', 30],
-      ['Plan a menu for the weekend', 2],
-      ['Plan a menu for tomorrow', 1],
-      ['Plan a menu for a day', 1],
-      ['Plan a gluten-free menu around 1800 kcal a day for 2 days', 2],
-      ['Plan three meals a day for 5 days', 5],
-      ['Plan a menu for a week', 7],
-      ['Eat 2000 kcal a day', null],
-      ['Plan a vegetarian menu with breakfast and dinner', null],
-      ['Склади меню на 3 дні', null],
-      ['', null],
-      [null, null],
-    ])('reads %p as %p days', (request, days) => {
-      expect(parseDays(request)).toBe(days);
-    });
+  const menuRequest = (days: number | null): IntentResult['menuRequest'] => ({
+    days,
+    mealTypes: [],
+    caloriesKcal: null,
+    diets: [],
+    excludedIngredients: [],
+    dislikedFoods: [],
   });
+  const output = (
+    intent: Intent,
+    request: string | null,
+    overrides: Partial<IntentResult> = {},
+  ): IntentResult => ({ intent, request, menuRequest: null, target: null, ...overrides });
 
   describe('scoreIntent', () => {
     it('scores only the intent when the case expects nothing else', () => {
       expect(
-        scoreIntent(testCase({ intent: Intent.OutOfScope }), {
-          intent: Intent.GeneralChat,
-          request: null,
-        }),
+        scoreIntent(testCase({ intent: Intent.OutOfScope }), output(Intent.GeneralChat, null)),
       ).toEqual([
         { field: 'intent', pass: false, expected: 'out_of_scope', actual: 'general_chat' },
       ]);
     });
 
-    it('scores the days and the constraints of the restated request', () => {
+    it('scores the days of the menu request and the constraints of the restated request', () => {
       const scores = scoreIntent(
         testCase({
           intent: Intent.GenerateMenu,
           days: 3,
           constraints: [['!meat', 'vegetarian'], ['!Fish']],
         }),
-        { intent: Intent.GenerateMenu, request: 'Plan a 3-day Vegetarian menu without fish' },
+        output(Intent.GenerateMenu, 'Plan a 3-day Vegetarian menu without fish', {
+          menuRequest: menuRequest(3),
+        }),
       );
 
       expect(scores).toEqual([
@@ -85,17 +63,19 @@ describe('intent suite', () => {
     it('fails a constraint the request does not name and days the user did not give', () => {
       const [, days, constraints] = scoreIntent(
         testCase({ intent: Intent.GenerateMenu, days: null, constraints: [['!gluten'], ['!nut']] }),
-        { intent: Intent.GenerateMenu, request: 'Plan a one-day gluten-free menu' },
+        output(Intent.GenerateMenu, 'Plan a one-day gluten-free menu', {
+          menuRequest: menuRequest(1),
+        }),
       );
 
       expect(days).toMatchObject({ pass: false, expected: null, actual: 1 });
       expect(constraints.pass).toBe(false);
     });
 
-    it('fails the days and the constraints without a request', () => {
+    it('fails the days and the constraints without a menu request', () => {
       const scores = scoreIntent(
         testCase({ intent: Intent.GenerateMenu, days: 2, constraints: [['!fish']] }),
-        { intent: Intent.Clarification, request: null },
+        output(Intent.Clarification, null),
       );
 
       expect(scores.map((score) => score.pass)).toEqual([false, false, false]);
@@ -114,10 +94,47 @@ describe('intent suite', () => {
       ]);
     });
 
+    it('scores the scope of the target and the fields the case sets', () => {
+      const revision = (target: IntentResult['target']): IntentResult =>
+        output(Intent.ReviseMenu, 'Plan a 3-day menu with another lunch', { target });
+      const meal = testCase({
+        intent: Intent.ReviseMenu,
+        target: { scope: MenuTargetScope.Meal, mealType: MealType.Lunch },
+      });
+
+      expect(
+        scoreIntent(
+          meal,
+          revision({ scope: MenuTargetScope.Meal, dayIndex: 2, mealType: MealType.Lunch }),
+        )[1],
+      ).toEqual({
+        field: 'target',
+        pass: true,
+        expected: { scope: 'meal', mealType: 'lunch' },
+        actual: { scope: 'meal', dayIndex: 2, mealType: 'lunch' },
+      });
+      expect(
+        scoreIntent(
+          meal,
+          revision({ scope: MenuTargetScope.Meal, dayIndex: null, mealType: MealType.Dinner }),
+        )[1].pass,
+      ).toBe(false);
+      expect(
+        scoreIntent(
+          testCase({
+            intent: Intent.ReviseMenu,
+            target: { scope: MenuTargetScope.Day, dayIndex: 1 },
+          }),
+          revision({ scope: MenuTargetScope.Day, dayIndex: 0, mealType: null }),
+        )[1].pass,
+      ).toBe(false);
+      expect(scoreIntent(meal, revision(null))[1]).toMatchObject({ pass: false, actual: null });
+    });
+
     it('fails a request that names the opposite of a constraint', () => {
       const [, constraints] = scoreIntent(
         testCase({ intent: Intent.GenerateMenu, constraints: [['!meat', 'vegetarian']] }),
-        { intent: Intent.GenerateMenu, request: 'Plan a weekly menu with meat' },
+        output(Intent.GenerateMenu, 'Plan a weekly menu with meat'),
       );
 
       expect(constraints.pass).toBe(false);
@@ -165,7 +182,7 @@ describe('intent suite', () => {
   it('runs the classifier call of the app with the profile of the case', async () => {
     const openAi = createMock<OpenAiService>();
     const result = {
-      output: { intent: Intent.GeneralChat, request: null },
+      output: output(Intent.GeneralChat, null),
       modelId: 'm',
       latencyMs: 1,
       usage: { inputTokens: 1, cachedInputTokens: 0, outputTokens: 1 },
@@ -177,7 +194,7 @@ describe('intent suite', () => {
         { ...testCase({ intent: Intent.GeneralChat }), profile: 'vegetarian' },
         openAi,
       ),
-    ).resolves.toBe(result);
+    ).resolves.toEqual(result);
 
     const [[input, schema, options]] = openAi.generateStructuredResult.mock.calls;
     expect(input).toEqual([
@@ -186,6 +203,26 @@ describe('intent suite', () => {
     ]);
     expect(schema).toBe(IntentResultSchema);
     expect(options).toMatchObject({ maxOutputTokens: expect.any(Number) });
+  });
+
+  it('applies the rules of the app to the model output', async () => {
+    const openAi = createMock<OpenAiService>();
+    openAi.generateStructuredResult.mockResolvedValue({
+      output: output(Intent.ReviseMenu, 'Plan a weekly menu', {
+        menuRequest: menuRequest(7),
+        target: { scope: MenuTargetScope.Menu, dayIndex: null, mealType: null },
+      }),
+      modelId: 'm',
+      latencyMs: 1,
+      usage: { inputTokens: 1, cachedInputTokens: 0, outputTokens: 1 },
+    });
+
+    const { output: result } = await intentSuite.run(
+      testCase({ intent: Intent.GenerateMenu }),
+      openAi,
+    );
+
+    expect(result).toMatchObject({ intent: Intent.GenerateMenu, target: null });
   });
 
   it('rejects a case whose latest message is not from the user', () => {

@@ -112,7 +112,10 @@ export class ChatOrchestratorService {
           yield { type: ChatStreamEventType.TextDelta, content: delta };
         }
         return;
+      // A change is planned again from the restated request until a saved menu can be edited by
+      // `target`.
       case Intent.GenerateMenu:
+      case Intent.ReviseMenu:
         // TODO: add sort of stream text until get the menu
         yield* this.toEvents(
           await this.menuPlannerService.plan(request ?? content, profile, abortSignal),

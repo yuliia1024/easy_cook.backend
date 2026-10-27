@@ -199,11 +199,12 @@ npm run eval -- --repeat 1 --concurrency 3     # runs per case (3 by default), p
   saves nothing after any.
 - The runner logic lives in `evals/lib/` with specs, which run with `npm test`.
 
-**intent** - the classifier of chat messages (`IntentService`): 53 messages in Ukrainian and
-English (direct, vague, more than 7 days, no days, surzhyk, out of scope, general chat,
-follow-ups). Fields: `intent`; `days` and `constraints` read from the restated request while the
-classifier returns them only as text. A constraint lists alternatives: `"vegetarian"` must be
-named as wanted, `"!meat"` as excluded ("without meat", "meat-free"). The baseline was taken on the prompt before CHAT-1, which
+**intent** - the classifier of chat messages (`IntentService`, with the rules of `resolveIntent`):
+58 messages in Ukrainian and English (direct, vague, more than 7 days, no days, surzhyk, out of
+scope, general chat, follow-ups, menu revisions). Fields: `intent`; `days` from `menuRequest`;
+`constraints` read from the restated request; `target` of a revision (its scope and the fields the
+case sets). A constraint lists alternatives: `"vegetarian"` must be named as wanted, `"!meat"` as
+excluded ("without meat", "meat-free"). The baseline was taken on the prompt before CHAT-1, which
 must not be worse.
 
 ## Tests

@@ -1,28 +1,30 @@
 {
   "suite": "intent",
-  "createdAt": "2026-10-22T16:13:33.694Z",
+  "createdAt": "2026-10-27T15:26:19.025Z",
   "models": [
     "gpt-4o-mini-2024-07-18"
   ],
-  "cases": 53,
+  "cases": 58,
   "repeat": 3,
-  "passRate": 0.7358490566037735,
+  "passRate": 0.896551724137931,
   "fields": {
-    "constraints": 0.927536231884058,
-    "days": 0.8229166666666666,
-    "intent": 0.8616352201257862
+    "constraints": 1,
+    "days": 0.9009009009009009,
+    "intent": 0.9310344827586207,
+    "target": 1
   },
   "tags": {
-    "direct": 0.8611111111111112,
-    "en": 0.8055555555555556,
-    "follow-up": 0.75,
+    "direct": 0.9444444444444444,
+    "en": 0.9629629629629629,
+    "follow-up": 1,
     "general-chat": 1,
     "long": 0.8333333333333334,
     "no-days": 0.5,
     "out-of-scope": 1,
+    "revise": 1,
     "surzhyk": 0.8333333333333334,
-    "uk": 0.6781609195402298,
-    "vague": 0.20833333333333334
+    "uk": 0.8387096774193549,
+    "vague": 0.9583333333333334
   },
   "passedCases": [
     "chat-en-01",
@@ -39,15 +41,18 @@
     "direct-uk-03",
     "direct-uk-04",
     "direct-uk-05",
+    "direct-uk-06",
     "followup-en-01",
     "followup-en-02",
+    "followup-uk-01",
     "followup-uk-02",
     "long-en-01",
     "long-en-02",
     "long-en-03",
     "long-uk-02",
     "long-uk-03",
-    "nodays-en-01",
+    "nodays-en-03",
+    "nodays-uk-03",
     "oos-en-01",
     "oos-en-02",
     "oos-en-03",
@@ -55,11 +60,22 @@
     "oos-uk-01",
     "oos-uk-02",
     "oos-uk-03",
+    "revise-en-01",
+    "revise-en-02",
+    "revise-en-03",
+    "revise-uk-01",
+    "revise-uk-02",
     "surzhyk-01",
     "surzhyk-02",
     "surzhyk-03",
     "surzhyk-04",
     "surzhyk-05",
-    "vague-en-03"
+    "vague-en-01",
+    "vague-en-02",
+    "vague-en-03",
+    "vague-en-04",
+    "vague-uk-01",
+    "vague-uk-03",
+    "vague-uk-04"
   ]
 }

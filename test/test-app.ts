@@ -64,7 +64,12 @@ const fakeOpenAi: Pick<OpenAiService, 'streamText' | 'generateStructured'> = {
       }
       return fakeOpenAiState.menuPlan as T;
     }
-    return { intent: fakeOpenAiState.intent, request: fakeOpenAiState.request } as T;
+    return {
+      intent: fakeOpenAiState.intent,
+      request: fakeOpenAiState.request,
+      menuRequest: null,
+      target: null,
+    } as T;
   },
 };
 
