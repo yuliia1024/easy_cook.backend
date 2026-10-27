@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import {
+  Intent,
   INTENT_HISTORY_LIMIT,
   INTENT_INSTRUCTIONS,
   INTENT_MAX_OUTPUT_TOKENS,
+  MenuTargetScope,
+  MessageRole,
 } from '../../../common/constants';
-import { IntentResult, IntentResultSchema } from '../../../common/contracts';
+import { IntentResult, IntentResultSchema, MenuTarget } from '../../../common/contracts';
 import { ProfileContext } from '../../../common/types';
 import { Message } from '../../../generated/prisma/client';
 import {
@@ -43,6 +46,39 @@ export function intentModelCall(
   };
 }
 
+/** The scope of the most specific field the model set: it fills them more reliably. */
+function withScope(target: MenuTarget): MenuTarget {
+  const scope =
+    target.mealType !== null
+      ? MenuTargetScope.Meal
+      : target.dayIndex !== null
+        ? MenuTargetScope.Day
+        : MenuTargetScope.Menu;
+  return scope === target.scope ? target : { ...target, scope };
+}
+
+/**
+ * Applies the rules the model does not follow reliably; the evals apply them too. Only
+ * `revise_menu` keeps a target, its scope matching its fields. A revision needs a menu to revise:
+ * without an earlier assistant reply it is a new menu when the model restated a request ("a menu
+ * for a week, no chicken"), otherwise a clarification ("change my menu somehow").
+ */
+export function resolveIntent(
+  result: IntentResult,
+  messages: Pick<Message, 'role'>[],
+): IntentResult {
+  if (result.intent !== Intent.ReviseMenu) {
+    return result.target ? { ...result, target: null } : result;
+  }
+  if (!messages.some((message) => message.role === MessageRole.Assistant)) {
+    return result.menuRequest
+      ? { ...result, intent: Intent.GenerateMenu, target: null }
+      : { intent: Intent.Clarification, request: null, menuRequest: null, target: null };
+  }
+  const target = result.target && withScope(result.target);
+  return target === result.target ? result : { ...result, target };
+}
+
 /**
  * Classifies the latest message of a conversation by the model, which reads the recent history
  * to understand follow-ups and the profile to tell whether a request is enough, and restates a menu
@@ -67,6 +103,7 @@ export class IntentService {
       INTENT_HISTORY_LIMIT,
     );
     const { input, schema, options } = intentModelCall(profile, messages, abortSignal);
-    return this.openAiService.generateStructured(input, schema, options);
+    const result = await this.openAiService.generateStructured(input, schema, options);
+    return resolveIntent(result, messages);
   }
 }

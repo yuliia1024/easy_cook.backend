@@ -4,12 +4,17 @@ import {
   CalculationMode,
   Goal,
   Intent,
+  MealType,
+  MenuTargetScope,
   MESSAGE_MAX_LENGTH,
   MessageRole,
 } from '../../../src/common/constants';
 import { IntentResult } from '../../../src/common/contracts';
 import { ProfileContext } from '../../../src/common/types';
-import { intentModelCall } from '../../../src/modules/services/intent/intent.service';
+import {
+  intentModelCall,
+  resolveIntent,
+} from '../../../src/modules/services/intent/intent.service';
 import { ModelResult, OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
 import { EvalCaseSchema, EvalSuite, FieldScore } from '../../lib/types';
 
@@ -53,9 +58,10 @@ export const INTENT_PROFILES: Record<string, ProfileContext | null> = {
 
 /**
  * A message history, the latest user message last, and what the classifier must return.
- * `days` (null: the user gave none, so the model must not add one) and `constraints` are scored
- * only when set. Each constraint is a list of alternatives, one of which the request must name:
- * `"vegetarian"` named as wanted, `"!meat"` named as excluded ("without meat", "meat-free").
+ * `days` (`menuRequest.days`; null: the user gave none, so the model must not add one),
+ * `constraints` and `target` are scored only when set. Each constraint is a list of alternatives,
+ * one of which the restated request must name: `"vegetarian"` named as wanted, `"!meat"` named as
+ * excluded ("without meat", "meat-free"). `target` scores its scope and the fields it sets.
  */
 export const IntentCaseSchema = EvalCaseSchema.extend({
   profile: z.enum(Object.keys(INTENT_PROFILES) as [string, ...string[]]).default('basic'),
@@ -77,74 +83,17 @@ export const IntentCaseSchema = EvalCaseSchema.extend({
       .array(z.array(z.string().regex(/^!?[^!\s]/)).min(1))
       .min(1)
       .optional(),
+    target: z
+      .object({
+        scope: z.enum(MenuTargetScope),
+        dayIndex: z.number().int().nonnegative().nullable().optional(),
+        mealType: z.enum(MealType).nullable().optional(),
+      })
+      .optional(),
   }),
 });
 
 export type IntentCase = z.infer<typeof IntentCaseSchema>;
-
-const NUMBER_WORDS: Record<string, number> = {
-  one: 1,
-  single: 1,
-  two: 2,
-  three: 3,
-  four: 4,
-  five: 5,
-  six: 6,
-  seven: 7,
-  eight: 8,
-  nine: 9,
-  ten: 10,
-  eleven: 11,
-  twelve: 12,
-  thirteen: 13,
-  fourteen: 14,
-};
-const NUMBER = `(\\d{1,3}|${Object.keys(NUMBER_WORDS).join('|')})`;
-
-/**
- * `<number> <unit>` (`3-day`, `two weeks`) or `for a <unit>`: a bare "a day" is a rate
- * ("1800 kcal a day"), not the length of the menu.
- */
-function countOf(text: string, unit: string): number | null {
-  const match = new RegExp(`\\b(?:for (a)|${NUMBER})[\\s-]*${unit}s?\\b`).exec(text);
-  if (!match) {
-    return null;
-  }
-  return match[1] ? 1 : (NUMBER_WORDS[match[2]] ?? Number(match[2]));
-}
-
-/**
- * The number of days the restated request names (`3-day`, `two weeks`, `for tomorrow`), or null.
- * The classifier returns the request as free text until it returns the days as a field (CHAT-1).
- */
-export function parseDays(request: string | null): number | null {
-  if (!request) {
-    return null;
-  }
-  const text = request.toLowerCase();
-  const days = countOf(text, 'day');
-  if (days !== null) {
-    return days;
-  }
-  const weeks = countOf(text, 'week');
-  if (weeks !== null) {
-    return weeks * 7;
-  }
-  const months = countOf(text, 'month');
-  if (months !== null) {
-    return months * 30;
-  }
-  if (/\b(weekly|week-long)\b/.test(text)) {
-    return 7;
-  }
-  if (/\bweekend\b/.test(text)) {
-    return 2;
-  }
-  if (/\b(today|tomorrow|daily)\b/.test(text)) {
-    return 1;
-  }
-  return null;
-}
 
 const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -184,7 +133,7 @@ export function scoreIntent(testCase: IntentCase, output: IntentResult | null): 
   ];
 
   if (expected.days !== undefined) {
-    const days = parseDays(request);
+    const days = output?.menuRequest?.days ?? null;
     scores.push({
       field: 'days',
       pass: output !== null && days === expected.days,
@@ -208,20 +157,34 @@ export function scoreIntent(testCase: IntentCase, output: IntentResult | null): 
       actual: request,
     });
   }
+  if (expected.target) {
+    const target = output?.target ?? null;
+    scores.push({
+      field: 'target',
+      pass:
+        target !== null &&
+        Object.entries(expected.target).every(
+          ([key, value]) => target[key as keyof typeof target] === value,
+        ),
+      expected: expected.target,
+      actual: target,
+    });
+  }
   return scores;
 }
 
-/** The intent classifier (`IntentService`): intent, days and constraints of a menu request. */
+/** The intent classifier (`IntentService`): intent, days, constraints and target of a menu request. */
 export const intentSuite: EvalSuite<IntentCase, IntentResult> = {
   name: 'intent',
   casesFile: join(__dirname, 'cases.jsonl'),
   caseSchema: IntentCaseSchema,
-  run: (testCase: IntentCase, openAi: OpenAiService): Promise<ModelResult<IntentResult>> => {
+  run: async (testCase: IntentCase, openAi: OpenAiService): Promise<ModelResult<IntentResult>> => {
     const { input, schema, options } = intentModelCall(
       INTENT_PROFILES[testCase.profile],
       testCase.messages,
     );
-    return openAi.generateStructuredResult(input, schema, options);
+    const result = await openAi.generateStructuredResult(input, schema, options);
+    return { ...result, output: resolveIntent(result.output, testCase.messages) };
   },
   score: scoreIntent,
 };

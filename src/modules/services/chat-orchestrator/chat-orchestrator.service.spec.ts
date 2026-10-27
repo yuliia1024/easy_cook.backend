@@ -55,7 +55,7 @@ describe('ChatOrchestratorService', () => {
   const send = async (content = 'Hi', signal?: AbortSignal): Promise<ChatStreamEvent[]> =>
     collect(await service.handleMessage(CONVERSATION_ID, content, signal));
   const classifyAs = (intent: Intent, request: string | null = null): void => {
-    intentService.classify.mockResolvedValue({ intent, request });
+    intentService.classify.mockResolvedValue({ intent, request, menuRequest: null, target: null });
   };
 
   beforeEach(() => {
@@ -141,6 +141,21 @@ describe('ChatOrchestratorService', () => {
       menu,
     );
     expect(generalChatService.reply).not.toHaveBeenCalled();
+  });
+
+  it('plans a revision of the menu again from the restated request', async () => {
+    classifyAs(Intent.ReviseMenu, 'Plan a one-day menu with another lunch.');
+
+    await expect(send('replace the lunch')).resolves.toEqual([
+      { type: ChatStreamEventType.TextDelta, content: 'Your day' },
+      { type: ChatStreamEventType.MenuReady, menu },
+      { type: ChatStreamEventType.Done },
+    ]);
+    expect(menuPlannerService.plan).toHaveBeenCalledWith(
+      'Plan a one-day menu with another lunch.',
+      profile,
+      undefined,
+    );
   });
 
   it('plans from the message itself when the classifier restated no request', async () => {

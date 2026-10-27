@@ -163,6 +163,28 @@ describe('/api/conversations (e2e)', () => {
     expect(JSON.parse(planned[0].content).request).toBe('Plan a one-day menu.');
   });
 
+  it('plans a revision of the menu again from the restated request', async () => {
+    const { recipe } = await createMenuWorld(ctx);
+    const id = await start();
+    await say(id, 'Plan my day');
+    fakeOpenAiState.structuredInputs = [];
+    fakeOpenAiState.intent = Intent.ReviseMenu;
+    fakeOpenAiState.request = 'Plan a one-day menu with another lunch.';
+    fakeOpenAiState.menuPlan = {
+      message: 'Here is your day.',
+      breakfast: recipe.oats,
+      lunch: recipe.chicken,
+      dinner: recipe.bowl,
+    };
+
+    const { chunks } = await say(id, 'replace the lunch');
+
+    expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(true);
+    const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+    expect(JSON.parse(planned[0].content).request).toBe('Plan a one-day menu with another lunch.');
+    expect(await ctx.prisma.menu.count()).toBe(0);
+  });
+
   it('gives the planner the profile, marking a missing goal as not set, and finds no calorie issues', async () => {
     const { recipe } = await createMenuWorld(ctx, { goal: false });
     await http()

@@ -6,8 +6,16 @@ export enum MessageRole {
 export enum Intent {
   GeneralChat = 'general_chat',
   GenerateMenu = 'generate_menu',
+  ReviseMenu = 'revise_menu',
   Clarification = 'clarification',
   OutOfScope = 'out_of_scope',
+}
+
+/** The part of the latest menu a `revise_menu` request changes. */
+export enum MenuTargetScope {
+  Menu = 'menu',
+  Day = 'day',
+  Meal = 'meal',
 }
 
 export enum ChatResponseType {
