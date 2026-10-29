@@ -69,12 +69,11 @@ describe('chat contracts', () => {
       ).toBe(true);
     });
 
-    it('leaves the upper limit of days to the backend', () => {
-      expect(MenuRequestSchema.safeParse({ ...menuRequest, days: 365 }).success).toBe(true);
+    it.each([365, 0, -2])('leaves the limits of days to the backend: %i', (days) => {
+      expect(MenuRequestSchema.safeParse({ ...menuRequest, days }).success).toBe(true);
     });
 
     it.each([
-      ['zero days', { days: 0 }],
       ['fractional days', { days: 1.5 }],
       ['an unknown meal', { mealTypes: ['brunch'] }],
       ['an unknown diet', { diets: ['keto'] }],

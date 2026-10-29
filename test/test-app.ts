@@ -5,7 +5,7 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap';
 import { Intent } from '../src/common/constants';
-import { IntentResultSchema, MenuPlan } from '../src/common/contracts';
+import { IntentResultSchema, MenuPlan, MenuRequest } from '../src/common/contracts';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
@@ -19,19 +19,21 @@ export const FAKE_OPEN_AI_DELTAS = ['Day 1: ', 'oatmeal'];
 /**
  * What the fake model answers. `intent` is the classification: an intent, `'unavailable'` to fail
  * like a broken API or `'invalid'` like output that does not match the schema; it fails the menu
- * plan the same way; `request` is the menu request it restates. `menuPlan` is the answer to any
+ * plan the same way; `request` is the menu request it restates and `menuRequest` its fields. `menuPlan` is the answer to any
  * other structured call. `structuredInputs` records what each structured call was given. Set them in
  * a test; `resetFakeOpenAi()` restores `general_chat` and no plan.
  */
 export const fakeOpenAiState: {
   intent: Intent | 'unavailable' | 'invalid';
   request: string | null;
+  menuRequest: MenuRequest | null;
   menuPlan: MenuPlan | null;
   streamTextCalls: number;
   structuredInputs: unknown[];
 } = {
   intent: Intent.GeneralChat,
   request: null,
+  menuRequest: null,
   menuPlan: null,
   streamTextCalls: 0,
   structuredInputs: [],
@@ -40,6 +42,7 @@ export const fakeOpenAiState: {
 export function resetFakeOpenAi(): void {
   fakeOpenAiState.intent = Intent.GeneralChat;
   fakeOpenAiState.request = null;
+  fakeOpenAiState.menuRequest = null;
   fakeOpenAiState.menuPlan = null;
   fakeOpenAiState.streamTextCalls = 0;
   fakeOpenAiState.structuredInputs = [];
@@ -67,7 +70,7 @@ const fakeOpenAi: Pick<OpenAiService, 'streamText' | 'generateStructured'> = {
     return {
       intent: fakeOpenAiState.intent,
       request: fakeOpenAiState.request,
-      menuRequest: null,
+      menuRequest: fakeOpenAiState.menuRequest,
       target: null,
     } as T;
   },

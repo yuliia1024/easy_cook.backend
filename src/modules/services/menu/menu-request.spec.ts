@@ -1,0 +1,197 @@
+import { CalculationMode, DietTag, Goal, Intent, MealType } from '../../../common/constants';
+import { IntentResult, MenuRequest } from '../../../common/contracts';
+import { ProfileContext } from '../../../common/types';
+import { PROFILE_ID } from '../../../test/fixtures';
+import {
+  describeMenuRequest,
+  EMPTY_MENU_REQUEST,
+  resolveClarification,
+  resolveMenuRequest,
+} from './menu-request';
+
+describe('resolveMenuRequest', () => {
+  const profile: ProfileContext = {
+    profileId: PROFILE_ID,
+    goal: Goal.Maintain,
+    nutritionGoal: {
+      goalId: 'goal',
+      caloriesKcal: 2000,
+      proteinG: 100,
+      fatG: 60,
+      carbsG: 250,
+      calculationMode: CalculationMode.Manual,
+      ruleVersion: null,
+    },
+    rules: {
+      diets: [DietTag.Vegetarian, 'unknown diet'],
+      allergies: ['peanut'],
+      excludedIngredients: ['pork'],
+      dislikedFoods: ['olives'],
+    },
+  };
+  const request = (overrides: Partial<MenuRequest>): MenuRequest => ({
+    ...EMPTY_MENU_REQUEST,
+    ...overrides,
+  });
+
+  it('takes the calorie goal and the preferences from the profile, not days or meals', () => {
+    expect(resolveMenuRequest(profile, null, null)).toEqual({
+      chat: EMPTY_MENU_REQUEST,
+      request: {
+        days: null,
+        mealTypes: [],
+        caloriesKcal: 2000,
+        diets: [DietTag.Vegetarian],
+        excludedIngredients: ['pork'],
+        dislikedFoods: ['olives'],
+      },
+      missingFields: ['days', 'mealTypes'],
+      daysOutOfRange: null,
+    });
+  });
+
+  it('lets the chat win over the profile and the message over the chat', () => {
+    const chat = request({ days: 3, caloriesKcal: 1800, diets: [DietTag.Vegan] });
+    const message = request({ days: 5, mealTypes: [MealType.Dinner] });
+
+    const resolved = resolveMenuRequest(profile, chat, message);
+
+    expect(resolved.chat).toEqual(
+      request({
+        days: 5,
+        mealTypes: [MealType.Dinner],
+        caloriesKcal: 1800,
+        diets: [DietTag.Vegan],
+      }),
+    );
+    expect(resolved.request).toEqual({
+      days: 5,
+      mealTypes: [MealType.Dinner],
+      caloriesKcal: 1800,
+      diets: [DietTag.Vegan],
+      excludedIngredients: ['pork'],
+      dislikedFoods: ['olives'],
+    });
+    expect(resolved.missingFields).toEqual([]);
+  });
+
+  it('never clears an earlier value with null or an empty list', () => {
+    const chat = request({
+      days: 3,
+      mealTypes: [MealType.Lunch],
+      caloriesKcal: 1500,
+      excludedIngredients: ['mushrooms'],
+    });
+
+    const resolved = resolveMenuRequest(profile, chat, EMPTY_MENU_REQUEST);
+
+    expect(resolved.chat).toEqual(chat);
+    expect(resolved.request).toMatchObject({
+      days: 3,
+      mealTypes: [MealType.Lunch],
+      caloriesKcal: 1500,
+      excludedIngredients: ['mushrooms'],
+      dislikedFoods: ['olives'],
+    });
+  });
+
+  it('keeps the chat out of the profile it is resolved with', () => {
+    expect(resolveMenuRequest(profile, null, request({ days: 2 })).chat).toEqual(
+      request({ days: 2 }),
+    );
+  });
+
+  it('works without a profile, a chat request or a message request', () => {
+    expect(resolveMenuRequest(null, null, null)).toEqual({
+      chat: EMPTY_MENU_REQUEST,
+      request: EMPTY_MENU_REQUEST,
+      missingFields: ['days', 'mealTypes'],
+      daysOutOfRange: null,
+    });
+  });
+
+  it('reports only the required fields nobody gave', () => {
+    expect(resolveMenuRequest(profile, request({ days: 2 }), null).missingFields).toEqual([
+      'mealTypes',
+    ]);
+  });
+
+  it.each([
+    [10, 7],
+    [8, 7],
+    [0, 1],
+    [-3, 1],
+  ])('offers %i days as %i instead of cutting them silently', (requested, offered) => {
+    const resolved = resolveMenuRequest(
+      profile,
+      request({ days: 3 }),
+      request({ days: requested, mealTypes: [MealType.Breakfast] }),
+    );
+
+    expect(resolved.daysOutOfRange).toEqual({ requested, offered });
+    expect(resolved.chat.days).toBe(offered);
+    expect(resolved.request.days).toBe(offered);
+  });
+
+  it.each([1, 7])('accepts %i days', (days) => {
+    const resolved = resolveMenuRequest(null, null, request({ days }));
+
+    expect(resolved.daysOutOfRange).toBeNull();
+    expect(resolved.chat.days).toBe(days);
+  });
+});
+
+describe('describeMenuRequest', () => {
+  it('restates every field that is set', () => {
+    expect(
+      describeMenuRequest({
+        days: 3,
+        mealTypes: [MealType.Breakfast, MealType.Dinner],
+        caloriesKcal: 1800,
+        diets: [DietTag.GlutenFree],
+        excludedIngredients: ['mushrooms'],
+        dislikedFoods: ['olives', 'tofu'],
+      }),
+    ).toBe(
+      'Plan a 3-day menu with breakfast, dinner of about 1800 kcal a day that is gluten free without mushrooms avoiding olives, tofu.',
+    );
+  });
+
+  it('leaves out what is not set', () => {
+    expect(describeMenuRequest(EMPTY_MENU_REQUEST)).toBe('Plan a menu.');
+  });
+});
+
+describe('resolveClarification', () => {
+  const clarification: IntentResult = {
+    intent: Intent.Clarification,
+    request: null,
+    menuRequest: null,
+    target: null,
+  };
+  const gathered = { ...EMPTY_MENU_REQUEST, days: 3, mealTypes: [MealType.Dinner] };
+
+  it('turns a clarification the chat answers into a menu request with the gathered request', () => {
+    expect(resolveClarification(clarification, resolveMenuRequest(null, gathered, null))).toEqual({
+      intent: Intent.GenerateMenu,
+      request: 'Plan a 3-day menu with dinner.',
+      menuRequest: gathered,
+      target: null,
+    });
+  });
+
+  it('keeps a clarification while a required field is missing', () => {
+    const resolved = resolveMenuRequest(null, { ...gathered, mealTypes: [] }, null);
+
+    expect(resolveClarification(clarification, resolved)).toBe(clarification);
+  });
+
+  it.each([Intent.GeneralChat, Intent.GenerateMenu, Intent.ReviseMenu])(
+    'returns %s as it is',
+    (intent) => {
+      const result = { ...clarification, intent };
+
+      expect(resolveClarification(result, resolveMenuRequest(null, gathered, null))).toBe(result);
+    },
+  );
+});

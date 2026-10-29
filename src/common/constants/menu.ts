@@ -1,6 +1,9 @@
 import { MealType } from './recipe';
 
 export const MENU_TITLE_MAX_LENGTH = 255;
+export const MENU_MIN_DAYS = 1;
+/** A longer request is not cut silently: the chat offers this many days instead. */
+export const MENU_MAX_DAYS = 7;
 
 /** How far a day may be from the calorie goal before the menu gets a warning. */
 export const MENU_DAY_KCAL_TOLERANCE = 0.15;

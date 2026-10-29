@@ -259,6 +259,7 @@ export function buildConversation(
     profileId: PROFILE_ID,
     title: 'New conversation',
     menuId: null,
+    menuRequest: null,
     createdAt: CREATED_AT,
     updatedAt: UPDATED_AT,
   };

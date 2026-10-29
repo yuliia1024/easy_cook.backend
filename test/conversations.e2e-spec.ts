@@ -6,7 +6,9 @@ import {
   ASSISTANT_UNAVAILABLE_REPLY,
   ChatErrorCode,
   CLARIFICATION_REPLY,
+  DietTag,
   Intent,
+  MealType,
   MenuIssueCode,
   MenuIssueSeverity,
   NO_MENU_RECIPES_REPLY,
@@ -332,12 +334,95 @@ describe('/api/conversations (e2e)', () => {
     expect(chunks).toContainEqual(
       expect.objectContaining({
         type: 'data-clarification',
-        data: { missingFields: ['days', 'meals'] },
+        data: { missingFields: ['days', 'mealTypes'] },
       }),
     );
     expect(fakeOpenAiState.streamTextCalls).toBe(0);
     expect(await ctx.prisma.menu.count()).toBe(0);
   });
+
+  const storedMenuRequest = async (id: string): Promise<unknown> =>
+    (await ctx.prisma.conversation.findUniqueOrThrow({ where: { id } })).menuRequest;
+  const menuRequest = {
+    days: null,
+    mealTypes: [],
+    caloriesKcal: null,
+    diets: [],
+    excludedIngredients: [],
+    dislikedFoods: [],
+  };
+
+  it('keeps the answer to a clarification in the conversation for later requests', async () => {
+    const { recipe } = await createMenuWorld(ctx);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.Clarification;
+    await say(id, 'Make a menu');
+    expect(await storedMenuRequest(id)).toBeNull();
+
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuRequest = {
+      ...menuRequest,
+      days: 3,
+      mealTypes: [MealType.Breakfast, MealType.Dinner],
+      excludedIngredients: ['mushrooms'],
+    };
+    fakeOpenAiState.menuPlan = {
+      message: 'Here is your day.',
+      breakfast: recipe.oats,
+      lunch: recipe.chicken,
+      dinner: recipe.bowl,
+    };
+    await say(id, '3 days, breakfast and dinner, no mushrooms');
+    expect(await storedMenuRequest(id)).toEqual(fakeOpenAiState.menuRequest);
+
+    fakeOpenAiState.menuRequest = { ...menuRequest, diets: [DietTag.Vegetarian] };
+    await say(id, 'regenerate it vegetarian');
+    expect(await storedMenuRequest(id)).toEqual({
+      ...menuRequest,
+      days: 3,
+      mealTypes: [MealType.Breakfast, MealType.Dinner],
+      diets: [DietTag.Vegetarian],
+      excludedIngredients: ['mushrooms'],
+    });
+
+    fakeOpenAiState.intent = Intent.Clarification;
+    fakeOpenAiState.menuRequest = null;
+    fakeOpenAiState.structuredInputs = [];
+    const { chunks } = await say(id, 'and another one');
+    expect(chunks.some((chunk) => chunk.type === 'data-clarification')).toBe(false);
+    expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(true);
+    const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+    expect(JSON.parse(planned[0].content).request).toBe(
+      'Plan a 3-day menu with breakfast, dinner that is vegetarian without mushrooms.',
+    );
+  });
+
+  it.each([
+    [10, 7, 'I can plan a menu for up to 7 days, not 10. Shall I make a 7-day menu?'],
+    [0, 1, 'A menu needs at least 1 day. Shall I make a 1-day menu?'],
+    [-3, 1, 'A menu needs at least 1 day. Shall I make a 1-day menu?'],
+  ])(
+    'answers a menu for %i days with an offer of %i instead of cutting it silently',
+    async (requested, offered, reply) => {
+      await createMenuWorld(ctx);
+      const id = await start();
+      fakeOpenAiState.intent = Intent.GenerateMenu;
+      fakeOpenAiState.menuRequest = { ...menuRequest, days: requested };
+
+      const { chunks } = await say(id, `A menu for ${requested} days`);
+
+      expect(textOf(chunks)).toBe(reply);
+      expect(chunks).toContainEqual(
+        expect.objectContaining({ type: 'data-clarification', data: { missingFields: ['days'] } }),
+      );
+      expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(false);
+      expect(await savedMessages(id)).toEqual([
+        { role: 'user', content: `A menu for ${requested} days` },
+        { role: 'assistant', content: reply },
+      ]);
+      expect(await storedMenuRequest(id)).toEqual({ ...menuRequest, days: offered });
+    },
+  );
 
   it('reports a failed classification as an error and saves no reply', async () => {
     await createMenuWorld(ctx);
