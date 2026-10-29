@@ -66,7 +66,17 @@ function overlay(base: MenuRequest, top: MenuRequest): MenuRequest {
 /**
  * Brings the menu request together: the profile, then what the chat gathered so far, then the
  * latest message, each winning over the one before where it has a value. Null and empty lists
- * are what nobody said, so they never clear an earlier value. Days outside
+ * are what nobody said, so they never clear an earlier value. A list the message gives replaces
+ * the earlier one as a whole (the classifier restates every detail of the conversation).
+ *
+ // TODO:
+ * Known limitation: a detail cannot be taken back as a whole within the chat. "Mushrooms are fine
+ * now" after "no mushrooms" gives an empty `excludedIngredients`, which keeps the mushrooms; only
+ * a shorter non-empty list ("no onions" instead of "no mushrooms, no onions") or a new
+ * conversation drops them. A `withdrawn` field in the classifier output fixed it, but cost the
+ * intent eval about 5 points on the other cases (gpt-4o-mini, 2026-10-29), so it was not kept.
+ *
+ * Days outside
  * `MENU_MIN_DAYS`..`MENU_MAX_DAYS` are not cut silently: they become the nearest allowed number
  * and are reported in `daysOutOfRange`. Pure.
  */
