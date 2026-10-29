@@ -62,7 +62,10 @@ export const daysOutOfRangeReply = (requested: number, offered: number): string 
     ? `I can plan a menu for up to ${offered} days, not ${requested}. Shall I make a ${offered}-day menu?`
     : `A menu needs at least ${offered} day. Shall I make a ${offered}-day menu?`;
 export const NO_MENU_RECIPES_REPLY =
-  'I could not find recipes that fit your preferences for breakfast, lunch and dinner. Add more recipes or adjust your preferences and try again.';
+  'I could not find recipes that fit your preferences for breakfast, lunch, a snack and dinner. Add more recipes or adjust your preferences and try again.';
+/** Sent when every attempt of the planner gave a menu that breaks the rules. */
+export const MENU_PLAN_FAILED_REPLY =
+  'Sorry, I could not put together a menu that fits your request and preferences. Please try again or change the request.';
 export const NO_PROFILE_REPLY =
   'Please fill in your profile first, so I can plan a menu for your goal and preferences.';
 /** Sent instead of the error itself, which never reaches the client. */

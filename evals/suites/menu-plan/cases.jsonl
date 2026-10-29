@@ -1,0 +1,13 @@
+{"id": "days-1-basic", "tags": ["days-1"], "request": "Plan a 1-day menu with breakfast, lunch, snack, dinner.", "days": 1}
+{"id": "days-1-vegetarian", "tags": ["days-1", "vegetarian"], "profile": "vegetarian", "request": "Plan a 1-day menu with breakfast, lunch, snack, dinner that is vegetarian.", "days": 1, "rotation": 3}
+{"id": "days-2-basic", "tags": ["days-2"], "request": "Plan a 2-day menu with breakfast, lunch, snack, dinner of about 1800 kcal a day.", "days": 2}
+{"id": "days-3-basic", "tags": ["days-3"], "request": "Plan a 3-day menu with breakfast, lunch, snack, dinner.", "days": 3}
+{"id": "days-3-vegetarian", "tags": ["days-3", "vegetarian"], "profile": "vegetarian", "request": "Plan a 3-day menu with breakfast, lunch, snack, dinner that is vegetarian.", "days": 3}
+{"id": "days-3-rotated", "tags": ["days-3"], "request": "Plan a 3-day menu with breakfast, lunch, snack, dinner without mushrooms.", "days": 3, "rotation": 7}
+{"id": "days-4-basic", "tags": ["days-4"], "request": "Plan a 4-day menu with breakfast, lunch, snack, dinner.", "days": 4, "rotation": 2}
+{"id": "days-5-basic", "tags": ["days-5"], "request": "Plan a 5-day menu with breakfast, lunch, snack, dinner that is high protein.", "days": 5}
+{"id": "days-5-vegetarian", "tags": ["days-5", "vegetarian"], "profile": "vegetarian", "request": "Plan a 5-day menu with breakfast, lunch, snack, dinner that is vegetarian.", "days": 5, "rotation": 4}
+{"id": "days-6-basic", "tags": ["days-6"], "request": "Plan a 6-day menu with breakfast, lunch, snack, dinner.", "days": 6, "rotation": 5}
+{"id": "days-7-basic", "tags": ["days-7"], "request": "Plan a 7-day menu with breakfast, lunch, snack, dinner.", "days": 7}
+{"id": "days-7-vegetarian", "tags": ["days-7", "vegetarian"], "profile": "vegetarian", "request": "Plan a 7-day menu with breakfast, lunch, snack, dinner that is vegetarian.", "days": 7}
+{"id": "days-7-rotated", "tags": ["days-7"], "request": "Plan a 7-day menu with breakfast, lunch, snack, dinner of about 2200 kcal a day avoiding fish.", "days": 7, "rotation": 11}

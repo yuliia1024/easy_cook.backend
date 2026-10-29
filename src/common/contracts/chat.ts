@@ -55,14 +55,23 @@ export const IntentResultSchema = z.object({
 export type IntentResult = z.infer<typeof IntentResultSchema>;
 
 /**
- * What `MenuPlannerService` accepts from the model: a recipe id for each meal of the day, checked
- * against the recipes of that meal afterwards.
+ * What `MenuPlannerService` accepts from the model: a recipe id for each meal of every day, checked
+ * afterwards against the candidates of that meal and against the number of days requested
+ * (`resolvePlanDays`). Each day carries its `dayIndex` (0 for the first day).
  */
 export const MenuPlanSchema = z.object({
   message: z.string(),
-  breakfast: z.string(),
-  lunch: z.string(),
-  dinner: z.string(),
+  days: z.array(
+    z.object({
+      dayIndex: z.number().int(),
+      meals: z.object({
+        breakfast: z.string(),
+        lunch: z.string(),
+        snack: z.string(),
+        dinner: z.string(),
+      }),
+    }),
+  ),
 });
 
 export type MenuPlan = z.infer<typeof MenuPlanSchema>;

@@ -10,6 +10,7 @@ import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
 } from '../src/common/exceptions';
+import { MenuPlanCandidates } from '../src/modules/services/menu/menu-plan';
 import { OpenAiService } from '../src/providers/open-ai/open-ai.service';
 import { PrismaService } from '../src/providers/prisma/prisma.service';
 
@@ -20,14 +21,14 @@ export const FAKE_OPEN_AI_DELTAS = ['Day 1: ', 'oatmeal'];
  * What the fake model answers. `intent` is the classification: an intent, `'unavailable'` to fail
  * like a broken API or `'invalid'` like output that does not match the schema; it fails the menu
  * plan the same way; `request` is the menu request it restates and `menuRequest` its fields. `menuPlan` is the answer to any
- * other structured call. `structuredInputs` records what each structured call was given. Set them in
+ * other structured call, made from the candidates the planner sent (`fakeMenuPlan`). `structuredInputs` records what each structured call was given. Set them in
  * a test; `resetFakeOpenAi()` restores `general_chat` and no plan.
  */
 export const fakeOpenAiState: {
   intent: Intent | 'unavailable' | 'invalid';
   request: string | null;
   menuRequest: MenuRequest | null;
-  menuPlan: MenuPlan | null;
+  menuPlan: FakeMenuPlan | null;
   streamTextCalls: number;
   structuredInputs: unknown[];
 } = {
@@ -38,6 +39,36 @@ export const fakeOpenAiState: {
   streamTextCalls: 0,
   structuredInputs: [],
 };
+
+type FakeMenuPlan = (recipes: MenuPlanCandidates) => MenuPlan;
+type PlannedMeals = MenuPlan['days'][number]['meals'];
+
+/**
+ * A plan with the same meals on each of `days` days, the meals given by recipe name (the snack is
+ * the `Oat snack` of `createMenuWorld` unless named): each becomes the short id the planner sent
+ * for it, or stays the name when it sent none.
+ */
+export const fakeMenuPlan =
+  (
+    message: string,
+    named: Omit<PlannedMeals, 'snack'> & { snack?: string },
+    days = 1,
+  ): FakeMenuPlan =>
+  (recipes) => {
+    const meals: PlannedMeals = { snack: 'Oat snack', ...named };
+    const idOf = (mealType: keyof PlannedMeals): string =>
+      recipes[mealType].find(({ name }) => name === meals[mealType])?.id ?? meals[mealType];
+    const ids: PlannedMeals = {
+      breakfast: idOf('breakfast'),
+      lunch: idOf('lunch'),
+      dinner: idOf('dinner'),
+      snack: idOf('snack'),
+    };
+    return {
+      message,
+      days: Array.from({ length: days }, (_, dayIndex) => ({ dayIndex, meals: ids })),
+    };
+  };
 
 export function resetFakeOpenAi(): void {
   fakeOpenAiState.intent = Intent.GeneralChat;
@@ -65,7 +96,8 @@ const fakeOpenAi: Pick<OpenAiService, 'streamText' | 'generateStructured'> = {
       if (!fakeOpenAiState.menuPlan) {
         throw new AssistantInvalidOutputException();
       }
-      return fakeOpenAiState.menuPlan as T;
+      const [sent] = input as Array<{ content: string }>;
+      return fakeOpenAiState.menuPlan(JSON.parse(sent.content).recipes) as T;
     }
     return {
       intent: fakeOpenAiState.intent,

@@ -20,7 +20,7 @@ export interface MenuDayBody {
 
 export interface MenuWorld {
   /** Recipe ids by key. */
-  recipe: Record<'oats' | 'chicken' | 'bowl' | 'satay', string>;
+  recipe: Record<'oats' | 'chicken' | 'bowl' | 'satay' | 'snack', string>;
 }
 
 /**
@@ -96,6 +96,7 @@ export async function createMenuWorld(
         ],
       ),
       bowl: await recipe('Rice bowl', 'dinner', ['vegan'], [[rice, 400]]),
+      snack: await recipe('Oat snack', 'snack', ['vegan'], [[oats, 30]]),
       satay: await recipe(
         'Peanut satay',
         'dinner',

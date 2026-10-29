@@ -1,0 +1,2483 @@
+{
+  "$comment": "The breakfast, lunch, dinner and snack recipes of data/seed with the calories and macros of a serving (optional ingredients left out), as MenuPlannerService computes them. Dumped from a seeded database; refresh when the seed recipes change.",
+  "recipes": [
+    {
+      "id": "7d727c1b-6673-4387-b108-24fe9a807db6",
+      "name": "Apple cinnamon quinoa porridge",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 339,
+        "proteinG": 10,
+        "fatG": 12,
+        "carbsG": 51
+      },
+      "complete": true
+    },
+    {
+      "id": "670f884f-f32f-4abd-832d-2a99c76b76ad",
+      "name": "Avocado toast with poached egg",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 347,
+        "proteinG": 16,
+        "fatG": 17,
+        "carbsG": 34
+      },
+      "complete": true
+    },
+    {
+      "id": "0d2bf7e3-3972-48df-9888-dd2ae1807a54",
+      "name": "Baked oatmeal with berries",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 293,
+        "proteinG": 11,
+        "fatG": 6,
+        "carbsG": 51
+      },
+      "complete": true
+    },
+    {
+      "id": "8e985754-6c79-4c46-b169-8231f2b11dc7",
+      "name": "Banana oat pancakes",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 406,
+        "proteinG": 18,
+        "fatG": 11,
+        "carbsG": 63
+      },
+      "complete": true
+    },
+    {
+      "id": "7be83013-fe62-48ce-add7-d91a78fe6569",
+      "name": "Berry smoothie bowl",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 266,
+        "proteinG": 8,
+        "fatG": 8,
+        "carbsG": 45
+      },
+      "complete": true
+    },
+    {
+      "id": "b76e5d8b-33c1-471b-aae9-2501dc5f783c",
+      "name": "Breakfast burrito with beans",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 445,
+        "proteinG": 23,
+        "fatG": 18,
+        "carbsG": 47
+      },
+      "complete": true
+    },
+    {
+      "id": "a450107c-db0d-43cb-ad46-02ca4118f38d",
+      "name": "Breakfast tacos with eggs and black beans",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 397,
+        "proteinG": 21,
+        "fatG": 17,
+        "carbsG": 43
+      },
+      "complete": true
+    },
+    {
+      "id": "4aff21b8-5615-4921-8baf-6a269f44aa2d",
+      "name": "Buckwheat porridge with milk and apple",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 240,
+        "proteinG": 10,
+        "fatG": 4,
+        "carbsG": 45
+      },
+      "complete": true
+    },
+    {
+      "id": "3ac353a5-ad09-4930-b17b-a3fee563f1d1",
+      "name": "Chia pudding with mango",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 206,
+        "proteinG": 5,
+        "fatG": 9,
+        "carbsG": 29
+      },
+      "complete": true
+    },
+    {
+      "id": "30ba9e01-ab60-4ee4-a8ab-ce380b386e9b",
+      "name": "Coconut rice pudding with mango",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 251,
+        "proteinG": 4,
+        "fatG": 12,
+        "carbsG": 34
+      },
+      "complete": true
+    },
+    {
+      "id": "acb4d7d7-81a9-4fef-8cbf-cb65a77c2cb5",
+      "name": "Cornmeal porridge with feta",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 239,
+        "proteinG": 7,
+        "fatG": 10,
+        "carbsG": 32
+      },
+      "complete": true
+    },
+    {
+      "id": "77cb7481-a10f-4ce2-a957-ec30adf1785f",
+      "name": "Cottage cheese casserole with raisins",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 279,
+        "proteinG": 19,
+        "fatG": 11,
+        "carbsG": 26
+      },
+      "complete": true
+    },
+    {
+      "id": "fa43e587-276b-4858-941f-c820afc7291e",
+      "name": "Cottage cheese pancakes",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 307,
+        "proteinG": 19,
+        "fatG": 14,
+        "carbsG": 25
+      },
+      "complete": true
+    },
+    {
+      "id": "18ad0c73-fdc7-4af8-8aa8-dfcb15c030c4",
+      "name": "Cottage cheese with blueberries and flax",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 295,
+        "proteinG": 25,
+        "fatG": 13,
+        "carbsG": 21
+      },
+      "complete": true
+    },
+    {
+      "id": "927c3324-594c-4855-8913-c6976db96958",
+      "name": "Crepes with mushrooms and cheese",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 297,
+        "proteinG": 15,
+        "fatG": 13,
+        "carbsG": 31
+      },
+      "complete": true
+    },
+    {
+      "id": "917f0fec-e9de-455f-9323-89476e1ec533",
+      "name": "Egg and avocado breakfast salad",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 324,
+        "proteinG": 15,
+        "fatG": 25,
+        "carbsG": 11
+      },
+      "complete": true
+    },
+    {
+      "id": "68c021e6-4afc-4000-bfff-ccf7497d5ad6",
+      "name": "Egg white omelette with vegetables",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 267,
+        "proteinG": 31,
+        "fatG": 12,
+        "carbsG": 8
+      },
+      "complete": true
+    },
+    {
+      "id": "9cfdffb8-f8f1-4f86-a08a-f5115c43c2dc",
+      "name": "Greek yogurt parfait with berries",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 305,
+        "proteinG": 26,
+        "fatG": 7,
+        "carbsG": 36
+      },
+      "complete": true
+    },
+    {
+      "id": "f1b85043-19f4-4cb3-b9f0-80127e11df9f",
+      "name": "Greek yogurt with homemade granola and kiwi",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 368,
+        "proteinG": 22,
+        "fatG": 13,
+        "carbsG": 45
+      },
+      "complete": true
+    },
+    {
+      "id": "78ddf387-d639-45f0-9215-2add34621de3",
+      "name": "Ham and cheese omelette",
+      "mealType": "breakfast",
+      "dietType": [
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 474,
+        "proteinG": 40,
+        "fatG": 33,
+        "carbsG": 3
+      },
+      "complete": true
+    },
+    {
+      "id": "329b2407-8095-4633-bd23-4e3f90574a70",
+      "name": "Lazy varenyky",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 239,
+        "proteinG": 15,
+        "fatG": 8,
+        "carbsG": 26
+      },
+      "complete": true
+    },
+    {
+      "id": "bdae0b06-1dd2-4f58-87bb-6e3068567dce",
+      "name": "Oat bran porridge with blackberries",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 175,
+        "proteinG": 11,
+        "fatG": 5,
+        "carbsG": 33
+      },
+      "complete": true
+    },
+    {
+      "id": "a6f92937-21c5-495d-a371-a92c7a31464c",
+      "name": "Oatmeal with banana and blueberries",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 303,
+        "proteinG": 11,
+        "fatG": 6,
+        "carbsG": 54
+      },
+      "complete": true
+    },
+    {
+      "id": "7cdf2dc3-ae20-46e2-a814-4c7f795b8d29",
+      "name": "Oatmeal with pumpkin and cinnamon",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 297,
+        "proteinG": 12,
+        "fatG": 11,
+        "carbsG": 41
+      },
+      "complete": true
+    },
+    {
+      "id": "4379c154-bcb3-4688-aa54-729189f1e941",
+      "name": "Peanut butter overnight oats",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 398,
+        "proteinG": 19,
+        "fatG": 14,
+        "carbsG": 53
+      },
+      "complete": true
+    },
+    {
+      "id": "5fc6031a-206f-485d-8852-f4bfab225507",
+      "name": "Pita with eggs and vegetables",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 308,
+        "proteinG": 17,
+        "fatG": 8,
+        "carbsG": 40
+      },
+      "complete": true
+    },
+    {
+      "id": "b066b661-d4ad-415b-aae4-eb87b60d453f",
+      "name": "Quinoa breakfast bowl with berries",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 368,
+        "proteinG": 12,
+        "fatG": 10,
+        "carbsG": 60
+      },
+      "complete": true
+    },
+    {
+      "id": "f297bb3a-21a4-4835-8c6d-e2cbb65963cd",
+      "name": "Rice porridge with butternut squash",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 260,
+        "proteinG": 8,
+        "fatG": 6,
+        "carbsG": 46
+      },
+      "complete": true
+    },
+    {
+      "id": "7ffa94ff-d932-4768-a560-7d6c205744db",
+      "name": "Rye toast with smoked salmon",
+      "mealType": "breakfast",
+      "dietType": [
+        "pescatarian"
+      ],
+      "perServing": {
+        "kcal": 253,
+        "proteinG": 13,
+        "fatG": 10,
+        "carbsG": 27
+      },
+      "complete": true
+    },
+    {
+      "id": "914c5036-032c-4edc-92fd-1f7a4dfb3c84",
+      "name": "Shakshuka",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 265,
+        "proteinG": 16,
+        "fatG": 16,
+        "carbsG": 17
+      },
+      "complete": true
+    },
+    {
+      "id": "60e7ebef-25c5-49ee-b728-bc3db320ee0d",
+      "name": "Sourdough toast with sardines and tomato",
+      "mealType": "breakfast",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 287,
+        "proteinG": 20,
+        "fatG": 7,
+        "carbsG": 35
+      },
+      "complete": true
+    },
+    {
+      "id": "69f769ff-630e-4b3e-839a-b91fdfc30084",
+      "name": "Spinach and feta omelette",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 428,
+        "proteinG": 35,
+        "fatG": 29,
+        "carbsG": 7
+      },
+      "complete": true
+    },
+    {
+      "id": "c9a8fc52-b72d-435c-85ad-b64c4ead3303",
+      "name": "Spinach and goat cheese egg muffins",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 194,
+        "proteinG": 16,
+        "fatG": 13,
+        "carbsG": 3
+      },
+      "complete": true
+    },
+    {
+      "id": "8822d1a2-0cb2-4e9b-a6e2-b8f166c0d211",
+      "name": "Spinach and tomato omelette",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 341,
+        "proteinG": 23,
+        "fatG": 24,
+        "carbsG": 9
+      },
+      "complete": true
+    },
+    {
+      "id": "7df09f77-a15c-4a52-ba14-3a6761b9c353",
+      "name": "Sweet potato hash with eggs",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 398,
+        "proteinG": 17,
+        "fatG": 18,
+        "carbsG": 43
+      },
+      "complete": true
+    },
+    {
+      "id": "268bb1c3-ef1f-459d-ad08-11fe575983bd",
+      "name": "Tahini toast with banana",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 321,
+        "proteinG": 11,
+        "fatG": 11,
+        "carbsG": 47
+      },
+      "complete": true
+    },
+    {
+      "id": "ee26c104-7222-4f9c-9627-496774416c92",
+      "name": "Tofu scramble with spinach and pepper",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 296,
+        "proteinG": 28,
+        "fatG": 18,
+        "carbsG": 11
+      },
+      "complete": true
+    },
+    {
+      "id": "f8a67c90-4bfa-4fbc-bf02-77153eb1f556",
+      "name": "Turkey and egg muffins",
+      "mealType": "breakfast",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 254,
+        "proteinG": 26,
+        "fatG": 15,
+        "carbsG": 3
+      },
+      "complete": true
+    },
+    {
+      "id": "f0a607d4-8d85-4d6d-bdf5-94f9f2836855",
+      "name": "Turkey sausage and potato skillet",
+      "mealType": "breakfast",
+      "dietType": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 262,
+        "proteinG": 14,
+        "fatG": 10,
+        "carbsG": 28
+      },
+      "complete": true
+    },
+    {
+      "id": "79072871-6f92-4e0e-a696-16d45ceaa3b2",
+      "name": "Vegetable frittata",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 253,
+        "proteinG": 17,
+        "fatG": 18,
+        "carbsG": 6
+      },
+      "complete": true
+    },
+    {
+      "id": "c55a487f-4806-4799-8fec-4e5eff2efecd",
+      "name": "Whole wheat buttermilk pancakes",
+      "mealType": "breakfast",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 260,
+        "proteinG": 12,
+        "fatG": 6,
+        "carbsG": 40
+      },
+      "complete": true
+    },
+    {
+      "id": "dab62926-5f8d-4842-826c-2b523cb441e1",
+      "name": "Baked flounder with potatoes and dill",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 299,
+        "proteinG": 22,
+        "fatG": 9,
+        "carbsG": 32
+      },
+      "complete": true
+    },
+    {
+      "id": "2cd46625-be47-41a6-aaac-584c4d1e1412",
+      "name": "Baked salmon with sweet potato and broccoli",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 384,
+        "proteinG": 25,
+        "fatG": 19,
+        "carbsG": 29
+      },
+      "complete": true
+    },
+    {
+      "id": "d2de39a5-f815-4577-8f93-5a64a1cca38e",
+      "name": "Beef and bean chili",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 287,
+        "proteinG": 24,
+        "fatG": 11,
+        "carbsG": 23
+      },
+      "complete": true
+    },
+    {
+      "id": "dd823f29-2d10-44a5-b612-d7fa52198e07",
+      "name": "Beef stew with root vegetables",
+      "mealType": "dinner",
+      "dietType": [
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 324,
+        "proteinG": 30,
+        "fatG": 9,
+        "carbsG": 31
+      },
+      "complete": true
+    },
+    {
+      "id": "c3e7cd96-2c1c-4590-b7d6-dc8dbaf70c0f",
+      "name": "Beef stir-fry with rice noodles",
+      "mealType": "dinner",
+      "dietType": [
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 430,
+        "proteinG": 29,
+        "fatG": 12,
+        "carbsG": 52
+      },
+      "complete": true
+    },
+    {
+      "id": "563fa965-e172-4432-be34-59dccea63d34",
+      "name": "Black bean burgers with sweet potato wedges",
+      "mealType": "dinner",
+      "dietType": [
+        "vegetarian",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 371,
+        "proteinG": 14,
+        "fatG": 10,
+        "carbsG": 59
+      },
+      "complete": true
+    },
+    {
+      "id": "f96ae92e-1d7b-4a3b-919b-5945cec07e85",
+      "name": "Buckwheat with chicken and mushrooms",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 403,
+        "proteinG": 34,
+        "fatG": 9,
+        "carbsG": 51
+      },
+      "complete": true
+    },
+    {
+      "id": "540823c2-1081-4005-9202-e027f262ffe9",
+      "name": "Chicken curry with brown rice",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 418,
+        "proteinG": 34,
+        "fatG": 9,
+        "carbsG": 50
+      },
+      "complete": true
+    },
+    {
+      "id": "1ad3899e-9f83-4eac-a54c-36db6d49119b",
+      "name": "Chicken fajitas",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 368,
+        "proteinG": 34,
+        "fatG": 9,
+        "carbsG": 38
+      },
+      "complete": true
+    },
+    {
+      "id": "f0f69b95-6eb8-4143-a572-a800466595a3",
+      "name": "Chicken meatballs with zucchini noodles",
+      "mealType": "dinner",
+      "dietType": [
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 362,
+        "proteinG": 31,
+        "fatG": 18,
+        "carbsG": 21
+      },
+      "complete": true
+    },
+    {
+      "id": "5e1945bc-12d0-4f3d-932a-c59e48e6343e",
+      "name": "Chicken roll with ricotta and Brussels sprouts",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 327,
+        "proteinG": 41,
+        "fatG": 12,
+        "carbsG": 13
+      },
+      "complete": true
+    },
+    {
+      "id": "b44956fb-aaad-4c56-b446-99bf9a475442",
+      "name": "Chicken thighs with roasted vegetables",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 425,
+        "proteinG": 32,
+        "fatG": 17,
+        "carbsG": 36
+      },
+      "complete": true
+    },
+    {
+      "id": "0d053c88-55c4-40b0-bd63-80fd7f8f4f39",
+      "name": "Coconut tofu curry with rice",
+      "mealType": "dinner",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 470,
+        "proteinG": 20,
+        "fatG": 23,
+        "carbsG": 51
+      },
+      "complete": true
+    },
+    {
+      "id": "e9eacf9f-14f5-464b-aa46-70e79a192d9b",
+      "name": "Eggplant and chickpea stew with couscous",
+      "mealType": "dinner",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 418,
+        "proteinG": 16,
+        "fatG": 8,
+        "carbsG": 73
+      },
+      "complete": true
+    },
+    {
+      "id": "eb0acaa4-232e-4322-bf96-28e710ec5353",
+      "name": "Flank steak with chimichurri and potatoes",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 463,
+        "proteinG": 36,
+        "fatG": 21,
+        "carbsG": 32
+      },
+      "complete": true
+    },
+    {
+      "id": "3d7cec3c-3c6d-45b6-84ab-704195f017bb",
+      "name": "Garlic chicken drumsticks with buckwheat",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 446,
+        "proteinG": 33,
+        "fatG": 19,
+        "carbsG": 38
+      },
+      "complete": true
+    },
+    {
+      "id": "3e6b40f6-dbb2-4f1d-a4de-d51c5f24bc94",
+      "name": "Garlic shrimp with cauliflower rice",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 214,
+        "proteinG": 30,
+        "fatG": 7,
+        "carbsG": 11
+      },
+      "complete": true
+    },
+    {
+      "id": "c5ce4bb5-3b2f-4e18-90a7-e26638ce6392",
+      "name": "Haddock with mashed potato and peas",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 379,
+        "proteinG": 34,
+        "fatG": 6,
+        "carbsG": 47
+      },
+      "complete": true
+    },
+    {
+      "id": "ecfc505d-1d87-44b5-b043-e7d93b96a462",
+      "name": "Halibut with fennel and orange",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 243,
+        "proteinG": 29,
+        "fatG": 8,
+        "carbsG": 12
+      },
+      "complete": true
+    },
+    {
+      "id": "070f6250-5011-42f9-9417-af79831205ef",
+      "name": "Lamb and white bean stew",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 390,
+        "proteinG": 26,
+        "fatG": 21,
+        "carbsG": 25
+      },
+      "complete": true
+    },
+    {
+      "id": "ff2d8b53-c8c1-4c9d-8f81-5d4c93d6ceca",
+      "name": "Lentil shepherd's pie",
+      "mealType": "dinner",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 357,
+        "proteinG": 16,
+        "fatG": 6,
+        "carbsG": 64
+      },
+      "complete": true
+    },
+    {
+      "id": "a51a381c-27a2-43e3-843f-abe07b5bb087",
+      "name": "Mediterranean baked cod",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 207,
+        "proteinG": 28,
+        "fatG": 7,
+        "carbsG": 8
+      },
+      "complete": true
+    },
+    {
+      "id": "b9548caa-0de3-41ba-8d0c-b0e253cff148",
+      "name": "Mushroom barley risotto",
+      "mealType": "dinner",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 383,
+        "proteinG": 15,
+        "fatG": 9,
+        "carbsG": 65
+      },
+      "complete": true
+    },
+    {
+      "id": "98c6179b-ce1a-46cf-9bac-b7e2e8f65966",
+      "name": "Mussels in tomato and garlic sauce",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 309,
+        "proteinG": 22,
+        "fatG": 8,
+        "carbsG": 38
+      },
+      "complete": true
+    },
+    {
+      "id": "6bc0ce53-0657-48b9-8c7b-fe02be0a9345",
+      "name": "Pasta with beef and mushrooms",
+      "mealType": "dinner",
+      "dietType": [
+        "high_protein",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 542,
+        "proteinG": 33,
+        "fatG": 15,
+        "carbsG": 68
+      },
+      "complete": true
+    },
+    {
+      "id": "c1f1737b-f947-4830-aa0d-c4dbbfce811c",
+      "name": "Pasta with turkey bolognese",
+      "mealType": "dinner",
+      "dietType": [],
+      "perServing": {
+        "kcal": 406,
+        "proteinG": 25,
+        "fatG": 10,
+        "carbsG": 53
+      },
+      "complete": true
+    },
+    {
+      "id": "11259afb-6f5c-4c1a-a60d-caf2e73f90c8",
+      "name": "Pork and green bean stir-fry",
+      "mealType": "dinner",
+      "dietType": [
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 553,
+        "proteinG": 24,
+        "fatG": 25,
+        "carbsG": 58
+      },
+      "complete": true
+    },
+    {
+      "id": "f845d830-aea1-4439-acb1-d36159b3c1c4",
+      "name": "Pork tenderloin with apples and red cabbage",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 301,
+        "proteinG": 33,
+        "fatG": 9,
+        "carbsG": 21
+      },
+      "complete": true
+    },
+    {
+      "id": "70e4ac25-2046-4b2a-9dc5-c2f2b4e058c9",
+      "name": "Pork with braised cabbage",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 248,
+        "proteinG": 29,
+        "fatG": 8,
+        "carbsG": 15
+      },
+      "complete": true
+    },
+    {
+      "id": "466f4044-c862-42f4-905b-2173ffb2c846",
+      "name": "Salmon with rice and bell pepper",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 655,
+        "proteinG": 37,
+        "fatG": 26,
+        "carbsG": 65
+      },
+      "complete": true
+    },
+    {
+      "id": "da8899c7-0fb6-4f5a-a763-cbf387fd7149",
+      "name": "Seafood paella",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 389,
+        "proteinG": 28,
+        "fatG": 7,
+        "carbsG": 53
+      },
+      "complete": true
+    },
+    {
+      "id": "d7f81578-1026-4173-ba02-1466b1d7db79",
+      "name": "Stuffed portobello mushrooms with quinoa",
+      "mealType": "dinner",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 366,
+        "proteinG": 17,
+        "fatG": 17,
+        "carbsG": 41
+      },
+      "complete": true
+    },
+    {
+      "id": "57f7b09a-eb6f-447f-894f-c12c386a86e7",
+      "name": "Stuffed sweet potatoes with black beans",
+      "mealType": "dinner",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 348,
+        "proteinG": 17,
+        "fatG": 7,
+        "carbsG": 58
+      },
+      "complete": true
+    },
+    {
+      "id": "a83cf5a8-53cc-4aae-82dc-a42095bd0045",
+      "name": "Teriyaki salmon with rice and bok choy",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 501,
+        "proteinG": 32,
+        "fatG": 21,
+        "carbsG": 45
+      },
+      "complete": true
+    },
+    {
+      "id": "f9f4ffec-79d0-46b5-9215-802a6ff3a328",
+      "name": "Tilapia with bulgur and tomato salad",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 324,
+        "proteinG": 31,
+        "fatG": 8,
+        "carbsG": 35
+      },
+      "complete": true
+    },
+    {
+      "id": "003e41b9-be2e-40be-b7be-c4367d7aaed1",
+      "name": "Tofu and edamame stir-fry with brown rice",
+      "mealType": "dinner",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 446,
+        "proteinG": 29,
+        "fatG": 16,
+        "carbsG": 52
+      },
+      "complete": true
+    },
+    {
+      "id": "ec097806-5a16-40c2-b20a-5b7c43029bff",
+      "name": "Tofu with vegetables and rice",
+      "mealType": "dinner",
+      "dietType": [
+        "vegan",
+        "dairy_free",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 620,
+        "proteinG": 35,
+        "fatG": 22,
+        "carbsG": 77
+      },
+      "complete": true
+    },
+    {
+      "id": "f2958661-b421-4fc0-b7f6-667ccecc06ac",
+      "name": "Trout with quinoa and asparagus",
+      "mealType": "dinner",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 338,
+        "proteinG": 27,
+        "fatG": 12,
+        "carbsG": 29
+      },
+      "complete": true
+    },
+    {
+      "id": "9f9e08d3-c145-4517-b0b8-fe214ea7b36e",
+      "name": "Turkey stuffed peppers",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 314,
+        "proteinG": 24,
+        "fatG": 9,
+        "carbsG": 35
+      },
+      "complete": true
+    },
+    {
+      "id": "d82626b5-4ebc-43a5-8b56-b10f3f6e3ce6",
+      "name": "Turkey stuffed zucchini boats",
+      "mealType": "dinner",
+      "dietType": [
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 323,
+        "proteinG": 29,
+        "fatG": 17,
+        "carbsG": 16
+      },
+      "complete": true
+    },
+    {
+      "id": "4c0b0044-ec92-4f60-8cbe-343725b1cbb4",
+      "name": "Baked falafel in pita",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 475,
+        "proteinG": 18,
+        "fatG": 13,
+        "carbsG": 74
+      },
+      "complete": true
+    },
+    {
+      "id": "603b8328-c90c-4217-8310-38daa1e0c0e5",
+      "name": "Beef and rice noodle soup",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 346,
+        "proteinG": 26,
+        "fatG": 6,
+        "carbsG": 46
+      },
+      "complete": true
+    },
+    {
+      "id": "e864bed2-46f1-4583-931c-edc608a789c2",
+      "name": "Beef and vegetable soup",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 146,
+        "proteinG": 16,
+        "fatG": 3,
+        "carbsG": 14
+      },
+      "complete": true
+    },
+    {
+      "id": "5be74bc3-c41e-4864-8242-7ed95a4b0cce",
+      "name": "Beef stroganoff with buckwheat",
+      "mealType": "lunch",
+      "dietType": [],
+      "perServing": {
+        "kcal": 458,
+        "proteinG": 32,
+        "fatG": 19,
+        "carbsG": 44
+      },
+      "complete": true
+    },
+    {
+      "id": "61de7323-96e5-4c74-9f10-1c3000cba20c",
+      "name": "Butternut squash soup with coconut",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 204,
+        "proteinG": 5,
+        "fatG": 13,
+        "carbsG": 22
+      },
+      "complete": true
+    },
+    {
+      "id": "3b775b52-f78c-4105-8e5c-c84e9e0eca48",
+      "name": "Cabbage soup (shchi)",
+      "mealType": "lunch",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 96,
+        "proteinG": 2,
+        "fatG": 3,
+        "carbsG": 17
+      },
+      "complete": true
+    },
+    {
+      "id": "ccb0751a-5bd8-4f4b-93eb-bf9b1efdc2cc",
+      "name": "Chicken and vegetable wrap",
+      "mealType": "lunch",
+      "dietType": [],
+      "perServing": {
+        "kcal": 360,
+        "proteinG": 27,
+        "fatG": 10,
+        "carbsG": 39
+      },
+      "complete": true
+    },
+    {
+      "id": "e335d5af-c081-4d78-92b0-f4c08c51da9a",
+      "name": "Chicken burrito bowl",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 448,
+        "proteinG": 32,
+        "fatG": 12,
+        "carbsG": 55
+      },
+      "complete": true
+    },
+    {
+      "id": "6b6903e6-a8e6-46bf-a9af-d56adc9ca04e",
+      "name": "Chicken noodle soup",
+      "mealType": "lunch",
+      "dietType": [
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 200,
+        "proteinG": 19,
+        "fatG": 3,
+        "carbsG": 24
+      },
+      "complete": true
+    },
+    {
+      "id": "f149d5bc-01dc-4232-885a-05e1e4891b46",
+      "name": "Chicken pesto pasta",
+      "mealType": "lunch",
+      "dietType": [],
+      "perServing": {
+        "kcal": 417,
+        "proteinG": 28,
+        "fatG": 11,
+        "carbsG": 49
+      },
+      "complete": true
+    },
+    {
+      "id": "fcfd4bf2-7625-4f66-9594-3a6dc4b8426b",
+      "name": "Chicken plov",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 376,
+        "proteinG": 20,
+        "fatG": 11,
+        "carbsG": 47
+      },
+      "complete": true
+    },
+    {
+      "id": "b918cbc5-e7d7-481c-a8dd-b3e881224f7a",
+      "name": "Chicken quinoa salad",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 407,
+        "proteinG": 32,
+        "fatG": 16,
+        "carbsG": 33
+      },
+      "complete": true
+    },
+    {
+      "id": "61b461fb-328b-4f4d-82d1-48a5b929c2c0",
+      "name": "Chicken shawarma bowl",
+      "mealType": "lunch",
+      "dietType": [],
+      "perServing": {
+        "kcal": 464,
+        "proteinG": 33,
+        "fatG": 18,
+        "carbsG": 47
+      },
+      "complete": true
+    },
+    {
+      "id": "d01f9d73-f9d4-4e64-b50f-cc3a011c6588",
+      "name": "Chicken with buckwheat and broccoli",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 562,
+        "proteinG": 48,
+        "fatG": 15,
+        "carbsG": 65
+      },
+      "complete": true
+    },
+    {
+      "id": "a651c867-cbf5-4739-8efa-f09f0ba2fa68",
+      "name": "Chickpea and spinach curry with rice",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 517,
+        "proteinG": 15,
+        "fatG": 18,
+        "carbsG": 77
+      },
+      "complete": true
+    },
+    {
+      "id": "166999e9-1b42-4083-b205-c96370cbb32e",
+      "name": "Deruny (potato pancakes)",
+      "mealType": "lunch",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 381,
+        "proteinG": 8,
+        "fatG": 19,
+        "carbsG": 47
+      },
+      "complete": true
+    },
+    {
+      "id": "f940b403-39e9-4d9a-99f7-3e35e4824c4f",
+      "name": "Fish meatballs with couscous",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 308,
+        "proteinG": 26,
+        "fatG": 5,
+        "carbsG": 38
+      },
+      "complete": true
+    },
+    {
+      "id": "4b4f39be-7d52-4b6b-9802-f91e2e0a35bc",
+      "name": "Greek salad with chicken",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 363,
+        "proteinG": 30,
+        "fatG": 21,
+        "carbsG": 15
+      },
+      "complete": true
+    },
+    {
+      "id": "f033bbba-1a30-4c08-82be-e41ba499da6f",
+      "name": "Green pea soup with mint",
+      "mealType": "lunch",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 167,
+        "proteinG": 8,
+        "fatG": 3,
+        "carbsG": 28
+      },
+      "complete": true
+    },
+    {
+      "id": "d3df6fcc-d02d-458b-ba00-59929b3a25bc",
+      "name": "Green spinach soup with egg",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 124,
+        "proteinG": 9,
+        "fatG": 4,
+        "carbsG": 14
+      },
+      "complete": true
+    },
+    {
+      "id": "5c93be6b-cad9-4cac-8802-989e86c80725",
+      "name": "Holubtsi (cabbage rolls)",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 292,
+        "proteinG": 18,
+        "fatG": 12,
+        "carbsG": 29
+      },
+      "complete": true
+    },
+    {
+      "id": "2a928a33-4753-4796-a6e3-19cd3c4297c0",
+      "name": "Lentil and vegetable stew",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 270,
+        "proteinG": 15,
+        "fatG": 5,
+        "carbsG": 45
+      },
+      "complete": true
+    },
+    {
+      "id": "dced4a51-fa12-415a-87e0-eff8712c1206",
+      "name": "Light chicken caesar salad",
+      "mealType": "lunch",
+      "dietType": [
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 289,
+        "proteinG": 30,
+        "fatG": 12,
+        "carbsG": 14
+      },
+      "complete": true
+    },
+    {
+      "id": "0b050188-3069-4109-84b8-d98318dd3b44",
+      "name": "Mushroom and barley soup (krupnyk)",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 138,
+        "proteinG": 4,
+        "fatG": 3,
+        "carbsG": 25
+      },
+      "complete": true
+    },
+    {
+      "id": "3ef059f2-1368-46fb-83c4-0d2497482c9e",
+      "name": "Mushroom soup with potato",
+      "mealType": "lunch",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 172,
+        "proteinG": 9,
+        "fatG": 7,
+        "carbsG": 22
+      },
+      "complete": true
+    },
+    {
+      "id": "4bc8d35d-d030-4e9a-a07d-46a5fd7c925a",
+      "name": "Pasta primavera",
+      "mealType": "lunch",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 347,
+        "proteinG": 13,
+        "fatG": 9,
+        "carbsG": 55
+      },
+      "complete": true
+    },
+    {
+      "id": "4ab9b405-09fc-4ee1-87aa-c2024c1fd018",
+      "name": "Pork tenderloin with bulgur and green beans",
+      "mealType": "lunch",
+      "dietType": [
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 334,
+        "proteinG": 28,
+        "fatG": 8,
+        "carbsG": 40
+      },
+      "complete": true
+    },
+    {
+      "id": "a0dae36d-902d-4caa-8962-bfdf39237b64",
+      "name": "Quinoa tabbouleh with chickpeas",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 346,
+        "proteinG": 13,
+        "fatG": 11,
+        "carbsG": 51
+      },
+      "complete": true
+    },
+    {
+      "id": "a0806147-08fe-4092-8359-b31750f0c448",
+      "name": "Red lentil soup",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 291,
+        "proteinG": 14,
+        "fatG": 4,
+        "carbsG": 50
+      },
+      "complete": true
+    },
+    {
+      "id": "65df7fbe-a8c3-44e3-9f9a-1ffb8af10203",
+      "name": "Salmon poke bowl",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 530,
+        "proteinG": 30,
+        "fatG": 24,
+        "carbsG": 48
+      },
+      "complete": true
+    },
+    {
+      "id": "a28ffe6e-580c-4b5c-999b-45985ec8da40",
+      "name": "Shrimp fried rice",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 373,
+        "proteinG": 25,
+        "fatG": 8,
+        "carbsG": 49
+      },
+      "complete": true
+    },
+    {
+      "id": "ac30eff7-d000-45f8-ab32-f1ff8f6b4b12",
+      "name": "Teriyaki shrimp noodles",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 401,
+        "proteinG": 32,
+        "fatG": 6,
+        "carbsG": 55
+      },
+      "complete": true
+    },
+    {
+      "id": "787c6df7-4ea2-43c7-8713-330b1188520c",
+      "name": "Tuna and egg salad",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 251,
+        "proteinG": 27,
+        "fatG": 13,
+        "carbsG": 6
+      },
+      "complete": true
+    },
+    {
+      "id": "10dd784a-1067-4db6-8a5d-495fcbb624a4",
+      "name": "Tuna niçoise salad",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 340,
+        "proteinG": 29,
+        "fatG": 14,
+        "carbsG": 26
+      },
+      "complete": true
+    },
+    {
+      "id": "b9eb4500-0a36-4bf7-915a-89335e412bed",
+      "name": "Tuna pasta salad",
+      "mealType": "lunch",
+      "dietType": [
+        "pescatarian",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 338,
+        "proteinG": 23,
+        "fatG": 8,
+        "carbsG": 43
+      },
+      "complete": true
+    },
+    {
+      "id": "1ec42706-7ab4-4d03-b5bd-6ddb12a6108c",
+      "name": "Turkey meatballs in tomato sauce with buckwheat",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 417,
+        "proteinG": 34,
+        "fatG": 15,
+        "carbsG": 40
+      },
+      "complete": true
+    },
+    {
+      "id": "29a98170-d6a8-4058-ba3f-7ea5456cf0df",
+      "name": "Ukrainian borscht",
+      "mealType": "lunch",
+      "dietType": [
+        "gluten_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 151,
+        "proteinG": 13,
+        "fatG": 4,
+        "carbsG": 16
+      },
+      "complete": true
+    },
+    {
+      "id": "ab3d1452-661d-4797-9c7a-04af578f6113",
+      "name": "Varenyky with potato and fried onion",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 313,
+        "proteinG": 7,
+        "fatG": 6,
+        "carbsG": 58
+      },
+      "complete": true
+    },
+    {
+      "id": "30d2da7b-7858-404b-af00-c7fdc43a8438",
+      "name": "Vegetarian borscht",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 125,
+        "proteinG": 3,
+        "fatG": 4,
+        "carbsG": 22
+      },
+      "complete": true
+    },
+    {
+      "id": "34a686b8-4d64-474d-a8ed-cc56cf13e732",
+      "name": "White bean and kale soup",
+      "mealType": "lunch",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 144,
+        "proteinG": 7,
+        "fatG": 3,
+        "carbsG": 23
+      },
+      "complete": true
+    },
+    {
+      "id": "c2c7ec50-5fe8-41a2-b76c-eb6f09f40292",
+      "name": "Apple with peanut butter",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 273,
+        "proteinG": 7,
+        "fatG": 16,
+        "carbsG": 32
+      },
+      "complete": true
+    },
+    {
+      "id": "add891ce-8004-4d43-81f0-4e972ffd0642",
+      "name": "Baked apples with cottage cheese",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 140,
+        "proteinG": 6,
+        "fatG": 2,
+        "carbsG": 26
+      },
+      "complete": true
+    },
+    {
+      "id": "d8c6eea2-407f-4e15-b49e-2ea4006e2389",
+      "name": "Baked kale chips",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 103,
+        "proteinG": 3,
+        "fatG": 9,
+        "carbsG": 5
+      },
+      "complete": true
+    },
+    {
+      "id": "b9852003-2f30-4705-8406-19ef9aead49e",
+      "name": "Banana oat cookies",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 143,
+        "proteinG": 4,
+        "fatG": 4,
+        "carbsG": 25
+      },
+      "complete": true
+    },
+    {
+      "id": "24c08888-affc-47f1-9cba-a11b17b2e44b",
+      "name": "Boiled eggs with fresh vegetables",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 185,
+        "proteinG": 14,
+        "fatG": 10,
+        "carbsG": 10
+      },
+      "complete": true
+    },
+    {
+      "id": "1c5c0be6-a6f8-4af4-9ccf-9c2d14ce825a",
+      "name": "Celery with peanut butter and raisins",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 246,
+        "proteinG": 8,
+        "fatG": 16,
+        "carbsG": 24
+      },
+      "complete": true
+    },
+    {
+      "id": "ce60fb73-15f3-43db-afa3-afd954bd436f",
+      "name": "Chocolate chia pudding with raspberries",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 224,
+        "proteinG": 7,
+        "fatG": 11,
+        "carbsG": 29
+      },
+      "complete": true
+    },
+    {
+      "id": "26f169c6-a87b-44a7-83fe-e0e20768d334",
+      "name": "Cottage cheese waffles",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 288,
+        "proteinG": 18,
+        "fatG": 10,
+        "carbsG": 30
+      },
+      "complete": true
+    },
+    {
+      "id": "5259408c-5c0b-4c21-9f2c-4c5686298ab4",
+      "name": "Cottage cheese with cucumber and dill",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 216,
+        "proteinG": 23,
+        "fatG": 9,
+        "carbsG": 11
+      },
+      "complete": true
+    },
+    {
+      "id": "f5ed0cad-d651-4b62-973d-5d19639a6aa0",
+      "name": "Cottage cheese with peach and almonds",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 317,
+        "proteinG": 26,
+        "fatG": 14,
+        "carbsG": 24
+      },
+      "complete": true
+    },
+    {
+      "id": "06a15baf-d655-48d0-adbe-7060926842e7",
+      "name": "Crispy roasted chickpeas",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 196,
+        "proteinG": 9,
+        "fatG": 6,
+        "carbsG": 28
+      },
+      "complete": true
+    },
+    {
+      "id": "4bf8f7fb-e722-45cc-9fb4-223022231b86",
+      "name": "Dark chocolate with almonds",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 232,
+        "proteinG": 5,
+        "fatG": 18,
+        "carbsG": 15
+      },
+      "complete": true
+    },
+    {
+      "id": "09fe8e7d-d011-499d-ba95-553fc1bb6155",
+      "name": "Date and cocoa energy balls",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 161,
+        "proteinG": 5,
+        "fatG": 7,
+        "carbsG": 24
+      },
+      "complete": true
+    },
+    {
+      "id": "19e5a9de-317c-4191-9d7c-e5c7c952da72",
+      "name": "Edamame with sesame",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 124,
+        "proteinG": 11,
+        "fatG": 6,
+        "carbsG": 8
+      },
+      "complete": true
+    },
+    {
+      "id": "0e0edf03-6fd2-4b87-b47c-c9652cdb594b",
+      "name": "Egg salad lettuce cups",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 162,
+        "proteinG": 15,
+        "fatG": 10,
+        "carbsG": 3
+      },
+      "complete": true
+    },
+    {
+      "id": "dc623867-6aca-4442-bd80-f73b8b76765e",
+      "name": "Greek yogurt with figs and pistachios",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 277,
+        "proteinG": 25,
+        "fatG": 8,
+        "carbsG": 31
+      },
+      "complete": true
+    },
+    {
+      "id": "44a2d0bc-ed76-4d78-922f-881df9bbf7c2",
+      "name": "Greek yogurt with walnuts and apple",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free",
+        "high_protein"
+      ],
+      "perServing": {
+        "kcal": 301,
+        "proteinG": 24,
+        "fatG": 14,
+        "carbsG": 24
+      },
+      "complete": true
+    },
+    {
+      "id": "d18234c9-5438-4688-b39f-7921aa21c6d6",
+      "name": "Green mango smoothie",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 154,
+        "proteinG": 4,
+        "fatG": 4,
+        "carbsG": 29
+      },
+      "complete": true
+    },
+    {
+      "id": "867070fd-5e43-465f-ab96-8d1d6cb1e7b0",
+      "name": "Guacamole with baked tortilla chips",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 176,
+        "proteinG": 3,
+        "fatG": 10,
+        "carbsG": 21
+      },
+      "complete": true
+    },
+    {
+      "id": "611d561d-e509-48e1-adba-a1efccd57a34",
+      "name": "Hummus with vegetables",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 221,
+        "proteinG": 8,
+        "fatG": 10,
+        "carbsG": 28
+      },
+      "complete": true
+    },
+    {
+      "id": "2ed1f024-1c56-4dd9-b21f-175dc2bac2c7",
+      "name": "Kiwi, orange and pomegranate salad",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 125,
+        "proteinG": 2,
+        "fatG": 1,
+        "carbsG": 30
+      },
+      "complete": true
+    },
+    {
+      "id": "a5a83366-b1eb-46ea-9a34-6b0d62a79b59",
+      "name": "Nut and dried fruit mix",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 180,
+        "proteinG": 5,
+        "fatG": 12,
+        "carbsG": 16
+      },
+      "complete": true
+    },
+    {
+      "id": "18634c83-8992-4253-b27a-d4dddd53860a",
+      "name": "Peanut butter cocoa smoothie",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 227,
+        "proteinG": 14,
+        "fatG": 9,
+        "carbsG": 27
+      },
+      "complete": true
+    },
+    {
+      "id": "eacbdc0c-8072-4773-91b8-bfe8ffed50c9",
+      "name": "Pineapple and spinach smoothie",
+      "mealType": "snack",
+      "dietType": [
+        "vegan",
+        "gluten_free",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 112,
+        "proteinG": 2,
+        "fatG": 0,
+        "carbsG": 29
+      },
+      "complete": true
+    },
+    {
+      "id": "0a4fb71f-9899-406c-a3cc-b9a72b5dbcb2",
+      "name": "Radish, cucumber and egg salad",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 166,
+        "proteinG": 9,
+        "fatG": 11,
+        "carbsG": 10
+      },
+      "complete": true
+    },
+    {
+      "id": "f90e0b68-e5b6-4921-82a2-143fa59ef2e7",
+      "name": "Ricotta toast with pear and honey",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 430,
+        "proteinG": 16,
+        "fatG": 18,
+        "carbsG": 56
+      },
+      "complete": true
+    },
+    {
+      "id": "1225c352-e499-4639-b051-d6e25cb6445c",
+      "name": "Seed and cranberry oat bars",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "dairy_free"
+      ],
+      "perServing": {
+        "kcal": 193,
+        "proteinG": 6,
+        "fatG": 9,
+        "carbsG": 25
+      },
+      "complete": true
+    },
+    {
+      "id": "1fa2fe33-1055-4b8c-aea2-d4ef4856c4ec",
+      "name": "Strawberry banana smoothie",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 198,
+        "proteinG": 13,
+        "fatG": 3,
+        "carbsG": 33
+      },
+      "complete": true
+    },
+    {
+      "id": "e1a28cff-c810-4bba-8433-6c0282585845",
+      "name": "Tuna stuffed avocado",
+      "mealType": "snack",
+      "dietType": [
+        "pescatarian",
+        "gluten_free",
+        "low_carb"
+      ],
+      "perServing": {
+        "kcal": 328,
+        "proteinG": 24,
+        "fatG": 21,
+        "carbsG": 14
+      },
+      "complete": true
+    },
+    {
+      "id": "55b5fb5c-6466-41c3-b609-e74f3222987b",
+      "name": "Tzatziki with warm pita",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian"
+      ],
+      "perServing": {
+        "kcal": 161,
+        "proteinG": 9,
+        "fatG": 2,
+        "carbsG": 26
+      },
+      "complete": true
+    },
+    {
+      "id": "d2333eeb-0321-464d-8e05-6d23e7f4cda2",
+      "name": "Watermelon and feta salad",
+      "mealType": "snack",
+      "dietType": [
+        "vegetarian",
+        "gluten_free"
+      ],
+      "perServing": {
+        "kcal": 118,
+        "proteinG": 5,
+        "fatG": 6,
+        "carbsG": 14
+      },
+      "complete": true
+    }
+  ]
+}
