@@ -7,6 +7,9 @@ model Conversation {
   title     String   @db.VarChar(255)
   /// The menu the conversation is about; the last one the assistant built or the user picked.
   menuId    String?  @map("menu_id") @db.Uuid
+  /// The menu request gathered from the chat so far (`MenuRequest`): every detail the user gave,
+  /// the latest message winning. Null until the first menu request.
+  menuRequest Json?  @map("menu_request")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 

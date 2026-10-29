@@ -1,15 +1,18 @@
 import {
   ASSISTANT_INVALID_OUTPUT_REPLY,
   ASSISTANT_UNAVAILABLE_REPLY,
-  CLARIFICATION_MISSING_FIELDS,
   CLARIFICATION_REPLY,
   ChatResponseType,
+  DietTag,
   Goal,
   ChatStreamEventType,
+  daysOutOfRangeReply,
   INTERNAL_ERROR_REPLY,
   Intent,
+  MealType,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
+import { MenuRequest } from '../../../common/contracts';
 import { ChatStreamEvent, MenuComposition, ProfileContext } from '../../../common/types';
 import {
   AssistantInvalidOutputException,
@@ -22,6 +25,7 @@ import { ConversationService } from '../conversation/conversation.service';
 import { GeneralChatService } from '../general-chat/general-chat.service';
 import { IntentService } from '../intent/intent.service';
 import { MenuPlannerService } from '../menu/menu-planner.service';
+import { EMPTY_MENU_REQUEST } from '../menu/menu-request';
 import { ProfileContextService } from '../profile-context/profile-context.service';
 import { ChatOrchestratorService } from './chat-orchestrator.service';
 
@@ -54,13 +58,18 @@ describe('ChatOrchestratorService', () => {
   };
   const send = async (content = 'Hi', signal?: AbortSignal): Promise<ChatStreamEvent[]> =>
     collect(await service.handleMessage(CONVERSATION_ID, content, signal));
-  const classifyAs = (intent: Intent, request: string | null = null): void => {
-    intentService.classify.mockResolvedValue({ intent, request, menuRequest: null, target: null });
+  const classifyAs = (
+    intent: Intent,
+    request: string | null = null,
+    menuRequest: MenuRequest | null = null,
+  ): void => {
+    intentService.classify.mockResolvedValue({ intent, request, menuRequest, target: null });
   };
 
   beforeEach(() => {
     conversationService = createMock<ConversationService>();
     conversationService.getById.mockResolvedValue(conversation);
+    conversationService.getMenuRequest.mockReturnValue(null);
     intentService = createMock<IntentService>();
     generalChatService = createMock<GeneralChatService>();
     generalChatService.reply.mockImplementation(async function* () {
@@ -222,7 +231,7 @@ describe('ChatOrchestratorService', () => {
       {
         type: ChatStreamEventType.Clarification,
         message: CLARIFICATION_REPLY,
-        missingFields: CLARIFICATION_MISSING_FIELDS,
+        missingFields: ['days', 'mealTypes'],
       },
       { type: ChatStreamEventType.Done },
     ]);
@@ -231,6 +240,110 @@ describe('ChatOrchestratorService', () => {
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       CLARIFICATION_REPLY,
+      undefined,
+    );
+    expect(conversationService.saveMenuRequest).not.toHaveBeenCalled();
+  });
+
+  it('asks only for the fields the conversation does not have yet', async () => {
+    conversationService.getMenuRequest.mockReturnValue({ ...EMPTY_MENU_REQUEST, days: 3 });
+    classifyAs(Intent.Clarification);
+
+    await expect(send('Make a menu')).resolves.toContainEqual(
+      expect.objectContaining({ missingFields: ['mealTypes'] }),
+    );
+    expect(conversationService.getMenuRequest).toHaveBeenCalledWith(conversation);
+  });
+
+  it('plans the gathered request instead of asking when nothing is missing', async () => {
+    conversationService.getMenuRequest.mockReturnValue({
+      ...EMPTY_MENU_REQUEST,
+      days: 3,
+      mealTypes: [MealType.Dinner],
+    });
+    classifyAs(Intent.Clarification);
+
+    await expect(send('and another one')).resolves.toEqual([
+      { type: ChatStreamEventType.TextDelta, content: 'Your day' },
+      { type: ChatStreamEventType.MenuReady, menu },
+      { type: ChatStreamEventType.Done },
+    ]);
+    expect(menuPlannerService.plan).toHaveBeenCalledWith(
+      'Plan a 3-day menu with dinner.',
+      profile,
+      undefined,
+    );
+    expect(conversationService.saveMenuRequest).not.toHaveBeenCalled();
+  });
+
+  it('merges the request fields of the message into the conversation', async () => {
+    conversationService.getMenuRequest.mockReturnValue({
+      ...EMPTY_MENU_REQUEST,
+      days: 3,
+      excludedIngredients: ['mushrooms'],
+    });
+    classifyAs(Intent.GenerateMenu, 'Plan a 3-day vegan menu.', {
+      ...EMPTY_MENU_REQUEST,
+      diets: [DietTag.Vegan],
+    });
+
+    await send('make it vegan');
+
+    expect(conversationService.saveMenuRequest).toHaveBeenCalledWith(CONVERSATION_ID, {
+      ...EMPTY_MENU_REQUEST,
+      days: 3,
+      diets: [DietTag.Vegan],
+      excludedIngredients: ['mushrooms'],
+    });
+    expect(menuPlannerService.plan).toHaveBeenCalled();
+  });
+
+  it.each([Intent.GeneralChat, Intent.Clarification, Intent.OutOfScope])(
+    'keeps request fields of %s out of the conversation',
+    async (intent) => {
+      classifyAs(intent, null, { ...EMPTY_MENU_REQUEST, days: 3 });
+
+      await send('Hi');
+
+      expect(conversationService.saveMenuRequest).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not save a request that did not change', async () => {
+    const stored = { ...EMPTY_MENU_REQUEST, days: 3 };
+    conversationService.getMenuRequest.mockReturnValue(stored);
+    classifyAs(Intent.GenerateMenu, 'Plan a 3-day menu.', { ...EMPTY_MENU_REQUEST, days: 3 });
+
+    await send('again');
+
+    expect(conversationService.saveMenuRequest).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [10, 7],
+    [0, 1],
+    [-2, 1],
+  ])('offers %i days as %i instead of planning and keeps the offer', async (requested, offered) => {
+    classifyAs(Intent.GenerateMenu, `Plan a ${requested}-day menu.`, {
+      ...EMPTY_MENU_REQUEST,
+      days: requested,
+      mealTypes: [MealType.Lunch],
+    });
+
+    const message = daysOutOfRangeReply(requested, offered);
+    await expect(send()).resolves.toEqual([
+      { type: ChatStreamEventType.Clarification, message, missingFields: ['days'] },
+      { type: ChatStreamEventType.Done },
+    ]);
+    expect(menuPlannerService.plan).not.toHaveBeenCalled();
+    expect(conversationService.saveMenuRequest).toHaveBeenCalledWith(CONVERSATION_ID, {
+      ...EMPTY_MENU_REQUEST,
+      days: offered,
+      mealTypes: [MealType.Lunch],
+    });
+    expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+      CONVERSATION_ID,
+      message,
       undefined,
     );
   });

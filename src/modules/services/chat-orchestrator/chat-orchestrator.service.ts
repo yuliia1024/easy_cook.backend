@@ -1,32 +1,50 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { isDeepStrictEqual } from 'node:util';
 import {
   ASSISTANT_INVALID_OUTPUT_REPLY,
   ASSISTANT_UNAVAILABLE_REPLY,
-  CLARIFICATION_MISSING_FIELDS,
   CLARIFICATION_REPLY,
   ChatErrorCode,
   ChatResponseType,
   ChatStreamEventType,
+  daysOutOfRangeReply,
   INTERNAL_ERROR_REPLY,
   Intent,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
-import { ChatResponse, ChatStreamEvent, MenuComposition } from '../../../common/types';
+import { IntentResult } from '../../../common/contracts';
+import {
+  ChatResponse,
+  ChatStreamEvent,
+  MenuComposition,
+  ProfileContext,
+} from '../../../common/types';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
 } from '../../../common/exceptions';
+import { Conversation } from '../../../generated/prisma/client';
 import { ConversationService } from '../conversation/conversation.service';
 import { GeneralChatService } from '../general-chat/general-chat.service';
 import { IntentService } from '../intent/intent.service';
 import { MenuPlannerService } from '../menu/menu-planner.service';
+import {
+  EMPTY_MENU_REQUEST,
+  resolveClarification,
+  resolveMenuRequest,
+  ResolvedMenuRequest,
+} from '../menu/menu-request';
 import { ProfileContextService } from '../profile-context/profile-context.service';
 
 /**
  * Handles a chat message: saves it, loads the profile once, classifies its intent within the
  * conversation and hands it to the service for that intent; every model call sees the profile. Only the intent picks the route, and every route is a fixed service
  * call; a menu is planned from the request the classifier restated, so a follow-up such as "do it
- * again" keeps the earlier details. The reply is saved once it is complete, with the menu it
+ * again" keeps the earlier details. The request fields of a menu request or a clarification are
+ * merged into the conversation (`resolveMenuRequest`), so an answer to a question is kept, a
+ * clarification asks only for what is still missing and is a menu request when nothing is
+ * (`resolveClarification`), and too many days are offered as the most a menu can have instead of
+ * being cut. The reply is saved once it is complete, with the menu it
  * suggests; a failure becomes an `error` event and is not saved.
  */
 @Injectable()
@@ -52,19 +70,20 @@ export class ChatOrchestratorService {
   ): Promise<AsyncGenerator<ChatStreamEvent>> {
     const conversation = await this.conversationService.getById(conversationId);
     await this.conversationService.addUserMessage(conversation, content);
-    return this.reply(conversationId, content, abortSignal);
+    return this.reply(conversation, content, abortSignal);
   }
 
   private async *reply(
-    conversationId: string,
+    conversation: Conversation,
     content: string,
     abortSignal: AbortSignal | undefined,
   ): AsyncGenerator<ChatStreamEvent> {
+    const conversationId = conversation.id;
     let reply = '';
     let menu: MenuComposition | undefined;
     let failed = false;
     try {
-      for await (const event of this.route(conversationId, content, abortSignal)) {
+      for await (const event of this.route(conversation, content, abortSignal)) {
         if (event.type === ChatStreamEventType.TextDelta) {
           reply += event.content;
         } else if (event.type === ChatStreamEventType.Clarification) {
@@ -92,16 +111,15 @@ export class ChatOrchestratorService {
   }
 
   private async *route(
-    conversationId: string,
+    conversation: Conversation,
     content: string,
     abortSignal: AbortSignal | undefined,
   ): AsyncGenerator<ChatStreamEvent> {
+    const conversationId = conversation.id;
     const profile = await this.profileContextService.find();
-    const { intent, request } = await this.intentService.classify(
-      conversationId,
-      profile,
-      abortSignal,
-    );
+    const classified = await this.intentService.classify(conversationId, profile, abortSignal);
+    const menuRequest = await this.mergeMenuRequest(conversation, profile, classified);
+    const { intent, request } = resolveClarification(classified, menuRequest);
     switch (intent) {
       case Intent.GeneralChat:
         for await (const delta of this.generalChatService.reply(
@@ -116,16 +134,13 @@ export class ChatOrchestratorService {
       // `target`.
       case Intent.GenerateMenu:
       case Intent.ReviseMenu:
-        // TODO: add sort of stream text until get the menu
-        yield* this.toEvents(
-          await this.menuPlannerService.plan(request ?? content, profile, abortSignal),
-        );
+        yield* this.planMenu(request ?? content, menuRequest, profile, abortSignal);
         return;
       case Intent.Clarification:
         yield {
           type: ChatStreamEventType.Clarification,
           message: CLARIFICATION_REPLY,
-          missingFields: CLARIFICATION_MISSING_FIELDS,
+          missingFields: menuRequest.missingFields,
         };
         return;
       case Intent.OutOfScope:
@@ -136,6 +151,44 @@ export class ChatOrchestratorService {
         throw new Error(`Unhandled intent "${unknown}"`);
       }
     }
+  }
+
+  /** Days out of range are offered as the nearest allowed number instead of being planned. */
+  private async *planMenu(
+    request: string,
+    menuRequest: ResolvedMenuRequest,
+    profile: ProfileContext | null,
+    abortSignal: AbortSignal | undefined,
+  ): AsyncGenerator<ChatStreamEvent> {
+    const { daysOutOfRange } = menuRequest;
+    if (daysOutOfRange) {
+      yield {
+        type: ChatStreamEventType.Clarification,
+        message: daysOutOfRangeReply(daysOutOfRange.requested, daysOutOfRange.offered),
+        missingFields: ['days'],
+      };
+      return;
+    }
+    // TODO: add sort of stream text until get the menu
+    yield* this.toEvents(await this.menuPlannerService.plan(request, profile, abortSignal));
+  }
+
+  /**
+   * Resolves the request with the one the chat gathered and keeps the result when it changed. Only
+   * a menu request brings new fields; any other intent reads what the chat gathered, unchanged.
+   */
+  private async mergeMenuRequest(
+    conversation: Conversation,
+    profile: ProfileContext | null,
+    { intent, menuRequest }: IntentResult,
+  ): Promise<ResolvedMenuRequest> {
+    const isMenuRequest = intent === Intent.GenerateMenu || intent === Intent.ReviseMenu;
+    const stored = this.conversationService.getMenuRequest(conversation);
+    const resolved = resolveMenuRequest(profile, stored, isMenuRequest ? menuRequest : null);
+    if (!isDeepStrictEqual(resolved.chat, stored ?? EMPTY_MENU_REQUEST)) {
+      await this.conversationService.saveMenuRequest(conversation.id, resolved.chat);
+    }
+    return resolved;
   }
 
   /** A menu comes with its message as text, so the message is saved with the reply. */

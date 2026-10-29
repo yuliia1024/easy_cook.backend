@@ -12,11 +12,12 @@ const requestItem = z.string().min(1).max(INTENT_REQUEST_ITEM_MAX_LENGTH);
 
 /**
  * The menu request as fields, every detail the user gave in the conversation. Null and empty
- * lists are what the user did not give. `days` has no upper limit: the backend checks it and
- * tells the user, so a request for too many days is not invalid output.
+ * lists are what the user did not give. `days` has no limits: the backend checks it and tells the
+ * user (`resolveMenuRequest`), so a request for too many days, or for 0, is not invalid output.
+ * The chat keeps the same fields as `conversations.menu_request`.
  */
 export const MenuRequestSchema = z.object({
-  days: z.number().int().positive().nullable(),
+  days: z.number().int().nullable(),
   mealTypes: z.array(z.enum(MealType)),
   caloriesKcal: z.number().positive().nullable(),
   diets: z.array(z.enum(DietTag)),

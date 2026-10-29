@@ -6,12 +6,13 @@ import {
 } from '../../../common/constants';
 import { ConversationNotFoundException } from '../../../common/exceptions';
 import { MenuComposition } from '../../../common/types';
+import { MenuRequest, MenuRequestSchema } from '../../../common/contracts';
 import {
   ConversationRepository,
   ConversationSummary,
   ConversationWithMessages,
 } from '../../data-access/conversation/conversation.repository';
-import { Message } from '../../../generated/prisma/client';
+import { Conversation, Message } from '../../../generated/prisma/client';
 import { MenuService } from '../menu/menu.service';
 import { UserProfileService } from '../user-profile/user-profile.service';
 
@@ -99,6 +100,19 @@ export class ConversationService {
       content,
       suggestedMenu,
     });
+  }
+
+  /**
+   * The menu request the chat gathered so far; null before the first one. A stored value that no
+   * longer matches the schema is dropped rather than failing every later message of the chat.
+   */
+  public getMenuRequest(conversation: Pick<Conversation, 'menuRequest'>): MenuRequest | null {
+    const parsed = MenuRequestSchema.safeParse(conversation.menuRequest);
+    return parsed.success ? parsed.data : null;
+  }
+
+  public async saveMenuRequest(conversationId: string, menuRequest: MenuRequest): Promise<void> {
+    await this.conversationRepository.updateMenuRequest(conversationId, menuRequest);
   }
 
   /** The latest `limit` messages, oldest first. */

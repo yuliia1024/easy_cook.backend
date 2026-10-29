@@ -110,6 +110,24 @@ describe('ConversationRepository', () => {
     });
   });
 
+  it('stores the menu request of a conversation as JSON', async () => {
+    const menuRequest = {
+      days: 3,
+      mealTypes: [],
+      caloriesKcal: null,
+      diets: [],
+      excludedIngredients: ['mushrooms'],
+      dislikedFoods: [],
+    };
+
+    await repository.updateMenuRequest(CONVERSATION_ID, menuRequest);
+
+    expect(prisma.conversation.update).toHaveBeenCalledWith({
+      where: { id: CONVERSATION_ID },
+      data: { menuRequest },
+    });
+  });
+
   it('deletes a conversation', async () => {
     await repository.delete(CONVERSATION_ID);
 

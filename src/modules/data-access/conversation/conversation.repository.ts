@@ -3,6 +3,7 @@ import { Message, Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
 import { SortOrder } from '../../../common/constants';
 import { MenuComposition } from '../../../common/types';
+import { MenuRequest } from '../../../common/contracts';
 
 /** Oldest first; the id only makes ties deterministic. */
 const MESSAGE_ORDER = [
@@ -85,6 +86,14 @@ export class ConversationRepository {
       where: { id },
       data,
       include: CONVERSATION_INCLUDE,
+    });
+  }
+
+  /** Does not mark the conversation as active: the message that changed it already did. */
+  public async updateMenuRequest(id: string, menuRequest: MenuRequest): Promise<void> {
+    await this.prisma.conversation.update({
+      where: { id },
+      data: { menuRequest: menuRequest as unknown as Prisma.InputJsonObject },
     });
   }
 

@@ -54,7 +54,13 @@ export const OUT_OF_SCOPE_REPLY =
   'I can only help with meal planning: menus, recipes and your dietary preferences.';
 export const CLARIFICATION_REPLY =
   'Could you tell me a bit more? For example, how many days the menu should cover and which meals to include.';
-export const CLARIFICATION_MISSING_FIELDS = ['days', 'meals'];
+/** The menu request fields a menu cannot be planned without; the rest has defaults or is optional. */
+export const MENU_REQUEST_REQUIRED_FIELDS = ['days', 'mealTypes'] as const;
+/** Offers the nearest number of days a menu can have instead of the one the user asked for. */
+export const daysOutOfRangeReply = (requested: number, offered: number): string =>
+  requested > offered
+    ? `I can plan a menu for up to ${offered} days, not ${requested}. Shall I make a ${offered}-day menu?`
+    : `A menu needs at least ${offered} day. Shall I make a ${offered}-day menu?`;
 export const NO_MENU_RECIPES_REPLY =
   'I could not find recipes that fit your preferences for breakfast, lunch and dinner. Add more recipes or adjust your preferences and try again.';
 export const NO_PROFILE_REPLY =

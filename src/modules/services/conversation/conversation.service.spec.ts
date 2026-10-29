@@ -1,4 +1,4 @@
-import { MessageRole } from '../../../common/constants';
+import { MealType, MessageRole } from '../../../common/constants';
 import { ConversationNotFoundException, MenuNotFoundException } from '../../../common/exceptions';
 import { createMock } from '../../../test/create-mock';
 import {
@@ -166,5 +166,33 @@ describe('ConversationService', () => {
 
     await expect(service.getRecentMessages(CONVERSATION_ID, 10)).resolves.toBe(messages);
     expect(repository.findRecentMessages).toHaveBeenCalledWith(CONVERSATION_ID, 10);
+  });
+
+  describe('menu request', () => {
+    const menuRequest = {
+      days: 3,
+      mealTypes: [MealType.Dinner],
+      caloriesKcal: null,
+      diets: [],
+      excludedIngredients: [],
+      dislikedFoods: [],
+    };
+
+    it('reads the stored menu request back', () => {
+      expect(service.getMenuRequest(buildConversation({ menuRequest }))).toEqual(menuRequest);
+    });
+
+    it.each([
+      ['nothing stored', null],
+      ['a value that no longer matches the schema', { days: 'three' }],
+    ])('returns null for %s', (_name, stored) => {
+      expect(service.getMenuRequest(buildConversation({ menuRequest: stored }))).toBeNull();
+    });
+
+    it('saves the menu request', async () => {
+      await service.saveMenuRequest(CONVERSATION_ID, menuRequest);
+
+      expect(repository.updateMenuRequest).toHaveBeenCalledWith(CONVERSATION_ID, menuRequest);
+    });
   });
 });
