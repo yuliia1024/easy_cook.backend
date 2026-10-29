@@ -7,7 +7,14 @@ import {
 import { NutritionGoalSnapshot, PreferenceRules } from '../../../common/types';
 import { buildRecipeSnapshot, RECIPE_ID } from '../../../test/fixtures';
 import { composeMenu, ResolvedDay } from './menu-composition';
-import { dietTagsSatisfying, errorsOf, mentions, recipeIssues, validateMenu } from './menu-rules';
+import {
+  dietTagsSatisfying,
+  errorsOf,
+  isForbiddenFood,
+  mentions,
+  recipeIssues,
+  validateMenu,
+} from './menu-rules';
 
 const NO_RULES: PreferenceRules = {
   diets: [],
@@ -41,6 +48,29 @@ describe('menu rules', () => {
       ['Rice (1+1)', '1+1', true],
     ])('%s / %s → %s', (text, value, expected) => {
       expect(mentions(text, value)).toBe(expected);
+    });
+  });
+
+  describe('isForbiddenFood', () => {
+    const rules: PreferenceRules = {
+      ...NO_RULES,
+      allergies: ['peanut'],
+      excludedIngredients: ['pork'],
+    };
+
+    it.each([
+      ['Peanut butter', null, true],
+      ['Арахіс', 'Peanuts, roasted', true],
+      ['Pork loin', null, true],
+      ['Eggplant', 'Eggplant, raw', false],
+    ])('%s / %s → %s', (name, nameEn, expected) => {
+      expect(isForbiddenFood(name, nameEn, rules)).toBe(expected);
+    });
+
+    it('ignores disliked foods', () => {
+      expect(isForbiddenFood('Mushrooms', null, { ...NO_RULES, dislikedFoods: ['mushroom'] })).toBe(
+        false,
+      );
     });
   });
 

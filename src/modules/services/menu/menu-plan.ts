@@ -5,14 +5,17 @@ import {
   MENU_PLAN_CANDIDATES_MAX,
   MENU_PLAN_CANDIDATES_SPARE,
   MENU_PLAN_INSTRUCTIONS,
+  MENU_PLAN_MAX_ATTEMPTS,
   MENU_PLAN_MEAL_KCAL_SHARE,
   MENU_PLAN_MEAL_TYPES,
   menuPlanMaxOutputTokens,
+  menuPlanRetryMessage,
 } from '../../../common/constants';
 import { MenuPlan, MenuPlanSchema } from '../../../common/contracts';
-import { MacroValues, ProfileContext } from '../../../common/types';
+import { MacroValues, MenuComposition, ProfileContext } from '../../../common/types';
 import { ModelCallOptions } from '../../../providers/open-ai/open-ai.service';
 import { toModelProfile } from '../profile-context/model-profile';
+import { errorsOf } from './menu-rules';
 
 export type MenuPlanMealType = (typeof MENU_PLAN_MEAL_TYPES)[number];
 
@@ -157,3 +160,55 @@ export function planProblems(
 /** The meals of every day of a plan without `planProblems`, by `dayIndex`. Pure. */
 export const planDays = (plan: MenuPlan): PlannedDay[] =>
   [...plan.days].sort((a, b) => a.dayIndex - b.dayIndex).map(({ meals }) => meals);
+
+/**
+ * Everything wrong with a plan, as sentences the model can act on: `planProblems`, then the errors
+ * of the menu `compose` makes of its days. Pure when `compose` is.
+ */
+export function menuPlanErrors(
+  plan: MenuPlan,
+  candidates: MenuPlanCandidates,
+  days: number,
+  compose: (days: PlannedDay[]) => MenuComposition,
+): string[] {
+  const problems = planProblems(plan, candidates, days);
+  if (problems.length > 0) {
+    return problems;
+  }
+  return errorsOf(compose(planDays(plan)).issues).map(({ message }) => `${message}.`);
+}
+
+/** A plan the model returned and what was wrong with it. */
+export interface MenuPlanAttempt {
+  plan: MenuPlan;
+  problems: string[];
+}
+
+/**
+ * Asks the model for a plan until one has no `problemsOf`, up to `maxAttempts` calls: a plan with
+ * problems goes back to the model with them (`menuPlanRetryMessage`). Returns every attempt, the
+ * last one without problems unless all of them had some. `MenuPlannerService` and the menu plan
+ * evals run the same loop.
+ */
+export async function planWithRetries(
+  input: ModelMessage[],
+  generate: (messages: ModelMessage[]) => Promise<MenuPlan>,
+  problemsOf: (plan: MenuPlan) => string[],
+  maxAttempts = MENU_PLAN_MAX_ATTEMPTS,
+): Promise<MenuPlanAttempt[]> {
+  const messages = [...input];
+  const attempts: MenuPlanAttempt[] = [];
+  while (attempts.length < maxAttempts) {
+    const plan = await generate([...messages]);
+    const problems = problemsOf(plan);
+    attempts.push({ plan, problems });
+    if (problems.length === 0) {
+      break;
+    }
+    messages.push(
+      { role: 'assistant', content: JSON.stringify(plan) },
+      { role: 'user', content: menuPlanRetryMessage(problems) },
+    );
+  }
+  return attempts;
+}

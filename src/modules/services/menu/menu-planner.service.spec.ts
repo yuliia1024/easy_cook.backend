@@ -217,6 +217,21 @@ describe('MenuPlannerService', () => {
     ]);
   });
 
+  it('fits the servings of every day to the daily calories of the request', async () => {
+    const response = await service.plan('Light day', { ...oneDay, caloriesKcal: 780 }, profile);
+
+    expect(response).toMatchObject({
+      menu: {
+        days: [
+          {
+            meals: [{ servings: 1.5 }, { servings: 1.5 }, { servings: 1.5 }, { servings: 1.5 }],
+            totals: { kcal: 780 },
+          },
+        ],
+      },
+    });
+  });
+
   it('warns when the day is off the calorie goal', async () => {
     const withGoal: ProfileContext = {
       ...profile,

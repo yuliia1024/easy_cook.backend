@@ -1,20 +1,29 @@
 import {
+  MealType,
   MENU_MAX_DAYS,
   MENU_MIN_DAYS,
+  MENU_PLAN_MAX_ATTEMPTS,
   MENU_PLAN_MEAL_TYPES,
   menuPlanMaxOutputTokens,
+  menuPlanRetryMessage,
 } from '../../../src/common/constants';
 import { MenuPlan, MenuPlanSchema } from '../../../src/common/contracts';
-import { OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { AssistantInvalidOutputException } from '../../../src/common/exceptions';
+import { mentions } from '../../../src/modules/services/menu/menu-rules';
+import { ModelResult, OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
 import { createMock } from '../../../src/test/create-mock';
 import {
   candidatesPerMeal,
   MenuPlanCandidates,
+  MenuPlanMealType,
+  planDays,
 } from '../../../src/modules/services/menu/menu-plan';
 import { loadCases } from '../../lib/cases';
 import {
   caseCandidates,
+  composeCase,
   isVaried,
+  MENU_PLAN_PROFILES,
   MENU_PLAN_RECIPES,
   MenuPlanCase,
   MenuPlanCaseSchema,
@@ -70,6 +79,24 @@ describe('menu-plan suite', () => {
       ).toBe(true);
     });
 
+    it('offers no recipe with an ingredient the profile is allergic to', () => {
+      const candidates = caseCandidates(testCase(7, { profile: 'allergy' }));
+      const byName = new Map(MENU_PLAN_RECIPES.map((recipe) => [recipe.name, recipe]));
+      const foods = MENU_PLAN_MEAL_TYPES.flatMap((mealType) => candidates[mealType]).flatMap(
+        ({ name }) => byName.get(name)!.ingredients,
+      );
+
+      expect(foods.length).toBeGreaterThan(0);
+      for (const allergy of MENU_PLAN_PROFILES.allergy.rules.allergies) {
+        expect(
+          foods.filter(
+            ({ foodName, foodNameEn }) =>
+              mentions(foodName, allergy) || (foodNameEn !== null && mentions(foodNameEn, allergy)),
+          ),
+        ).toEqual([]);
+      }
+    });
+
     it('offers them by short ids, like the app', () => {
       expect(caseCandidates(testCase(1)).dinner.map(({ id }) => id)).toEqual([
         'd1',
@@ -88,37 +115,118 @@ describe('menu-plan suite', () => {
     });
   });
 
-  describe('scoreMenuPlan', () => {
-    const candidates = caseCandidates(testCase(3));
+  describe('composeCase', () => {
+    it('composes the planned recipes, servings fitted to the goal, with their issues against the profile', () => {
+      const theCase = testCase(1, { profile: 'low_kcal' });
+      const candidates = caseCandidates(theCase);
+      const salmon = candidates.lunch.findIndex(({ name }) => name === 'Salmon poke bowl');
+      const menu = composeCase(theCase, planDays(planOf(candidates, [[0, salmon, 0]])));
 
-    it('passes a plan of the requested days from the candidates without repeats', () => {
+      expect(menu.days[0].meals.map(({ recipeName }) => recipeName)).toEqual(
+        MENU_PLAN_MEAL_TYPES.map(
+          (mealType) => candidates[mealType][mealType === MealType.Lunch ? salmon : 0].name,
+        ),
+      );
+      expect(Math.abs(menu.days[0].totals.kcal - 1400)).toBeLessThanOrEqual(70);
+      expect(menu.issues.map(({ code }) => code)).toEqual(['disliked_food']);
+    });
+  });
+
+  describe('scoreMenuPlan', () => {
+    const fields = (scores: ReturnType<typeof scoreMenuPlan>): Array<[string, boolean]> =>
+      scores.map(({ field, pass }) => [field, pass]);
+    /** The position of the candidate of the meal with the fewest or the most kcal. */
+    const extreme = (
+      candidates: MenuPlanCandidates,
+      mealType: MenuPlanMealType,
+      pick: (a: number, b: number) => boolean,
+    ): number =>
+      candidates[mealType].reduce(
+        (best, { perServing }, i) =>
+          pick(perServing.kcal, candidates[mealType][best].perServing.kcal) ? i : best,
+        0,
+      );
+
+    it('passes a plan of the requested days from the candidates, on target, varied, without disliked foods', () => {
+      const theCase = testCase(3, { profile: 'low_kcal' });
+      const candidates = caseCandidates(theCase);
+      const salmon = candidates.lunch.findIndex(({ name }) => name === 'Salmon poke bowl');
+      const lunches = [0, 1, 2, 3].filter((i) => i !== salmon);
       const plan = planOf(candidates, [
-        [0, 0, 0],
-        [1, 1, 1],
-        [2, 2, 2],
+        [0, lunches[0], 0],
+        [1, lunches[1], 1],
+        [2, lunches[2], 2],
       ]);
 
-      expect(scoreMenuPlan(testCase(3), plan).map(({ field, pass }) => [field, pass])).toEqual([
+      expect(fields(scoreMenuPlan(theCase, plan))).toEqual([
         ['days', true],
         ['candidates', true],
+        ['validation', true],
+        ['calories', true],
+        ['disliked', true],
         ['variety', true],
       ]);
     });
 
-    it('fails the days and the variety of a plan with other days', () => {
+    it('scores the calories of the days with the servings fitted to the goal', () => {
+      const theCase = testCase(1);
+      const candidates = caseCandidates(theCase);
+      const lowest = (mealType: MenuPlanMealType): number =>
+        extreme(candidates, mealType, (a, b) => a < b);
+      const plan = planOf(candidates, [
+        [
+          lowest(MealType.Breakfast),
+          lowest(MealType.Lunch),
+          lowest(MealType.Dinner),
+          lowest(MealType.Snack),
+        ],
+      ]);
+
+      const [kcal] = scoreMenuPlan(theCase, plan)[3].actual as number[];
+
+      expect(scoreMenuPlan(theCase, plan)[3]).toMatchObject({
+        field: 'calories',
+        pass: true,
+        expected: '2000 kcal ± 15 % a day',
+      });
+      expect(Math.abs(kcal - 2000)).toBeLessThanOrEqual(100);
+    });
+
+    it('fails a disliked food', () => {
+      const theCase = testCase(1, { profile: 'low_kcal' });
+      const candidates = caseCandidates(theCase);
+      const salmon = candidates.lunch.findIndex(({ name }) => name === 'Salmon poke bowl');
+
+      expect(scoreMenuPlan(theCase, planOf(candidates, [[0, salmon, 0]]))[4]).toMatchObject({
+        field: 'disliked',
+        pass: false,
+        expected: ['salmon'],
+        actual: [expect.stringContaining('Salmon poke bowl')],
+      });
+    });
+
+    it('fails the validation, calories, disliked foods and variety of a plan with other days', () => {
+      const candidates = caseCandidates(testCase(3));
       const plan = planOf(candidates, [
         [0, 0, 0],
         [1, 1, 1],
       ]);
 
-      expect(scoreMenuPlan(testCase(3), plan).map(({ field, pass }) => [field, pass])).toEqual([
+      const scores = scoreMenuPlan(testCase(3), plan);
+
+      expect(fields(scores)).toEqual([
         ['days', false],
         ['candidates', true],
+        ['validation', false],
+        ['calories', false],
+        ['disliked', false],
         ['variety', false],
       ]);
+      expect(scores[2].actual).toEqual([expect.stringContaining('Return exactly 3 days')]);
     });
 
     it('fails an id that is not a candidate of the meal', () => {
+      const candidates = caseCandidates(testCase(1));
       const plan = planOf(candidates, [[0, 0, 0]]);
       plan.days[0].meals.lunch = candidates.breakfast[0].id;
 
@@ -184,20 +292,83 @@ describe('menu-plan suite', () => {
     });
   });
 
-  it('runs the planner call of the app with the candidates of the case', async () => {
-    const openAi = createMock<OpenAiService>();
-    const result = { output: null, modelId: 'm', latencyMs: 1, usage: null };
-    openAi.generateStructuredResult.mockResolvedValue(result as never);
-    const theCase = testCase(2, { profile: 'vegetarian', rotation: 1 });
+  describe('run', () => {
+    const usage = { inputTokens: 1000, cachedInputTokens: 100, outputTokens: 50 };
+    const theCase = testCase(1, { profile: 'vegetarian', rotation: 1 });
+    const candidates = caseCandidates(theCase);
+    const good = planOf(candidates, [[0, 0, 0]]);
+    const wrong: MenuPlan = {
+      ...good,
+      days: [{ dayIndex: 0, meals: { ...good.days[0].meals, lunch: 'x' } }],
+    };
+    const result = (output: MenuPlan): ModelResult<MenuPlan> => ({
+      output,
+      modelId: 'm',
+      latencyMs: 10,
+      usage,
+    });
+    let openAi: jest.Mocked<OpenAiService>;
 
-    await expect(menuPlanSuite.run(theCase, openAi)).resolves.toBe(result);
+    beforeEach(() => {
+      openAi = createMock<OpenAiService>();
+    });
 
-    const [[input, schema, options]] = openAi.generateStructuredResult.mock.calls;
-    expect(schema).toBe(MenuPlanSchema);
-    expect(options.maxOutputTokens).toBe(menuPlanMaxOutputTokens(2));
-    const sent = JSON.parse((input as Array<{ content: string }>)[0].content);
-    expect(sent.days).toBe(2);
-    expect(sent.recipes).toEqual(caseCandidates(theCase));
+    it('runs the planner call of the app with the candidates of the case', async () => {
+      openAi.generateStructuredResult.mockResolvedValue(result(good) as never);
+
+      await expect(menuPlanSuite.run(theCase, openAi)).resolves.toEqual({
+        ...result(good),
+        metrics: { repairs: 0 },
+      });
+
+      const [[input, schema, options]] = openAi.generateStructuredResult.mock.calls;
+      expect(schema).toBe(MenuPlanSchema);
+      expect(options.maxOutputTokens).toBe(menuPlanMaxOutputTokens(1));
+      const sent = JSON.parse((input as Array<{ content: string }>)[0].content);
+      expect(sent.days).toBe(1);
+      expect(sent.recipes).toEqual(candidates);
+    });
+
+    it('sends a plan with problems back and counts the repairs, usage and latency of every call', async () => {
+      openAi.generateStructuredResult
+        .mockResolvedValueOnce(result(wrong) as never)
+        .mockResolvedValueOnce(result(good) as never);
+
+      await expect(menuPlanSuite.run(theCase, openAi)).resolves.toEqual({
+        output: good,
+        modelId: 'm',
+        latencyMs: 20,
+        usage: { inputTokens: 2000, cachedInputTokens: 200, outputTokens: 100 },
+        metrics: { repairs: 1 },
+      });
+      const [, [messages]] = openAi.generateStructuredResult.mock.calls;
+      expect((messages as Array<{ content: string }>).at(-1)?.content).toBe(
+        menuPlanRetryMessage(['dayIndex 0, lunch: "x" is not an id from the lunch recipes.']),
+      );
+    });
+
+    it('returns the last plan after the last attempt', async () => {
+      openAi.generateStructuredResult.mockResolvedValue(result(wrong) as never);
+
+      await expect(menuPlanSuite.run(theCase, openAi)).resolves.toMatchObject({
+        output: wrong,
+        metrics: { repairs: MENU_PLAN_MAX_ATTEMPTS - 1 },
+      });
+    });
+
+    it('fails invalid output with the usage of every call', async () => {
+      openAi.generateStructuredResult
+        .mockResolvedValueOnce(result(wrong) as never)
+        .mockRejectedValueOnce(new AssistantInvalidOutputException({ modelId: 'm', usage }));
+
+      const error = await menuPlanSuite.run(theCase, openAi).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(AssistantInvalidOutputException);
+      expect((error as AssistantInvalidOutputException).call).toEqual({
+        modelId: 'm',
+        usage: { inputTokens: 2000, cachedInputTokens: 200, outputTokens: 100 },
+      });
+    });
   });
 
   it('rejects a case outside the days a menu can have', () => {
@@ -219,5 +390,17 @@ describe('menu-plan suite', () => {
     it('tags every case with its days', () => {
       expect(cases.every((c) => c.tags.includes(`days-${c.days}`))).toBe(true);
     });
+
+    it.each(['basic', 'vegan', 'allergy', 'low_kcal'])(
+      'plans 1, 3 and 7 days for the %s profile',
+      (profile) => {
+        const tag = profile.replace('_', '-');
+        const days = cases
+          .filter((c) => c.profile === profile && c.tags.includes(tag))
+          .map((c) => c.days);
+
+        expect(days).toEqual(expect.arrayContaining([1, 3, 7]));
+      },
+    );
   });
 });

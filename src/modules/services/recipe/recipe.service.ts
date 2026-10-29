@@ -24,7 +24,7 @@ import {
   RecipeWithIngredients,
 } from '../../data-access/recipe/recipe.repository';
 import { FoodItemService } from '../food-item/food-item.service';
-import { dietTagsSatisfying, mentions } from '../menu/menu-rules';
+import { dietTagsSatisfying, isForbiddenFood } from '../menu/menu-rules';
 import { NutritionIngredientInput, NutritionService } from '../nutrition/nutrition.service';
 
 export type NewRecipeData = Omit<RecipeData, 'source'> & { source?: string };
@@ -53,15 +53,10 @@ export class RecipeService {
     const recipes = await this.recipeRepository.findAll({
       dietTypeGroups: rules.diets.map((diet) => [...dietTagsSatisfying(diet)]),
     });
-    const forbidden = [...rules.allergies, ...rules.excludedIngredients];
     return recipes.filter(
       (recipe) =>
         !recipe.ingredients.some(({ foodItem }) =>
-          forbidden.some(
-            (value) =>
-              mentions(foodItem.name, value) ||
-              (foodItem.nameEn !== null && mentions(foodItem.nameEn, value)),
-          ),
+          isForbiddenFood(foodItem.name, foodItem.nameEn, rules),
         ),
     );
   }

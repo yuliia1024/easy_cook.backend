@@ -5,8 +5,6 @@ import {
   MENU_PLAN_CANDIDATE_POOL_FACTOR,
   MENU_PLAN_MAX_ATTEMPTS,
   MENU_PLAN_MEAL_TYPES,
-  MenuIssueSeverity,
-  menuPlanRetryMessage,
   NO_MENU_RECIPES_REPLY,
   NO_PROFILE_REPLY,
 } from '../../../common/constants';
@@ -18,15 +16,16 @@ import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repositor
 import { NutritionService, RecipeNutrition } from '../nutrition/nutrition.service';
 import { RecipeService } from '../recipe/recipe.service';
 import { MenuComposer } from './menu-composer';
-import { ResolvedDay, snapshotRecipe } from './menu-composition';
+import { fitServings, ResolvedDay, snapshotRecipe } from './menu-composition';
 import {
   candidatesPerMeal,
   labelCandidates,
   MenuPlanCandidates,
+  menuPlanErrors,
   menuPlanModelCall,
   planDays,
   PlannedDay,
-  planProblems,
+  planWithRetries,
   selectCandidates,
 } from './menu-plan';
 
@@ -44,12 +43,14 @@ const roundToUnits = ({ kcal, proteinG, fatG, carbsG }: MacroValues): MacroValue
 
 /**
  * Plans a menu of `request.days` days (one when not given) from a chat request: for every day the
- * model picks a breakfast, a lunch, a snack and a dinner, one serving each, among candidates of the
+ * model picks a breakfast, a lunch, a snack and a dinner among candidates of the
  * recipes the dietary preferences allow (`selectCandidates`, rotated at random, by short ids),
  * knowing the profile goal, the daily target and the calories and macros of a serving. A plan with problems
  * (other days, a recipe that is not a candidate, an error of `validateMenu`) goes back to the
  * model with the problems, up to `MENU_PLAN_MAX_ATTEMPTS` calls; after the last one it is invalid
- * output. The menu comes with its issues against the profile. Nothing is saved.
+ * output. The servings of every day are fitted to the daily calories of the request
+ * (`fitServings`), one each without them. The menu comes with its issues against the profile.
+ * Nothing is saved.
  * Without a profile there are no rules to follow, so it asks to fill one in instead.
  */
 @Injectable()
@@ -92,30 +93,31 @@ export class MenuPlannerService {
       schema,
       options: callOptions,
     } = menuPlanModelCall(message, days, profile, candidates, abortSignal);
-    const messages = [...input];
-    for (let attempt = 1; attempt <= MENU_PLAN_MAX_ATTEMPTS; attempt++) {
-      const plan = await this.openAiService.generateStructured([...messages], schema, callOptions);
-      let problems = planProblems(plan, candidates, days);
-      if (problems.length === 0) {
-        const menu = this.compose(planDays(plan), recipeIds, options, profile);
-        problems = menu.issues
-          .filter((issue) => issue.severity === MenuIssueSeverity.Error)
-          .map(({ message: issue }) => `${issue}.`);
-        if (problems.length === 0) {
-          this.logger.log(`Menu of ${days} days planned in ${attempt} attempt(s)`);
-          return { type: ChatResponseType.MenuReady, message: plan.message, menu };
-        }
+    const compose = (planned: PlannedDay[]): MenuComposition =>
+      this.compose(planned, recipeIds, options, profile, request.caloriesKcal);
+    const attempts = await planWithRetries(
+      input,
+      (messages) => this.openAiService.generateStructured(messages, schema, callOptions),
+      (plan) => menuPlanErrors(plan, candidates, days, compose),
+    );
+    attempts.forEach(({ problems }, i) => {
+      if (problems.length > 0) {
+        this.logger.warn(
+          `Menu plan attempt ${i + 1} of ${MENU_PLAN_MAX_ATTEMPTS} has ${problems.length} problem(s): ${problems.join(' ')}`,
+        );
       }
-      this.logger.warn(
-        `Menu plan attempt ${attempt} of ${MENU_PLAN_MAX_ATTEMPTS} has ${problems.length} problem(s): ${problems.join(' ')}`,
-      );
-      messages.push(
-        { role: 'assistant', content: JSON.stringify(plan) },
-        { role: 'user', content: menuPlanRetryMessage(problems) },
-      );
+    });
+    const { plan, problems } = attempts[attempts.length - 1];
+    if (problems.length > 0) {
+      this.logger.warn(`Menu plan failed after ${attempts.length} attempts`);
+      throw new AssistantInvalidOutputException();
     }
-    this.logger.warn(`Menu plan failed after ${MENU_PLAN_MAX_ATTEMPTS} attempts`);
-    throw new AssistantInvalidOutputException();
+    this.logger.log(`Menu of ${days} days planned in ${attempts.length} attempt(s)`);
+    return {
+      type: ChatResponseType.MenuReady,
+      message: plan.message,
+      menu: compose(planDays(plan)),
+    };
   }
 
   /** The candidates of every meal, rotated by a random offset so a new plan gets other ones. */
@@ -147,12 +149,13 @@ export class MenuPlannerService {
     ) as MenuPlanCandidates;
   }
 
-  /** The days with the recipes of the short ids the model picked. */
+  /** The days with the recipes of the short ids the model picked, servings fitted to `dailyKcal`. */
   private compose(
     days: PlannedDay[],
     recipeIds: Map<string, string>,
     options: Map<string, RecipeOption>,
     profile: ProfileContext,
+    dailyKcal: number | null,
   ): MenuComposition {
     const resolved = days.map((meals, dayIndex): ResolvedDay => ({
       dayIndex,
@@ -169,6 +172,9 @@ export class MenuPlannerService {
         };
       }),
     }));
-    return this.menuComposer.compose(resolved, profile);
+    return this.menuComposer.compose(
+      dailyKcal === null ? resolved : fitServings(resolved, dailyKcal),
+      profile,
+    );
   }
 }

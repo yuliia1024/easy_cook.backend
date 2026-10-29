@@ -192,8 +192,8 @@ npm run eval -- --repeat 1 --concurrency 3     # runs per case (3 by default), p
 - `evals/suites/<name>/cases.jsonl` - one case per line: `id`, `tags`, the input and `expected`.
   `evals/suites/<name>/<name>.suite.ts` runs a case through the same code the app uses and scores
   every field of the answer.
-- The console prints the pass rate, the rate of every field and tag, tokens, latency (mean,
-  p50, p95), cost and the failed cases; the full report goes to `evals/reports/` (git-ignored).
+- The console prints the pass rate, the rate of every field and tag, the mean and maximum of
+  every metric of the suite, tokens, latency (mean, p50, p95), cost and the failed cases; the full report goes to `evals/reports/` (git-ignored).
 - `evals/baselines/<suite>.json` is committed. A run is worse - exit code 1 - when the pass rate or
   a field rate drops more than two standard errors below it (one run at least); the same prompt
   does not give the same answers every run, and every case runs 3 times to even that out. Exit
@@ -211,12 +211,17 @@ case sets). A constraint lists alternatives: `"vegetarian"` must be named as wan
 excluded ("without meat", "meat-free"). The baseline was taken on the prompt before CHAT-1, which
 must not be worse.
 
-**menu-plan** - the first attempt of the menu planner (`menuPlanModelCall`) on the seed recipes
-(`recipes.json`, their nutrition per serving dumped from a seeded database; refresh it when the
-seed recipes change): every number of days from 1 to 7, two profiles, several candidate rotations.
-Fields: `days` (exactly the days asked for), `candidates` (only ids of the candidates of that
-meal), `variety` (no recipe on two days in a row, none twice while the meal has unused
-candidates).
+**menu-plan** - the menu planner with its retries (`menuPlanModelCall`, `planWithRetries`, as
+`MenuPlannerService` runs them) on the seed recipes (`recipes.json`: their snapshots with the
+nutrition per serving dumped from a seeded database and the ingredients of `data/seed`; refresh it
+when the seed recipes change): every number of days from 1 to 7, and 1, 3 and 7 days for the
+profiles without restrictions (`basic`), `vegan`, `allergy` (peanut, egg; dislikes mushrooms) and
+`low_kcal` (1400 kcal; dislikes salmon), plus `vegetarian` and several candidate rotations. The
+fields score the last plan: `days` (exactly the days asked for), `candidates` (only ids of the
+candidates of that meal), `validation` (no problem the planner sends back to the model),
+`calories` (every day within 15 % of the goal, the servings fitted to it by `fitServings`), `disliked` (no disliked food), `variety` (no
+recipe on two days in a row, none twice while the meal has unused candidates). The metric
+`repairs` is the mean of the calls after the first one; it is saved in the baseline, not compared.
 
 ## Tests
 

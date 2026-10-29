@@ -22,7 +22,7 @@ const ratio = (value: Rate): string => `${percent(value)} (${value.passed}/${val
 const usd = (value: number | null): string =>
   value === null ? 'unknown (no price for the model)' : `$${value.toFixed(4)}`;
 
-/** The console summary of a suite: rates, failed cases, tokens, latency, cost, baseline. */
+/** The console summary of a suite: rates, metrics, failed cases, tokens, latency, cost, baseline. */
 export function formatSuite({ summary, baseline, results }: SuiteReport): string[] {
   const { usage, latency } = summary;
   const lines = [
@@ -38,6 +38,10 @@ export function formatSuite({ summary, baseline, results }: SuiteReport): string
     ),
     ...Object.entries(summary.tags).map(
       ([tag, value]) => `  tag        ${tag.padEnd(14)} ${ratio(value)}`,
+    ),
+    ...Object.entries(summary.metrics).map(
+      ([metric, { runs, mean, max }]) =>
+        `  metric     ${metric.padEnd(14)} mean ${mean}, max ${max} (${runs} runs)`,
     ),
     `  tokens     ${usage.inputTokens} in (${usage.cachedInputTokens} cached) + ${usage.outputTokens} out`,
     `  latency    mean ${latency.meanMs}ms, p50 ${latency.p50Ms}ms, p95 ${latency.p95Ms}ms, max ${latency.maxMs}ms`,

@@ -1,5 +1,5 @@
 import { ModelUsage } from '../../src/common/types';
-import { CaseResult, LatencyStats, Rate, RunErrorKind, SuiteSummary } from './types';
+import { CaseResult, LatencyStats, MetricStats, Rate, RunErrorKind, SuiteSummary } from './types';
 
 const rate = (total: number, passed: number): Rate => ({
   total,
@@ -26,13 +26,35 @@ export function latencyStats(values: number[]): LatencyStats {
   };
 }
 
+/** Mean (to 2 decimals) and maximum of every metric over the runs that measured it. */
+export function metricStats(results: CaseResult[]): Record<string, MetricStats> {
+  const values = new Map<string, number[]>();
+  for (const result of results) {
+    for (const [metric, value] of Object.entries(result.metrics)) {
+      values.set(metric, [...(values.get(metric) ?? []), value]);
+    }
+  }
+  return Object.fromEntries(
+    [...values.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([metric, list]) => [
+        metric,
+        {
+          runs: list.length,
+          mean: Math.round((list.reduce((sum, value) => sum + value, 0) / list.length) * 100) / 100,
+          max: Math.max(...list),
+        },
+      ]),
+  );
+}
+
 /** A run whose call failed (timeout, rate limit) and says nothing about the prompt. */
 export const isFailedCall = (result: CaseResult): boolean =>
   result.error?.kind === RunErrorKind.CallFailed;
 
 /**
- * Pass rate of the runs of the cases, of every scored field and of every tag; tokens, latency and
- * cost of the calls. A field counts only on the cases that score it. With `--repeat` every run
+ * Pass rate of the runs of the cases, of every scored field and of every tag; the metrics of the
+ * suite; tokens, latency and cost of the calls. A field counts only on the cases that score it. With `--repeat` every run
  * counts, so a case that passes 2 of 3 times adds 2/3. Failed calls are counted apart and left out
  * of the rates and latency; invalid output fails its fields.
  */
@@ -81,6 +103,7 @@ export function summarize(suite: string, results: CaseResult[]): SuiteSummary {
       .length,
     fields: toRates(fields),
     tags: toRates(tags),
+    metrics: metricStats(answered),
     usage,
     latency: latencyStats(answered.map((result) => result.latencyMs)),
     costUsd: cost,

@@ -4,26 +4,39 @@ import { z } from 'zod';
 import {
   CalculationMode,
   Goal,
+  MENU_DAY_KCAL_TOLERANCE,
   MENU_MAX_DAYS,
   MENU_MIN_DAYS,
   MENU_PLAN_MEAL_TYPES,
+  MenuIssueCode,
 } from '../../../src/common/constants';
 import { MenuPlan } from '../../../src/common/contracts';
-import { ProfileContext } from '../../../src/common/types';
+import { AssistantInvalidOutputException } from '../../../src/common/exceptions';
+import {
+  MenuComposition,
+  ModelUsage,
+  ProfileContext,
+  RecipeSnapshot,
+} from '../../../src/common/types';
+import { MenuComposer } from '../../../src/modules/services/menu/menu-composer';
+import { fitServings, ResolvedDay } from '../../../src/modules/services/menu/menu-composition';
 import {
   candidateProblems,
   candidatesPerMeal,
   daysProblem,
   labelCandidates,
-  MenuPlanCandidate,
+  LabelledCandidates,
   MenuPlanCandidates,
+  menuPlanErrors,
   menuPlanModelCall,
   planDays,
+  PlannedDay,
+  planWithRetries,
   selectCandidates,
 } from '../../../src/modules/services/menu/menu-plan';
-import { dietTagsSatisfying } from '../../../src/modules/services/menu/menu-rules';
+import { dietTagsSatisfying, isForbiddenFood } from '../../../src/modules/services/menu/menu-rules';
 import { ModelResult, OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
-import { EvalCaseSchema, EvalSuite, FieldScore } from '../../lib/types';
+import { EvalCaseSchema, EvalSuite, FieldScore, SuiteRun } from '../../lib/types';
 
 const goal = (caloriesKcal: number): ProfileContext['nutritionGoal'] => ({
   goalId: 'eval-goal',
@@ -35,31 +48,55 @@ const goal = (caloriesKcal: number): ProfileContext['nutritionGoal'] => ({
   ruleVersion: null,
 });
 
+const NO_RULES: ProfileContext['rules'] = {
+  diets: [],
+  allergies: [],
+  excludedIngredients: [],
+  dislikedFoods: [],
+};
+
 /** Profiles a case can run with; `basic` when the case names none. */
 export const MENU_PLAN_PROFILES: Record<string, ProfileContext> = {
   basic: {
     profileId: 'eval-profile',
     goal: Goal.Maintain,
     nutritionGoal: goal(2000),
-    rules: { diets: [], allergies: [], excludedIngredients: [], dislikedFoods: [] },
+    rules: NO_RULES,
   },
   vegetarian: {
     profileId: 'eval-profile',
     goal: Goal.LoseWeight,
     nutritionGoal: goal(1600),
-    rules: { diets: ['vegetarian'], allergies: [], excludedIngredients: [], dislikedFoods: [] },
+    rules: { ...NO_RULES, diets: ['vegetarian'] },
+  },
+  vegan: {
+    profileId: 'eval-profile',
+    goal: Goal.Maintain,
+    nutritionGoal: goal(1800),
+    rules: { ...NO_RULES, diets: ['vegan'] },
+  },
+  allergy: {
+    profileId: 'eval-profile',
+    goal: Goal.Maintain,
+    nutritionGoal: goal(2000),
+    rules: { ...NO_RULES, allergies: ['peanut', 'egg'], dislikedFoods: ['mushroom'] },
+  },
+  low_kcal: {
+    profileId: 'eval-profile',
+    goal: Goal.LoseWeight,
+    nutritionGoal: goal(1400),
+    rules: { ...NO_RULES, dislikedFoods: ['salmon'] },
   },
 };
 
-interface EvalRecipe extends MenuPlanCandidate {
-  mealType: string;
-  dietType: string[];
-}
-
-/** The seed recipes with the nutrition of a serving (`recipes.json`). */
-export const MENU_PLAN_RECIPES: EvalRecipe[] = (
-  JSON.parse(readFileSync(join(__dirname, 'recipes.json'), 'utf8')) as { recipes: EvalRecipe[] }
+/** Snapshots of the seed recipes with the nutrition of a serving (`recipes.json`). */
+export const MENU_PLAN_RECIPES: RecipeSnapshot[] = (
+  JSON.parse(readFileSync(join(__dirname, 'recipes.json'), 'utf8')) as {
+    recipes: RecipeSnapshot[];
+  }
 ).recipes;
+
+const RECIPES_BY_ID = new Map(MENU_PLAN_RECIPES.map((recipe) => [recipe.id, recipe]));
 
 /**
  * The restated request (`describeMenuRequest`) with the number of days the planner gets.
@@ -75,15 +112,19 @@ export const MenuPlanCaseSchema = EvalCaseSchema.extend({
 export type MenuPlanCase = z.infer<typeof MenuPlanCaseSchema>;
 
 /**
- * The candidates the app offers for the case: allowed by the diets, then `selectCandidates`, by
- * short ids.
+ * The recipes the app offers the profile (`RecipeService.getAllowed`: the diets, no allergen or
+ * excluded ingredient), then `selectCandidates` of every meal, labelled by short ids.
  */
-export function caseCandidates(testCase: MenuPlanCase): MenuPlanCandidates {
+function labelledCandidates(testCase: MenuPlanCase): LabelledCandidates {
   const { rules, nutritionGoal } = MENU_PLAN_PROFILES[testCase.profile];
-  const allowed = MENU_PLAN_RECIPES.filter((recipe) =>
-    rules.diets.every((diet) =>
-      dietTagsSatisfying(diet).some((tag) => recipe.dietType.includes(tag)),
-    ),
+  const allowed = MENU_PLAN_RECIPES.filter(
+    (recipe) =>
+      rules.diets.every((diet) =>
+        dietTagsSatisfying(diet).some((tag) => recipe.dietType.includes(tag)),
+      ) &&
+      !recipe.ingredients.some(({ foodName, foodNameEn }) =>
+        isForbiddenFood(foodName, foodNameEn, rules),
+      ),
   );
   const selected = Object.fromEntries(
     MENU_PLAN_MEAL_TYPES.map((mealType) => [
@@ -99,7 +140,34 @@ export function caseCandidates(testCase: MenuPlanCase): MenuPlanCandidates {
       ),
     ]),
   ) as MenuPlanCandidates;
-  return labelCandidates(selected).candidates;
+  return labelCandidates(selected);
+}
+
+/** The candidates the app offers for the case, by short ids. */
+export const caseCandidates = (testCase: MenuPlanCase): MenuPlanCandidates =>
+  labelledCandidates(testCase).candidates;
+
+/**
+ * The menu of the planned days, the servings fitted to the calorie goal (`fitServings`), with its
+ * issues against the profile of the case (`MenuComposer`), as the app composes it. The days must be
+ * from the candidates.
+ */
+export function composeCase(testCase: MenuPlanCase, days: PlannedDay[]): MenuComposition {
+  const { recipeIds } = labelledCandidates(testCase);
+  const resolved = days.map((meals, dayIndex): ResolvedDay => ({
+    dayIndex,
+    date: null,
+    meals: MENU_PLAN_MEAL_TYPES.map((mealType) => {
+      const recipe = RECIPES_BY_ID.get(recipeIds.get(meals[mealType]) as string);
+      return { mealType, servings: 1, recipeId: recipe!.id, recipe: recipe! };
+    }),
+  }));
+  const profile = MENU_PLAN_PROFILES[testCase.profile];
+  const dailyKcal = profile.nutritionGoal?.caloriesKcal ?? null;
+  return new MenuComposer().compose(
+    dailyKcal === null ? resolved : fitServings(resolved, dailyKcal),
+    profile,
+  );
 }
 
 /**
@@ -119,14 +187,29 @@ export function isVaried(plan: MenuPlan, candidates: MenuPlanCandidates): boolea
 }
 
 /**
- * `days`: exactly the days asked for, each `dayIndex` once; `candidates`: every meal a candidate
- * of that meal; `variety`: `isVaried`, scored only when the days are right. Output that did not
- * match the schema (`null`) fails every field.
+ * The plan after the retries. `days`: exactly the days asked for, each `dayIndex` once;
+ * `candidates`: every meal a candidate of that meal; `validation`: no problem the planner sends
+ * back (`menuPlanErrors`); `calories`: every day within `MENU_DAY_KCAL_TOLERANCE` of the goal;
+ * `disliked`: no disliked food; `variety`: `isVaried`. The last four are scored only when the days
+ * and the candidates are right. Output that did not match the schema (`null`) fails every field.
  */
 export function scoreMenuPlan(testCase: MenuPlanCase, output: MenuPlan | null): FieldScore[] {
   const candidates = caseCandidates(testCase);
   const daysRight = output !== null && daysProblem(output, testCase.days) === null;
   const unknown = output === null ? null : candidateProblems(output, candidates);
+  const menu =
+    output !== null && daysRight && unknown?.length === 0
+      ? composeCase(testCase, planDays(output))
+      : null;
+  const issues = (code: MenuIssueCode): string[] | null =>
+    menu?.issues.filter((issue) => issue.code === code).map(({ message }) => message) ?? null;
+  const errors =
+    output === null
+      ? null
+      : menuPlanErrors(output, candidates, testCase.days, (days) => composeCase(testCase, days));
+  const offTarget = issues(MenuIssueCode.CaloriesOffTarget);
+  const disliked = issues(MenuIssueCode.DislikedFood);
+  const goalKcal = MENU_PLAN_PROFILES[testCase.profile].nutritionGoal?.caloriesKcal;
   return [
     {
       field: 'days',
@@ -141,27 +224,99 @@ export function scoreMenuPlan(testCase: MenuPlanCase, output: MenuPlan | null): 
       actual: unknown,
     },
     {
+      field: 'validation',
+      pass: errors !== null && errors.length === 0,
+      expected: 'no errors',
+      actual: errors,
+    },
+    {
+      field: 'calories',
+      pass: offTarget !== null && offTarget.length === 0,
+      expected: `${goalKcal} kcal ± ${MENU_DAY_KCAL_TOLERANCE * 100} % a day`,
+      actual: offTarget === null ? null : menu!.days.map(({ totals }) => totals.kcal),
+    },
+    {
+      field: 'disliked',
+      pass: disliked !== null && disliked.length === 0,
+      expected: MENU_PLAN_PROFILES[testCase.profile].rules.dislikedFoods,
+      actual: disliked,
+    },
+    {
       field: 'variety',
-      pass: output !== null && daysRight && isVaried(output, candidates),
+      pass: menu !== null && isVaried(output!, candidates),
       expected: 'no repeats while candidates are left, none on consecutive days',
       actual: output === null ? null : planDays(output),
     },
   ];
 }
 
-/** The menu planner (`MenuPlannerService`), first attempt: days, candidate ids and variety. */
+const addUsage = (a: ModelUsage, b: ModelUsage): ModelUsage => ({
+  inputTokens: a.inputTokens + b.inputTokens,
+  cachedInputTokens: a.cachedInputTokens + b.cachedInputTokens,
+  outputTokens: a.outputTokens + b.outputTokens,
+});
+
+/**
+ * Plans the case like `MenuPlannerService`: the planner call, and the plan with its problems back
+ * to the model until it has none (`planWithRetries`). The usage and latency are of every call;
+ * `repairs` is how many calls followed the first one. Output that did not match the schema fails
+ * with the usage of every call so far.
+ */
+export async function runMenuPlan(
+  testCase: MenuPlanCase,
+  openAi: OpenAiService,
+): Promise<SuiteRun<MenuPlan>> {
+  const candidates = caseCandidates(testCase);
+  const { input, schema, options } = menuPlanModelCall(
+    testCase.request,
+    testCase.days,
+    MENU_PLAN_PROFILES[testCase.profile],
+    candidates,
+  );
+  const calls: ModelResult<MenuPlan>[] = [];
+  const usage = (): ModelUsage =>
+    calls.reduce((total, call) => addUsage(total, call.usage), {
+      inputTokens: 0,
+      cachedInputTokens: 0,
+      outputTokens: 0,
+    });
+  try {
+    const attempts = await planWithRetries(
+      input,
+      async (messages) => {
+        const call = await openAi.generateStructuredResult(messages, schema, options);
+        calls.push(call);
+        return call.output;
+      },
+      (plan) =>
+        menuPlanErrors(plan, candidates, testCase.days, (days) => composeCase(testCase, days)),
+    );
+    return {
+      output: attempts[attempts.length - 1].plan,
+      modelId: calls[0].modelId,
+      latencyMs: calls.reduce((total, call) => total + call.latencyMs, 0),
+      usage: usage(),
+      metrics: { repairs: attempts.length - 1 },
+    };
+  } catch (error) {
+    if (error instanceof AssistantInvalidOutputException && error.call && calls.length > 0) {
+      throw new AssistantInvalidOutputException({
+        modelId: error.call.modelId,
+        usage: addUsage(usage(), error.call.usage),
+      });
+    }
+    throw error;
+  }
+}
+
+/**
+ * The menu planner (`MenuPlannerService`) with its retries: days, candidate ids, validation,
+ * calories, disliked foods and variety of the last plan, and the repairs it took.
+ */
 export const menuPlanSuite: EvalSuite<MenuPlanCase, MenuPlan> = {
   name: 'menu-plan',
   casesFile: join(__dirname, 'cases.jsonl'),
   caseSchema: MenuPlanCaseSchema,
-  run: async (testCase: MenuPlanCase, openAi: OpenAiService): Promise<ModelResult<MenuPlan>> => {
-    const { input, schema, options } = menuPlanModelCall(
-      testCase.request,
-      testCase.days,
-      MENU_PLAN_PROFILES[testCase.profile],
-      caseCandidates(testCase),
-    );
-    return openAi.generateStructuredResult(input, schema, options);
-  },
+  run: runMenuPlan,
   score: scoreMenuPlan,
 };

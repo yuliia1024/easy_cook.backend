@@ -59,6 +59,17 @@ describe('eval report', () => {
     ]);
   });
 
+  it('prints the mean and maximum of every metric', () => {
+    const measured = [
+      buildCaseResult({ metrics: { retries: 0 } }),
+      buildCaseResult({ metrics: { retries: 2 } }),
+    ];
+
+    expect(
+      formatSuite({ summary: summarize('s', measured), baseline: null, results: measured }),
+    ).toContain('  metric     retries        mean 1, max 2 (2 runs)');
+  });
+
   it('prints the comparison with the baseline', () => {
     expect(
       formatSuite(report({ regressions: [], modelMismatch: null, newlyFailed: [] })),

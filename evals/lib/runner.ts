@@ -51,6 +51,7 @@ export async function runCase<TCase extends EvalCase, TOutput>(
       latencyMs: result.latencyMs,
       usage: result.usage,
       costUsd: costUsd(result.modelId, result.usage),
+      metrics: result.metrics ?? {},
     };
   } catch (error) {
     const latencyMs = Date.now() - startedAt;
@@ -65,6 +66,7 @@ export async function runCase<TCase extends EvalCase, TOutput>(
         latencyMs,
         usage: error.call?.usage ?? NO_USAGE,
         costUsd: error.call ? costUsd(error.call.modelId, error.call.usage) : null,
+        metrics: {},
       };
     }
     return {
@@ -77,6 +79,7 @@ export async function runCase<TCase extends EvalCase, TOutput>(
       latencyMs,
       usage: NO_USAGE,
       costUsd: 0,
+      metrics: {},
     };
   }
 }

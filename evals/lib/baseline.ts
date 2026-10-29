@@ -29,6 +29,8 @@ export const BaselineSchema = z.object({
   passRate: z.number(),
   fields: z.record(z.string(), z.number()),
   tags: z.record(z.string(), z.number()),
+  /** The mean of every metric, for reference: not compared. */
+  metrics: z.record(z.string(), z.number()).default({}),
   passedCases: z.array(z.string()),
 });
 
@@ -68,6 +70,9 @@ export function toBaseline(summary: SuiteSummary, results: CaseResult[], now: Da
     passRate: summary.cases.rate,
     fields: rates(summary.fields),
     tags: rates(summary.tags),
+    metrics: Object.fromEntries(
+      Object.entries(summary.metrics).map(([metric, { mean }]) => [metric, mean]),
+    ),
     passedCases: [
       ...new Set(results.filter((result) => !isFailedCall(result)).map((result) => result.id)),
     ]
