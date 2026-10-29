@@ -1,6 +1,8 @@
 import {
   ASSISTANT_INVALID_OUTPUT_REPLY,
   ASSISTANT_UNAVAILABLE_REPLY,
+  CalculationMode,
+  ChatErrorCode,
   CLARIFICATION_REPLY,
   ChatResponseType,
   DietTag,
@@ -10,6 +12,7 @@ import {
   INTERNAL_ERROR_REPLY,
   Intent,
   MealType,
+  MENU_PLAN_FAILED_REPLY,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
 import { MenuRequest } from '../../../common/contracts';
@@ -141,6 +144,7 @@ describe('ChatOrchestratorService', () => {
     expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, profile, abort.signal);
     expect(menuPlannerService.plan).toHaveBeenCalledWith(
       'Plan a one-day menu.',
+      EMPTY_MENU_REQUEST,
       profile,
       abort.signal,
     );
@@ -162,6 +166,7 @@ describe('ChatOrchestratorService', () => {
     ]);
     expect(menuPlannerService.plan).toHaveBeenCalledWith(
       'Plan a one-day menu with another lunch.',
+      EMPTY_MENU_REQUEST,
       profile,
       undefined,
     );
@@ -172,7 +177,12 @@ describe('ChatOrchestratorService', () => {
 
     await send('Plan a day');
 
-    expect(menuPlannerService.plan).toHaveBeenCalledWith('Plan a day', profile, undefined);
+    expect(menuPlannerService.plan).toHaveBeenCalledWith(
+      'Plan a day',
+      EMPTY_MENU_REQUEST,
+      profile,
+      undefined,
+    );
   });
 
   it('passes a missing profile on as null', async () => {
@@ -182,7 +192,12 @@ describe('ChatOrchestratorService', () => {
     await send('Plan a day');
 
     expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, null, undefined);
-    expect(menuPlannerService.plan).toHaveBeenCalledWith('Plan a day', null, undefined);
+    expect(menuPlannerService.plan).toHaveBeenCalledWith(
+      'Plan a day',
+      EMPTY_MENU_REQUEST,
+      null,
+      undefined,
+    );
   });
 
   it('streams a planner text reply as text', async () => {
@@ -205,6 +220,48 @@ describe('ChatOrchestratorService', () => {
 
     await expect(send()).resolves.toEqual([
       { type: ChatStreamEventType.Error, ...error },
+      { type: ChatStreamEventType.Done },
+    ]);
+    expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
+  });
+
+  it('plans the request merged with the profile, its days included', async () => {
+    const withGoal: ProfileContext = {
+      ...profile,
+      nutritionGoal: {
+        goalId: 'g',
+        caloriesKcal: 1800,
+        proteinG: 100,
+        fatG: 50,
+        carbsG: 200,
+        calculationMode: CalculationMode.Manual,
+        ruleVersion: null,
+      },
+    };
+    profileContextService.find.mockResolvedValue(withGoal);
+    classifyAs(Intent.GenerateMenu, 'Plan a 5-day menu.', { ...EMPTY_MENU_REQUEST, days: 5 });
+
+    await send('5 days please');
+
+    expect(menuPlannerService.plan).toHaveBeenCalledWith(
+      'Plan a 5-day menu.',
+      { ...EMPTY_MENU_REQUEST, days: 5, caloriesKcal: 1800 },
+      withGoal,
+      undefined,
+    );
+  });
+
+  it('shows that the menu failed when the last attempt of the planner was invalid, and saves no reply', async () => {
+    classifyAs(Intent.GenerateMenu);
+    menuPlannerService.plan.mockRejectedValue(new AssistantInvalidOutputException());
+
+    await expect(send()).resolves.toEqual([
+      {
+        type: ChatStreamEventType.Error,
+        code: ChatErrorCode.AssistantInvalidOutput,
+        message: MENU_PLAN_FAILED_REPLY,
+        retryable: true,
+      },
       { type: ChatStreamEventType.Done },
     ]);
     expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
@@ -270,6 +327,7 @@ describe('ChatOrchestratorService', () => {
     ]);
     expect(menuPlannerService.plan).toHaveBeenCalledWith(
       'Plan a 3-day menu with dinner.',
+      { ...EMPTY_MENU_REQUEST, days: 3, mealTypes: [MealType.Dinner] },
       profile,
       undefined,
     );

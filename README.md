@@ -8,8 +8,12 @@ Single user, no auth, local run. Menus can be read, renamed, deleted and confirm
 not create menus or add versions. The chat classifies each message with the recent history (OpenAI
 structured output) and routes it: small talk streams an OpenAI reply, unrelated requests and vague
 menu requests get fixed replies, and a menu request, restated from the conversation, reaches the
-menu planner. Tool calling and RAG are the
-next stage.
+menu planner. Every day of a menu has a breakfast, a lunch, a snack and a dinner, in that order (25 / 35 /
+10 / 30 % of the daily calories). The planner offers the model the candidates of each meal (the recipes
+closest to the meal's share of the daily calories, rotated, by short ids such as `b1` or `s2`) for
+the 1-7 days asked for; a plan with other days, unknown ids or errors of `validateMenu` goes back to the model with
+its problems, up to `MENU_PLAN_MAX_ATTEMPTS` calls, and then the chat shows that the menu failed.
+Tool calling and RAG are the next stage.
 
 ## Ports
 
@@ -175,8 +179,8 @@ from the description (`raw`, `boiled`, `dry`...). Names are English (`name` = `n
 
 ## Evals
 
-Prompt quality measured on the real model (`OPEN_AI_API_KEY`, costs money: the intent suite is
-~$0.02 a run). Not part of `npm test` or CI; run it before and after a prompt change.
+Prompt quality measured on the real model (`OPEN_AI_API_KEY`, costs money: the intent and
+menu-plan suites are ~$0.02 a run each). Not part of `npm test` or CI; run it before and after a prompt change.
 
 ```bash
 npm run eval                                   # every suite, compared with its baseline
@@ -206,6 +210,13 @@ scope, general chat, follow-ups, menu revisions). Fields: `intent`; `days` from 
 case sets). A constraint lists alternatives: `"vegetarian"` must be named as wanted, `"!meat"` as
 excluded ("without meat", "meat-free"). The baseline was taken on the prompt before CHAT-1, which
 must not be worse.
+
+**menu-plan** - the first attempt of the menu planner (`menuPlanModelCall`) on the seed recipes
+(`recipes.json`, their nutrition per serving dumped from a seeded database; refresh it when the
+seed recipes change): every number of days from 1 to 7, two profiles, several candidate rotations.
+Fields: `days` (exactly the days asked for), `candidates` (only ids of the candidates of that
+meal), `variety` (no recipe on two days in a row, none twice while the meal has unused
+candidates).
 
 ## Tests
 

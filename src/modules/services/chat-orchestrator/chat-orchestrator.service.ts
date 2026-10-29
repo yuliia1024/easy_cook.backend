@@ -10,6 +10,7 @@ import {
   daysOutOfRangeReply,
   INTERNAL_ERROR_REPLY,
   Intent,
+  MENU_PLAN_FAILED_REPLY,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
 import { IntentResult } from '../../../common/contracts';
@@ -153,7 +154,10 @@ export class ChatOrchestratorService {
     }
   }
 
-  /** Days out of range are offered as the nearest allowed number instead of being planned. */
+  /**
+   * Days out of range are offered as the nearest allowed number instead of being planned. A plan
+   * still invalid after every attempt of the planner ends with `MENU_PLAN_FAILED_REPLY`.
+   */
   private async *planMenu(
     request: string,
     menuRequest: ResolvedMenuRequest,
@@ -161,6 +165,7 @@ export class ChatOrchestratorService {
     abortSignal: AbortSignal | undefined,
   ): AsyncGenerator<ChatStreamEvent> {
     const { daysOutOfRange } = menuRequest;
+
     if (daysOutOfRange) {
       yield {
         type: ChatStreamEventType.Clarification,
@@ -169,8 +174,27 @@ export class ChatOrchestratorService {
       };
       return;
     }
-    // TODO: add sort of stream text until get the menu
-    yield* this.toEvents(await this.menuPlannerService.plan(request, profile, abortSignal));
+    let response: ChatResponse;
+    try {
+      // TODO: add sort of stream text until get the menu
+      response = await this.menuPlannerService.plan(
+        request,
+        menuRequest.request,
+        profile,
+        abortSignal,
+      );
+    } catch (error) {
+      if (!(error instanceof AssistantInvalidOutputException)) {
+        throw error;
+      }
+      response = {
+        type: ChatResponseType.Error,
+        code: ChatErrorCode.AssistantInvalidOutput,
+        message: MENU_PLAN_FAILED_REPLY,
+        retryable: true,
+      };
+    }
+    yield* this.toEvents(response);
   }
 
   /**

@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import {
   ChatResponseType,
   Goal,
@@ -6,46 +7,60 @@ import {
   MenuIssueCode,
   MenuIssueSeverity,
   MENU_PLAN_INSTRUCTIONS,
-  MENU_PLAN_MAX_OUTPUT_TOKENS,
+  MENU_PLAN_MAX_ATTEMPTS,
+  menuPlanMaxOutputTokens,
+  menuPlanRetryMessage,
   NO_MENU_RECIPES_REPLY,
   NO_PROFILE_REPLY,
 } from '../../../common/constants';
-import { MenuPlan, MenuPlanSchema } from '../../../common/contracts';
+import { MenuPlan, MenuPlanSchema, MenuRequest } from '../../../common/contracts';
 import { AssistantInvalidOutputException } from '../../../common/exceptions';
 import { ProfileContext } from '../../../common/types';
 import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
+import { Prisma } from '../../../generated/prisma/client';
 import { createMock } from '../../../test/create-mock';
 import { buildFoodItem, buildIngredient, buildRecipe, PROFILE_ID } from '../../../test/fixtures';
 import { NutritionService } from '../nutrition/nutrition.service';
 import { toModelProfile } from '../profile-context/model-profile';
 import { RecipeService } from '../recipe/recipe.service';
 import { MenuComposer } from './menu-composer';
+import { EMPTY_MENU_REQUEST } from './menu-request';
 import { MenuPlannerService } from './menu-planner.service';
 
 describe('MenuPlannerService', () => {
   let recipeService: jest.Mocked<RecipeService>;
   let openAiService: jest.Mocked<OpenAiService>;
   let service: MenuPlannerService;
+  let warn: jest.SpyInstance;
+  let log: jest.SpyInstance;
   /** 130 kcal per serving each (200 g boiled rice, 2 servings). */
-  const breakfast = buildRecipe({ id: 'b', name: 'Rice porridge', mealType: MealType.Breakfast });
-  const lunch = buildRecipe({ id: 'l', name: 'Rice bowl', mealType: MealType.Lunch });
-  const dinner = buildRecipe({ id: 'd', name: 'Rice salad', mealType: MealType.Dinner });
-  const plan: MenuPlan = {
-    message: 'Here is your day.',
-    breakfast: 'b',
-    lunch: 'l',
-    dinner: 'd',
-  };
+  const breakfast = buildRecipe({
+    id: 'rec-b',
+    name: 'Rice porridge',
+    mealType: MealType.Breakfast,
+  });
+  const lunch = buildRecipe({ id: 'rec-l', name: 'Rice bowl', mealType: MealType.Lunch });
+  const dinner = buildRecipe({ id: 'rec-d', name: 'Rice salad', mealType: MealType.Dinner });
+  const snack = buildRecipe({ id: 'rec-s', name: 'Rice cake', mealType: MealType.Snack });
+  /** The short ids the model sees for the recipes above. */
+  const meals = { breakfast: 'b1', lunch: 'l1', dinner: 'd1', snack: 's1' };
+  const plan: MenuPlan = { message: 'Here is your day.', days: [{ dayIndex: 0, meals }] };
+  const oneDay: MenuRequest = { ...EMPTY_MENU_REQUEST, days: 1 };
   const profile: ProfileContext = {
     profileId: PROFILE_ID,
     goal: Goal.LoseWeight,
     nutritionGoal: null,
     rules: { diets: ['vegan'], allergies: [], excludedIngredients: [], dislikedFoods: [] },
   };
+  const sentMessages = (call = 0): Array<{ role: string; content: string }> =>
+    openAiService.generateStructured.mock.calls[call][0] as Array<{
+      role: string;
+      content: string;
+    }>;
 
   beforeEach(() => {
     recipeService = createMock<RecipeService>();
-    recipeService.getAllowed.mockResolvedValue([breakfast, lunch, dinner]);
+    recipeService.getAllowed.mockResolvedValue([breakfast, lunch, dinner, snack]);
     openAiService = createMock<OpenAiService>();
     openAiService.generateStructured.mockResolvedValue(plan);
     service = new MenuPlannerService(
@@ -54,13 +69,17 @@ describe('MenuPlannerService', () => {
       openAiService,
       new MenuComposer(),
     );
+    warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
   });
 
-  it('sends the model the request, the profile and the allowed recipes with their nutrition', async () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('sends the model the request, the days, the profile and the candidates with their nutrition', async () => {
     const abort = new AbortController();
     const perServing = { kcal: 130, proteinG: 3, fatG: 0, carbsG: 28 };
 
-    await service.plan('Light day', profile, abort.signal);
+    await service.plan('Light day', oneDay, profile, abort.signal);
 
     expect(recipeService.getAllowed).toHaveBeenCalledWith(profile.rules);
     expect(openAiService.generateStructured).toHaveBeenCalledWith(
@@ -69,11 +88,13 @@ describe('MenuPlannerService', () => {
           role: 'user',
           content: JSON.stringify({
             request: 'Light day',
+            days: 1,
             profile: toModelProfile(profile),
             recipes: {
-              breakfast: [{ id: 'b', name: 'Rice porridge', perServing, complete: true }],
-              lunch: [{ id: 'l', name: 'Rice bowl', perServing, complete: true }],
-              dinner: [{ id: 'd', name: 'Rice salad', perServing, complete: true }],
+              breakfast: [{ id: 'b1', name: 'Rice porridge', perServing, complete: true }],
+              lunch: [{ id: 'l1', name: 'Rice bowl', perServing, complete: true }],
+              snack: [{ id: 's1', name: 'Rice cake', perServing, complete: true }],
+              dinner: [{ id: 'd1', name: 'Rice salad', perServing, complete: true }],
             },
           }),
         },
@@ -81,14 +102,14 @@ describe('MenuPlannerService', () => {
       MenuPlanSchema,
       {
         instructions: MENU_PLAN_INSTRUCTIONS,
-        maxOutputTokens: MENU_PLAN_MAX_OUTPUT_TOKENS,
+        maxOutputTokens: menuPlanMaxOutputTokens(1),
         abortSignal: abort.signal,
       },
     );
   });
 
-  it('composes the chosen recipes into a one-day menu, one serving each, without issues when there is no goal', async () => {
-    await expect(service.plan('Light day', profile)).resolves.toMatchObject({
+  it('composes the chosen recipes into a one-day menu with a snack, one serving each, without issues when there is no goal', async () => {
+    await expect(service.plan('Light day', oneDay, profile)).resolves.toMatchObject({
       type: ChatResponseType.MenuReady,
       message: 'Here is your day.',
       menu: {
@@ -97,33 +118,102 @@ describe('MenuPlannerService', () => {
             dayIndex: 0,
             date: null,
             meals: [
-              { position: 0, mealType: MealType.Breakfast, recipeId: 'b', servings: 1 },
-              { position: 1, mealType: MealType.Lunch, recipeId: 'l', servings: 1 },
-              { position: 2, mealType: MealType.Dinner, recipeId: 'd', servings: 1 },
+              { position: 0, mealType: MealType.Breakfast, recipeId: 'rec-b', servings: 1 },
+              { position: 1, mealType: MealType.Lunch, recipeId: 'rec-l', servings: 1 },
+              { position: 2, mealType: MealType.Snack, recipeId: 'rec-s', servings: 1 },
+              { position: 3, mealType: MealType.Dinner, recipeId: 'rec-d', servings: 1 },
             ],
-            totals: { kcal: 390 },
+            totals: { kcal: 520 },
           },
         ],
         issues: [],
       },
     });
+    expect(log).toHaveBeenCalledWith('Menu of 1 days planned in 1 attempt(s)');
+  });
+
+  it('plans every requested day, in the order of dayIndex, and composes them all', async () => {
+    const lunch2 = buildRecipe({ id: 'rec-l2', name: 'Rice soup', mealType: MealType.Lunch });
+    recipeService.getAllowed.mockResolvedValue([breakfast, lunch, lunch2, dinner, snack]);
+    openAiService.generateStructured.mockResolvedValue({
+      message: 'Three days.',
+      days: [
+        { dayIndex: 2, meals },
+        { dayIndex: 0, meals },
+        { dayIndex: 1, meals: { ...meals, lunch: 'l2' } },
+      ],
+    });
+
+    const response = await service.plan('Three days', { ...oneDay, days: 3 }, profile);
+
+    expect(JSON.parse(sentMessages()[0].content).days).toBe(3);
+    expect(openAiService.generateStructured.mock.calls[0][2].maxOutputTokens).toBe(
+      menuPlanMaxOutputTokens(3),
+    );
+    expect(response).toMatchObject({
+      type: ChatResponseType.MenuReady,
+      menu: {
+        days: [
+          { dayIndex: 0, meals: [{ recipeId: 'rec-b' }, { recipeId: 'rec-l' }, {}, {}] },
+          { dayIndex: 1, meals: [{ recipeId: 'rec-b' }, { recipeId: 'rec-l2' }, {}, {}] },
+          { dayIndex: 2, meals: [{ recipeId: 'rec-b' }, { recipeId: 'rec-l' }, {}, {}] },
+        ],
+        dailyAverage: { kcal: 520 },
+      },
+    });
+  });
+
+  it('plans one day when the request names no days', async () => {
+    await service.plan('Light day', EMPTY_MENU_REQUEST, profile);
+
+    expect(JSON.parse(sentMessages()[0].content).days).toBe(1);
+  });
+
+  it('offers at most the candidates the days need, closest to the calorie share of the meal', async () => {
+    jest.spyOn(Math, 'random').mockReturnValue(0);
+    const breakfasts = Array.from({ length: 20 }, (_, i) =>
+      buildRecipe({
+        id: `rec-b${i}`,
+        name: `B${i}`,
+        mealType: MealType.Breakfast,
+        ingredients: [buildIngredient({ quantityG: new Prisma.Decimal(100 + i * 100) })],
+      }),
+    );
+    recipeService.getAllowed.mockResolvedValue([...breakfasts, lunch, dinner, snack]);
+    openAiService.generateStructured.mockResolvedValue({
+      ...plan,
+      days: [{ dayIndex: 0, meals }],
+    });
+
+    await service.plan('Light day', { ...oneDay, caloriesKcal: 2000 }, profile);
+
+    // 500 kcal for breakfast is closest to B7 (520 kcal a serving), then B6 (455), B8 (585), ...
+    const offered = JSON.parse(sentMessages()[0].content).recipes.breakfast as Array<{
+      id: string;
+      name: string;
+    }>;
+    expect(offered.map(({ id, name }) => [id, name])).toEqual([
+      ['b1', 'B7'],
+      ['b2', 'B6'],
+      ['b3', 'B8'],
+      ['b4', 'B5'],
+      ['b5', 'B9'],
+      ['b6', 'B4'],
+    ]);
   });
 
   it('tells the model a recipe with unknown values is incomplete', async () => {
     const unknownFat = buildRecipe({
-      id: 'l',
+      id: 'rec-l',
       name: 'Rice bowl',
       ingredients: [buildIngredient({ foodItem: buildFoodItem({ fatG: null }) })],
     });
-    recipeService.getAllowed.mockResolvedValue([breakfast, unknownFat, dinner]);
+    recipeService.getAllowed.mockResolvedValue([breakfast, unknownFat, dinner, snack]);
 
-    await service.plan('Light day', profile);
+    await service.plan('Light day', oneDay, profile);
 
-    const [[[message]]] = openAiService.generateStructured.mock.calls as unknown as Array<
-      [Array<{ content: string }>]
-    >;
-    expect(JSON.parse(message.content).recipes.lunch).toEqual([
-      expect.objectContaining({ id: 'l', complete: false }),
+    expect(JSON.parse(sentMessages()[0].content).recipes.lunch).toEqual([
+      expect.objectContaining({ id: 'l1', complete: false }),
     ]);
   });
 
@@ -141,7 +231,7 @@ describe('MenuPlannerService', () => {
       },
     };
 
-    const response = await service.plan('Light day', withGoal);
+    const response = await service.plan('Light day', oneDay, withGoal);
 
     expect(response).toMatchObject({
       menu: {
@@ -149,16 +239,17 @@ describe('MenuPlannerService', () => {
           {
             severity: MenuIssueSeverity.Warning,
             code: MenuIssueCode.CaloriesOffTarget,
-            message: 'Day 1: 390 kcal is 81 % below the 2000 kcal goal',
+            message: 'Day 1: 520 kcal is 74 % below the 2000 kcal goal',
             dayIndex: 0,
           },
         ],
       },
     });
+    expect(openAiService.generateStructured).toHaveBeenCalledTimes(1);
   });
 
   it('reports the issues of the chosen recipes against the preferences', async () => {
-    const response = await service.plan('Light day', {
+    const response = await service.plan('Light day', oneDay, {
       ...profile,
       rules: { ...profile.rules, dislikedFoods: ['rice'] },
     });
@@ -169,44 +260,22 @@ describe('MenuPlannerService', () => {
           expect.objectContaining({ code: MenuIssueCode.DislikedFood, position: 0 }),
           expect.objectContaining({ code: MenuIssueCode.DislikedFood, position: 1 }),
           expect.objectContaining({ code: MenuIssueCode.DislikedFood, position: 2 }),
+          expect.objectContaining({ code: MenuIssueCode.DislikedFood, position: 3 }),
         ],
       },
     });
   });
 
-  it('reports a broken hard rule as an error, should the allowed recipes let one through', async () => {
-    recipeService.getAllowed.mockResolvedValue([
-      breakfast,
-      buildRecipe({ id: 'l', name: 'Rice bowl', dietType: [] }),
-      dinner,
-    ]);
+  it.each([
+    [
+      'a lunch',
+      [breakfast, buildRecipe({ id: 'b2', mealType: MealType.Breakfast }), dinner, snack],
+    ],
+    ['a snack', [breakfast, lunch, dinner]],
+  ])('answers without the model when there is no allowed recipe for %s', async (_case, recipes) => {
+    recipeService.getAllowed.mockResolvedValue(recipes);
 
-    const response = await service.plan('Light day', profile);
-
-    expect(response).toMatchObject({
-      menu: {
-        issues: [
-          {
-            severity: MenuIssueSeverity.Error,
-            code: MenuIssueCode.DietViolation,
-            message: 'Day 1, lunch: Rice bowl is not vegan',
-            dayIndex: 0,
-            position: 1,
-            recipeId: 'l',
-          },
-        ],
-      },
-    });
-  });
-
-  it('answers without the model when a meal has no allowed recipe', async () => {
-    recipeService.getAllowed.mockResolvedValue([
-      breakfast,
-      buildRecipe({ id: 'b2', mealType: MealType.Breakfast }),
-      dinner,
-    ]);
-
-    await expect(service.plan('Light day', profile)).resolves.toEqual({
+    await expect(service.plan('Light day', oneDay, profile)).resolves.toEqual({
       type: ChatResponseType.Text,
       message: NO_MENU_RECIPES_REPLY,
     });
@@ -214,7 +283,7 @@ describe('MenuPlannerService', () => {
   });
 
   it('asks to fill in the profile first, without recipes or the model', async () => {
-    await expect(service.plan('Light day', null)).resolves.toEqual({
+    await expect(service.plan('Light day', oneDay, null)).resolves.toEqual({
       type: ChatResponseType.Text,
       message: NO_PROFILE_REPLY,
     });
@@ -222,14 +291,87 @@ describe('MenuPlannerService', () => {
     expect(openAiService.generateStructured).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['an unknown recipe', { lunch: 'x' }],
-    ['a recipe of another meal', { lunch: 'b' }],
-  ])('rejects %s as invalid output', async (_case, choice) => {
-    openAiService.generateStructured.mockResolvedValue({ ...plan, ...choice });
+  describe('retries', () => {
+    it('sends the problems of an unknown recipe back and succeeds on the 2nd attempt', async () => {
+      const wrong: MenuPlan = { ...plan, days: [{ dayIndex: 0, meals: { ...meals, lunch: 'x' } }] };
+      openAiService.generateStructured.mockResolvedValueOnce(wrong).mockResolvedValueOnce(plan);
 
-    await expect(service.plan('Light day', profile)).rejects.toBeInstanceOf(
-      AssistantInvalidOutputException,
-    );
+      const response = await service.plan('Light day', oneDay, profile);
+
+      expect(response).toMatchObject({ type: ChatResponseType.MenuReady });
+      expect(openAiService.generateStructured).toHaveBeenCalledTimes(2);
+      expect(sentMessages(1).slice(1)).toEqual([
+        { role: 'assistant', content: JSON.stringify(wrong) },
+        {
+          role: 'user',
+          content: menuPlanRetryMessage([
+            'dayIndex 0, lunch: "x" is not an id from the lunch recipes.',
+          ]),
+        },
+      ]);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('attempt 1 of 3 has 1 problem(s)'));
+      expect(log).toHaveBeenCalledWith('Menu of 1 days planned in 2 attempt(s)');
+    });
+
+    it.each([
+      ['a recipe of another meal', [{ dayIndex: 0, meals: { ...meals, lunch: 'b1' } }]],
+      ['too few days', []],
+      [
+        'a repeated dayIndex',
+        [
+          { dayIndex: 0, meals },
+          { dayIndex: 0, meals },
+        ],
+      ],
+    ])('retries %s', async (_case, days) => {
+      openAiService.generateStructured
+        .mockResolvedValueOnce({ ...plan, days })
+        .mockResolvedValueOnce(plan);
+
+      await expect(service.plan('Light day', oneDay, profile)).resolves.toMatchObject({
+        type: ChatResponseType.MenuReady,
+      });
+      expect(openAiService.generateStructured).toHaveBeenCalledTimes(2);
+    });
+
+    it('sends the errors of validateMenu back to the model', async () => {
+      const vegan = buildRecipe({ id: 'rec-l2', name: 'Rice soup', mealType: MealType.Lunch });
+      recipeService.getAllowed.mockResolvedValue([
+        breakfast,
+        buildRecipe({ id: 'rec-l', name: 'Rice bowl', dietType: [] }),
+        vegan,
+        dinner,
+        snack,
+      ]);
+      openAiService.generateStructured.mockResolvedValueOnce(plan).mockResolvedValueOnce({
+        ...plan,
+        days: [{ dayIndex: 0, meals: { ...meals, lunch: 'l2' } }],
+      });
+
+      const response = await service.plan('Light day', oneDay, profile);
+
+      expect(sentMessages(1).at(-1)?.content).toBe(
+        menuPlanRetryMessage(['Day 1, lunch: Rice bowl is not vegan.']),
+      );
+      expect(response).toMatchObject({
+        type: ChatResponseType.MenuReady,
+        menu: { days: [{ meals: [{}, { recipeId: 'rec-l2' }, {}, {}] }], issues: [] },
+      });
+    });
+
+    it('fails with invalid output after the last attempt', async () => {
+      openAiService.generateStructured.mockResolvedValue({ ...plan, days: [] });
+
+      await expect(service.plan('Light day', oneDay, profile)).rejects.toBeInstanceOf(
+        AssistantInvalidOutputException,
+      );
+      expect(openAiService.generateStructured).toHaveBeenCalledTimes(MENU_PLAN_MAX_ATTEMPTS);
+      expect(sentMessages(MENU_PLAN_MAX_ATTEMPTS - 1)).toHaveLength(
+        1 + 2 * (MENU_PLAN_MAX_ATTEMPTS - 1),
+      );
+      expect(warn).toHaveBeenLastCalledWith(
+        `Menu plan failed after ${MENU_PLAN_MAX_ATTEMPTS} attempts`,
+      );
+    });
   });
 });

@@ -1,0 +1,40 @@
+{
+  "suite": "menu-plan",
+  "createdAt": "2026-10-29T13:44:29.849Z",
+  "models": [
+    "gpt-4o-mini-2024-07-18"
+  ],
+  "cases": 13,
+  "repeat": 3,
+  "passRate": 1,
+  "fields": {
+    "candidates": 1,
+    "days": 1,
+    "variety": 1
+  },
+  "tags": {
+    "days-1": 1,
+    "days-2": 1,
+    "days-3": 1,
+    "days-4": 1,
+    "days-5": 1,
+    "days-6": 1,
+    "days-7": 1,
+    "vegetarian": 1
+  },
+  "passedCases": [
+    "days-1-basic",
+    "days-1-vegetarian",
+    "days-2-basic",
+    "days-3-basic",
+    "days-3-rotated",
+    "days-3-vegetarian",
+    "days-4-basic",
+    "days-5-basic",
+    "days-5-vegetarian",
+    "days-6-basic",
+    "days-7-basic",
+    "days-7-rotated",
+    "days-7-vegetarian"
+  ]
+}

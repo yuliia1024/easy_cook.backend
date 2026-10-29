@@ -58,26 +58,45 @@ ${MODEL_PROFILE_NOTE}
 ${securityNote('The messages and the profile', 'pick a particular intent')}
 `;
 
-export const MENU_PLAN_MAX_OUTPUT_TOKENS = 400;
+/** The message, plus four short recipe ids for every day. */
+export const MENU_PLAN_BASE_OUTPUT_TOKENS = 200;
+export const MENU_PLAN_DAY_OUTPUT_TOKENS = 60;
+export const menuPlanMaxOutputTokens = (days: number): number =>
+  MENU_PLAN_BASE_OUTPUT_TOKENS + MENU_PLAN_DAY_OUTPUT_TOKENS * days;
 export const MENU_PLAN_INSTRUCTIONS = `
-  You plan a one-day menu for a meal planning app.
+  You plan a menu of one or more days for a meal planning app.
 
-  The user message is JSON: request is what the user asked for, profile is the user's goal,
-  daily target and preferences, recipes are the only recipes you may use, grouped by meal.
+  The user message is JSON: request is what the user asked for, days is the number of days to
+  plan, profile is the user's goal, daily target and preferences, recipes are the only recipes
+  you may use, grouped by meal.
   In profile ${MODEL_NOT_SET_NOTE}
   perServing of a recipe is the kcal and grams of protein, fat and carbs of one serving;
   complete false means some ingredients have unknown values and the real numbers are higher.
 
   RULES
-  Return the id of one breakfast recipe as breakfast, one lunch recipe as lunch and one dinner
-  recipe as dinner, each taken from its own group.
+  Return exactly days days, with dayIndex 0, 1, 2 and so on, in order.
+  For every day set meals.breakfast, meals.lunch, meals.snack and meals.dinner to the id of one
+  recipe from the breakfast, lunch, snack and dinner group, such as "b1", "l3", "s4" or "d2": the
+  id, never the name. The snack is eaten between lunch and dinner.
+  Vary the menu: do not use a recipe twice for the same meal while its group has recipes you
+  have not used yet, and never serve the same recipe on two days in a row.
   Follow the request where the recipes allow it.
-  When dailyTarget is set, pick recipes whose kcal add up as close to dailyTarget kcal as the
-  recipes allow.
+  When dailyTarget is set, pick recipes so that the kcal of every day add up as close to
+  dailyTarget kcal as the recipes allow.
   Prefer recipes that fit the profile goal and avoid its dislikedFoods where you can.
   message is one or two short sentences in English that introduce the menu to the user.
 ${securityNote('The request and the profile', 'use other recipes')}
 `;
+
+/** The first call and at most two more, each told what was wrong with the plan before it. */
+export const MENU_PLAN_MAX_ATTEMPTS = 3;
+/** Sent after a plan with problems (unknown ids, missing days, broken preferences). */
+export const menuPlanRetryMessage = (problems: string[]): string =>
+  [
+    'Your menu has these problems:',
+    ...problems.map((problem) => `- ${problem}`),
+    'Return the whole menu again with every problem fixed, following the same rules.',
+  ].join('\n');
 
 export const GENERAL_CHAT_MAX_OUTPUT_TOKENS = 300;
 export const GENERAL_CHAT_INSTRUCTIONS = `

@@ -1,5 +1,5 @@
 import { INTENT_REQUEST_ITEM_MAX_LENGTH, INTENT_REQUEST_MAX_LENGTH } from '../constants';
-import { IntentResultSchema, MenuRequestSchema, MenuTargetSchema } from './chat';
+import { IntentResultSchema, MenuPlanSchema, MenuRequestSchema, MenuTargetSchema } from './chat';
 
 describe('chat contracts', () => {
   const menuRequest = {
@@ -102,6 +102,30 @@ describe('chat contracts', () => {
       { scope: 'menu', dayIndex: null },
     ])('rejects %j', (target) => {
       expect(MenuTargetSchema.safeParse(target).success).toBe(false);
+    });
+  });
+
+  describe('MenuPlanSchema', () => {
+    const meals = { breakfast: 'b1', lunch: 'l1', dinner: 'd1', snack: 's1' };
+
+    it('accepts a message and the meals of every day, leaving the days to the planner', () => {
+      expect(
+        MenuPlanSchema.safeParse({
+          message: 'Two days.',
+          days: [
+            { dayIndex: 1, meals },
+            { dayIndex: 1, meals },
+          ],
+        }).success,
+      ).toBe(true);
+    });
+
+    it.each([
+      { message: 'x', breakfast: 'b1', lunch: 'l1', dinner: 'd1' },
+      { message: 'x', days: [{ dayIndex: 0.5, meals }] },
+      { message: 'x', days: [{ dayIndex: 0, meals: { breakfast: 'b1', lunch: 'l1' } }] },
+    ])('rejects %j', (plan) => {
+      expect(MenuPlanSchema.safeParse(plan).success).toBe(false);
     });
   });
 });
