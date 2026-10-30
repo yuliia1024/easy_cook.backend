@@ -1,15 +1,24 @@
-import { Goal, MenuIssueCode, MenuIssueSeverity } from '../../../common/constants';
+import {
+  Goal,
+  MealType,
+  MenuGeneratedBy,
+  MenuIssueCode,
+  MenuIssueSeverity,
+  MenuStatus,
+} from '../../../common/constants';
 import {
   MenuNotFoundException,
   MenuVersionNotFoundException,
   MenuViolatesRulesBadRequestException,
 } from '../../../common/exceptions';
-import { MenuIssue, ProfileContext } from '../../../common/types';
+import { MenuComposition, MenuIssue, ProfileContext, ResolvedDay } from '../../../common/types';
 import { createMock } from '../../../test/create-mock';
 import {
   buildMenu,
   buildMenuVersion,
   buildProfile,
+  buildRecipeSnapshot,
+  CONVERSATION_ID,
   MENU_ID,
   MENU_VERSION_ID,
   PROFILE_ID,
@@ -49,11 +58,66 @@ describe('MenuService', () => {
     service = new MenuService(repository, profileService, composer, profileContextService);
   });
 
-  it('lists the profile menus', async () => {
+  it('lists the confirmed menus of the profile unless another status is asked for', async () => {
     repository.findAll.mockResolvedValue([]);
 
     await expect(service.getAll()).resolves.toEqual([]);
-    expect(repository.findAll).toHaveBeenCalledWith(PROFILE_ID);
+    await service.getAll(MenuStatus.Draft);
+
+    expect(repository.findAll.mock.calls).toEqual([
+      [PROFILE_ID, MenuStatus.Confirmed],
+      [PROFILE_ID, MenuStatus.Draft],
+    ]);
+  });
+
+  describe('saveGenerated', () => {
+    const days: ResolvedDay[] = [
+      {
+        dayIndex: 0,
+        date: null,
+        meals: [
+          { mealType: MealType.Lunch, servings: 1, recipeId: 'r', recipe: buildRecipeSnapshot() },
+        ],
+      },
+      { dayIndex: 1, date: null, meals: [] },
+    ];
+    const composition = { days: [], dailyAverage: {}, issues: [] } as unknown as MenuComposition;
+    const generated = { menu: composition, days, nutritionGoal: context.nutritionGoal };
+    const version = {
+      generatedBy: MenuGeneratedBy.Llm,
+      nutritionGoal: null,
+      composition,
+      days,
+    };
+
+    beforeEach(() => {
+      const saved = buildMenuVersion({ id: MENU_VERSION_ID, menuId: MENU_ID });
+      repository.createDraft.mockResolvedValue(saved);
+      repository.addVersion.mockResolvedValue(saved);
+    });
+
+    it('creates a draft menu linked to a conversation without one', async () => {
+      await expect(
+        service.saveGenerated({ id: CONVERSATION_ID, menuId: null }, generated),
+      ).resolves.toEqual({ menuId: MENU_ID, versionId: MENU_VERSION_ID });
+
+      expect(repository.createDraft).toHaveBeenCalledWith(
+        PROFILE_ID,
+        '2-day menu',
+        version,
+        CONVERSATION_ID,
+      );
+      expect(repository.addVersion).not.toHaveBeenCalled();
+    });
+
+    it('adds a version to the menu of the conversation', async () => {
+      await expect(
+        service.saveGenerated({ id: CONVERSATION_ID, menuId: MENU_ID }, generated),
+      ).resolves.toEqual({ menuId: MENU_ID, versionId: MENU_VERSION_ID });
+
+      expect(repository.addVersion).toHaveBeenCalledWith(MENU_ID, version);
+      expect(repository.createDraft).not.toHaveBeenCalled();
+    });
   });
 
   describe('getById', () => {

@@ -8,7 +8,7 @@ const TEXT_ID = 'text';
  * Writes chat events into an AI SDK UI message stream as they arrive:
  * - `text_delta` - one text part;
  * - `clarification` - its message as text, then `data-clarification` with the missing fields;
- * - `menu_ready` - `data-menu`;
+ * - `menu_ready` - `data-menu` with `{ menuId, versionId, composition }` of the saved draft version;
  * - `error` - a transient `data-error` with the code, then an `error` chunk; nothing follows it;
  * - `done` - `finish`.
  * An unexpected failure becomes an `error` chunk with a generic text.
@@ -50,7 +50,10 @@ export function toChatStream(
             break;
           case ChatStreamEventType.MenuReady:
             endText();
-            writer.write({ type: 'data-menu', data: event.menu });
+            writer.write({
+              type: 'data-menu',
+              data: { menuId: event.menuId, versionId: event.versionId, composition: event.menu },
+            });
             break;
           case ChatStreamEventType.Error:
             endText();

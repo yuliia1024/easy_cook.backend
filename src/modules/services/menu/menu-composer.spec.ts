@@ -5,10 +5,9 @@ import {
   MenuIssueCode,
   MenuIssueSeverity,
 } from '../../../common/constants';
-import { ProfileContext } from '../../../common/types';
+import { ProfileContext, ResolvedDay } from '../../../common/types';
 import { buildMenuVersion, buildRecipeSnapshot, PROFILE_ID } from '../../../test/fixtures';
 import { MenuComposer } from './menu-composer';
-import { ResolvedDay } from './menu-composition';
 
 describe('MenuComposer', () => {
   it('revalidates a saved version against the current rules', () => {

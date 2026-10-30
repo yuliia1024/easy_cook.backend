@@ -128,6 +128,23 @@ describe('MenuPlannerService', () => {
         ],
         issues: [],
       },
+      days: [
+        {
+          dayIndex: 0,
+          date: null,
+          meals: [
+            {
+              mealType: MealType.Breakfast,
+              servings: 1,
+              recipeId: 'rec-b',
+              recipe: { id: 'rec-b' },
+            },
+            { mealType: MealType.Lunch, servings: 1, recipeId: 'rec-l', recipe: { id: 'rec-l' } },
+            { mealType: MealType.Snack, servings: 1, recipeId: 'rec-s', recipe: { id: 'rec-s' } },
+            { mealType: MealType.Dinner, servings: 1, recipeId: 'rec-d', recipe: { id: 'rec-d' } },
+          ],
+        },
+      ],
     });
     expect(log).toHaveBeenCalledWith('Menu of 1 days planned in 1 attempt(s)');
   });

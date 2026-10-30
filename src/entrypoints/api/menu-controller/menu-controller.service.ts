@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { MenuService } from '../../../modules/services/menu/menu.service';
-import { RenameMenuDto } from './dto/menu.dto';
+import { MenuListQueryDto, RenameMenuDto } from './dto/menu.dto';
 import { MenuResponseDto, MenuSummaryResponseDto } from './dto/menu.response.dto';
 
 @Injectable()
 export class MenuControllerService {
   constructor(private readonly menuService: MenuService) {}
 
-  public async getAll(): Promise<MenuSummaryResponseDto[]> {
-    const menus = await this.menuService.getAll();
+  public async getAll({ status }: MenuListQueryDto = {}): Promise<MenuSummaryResponseDto[]> {
+    const menus = await this.menuService.getAll(status);
     return menus.map(MenuSummaryResponseDto.from);
   }
 

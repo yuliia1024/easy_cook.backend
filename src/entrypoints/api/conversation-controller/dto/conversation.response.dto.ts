@@ -41,7 +41,7 @@ export class MessageResponseDto {
   /** The menu version the assistant created with this reply, and its menu. */
   menuVersionId: string | null;
   menuId: string | null;
-  /** The menu the assistant suggested with this reply; not a saved menu. */
+  /** The menu the assistant suggested with this reply, as saved in `menuVersionId`. */
   suggestedMenu: SuggestedMenuResponseDto | null;
   createdAt: Date;
 

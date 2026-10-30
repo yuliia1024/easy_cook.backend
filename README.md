@@ -127,12 +127,13 @@ Everything is under `/api`; Swagger UI on `/docs`.
 | GET | `/recipes/:id/nutrition?includeOptional=` | per ingredient, total, per serving |
 | POST | `/recipes/:id/ingredients` | |
 | PATCH / DELETE | `/recipes/:id/ingredients/:ingredientId` | |
-| GET | `/menus`, `/menus/:id` | `:id` with every version, newest first, nutrition per meal and day, issues |
+| GET | `/menus?status=` | confirmed menus by default; `status=draft` the ones without a confirmed version, `all` both |
+| GET | `/menus/:id` | every version, newest first, nutrition per meal and day, issues |
 | PATCH / DELETE | `/menus/:id` | rename / delete |
 | POST | `/menus/:id/versions/:versionId/confirm` | rechecked against the current preferences first; 400 when it breaks diets / allergies / excluded foods |
 | GET / POST | `/conversations` | |
 | GET / PATCH / DELETE | `/conversations/:id` | |
-| POST | `/conversations/:id/messages` | at most 300 characters; saves the message and streams the reply (AI SDK UI message stream): text, `data-clarification` with the missing fields, or `data-error` (`code`, `message`, `retryable`) + `error`; the reply is saved once complete |
+| POST | `/conversations/:id/messages` | at most 300 characters; saves the message and streams the reply (AI SDK UI message stream): text, `data-menu` (`menuId`, `versionId`, `composition`), `data-clarification` with the missing fields, or `data-error` (`code`, `message`, `retryable`) + `error`; the reply is saved once complete. Every generated menu is saved as an unconfirmed version (`generatedBy: llm`): the first one of the conversation as a new menu linked to it, the next ones as versions of that menu |
 
 Errors always look like `{ statusCode, message, error, path, timestamp }`.
 

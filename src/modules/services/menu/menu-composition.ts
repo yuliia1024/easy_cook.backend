@@ -11,26 +11,13 @@ import {
   MealComposition,
   MenuComposition,
   RecipeSnapshot,
+  ResolvedDay,
+  ResolvedMeal,
 } from '../../../common/types';
 import { parseEnum, round, toNumber } from '../../../common/utils';
 import { MenuVersionWithDays } from '../../data-access/menu/menu.repository';
 import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repository';
 import { MACROS, RecipeNutrition } from '../nutrition/nutrition.service';
-
-/** A day whose meals are resolved to recipe snapshots. */
-export interface ResolvedDay {
-  dayIndex: number;
-  date: Date | null;
-  meals: ResolvedMeal[];
-}
-
-export interface ResolvedMeal {
-  mealType: MealType;
-  servings: number;
-  /** Null when the recipe was deleted and only its snapshot is left. */
-  recipeId: string | null;
-  recipe: RecipeSnapshot;
-}
 
 const emptyMacros = (): MacroValues => ({ kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 });
 

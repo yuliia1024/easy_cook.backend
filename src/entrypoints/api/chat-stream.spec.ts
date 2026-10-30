@@ -52,7 +52,7 @@ describe('toChatStream', () => {
     });
   });
 
-  it('sends a validated menu as a data part', async () => {
+  it('sends a validated menu as a data part with the ids of its saved version', async () => {
     const menu = {
       days: [],
       dailyAverage: { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 },
@@ -60,11 +60,14 @@ describe('toChatStream', () => {
     };
 
     const chunks = await read([
-      { type: ChatStreamEventType.MenuReady, menu },
+      { type: ChatStreamEventType.MenuReady, menuId: 'm', versionId: 'v', menu },
       { type: ChatStreamEventType.Done },
     ]);
 
-    expect(chunks).toContainEqual({ type: 'data-menu', data: menu });
+    expect(chunks).toContainEqual({
+      type: 'data-menu',
+      data: { menuId: 'm', versionId: 'v', composition: menu },
+    });
   });
 
   it('ends with the error code and its safe message', async () => {

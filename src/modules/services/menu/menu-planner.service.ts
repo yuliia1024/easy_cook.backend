@@ -9,14 +9,20 @@ import {
   NO_PROFILE_REPLY,
 } from '../../../common/constants';
 import { MenuRequest } from '../../../common/contracts';
-import { ChatResponse, MacroValues, MenuComposition, ProfileContext } from '../../../common/types';
+import {
+  ChatResponse,
+  MacroValues,
+  MenuComposition,
+  ProfileContext,
+  ResolvedDay,
+} from '../../../common/types';
 import { AssistantInvalidOutputException } from '../../../common/exceptions';
 import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repository';
 import { NutritionService, RecipeNutrition } from '../nutrition/nutrition.service';
 import { RecipeService } from '../recipe/recipe.service';
 import { MenuComposer } from './menu-composer';
-import { fitServings, ResolvedDay, snapshotRecipe } from './menu-composition';
+import { fitServings, snapshotRecipe } from './menu-composition';
 import {
   candidatesPerMeal,
   labelCandidates,
@@ -49,8 +55,8 @@ const roundToUnits = ({ kcal, proteinG, fatG, carbsG }: MacroValues): MacroValue
  * (other days, a recipe that is not a candidate, an error of `validateMenu`) goes back to the
  * model with the problems, up to `MENU_PLAN_MAX_ATTEMPTS` calls; after the last one it is invalid
  * output. The servings of every day are fitted to the daily calories of the request
- * (`fitServings`), one each without them. The menu comes with its issues against the profile.
- * Nothing is saved.
+ * (`fitServings`), one each without them. The menu comes with its issues against the profile and
+ * its meals with the recipe snapshots. Nothing is saved.
  * Without a profile there are no rules to follow, so it asks to fill one in instead.
  */
 @Injectable()
@@ -93,8 +99,10 @@ export class MenuPlannerService {
       schema,
       options: callOptions,
     } = menuPlanModelCall(message, days, profile, candidates, abortSignal);
+    const resolve = (planned: PlannedDay[]): ResolvedDay[] =>
+      this.resolve(planned, recipeIds, options, request.caloriesKcal);
     const compose = (planned: PlannedDay[]): MenuComposition =>
-      this.compose(planned, recipeIds, options, profile, request.caloriesKcal);
+      this.menuComposer.compose(resolve(planned), profile);
     const attempts = await planWithRetries(
       input,
       (messages) => this.openAiService.generateStructured(messages, schema, callOptions),
@@ -113,10 +121,12 @@ export class MenuPlannerService {
       throw new AssistantInvalidOutputException();
     }
     this.logger.log(`Menu of ${days} days planned in ${attempts.length} attempt(s)`);
+    const resolved = resolve(planDays(plan));
     return {
       type: ChatResponseType.MenuReady,
       message: plan.message,
-      menu: compose(planDays(plan)),
+      menu: this.menuComposer.compose(resolved, profile),
+      days: resolved,
     };
   }
 
@@ -150,13 +160,12 @@ export class MenuPlannerService {
   }
 
   /** The days with the recipes of the short ids the model picked, servings fitted to `dailyKcal`. */
-  private compose(
+  private resolve(
     days: PlannedDay[],
     recipeIds: Map<string, string>,
     options: Map<string, RecipeOption>,
-    profile: ProfileContext,
     dailyKcal: number | null,
-  ): MenuComposition {
+  ): ResolvedDay[] {
     const resolved = days.map((meals, dayIndex): ResolvedDay => ({
       dayIndex,
       date: null,
@@ -172,9 +181,6 @@ export class MenuPlannerService {
         };
       }),
     }));
-    return this.menuComposer.compose(
-      dailyKcal === null ? resolved : fitServings(resolved, dailyKcal),
-      profile,
-    );
+    return dailyKcal === null ? resolved : fitServings(resolved, dailyKcal);
   }
 }

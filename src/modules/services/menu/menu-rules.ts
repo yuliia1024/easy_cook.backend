@@ -13,8 +13,8 @@ import {
   NutritionGoalSnapshot,
   PreferenceRules,
   RecipeSnapshot,
+  ResolvedDay,
 } from '../../../common/types';
-import { ResolvedDay } from './menu-composition';
 
 export type RecipeIssue = Pick<MenuIssue, 'severity' | 'code' | 'message'>;
 

@@ -34,6 +34,21 @@ export interface RecipeSnapshot {
   }>;
 }
 
+/** A day whose meals are resolved to recipe snapshots. */
+export interface ResolvedDay {
+  dayIndex: number;
+  date: Date | null;
+  meals: ResolvedMeal[];
+}
+
+export interface ResolvedMeal {
+  mealType: MealType;
+  servings: number;
+  /** Null when the recipe was deleted and only its snapshot is left. */
+  recipeId: string | null;
+  recipe: RecipeSnapshot;
+}
+
 export interface MenuIssue {
   severity: MenuIssueSeverity;
   code: MenuIssueCode;
