@@ -10,6 +10,7 @@ Where the food and recipe data comes from, what is committed, and how to refresh
 | `data/seed/usda-foods.json` (478 foods) | USDA FoodData Central, **Foundation Foods** + **SR Legacy**, picked by hand from foods common in recipes, all four macros present | Public domain (CC0 1.0), see below | `food_items`, `source = usda_fdc`, `source_id` = FDC id |
 | `data/seed/recipes.json` (12 recipes), `data/seed/menu-recipes.json` (140 recipes) | Written for this project; some dish ideas come from Kyiv meal-plan menus (healthynutrition.kyiv.ua, kyiv.perfectbalance.ua), no text or quantities copied | Project's own | `recipes` + `recipe_ingredients`, `source = seed`, `source_id` = slug |
 | `data/seed/food-aliases.json` (1265 aliases) | Ingredient names as recipes write them (`scallion`), mapped by hand to the foods of `usda-foods.json` | Project's own; FDC descriptions are CC0 | Not loaded yet, for matching recipe ingredients to foods |
+| `data/seed/food-categories.json` | Categories (`FoodCategory`) of the 204 foods the recipes use, assigned by hand | Project's own | Not loaded, recipe diet tags and allergens are derived from it when seeding |
 | `data/seed/control-recipes.json` | Hand-computed nutrition of 3 seed recipes, the arithmetic is in the file | Project's own | Not loaded, used by `data:validate` / `data:verify` |
 | USDA FoodData Central **Foundation Foods** (default) and optionally **SR Legacy**, CSV | https://fdc.nal.usda.gov/download-datasets | Public domain (CC0 1.0), see below | `food_items`, `source = usda_fdc`, `source_id` = FDC id |
 | Foods created through the API | The user | | `food_items`, `source = manual` |
@@ -112,7 +113,8 @@ RecipeNLG has no meal type or servings, so the filter is automatic plus a check 
 - Servings from "serves N" / "makes N" in the directions, otherwise from the total weight
   (about 350 g per serving), so that one serving stays within `MAX_SERVING_WEIGHT_G` /
   `MAX_SERVING_KCAL`.
-- `dietType` is derived from the matched foods (`DietTag`) and must not hit `CONFLICTING_DIETS`.
+- `dietType` and the allergens are derived from the categories of the matched foods (see
+  [Updating](#updating)), not from the source's text; a mismatch with a source tag goes to the report.
 
 #### Sample check (2026-10-21)
 
@@ -156,8 +158,15 @@ Seed data (`data/seed/`):
 1. Edit the JSON. Food values stay per 100 g of the food in its `state`; unknown = `null`, never 0.
    A recipe ingredient is a slug of `foods.json` or `usda_fdc:<FDC id>` of a food in `usda-foods.json`
    (copy a food there from the FDC release when a recipe needs a new one).
-2. If a control recipe or a food it uses changed, recompute its values in `control-recipes.json` by hand.
-3. `npm run data:validate`, then `npm run db:seed` (upsert by slug, safe to repeat), then `npm run data:verify`.
+2. A food new to the recipes gets its categories in `food-categories.json` (`data:validate` fails
+   without them). Recipe tags `vegan`, `vegetarian`, `pescatarian`, `gluten_free` and `dairy_free`
+   are derived from the categories of all the ingredients, optional ones included, and stored by
+   `db:seed`; the tags written in the recipe files are only the source's claim. `high_protein` and
+   `low_carb` are taken as written. `npm run data:classify` reports a source tag the ingredients
+   contradict (`not vegetarian (salmon-raw)`) and a derived tag the source misses; fix the recipe
+   file or the categories by hand. Allergens (`Allergen`) come from the same categories.
+3. If a control recipe or a food it uses changed, recompute its values in `control-recipes.json` by hand.
+4. `npm run data:validate`, then `npm run db:seed` (upsert by slug, safe to repeat), then `npm run data:verify`.
 
 USDA foods, on a new FDC release:
 

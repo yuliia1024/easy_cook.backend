@@ -1,3 +1,5 @@
+import { FoodCategory } from './food';
+
 export enum MealType {
   Breakfast = 'breakfast',
   Lunch = 'lunch',
@@ -53,3 +55,33 @@ export const DIET_SATISFIED_BY: Readonly<Record<DietTag, readonly DietTag[]>> = 
   [DietTag.HighProtein]: [DietTag.HighProtein],
   [DietTag.LowCarb]: [DietTag.LowCarb],
 };
+
+/** The food categories a recipe of the diet must not contain. */
+export const DIET_EXCLUDED_CATEGORIES: Readonly<Partial<Record<DietTag, readonly FoodCategory[]>>> =
+  {
+    [DietTag.Vegan]: [
+      FoodCategory.Meat,
+      FoodCategory.Poultry,
+      FoodCategory.Fish,
+      FoodCategory.Shellfish,
+      FoodCategory.Egg,
+      FoodCategory.Dairy,
+      FoodCategory.Honey,
+    ],
+    [DietTag.Vegetarian]: [
+      FoodCategory.Meat,
+      FoodCategory.Poultry,
+      FoodCategory.Fish,
+      FoodCategory.Shellfish,
+    ],
+    [DietTag.Pescatarian]: [FoodCategory.Meat, FoodCategory.Poultry],
+    [DietTag.GlutenFree]: [FoodCategory.GlutenGrain],
+    [DietTag.DairyFree]: [FoodCategory.Dairy],
+  };
+
+/** A recipe gets only the strictest of these its ingredients allow; it satisfies the looser ones. */
+export const DIET_STRICTNESS: readonly DietTag[] = [
+  DietTag.Vegan,
+  DietTag.Vegetarian,
+  DietTag.Pescatarian,
+];

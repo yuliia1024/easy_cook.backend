@@ -3,6 +3,7 @@
  * recipes use and the recipes of data/seed. Idempotent - rows are keyed by (source, source id)
  * and refreshed on every run.
  */
+import { foodCategoriesOf } from '../scripts/lib/classify-recipes';
 import { loadSeedData, validateSeedData } from '../scripts/lib/seed-data';
 import { createPrismaClient } from '../scripts/lib/prisma';
 import { upsertExternalFoods, upsertSeedFoods, upsertSeedRecipes } from '../scripts/lib/seed-db';
@@ -22,7 +23,7 @@ async function main(): Promise<void> {
     const imported = await upsertExternalFoods(prisma, data.importedFoods);
     console.log(`USDA foods: ${imported} upserted`);
 
-    const recipes = await upsertSeedRecipes(prisma, data.recipes);
+    const recipes = await upsertSeedRecipes(prisma, data.recipes, foodCategoriesOf(data));
     console.log(`Recipes: ${recipes.created} created, ${recipes.updated} updated`);
   } finally {
     await prisma.$disconnect();

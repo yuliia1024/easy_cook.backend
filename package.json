@@ -25,6 +25,7 @@
     "migration:status": "prisma migrate status",
     "db:reset": "prisma migrate reset --force",
     "db:seed": "prisma db seed",
+    "data:classify": "ts-node --transpile-only scripts/classify-recipes.ts",
     "data:import-foods": "ts-node --transpile-only scripts/import-food-data.ts",
     "data:seed-recipes": "ts-node --transpile-only scripts/seed-recipes.ts",
     "data:validate": "ts-node --transpile-only scripts/validate-seed-data.ts",

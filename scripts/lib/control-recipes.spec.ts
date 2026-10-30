@@ -40,6 +40,7 @@ describe('control recipes', () => {
       },
     ],
     importedFoods: [],
+    foodCategories: [],
     recipes: [
       {
         slug: 'rice',
