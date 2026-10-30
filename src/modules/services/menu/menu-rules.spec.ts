@@ -1,4 +1,5 @@
 import {
+  Allergen,
   CalculationMode,
   MealType,
   MenuIssueCode,
@@ -8,6 +9,8 @@ import { NutritionGoalSnapshot, PreferenceRules } from '../../../common/types';
 import { buildRecipeSnapshot, RECIPE_ID } from '../../../test/fixtures';
 import { composeMenu, ResolvedDay } from './menu-composition';
 import {
+  allergenMatching,
+  allergensOf,
   dietTagsSatisfying,
   errorsOf,
   isForbiddenFood,
@@ -71,6 +74,28 @@ describe('menu rules', () => {
       expect(isForbiddenFood('Mushrooms', null, { ...NO_RULES, dislikedFoods: ['mushroom'] })).toBe(
         false,
       );
+    });
+  });
+
+  describe('allergensOf', () => {
+    it.each([
+      ['dairy', [Allergen.Milk]],
+      ['Lactose intolerance', [Allergen.Milk]],
+      ['eggs', [Allergen.Egg]],
+      ['tree nuts', [Allergen.TreeNut]],
+      ['peanuts', [Allergen.Peanut]],
+      ['wheat', [Allergen.Gluten]],
+      ['seafood', [Allergen.Shellfish]],
+      ['milk and eggs', [Allergen.Milk, Allergen.Egg]],
+      ['kiwi', []],
+      ['eggplant', []],
+    ])('%p names %p', (allergy, allergens) => {
+      expect(allergensOf(allergy)).toEqual(allergens);
+    });
+
+    it('finds the allergen of a recipe that the allergy names', () => {
+      expect(allergenMatching([Allergen.Gluten, Allergen.Milk], 'dairy')).toBe(Allergen.Milk);
+      expect(allergenMatching([Allergen.Gluten], 'dairy')).toBeUndefined();
     });
   });
 
@@ -152,6 +177,24 @@ describe('menu rules', () => {
               }),
             ],
       );
+    });
+
+    it('reports an allergen of the recipe that no food name mentions', () => {
+      const cheese = buildRecipeSnapshot({ allergens: [Allergen.Milk] });
+
+      expect(recipeIssues(cheese, { ...NO_RULES, allergies: ['dairy'] })).toEqual([
+        {
+          severity: MenuIssueSeverity.Error,
+          code: MenuIssueCode.Allergen,
+          message: 'Rice with vegetables contains milk (allergy: dairy)',
+        },
+      ]);
+    });
+
+    it('checks only the food names of a snapshot without allergens', () => {
+      const old = buildRecipeSnapshot({ allergens: undefined });
+
+      expect(recipeIssues(old, { ...NO_RULES, allergies: ['dairy'] })).toEqual([]);
     });
 
     it('reports disliked foods as warnings', () => {

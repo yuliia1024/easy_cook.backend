@@ -92,6 +92,16 @@ describe('seed data (e2e)', () => {
     },
   );
 
+  it('serves the diet tags and allergens derived from the food categories', async () => {
+    const recipe = await ctx.prisma.recipe.findUniqueOrThrow({
+      where: { source_sourceId: { source: 'seed', sourceId: 'oatmeal-banana-blueberry' } },
+    });
+
+    const { body } = await http().get(`/api/recipes/${recipe.id}`).expect(200);
+
+    expect(body).toMatchObject({ dietType: ['vegetarian'], allergens: ['gluten', 'milk'] });
+  });
+
   it('does not import a recipe that breaks an import rule', async () => {
     const broken = { ...data.recipes[0], slug: 'broken-no-instructions', instructions: ' ' };
     const recipes = [...data.recipes, broken];

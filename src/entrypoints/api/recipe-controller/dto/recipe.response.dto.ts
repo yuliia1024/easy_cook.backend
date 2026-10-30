@@ -1,4 +1,4 @@
-import { DietTag, MealType } from '../../../../common/constants';
+import { Allergen, DietTag, MealType } from '../../../../common/constants';
 import { toNumber } from '../../../../common/utils';
 import {
   IngredientWithFood,
@@ -43,6 +43,8 @@ export class RecipeResponseDto {
   instructions: string;
   mealType: MealType;
   dietType: DietTag[];
+  /** Derived from the food categories for an imported recipe; empty for one created here. */
+  allergens: Allergen[];
   servings: number;
   prepTimeMinutes: number | null;
   source: string;
@@ -63,6 +65,7 @@ export class RecipeResponseDto {
       instructions: recipe.instructions,
       mealType: recipe.mealType as MealType,
       dietType: recipe.dietType as DietTag[],
+      allergens: recipe.allergens as Allergen[],
       servings: recipe.servings,
       prepTimeMinutes: recipe.prepTimeMinutes,
       source: recipe.source,

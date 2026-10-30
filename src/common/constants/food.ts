@@ -87,3 +87,19 @@ export const CATEGORY_ALLERGENS: Readonly<Partial<Record<FoodCategory, Allergen>
   [FoodCategory.Soy]: Allergen.Soy,
   [FoodCategory.Sesame]: Allergen.Sesame,
 };
+
+/**
+ * Words of a profile allergy that name an allergen ("dairy" -> milk), matched as whole words or
+ * plurals. A specific food ("almond") is matched by the food names instead.
+ */
+export const ALLERGEN_ALIASES: Readonly<Record<Allergen, readonly string[]>> = {
+  [Allergen.Gluten]: ['gluten', 'wheat'],
+  [Allergen.Milk]: ['milk', 'dairy', 'lactose'],
+  [Allergen.Egg]: ['egg'],
+  [Allergen.Fish]: ['fish'],
+  [Allergen.Shellfish]: ['shellfish', 'seafood', 'crustacean', 'mollusc', 'mollusk'],
+  [Allergen.Peanut]: ['peanut'],
+  [Allergen.TreeNut]: ['tree nut', 'nut'],
+  [Allergen.Soy]: ['soy', 'soya'],
+  [Allergen.Sesame]: ['sesame'],
+};

@@ -127,6 +127,13 @@ describe('RecipeService', () => {
       ]);
     });
 
+    it('drops a recipe whose allergens the allergy names', async () => {
+      const cheesy = buildRecipe({ id: 'cheesy', allergens: ['milk'] });
+      recipeRepository.findAll.mockResolvedValue([rice, cheesy]);
+
+      await expect(service.getAllowed({ ...rules, allergies: ['dairy'] })).resolves.toEqual([rice]);
+    });
+
     it('drops an excluded ingredient', async () => {
       await expect(
         service.getAllowed({ ...rules, excludedIngredients: ['rice'] }),
