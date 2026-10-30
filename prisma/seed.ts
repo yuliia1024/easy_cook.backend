@@ -1,16 +1,22 @@
 /**
  * `npm run db:seed` (also run by `prisma migrate reset`): the base foods, the USDA foods the
- * recipes use and the recipes of data/seed. Idempotent - rows are keyed by (source, source id)
+ * recipes use and the recipes of data/seed that pass the import rules (the rejected ones are
+ * listed with the reasons). Idempotent - rows are keyed by (source, source id)
  * and refreshed on every run.
  */
 import { foodCategoriesOf } from '../scripts/lib/classify-recipes';
-import { loadSeedData, validateSeedData } from '../scripts/lib/seed-data';
+import {
+  acceptedRecipes,
+  formatRejections,
+  loadSeedData,
+  validateSeedData,
+} from '../scripts/lib/seed-data';
 import { createPrismaClient } from '../scripts/lib/prisma';
 import { upsertExternalFoods, upsertSeedFoods, upsertSeedRecipes } from '../scripts/lib/seed-db';
 
 async function main(): Promise<void> {
   const data = loadSeedData();
-  const { errors } = validateSeedData(data);
+  const { errors, rejected } = validateSeedData(data);
   if (errors.length > 0) {
     throw new Error(`Seed data is invalid, run npm run data:validate:\n${errors.join('\n')}`);
   }
@@ -23,8 +29,15 @@ async function main(): Promise<void> {
     const imported = await upsertExternalFoods(prisma, data.importedFoods);
     console.log(`USDA foods: ${imported} upserted`);
 
-    const recipes = await upsertSeedRecipes(prisma, data.recipes, foodCategoriesOf(data));
-    console.log(`Recipes: ${recipes.created} created, ${recipes.updated} updated`);
+    const recipes = await upsertSeedRecipes(
+      prisma,
+      acceptedRecipes(data.recipes, rejected),
+      foodCategoriesOf(data),
+    );
+    console.log(
+      `Recipes: ${recipes.created} created, ${recipes.updated} updated, ${rejected.length} rejected`,
+    );
+    formatRejections(rejected).forEach((line) => console.warn(line));
   } finally {
     await prisma.$disconnect();
   }

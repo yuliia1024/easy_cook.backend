@@ -156,13 +156,20 @@ Sources, licences (USDA FDC: public domain, CC0 1.0) and the update procedure:
 
 ```bash
 npm run data:validate        # checks data/seed without a database (ranges, references, 4/9/4 kcal, control recipes)
+                             # and lists the rejected recipes with the reasons (import rules below)
 npm run data:classify        # recipe diet tags and allergens from the food categories, and where
                              # they differ from the tags of the recipe files (--all: every recipe)
 npm run db:seed              # upserts seed foods, USDA foods of usda-foods.json and recipes
 npm run data:seed-recipes    # recipes only (the foods must already exist)
 npm run data:verify          # checks the database: orphan rows per FK, duplicated source ids,
-                             # recipes without ingredients, control recipes via NutritionService, counts
+                             # recipes without ingredients, imported recipes against the import rules,
+                             # control recipes via NutritionService, counts
 ```
+
+Import rules of a recipe (`scripts/lib/recipe-rules.ts`): it has an instruction, every ingredient is
+matched to a food (with categories, for the seed), the counted ingredients have every nutrient
+value, and one serving is 50-2500 kcal (`IMPORT_SERVING_KCAL`). A recipe that breaks one is not
+seeded and is listed as `rejected <slug>: <reasons>`; `data:validate` then exits with 1.
 
 ### USDA FoodData Central
 

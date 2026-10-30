@@ -167,6 +167,9 @@ Seed data (`data/seed/`):
    file or the categories by hand. Allergens (`Allergen`) come from the same categories.
 3. If a control recipe or a food it uses changed, recompute its values in `control-recipes.json` by hand.
 4. `npm run data:validate`, then `npm run db:seed` (upsert by slug, safe to repeat), then `npm run data:verify`.
+   A recipe that breaks an import rule (no instruction, an ingredient not matched to a food, an
+   unknown nutrient of a counted ingredient, a serving outside 50-2500 kcal) is not seeded and is
+   reported as `rejected <slug>: <reasons>`; `data:verify` applies the same rules to the database.
 
 USDA foods, on a new FDC release:
 

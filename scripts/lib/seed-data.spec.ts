@@ -4,9 +4,12 @@ import { join } from 'path';
 import { FoodCategory, FoodSource, FoodState } from '../../src/common/constants';
 import { ImportedFood } from './fdc';
 import {
+  acceptedRecipes,
   estimateKcal,
+  formatRejections,
   loadSeedData,
   parseFoodRef,
+  RecipeRejection,
   SeedData,
   SeedFoodCategories,
   validateSeedData,
@@ -66,7 +69,7 @@ describe('seed data', () => {
   });
 
   it('accepts valid data', () => {
-    expect(validateSeedData(data())).toEqual({ errors: [], warnings: [] });
+    expect(validateSeedData(data())).toEqual({ errors: [], warnings: [], rejected: [] });
   });
 
   describe('foods', () => {
@@ -114,9 +117,7 @@ describe('seed data', () => {
       [{ dietType: ['vegan', 'vegan'] }, 'duplicate diet tags'],
       [{ servings: 0 }, 'servings must be a positive integer'],
       [{ prepTimeMinutes: -5 }, 'prepTimeMinutes'],
-      [{ instructions: '' }, 'instructions are empty'],
       [{ ingredients: [] }, 'has no ingredients'],
-      [{ ingredients: [{ food: 'unknown', quantityG: 1 }] }, 'unknown food'],
       [
         { ingredients: [{ food: 'rice-white-dry', quantityG: 0 }] },
         'quantityG must be a positive number',
@@ -128,34 +129,97 @@ describe('seed data', () => {
     });
 
     it('accepts references to the USDA foods of the seed', () => {
-      const ingredients = [{ food: 'usda_fdc:168874', quantityG: 10 }];
+      const ingredients = [{ food: 'usda_fdc:168874', quantityG: 100 }];
 
       expect(validateSeedData(data({ recipes: [{ ...recipe, ingredients }] }))).toEqual({
         errors: [],
         warnings: [],
+        rejected: [],
       });
     });
 
-    it('leaves other imported food references to the seeding step', () => {
-      const { errors, warnings } = validateSeedData(
-        data({
-          recipes: [{ ...recipe, ingredients: [{ food: 'usda_fdc:1', quantityG: 10 }] }],
-          foodCategories: [{ food: 'usda_fdc:1', name: 'Oats', categories: [FoodCategory.Grain] }],
-        }),
+    it('does not check the import rules of a malformed recipe', () => {
+      const report = validateSeedData(
+        data({ recipes: [{ ...recipe, servings: 0, instructions: '' }] }),
       );
 
-      expect(errors).toEqual([]);
-      expect(warnings).toEqual([
-        'foodCategories[0] "usda_fdc:1": imported food, checked when seeding',
-        'recipes[0] "rice" ingredient 0 "usda_fdc:1": imported food, checked when seeding',
+      expect(report.errors).toEqual(['recipes[0] "rice": servings must be a positive integer']);
+      expect(report.rejected).toEqual([]);
+    });
+  });
+
+  describe('rejected recipes', () => {
+    const rejectedOf = (patch: Partial<SeedData>): RecipeRejection[] =>
+      validateSeedData(data(patch)).rejected;
+
+    it('rejects a recipe without instructions', () => {
+      expect(rejectedOf({ recipes: [{ ...recipe, instructions: ' ' }] })).toEqual([
+        { slug: 'rice', reasons: ['no instructions'] },
+      ]);
+    });
+
+    it('rejects ingredients that are no food of foods.json or usda-foods.json', () => {
+      const ingredients = [
+        { food: 'unknown', quantityG: 100 },
+        { food: 'usda_fdc:1', quantityG: 100 },
+      ];
+
+      expect(rejectedOf({ recipes: [{ ...recipe, ingredients }] })).toEqual([
+        { slug: 'rice', reasons: ['ingredients not matched to a food: unknown, usda_fdc:1'] },
       ]);
     });
 
     it('rejects an ingredient whose food has no categories', () => {
-      const { errors } = validateSeedData(data({ foodCategories: [categories[1]] }));
+      expect(rejectedOf({ foodCategories: [categories[1]] })).toEqual([
+        { slug: 'rice', reasons: ['no categories in food-categories.json: rice-white-dry'] },
+      ]);
+    });
 
-      expect(errors).toEqual([
-        'recipes[0] "rice" ingredient 0 "rice-white-dry": no categories in food-categories.json',
+    it('rejects unknown nutrients and calories per serving out of range, with every reason', () => {
+      const report = validateSeedData(
+        data({
+          foods: [{ ...food, fatG: null }],
+          recipes: [
+            recipe,
+            { ...recipe, slug: 'tiny', ingredients: [{ food: 'rice-white-dry', quantityG: 10 }] },
+          ],
+        }),
+      );
+
+      expect(report.errors).toEqual([]);
+      expect(report.rejected).toEqual([
+        { slug: 'rice', reasons: ['rice-white-dry has no fatG'] },
+        {
+          slug: 'tiny',
+          reasons: ['rice-white-dry has no fatG', '18.3 kcal per serving, outside 50-2500'],
+        },
+      ]);
+    });
+
+    it('only warns about unknown nutrients of an optional ingredient', () => {
+      const ingredients = [
+        ...recipe.ingredients,
+        { food: 'usda_fdc:168874', quantityG: 5, isOptional: true },
+      ];
+      const report = validateSeedData(
+        data({
+          importedFoods: [{ ...importedFood, carbsG: null }],
+          recipes: [{ ...recipe, ingredients }],
+        }),
+      );
+
+      expect(report.rejected).toEqual([]);
+      expect(report.warnings).toEqual(['recipes[0] "rice": usda_fdc:168874 has no carbsG']);
+    });
+
+    it('keeps the accepted recipes and formats the rejected ones', () => {
+      const bad = { ...recipe, slug: 'bad', instructions: '' };
+      const { rejected } = validateSeedData(data({ recipes: [recipe, bad] }));
+
+      expect(acceptedRecipes([recipe, bad], rejected)).toEqual([recipe]);
+      expect(formatRejections([...rejected, { slug: 'x', reasons: ['a', 'b'] }])).toEqual([
+        'rejected bad: no instructions',
+        'rejected x: a; b',
       ]);
     });
   });
@@ -209,10 +273,10 @@ describe('seed data', () => {
     });
   });
 
-  it('the committed seed files are valid', () => {
+  it('the committed seed files are valid and no recipe is rejected', () => {
     const report = validateSeedData(loadSeedData());
 
     expect(report.errors).toEqual([]);
-    expect(report.warnings.filter((w) => w.includes('checked when seeding'))).toEqual([]);
+    expect(report.rejected).toEqual([]);
   });
 });
