@@ -31,3 +31,59 @@ export const MAX_KCAL_PER_100G = 900;
 
 /** Allowed gap between the stated kcal and the 4/9/4 estimate (fibre, polyols, rounding). */
 export const FOOD_KCAL_TOLERANCE = { absolute: 20, relative: 0.25 } as const;
+
+/**
+ * What a food is, for deriving the diet tags and allergens of a recipe; a food may have several.
+ * `gluten_grain` is wheat, barley, rye and oats (not certified gluten-free).
+ */
+export enum FoodCategory {
+  Meat = 'meat',
+  Poultry = 'poultry',
+  Fish = 'fish',
+  Shellfish = 'shellfish',
+  Egg = 'egg',
+  Dairy = 'dairy',
+  Honey = 'honey',
+  GlutenGrain = 'gluten_grain',
+  Grain = 'grain',
+  Legume = 'legume',
+  Soy = 'soy',
+  Peanut = 'peanut',
+  TreeNut = 'tree_nut',
+  Seed = 'seed',
+  Sesame = 'sesame',
+  Vegetable = 'vegetable',
+  Fruit = 'fruit',
+  Mushroom = 'mushroom',
+  HerbSpice = 'herb_spice',
+  Fat = 'fat',
+  Sweetener = 'sweetener',
+  Condiment = 'condiment',
+  Beverage = 'beverage',
+  Other = 'other',
+}
+
+export enum Allergen {
+  Gluten = 'gluten',
+  Milk = 'milk',
+  Egg = 'egg',
+  Fish = 'fish',
+  Shellfish = 'shellfish',
+  Peanut = 'peanut',
+  TreeNut = 'tree_nut',
+  Soy = 'soy',
+  Sesame = 'sesame',
+}
+
+/** The allergen a food of the category contains. */
+export const CATEGORY_ALLERGENS: Readonly<Partial<Record<FoodCategory, Allergen>>> = {
+  [FoodCategory.GlutenGrain]: Allergen.Gluten,
+  [FoodCategory.Dairy]: Allergen.Milk,
+  [FoodCategory.Egg]: Allergen.Egg,
+  [FoodCategory.Fish]: Allergen.Fish,
+  [FoodCategory.Shellfish]: Allergen.Shellfish,
+  [FoodCategory.Peanut]: Allergen.Peanut,
+  [FoodCategory.TreeNut]: Allergen.TreeNut,
+  [FoodCategory.Soy]: Allergen.Soy,
+  [FoodCategory.Sesame]: Allergen.Sesame,
+};

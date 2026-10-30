@@ -1,3 +1,4 @@
+import { FoodCategory } from '../../src/common/constants';
 import { createPrismaMock, PrismaMock } from '../../src/test/prisma-mock';
 import { SeedFood, SeedRecipe } from './seed-data';
 import {
@@ -23,13 +24,18 @@ describe('seed db', () => {
     name: 'Rice',
     instructions: 'Boil',
     mealType: 'lunch',
-    dietType: ['vegan'],
+    dietType: ['vegetarian', 'high_protein'],
     servings: 2,
     ingredients: [
       { food: 'rice-white-dry', quantityG: 150 },
       { food: 'usda_fdc:42', quantityG: 5, isOptional: true, notes: 'to taste' },
     ],
   };
+
+  const categoriesOf = new Map([
+    ['rice-white-dry', [FoodCategory.Grain]],
+    ['usda_fdc:42', [FoodCategory.HerbSpice]],
+  ]);
 
   beforeEach(() => {
     prisma = createPrismaMock();
@@ -98,16 +104,17 @@ describe('seed db', () => {
       { foodItemId: 'usda-id', quantityG: 5, isOptional: true, notes: 'to taste', position: 1 },
     ];
 
-    it('creates a new recipe with ordered ingredients', async () => {
+    it('creates a new recipe with ordered ingredients and the derived diet tags', async () => {
       prisma.recipe.findUnique.mockResolvedValue(null);
 
-      await expect(upsertSeedRecipes(prisma, [recipe])).resolves.toEqual({
+      await expect(upsertSeedRecipes(prisma, [recipe], categoriesOf)).resolves.toEqual({
         created: 1,
         updated: 0,
       });
       expect(prisma.recipe.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           name: 'Rice',
+          dietType: ['vegan', 'gluten_free', 'dairy_free', 'high_protein'],
           description: null,
           prepTimeMinutes: null,
           source: 'seed',
@@ -120,7 +127,7 @@ describe('seed db', () => {
     it('replaces the ingredients of an existing recipe', async () => {
       prisma.recipe.findUnique.mockResolvedValue({ id: 'r1' });
 
-      await expect(upsertSeedRecipes(prisma, [recipe])).resolves.toEqual({
+      await expect(upsertSeedRecipes(prisma, [recipe], categoriesOf)).resolves.toEqual({
         created: 0,
         updated: 1,
       });

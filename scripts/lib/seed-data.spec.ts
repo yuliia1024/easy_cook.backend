@@ -1,9 +1,16 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { FoodSource, FoodState } from '../../src/common/constants';
+import { FoodCategory, FoodSource, FoodState } from '../../src/common/constants';
 import { ImportedFood } from './fdc';
-import { estimateKcal, loadSeedData, parseFoodRef, SeedData, validateSeedData } from './seed-data';
+import {
+  estimateKcal,
+  loadSeedData,
+  parseFoodRef,
+  SeedData,
+  SeedFoodCategories,
+  validateSeedData,
+} from './seed-data';
 
 describe('seed data', () => {
   const food = {
@@ -37,10 +44,15 @@ describe('seed data', () => {
     source: FoodSource.UsdaFdc,
     sourceId: '168874',
   };
+  const categories: SeedFoodCategories[] = [
+    { food: 'rice-white-dry', name: 'White rice, dry', categories: [FoodCategory.Grain] },
+    { food: 'usda_fdc:168874', name: 'Quinoa, uncooked', categories: [FoodCategory.Grain] },
+  ];
   const data = (patch: Partial<SeedData> = {}): SeedData => ({
     foods: [food],
     importedFoods: [importedFood],
     recipes: [recipe],
+    foodCategories: categories,
     ...patch,
   });
 
@@ -126,11 +138,48 @@ describe('seed data', () => {
 
     it('leaves other imported food references to the seeding step', () => {
       const { errors, warnings } = validateSeedData(
-        data({ recipes: [{ ...recipe, ingredients: [{ food: 'usda_fdc:1', quantityG: 10 }] }] }),
+        data({
+          recipes: [{ ...recipe, ingredients: [{ food: 'usda_fdc:1', quantityG: 10 }] }],
+          foodCategories: [{ food: 'usda_fdc:1', name: 'Oats', categories: [FoodCategory.Grain] }],
+        }),
       );
 
       expect(errors).toEqual([]);
-      expect(warnings[0]).toContain('checked when seeding');
+      expect(warnings).toEqual([
+        'foodCategories[0] "usda_fdc:1": imported food, checked when seeding',
+        'recipes[0] "rice" ingredient 0 "usda_fdc:1": imported food, checked when seeding',
+      ]);
+    });
+
+    it('rejects an ingredient whose food has no categories', () => {
+      const { errors } = validateSeedData(data({ foodCategories: [categories[1]] }));
+
+      expect(errors).toEqual([
+        'recipes[0] "rice" ingredient 0 "rice-white-dry": no categories in food-categories.json',
+      ]);
+    });
+  });
+
+  describe('food categories', () => {
+    it.each([
+      [{ food: 'unknown' }, 'unknown food'],
+      [{ name: 'Rice' }, 'name must be "White rice, dry"'],
+      [{ categories: [] }, 'has no categories'],
+      [{ categories: ['bread'] }, 'unknown category "bread"'],
+    ])('rejects %p', (patch, message) => {
+      const { errors } = validateSeedData(
+        data({
+          foodCategories: [{ ...categories[0], ...patch } as SeedFoodCategories, ...categories],
+        }),
+      );
+
+      expect(errors.join('\n')).toContain(message);
+    });
+
+    it('rejects a food listed twice', () => {
+      const { errors } = validateSeedData(data({ foodCategories: [...categories, categories[0]] }));
+
+      expect(errors).toEqual(['foodCategories[2] "rice-white-dry": duplicate food']);
     });
   });
 
@@ -145,15 +194,17 @@ describe('seed data', () => {
       write('usda-foods.json', [importedFood]);
       write('recipes.json', { recipes: [recipe] });
       write('menu-recipes.json', { $comment: 'menu', recipes: [{ ...recipe, slug: 'menu-rice' }] });
+      write('food-categories.json', { $comment: 'categories', foods: categories });
     });
 
     afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-    it('reads the foods, the USDA foods and the recipes of both recipe files', () => {
+    it('reads the foods, the USDA foods, the recipes of both recipe files and the food categories', () => {
       expect(loadSeedData(dir)).toEqual({
         foods: [food],
         importedFoods: [importedFood],
         recipes: [recipe, { ...recipe, slug: 'menu-rice' }],
+        foodCategories: categories,
       });
     });
   });

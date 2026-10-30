@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { foodCategoriesOf } from '../scripts/lib/classify-recipes';
 import { compareNutrition, loadControlRecipes } from '../scripts/lib/control-recipes';
 import { loadSeedData } from '../scripts/lib/seed-data';
 import { upsertExternalFoods, upsertSeedFoods, upsertSeedRecipes } from '../scripts/lib/seed-db';
@@ -16,7 +17,7 @@ describe('seed data (e2e)', () => {
   const seed = async () => ({
     foods: await upsertSeedFoods(ctx.prisma, data.foods),
     importedFoods: await upsertExternalFoods(ctx.prisma, data.importedFoods),
-    recipes: await upsertSeedRecipes(ctx.prisma, data.recipes),
+    recipes: await upsertSeedRecipes(ctx.prisma, data.recipes, foodCategoriesOf(data)),
   });
   const snapshot = async () => ({
     foods: await ctx.prisma.foodItem.findMany({

@@ -5,6 +5,7 @@
  *   npm run data:seed-recipes
  */
 import 'dotenv/config';
+import { foodCategoriesOf } from './lib/classify-recipes';
 import { loadSeedData, validateSeedData } from './lib/seed-data';
 import { createPrismaClient } from './lib/prisma';
 import { upsertSeedRecipes } from './lib/seed-db';
@@ -18,7 +19,11 @@ async function main(): Promise<void> {
 
   const prisma = createPrismaClient();
   try {
-    const { created, updated } = await upsertSeedRecipes(prisma, data.recipes);
+    const { created, updated } = await upsertSeedRecipes(
+      prisma,
+      data.recipes,
+      foodCategoriesOf(data),
+    );
     console.log(`Recipes: ${created} created, ${updated} updated`);
   } finally {
     await prisma.$disconnect();

@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join, resolve } from 'path';
 import {
   DietTag,
+  FoodCategory,
   FoodSource,
   FoodState,
   KCAL_PER_GRAM,
@@ -45,11 +46,22 @@ export interface SeedRecipe {
   ingredients: SeedIngredient[];
 }
 
+/** A row of `data/seed/food-categories.json`. */
+export interface SeedFoodCategories {
+  /** A food ref, like `SeedIngredient.food`. */
+  food: string;
+  /** The name of that food, for the reader. */
+  name: string;
+  categories: FoodCategory[];
+}
+
 export interface SeedData {
   foods: SeedFood[];
   /** `data/seed/usda-foods.json`: the USDA foods the recipes use, referenced as `usda_fdc:<id>`. */
   importedFoods: ImportedFood[];
   recipes: SeedRecipe[];
+  /** Categories of the foods the recipes use; recipe diet tags and allergens come from them. */
+  foodCategories: SeedFoodCategories[];
 }
 
 export interface ValidationReport {
@@ -80,6 +92,7 @@ export function loadSeedData(dir: string = SEED_DIR): SeedData {
       ...read<SeedRecipe>('recipes.json', 'recipes'),
       ...read<SeedRecipe>('menu-recipes.json', 'recipes'),
     ],
+    foodCategories: read<SeedFoodCategories>('food-categories.json', 'foods'),
   };
 }
 
@@ -100,7 +113,12 @@ export function estimateKcal({
 }
 
 /** Checks the seed files without a database: shapes, ranges and references between them. */
-export function validateSeedData({ foods, importedFoods, recipes }: SeedData): ValidationReport {
+export function validateSeedData({
+  foods,
+  importedFoods,
+  recipes,
+  foodCategories,
+}: SeedData): ValidationReport {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -150,6 +168,30 @@ export function validateSeedData({ foods, importedFoods, recipes }: SeedData): V
   });
 
   const importedRefs = new Set(importedFoods.map((f) => `${f.source}:${f.sourceId}`));
+  const foodNames = new Map<string, string>([
+    ...foods.map((f): [string, string] => [f.slug, f.name]),
+    ...importedFoods.map((f): [string, string] => [`${f.source}:${f.sourceId}`, f.name]),
+  ]);
+  const categorized = new Set<string>();
+  foodCategories.forEach(({ food, name, categories }, index) => {
+    const at = `foodCategories[${index}] "${food}"`;
+
+    if (categorized.has(food)) errors.push(`${at}: duplicate food`);
+    categorized.add(food);
+
+    if (!foodNames.has(food)) {
+      if (parseFoodRef(food).source === FoodSource.Seed) errors.push(`${at}: unknown food`);
+      else warnings.push(`${at}: imported food, checked when seeding`);
+    } else if (foodNames.get(food) !== name) {
+      errors.push(`${at}: name must be "${foodNames.get(food)}"`);
+    }
+    if (!categories?.length) errors.push(`${at}: has no categories`);
+    for (const category of categories ?? []) {
+      if (!Object.values<string>(FoodCategory).includes(category))
+        errors.push(`${at}: unknown category "${category}"`);
+    }
+  });
+
   const recipeSlugs = new Set<string>();
   recipes.forEach((recipe, index) => {
     const at = `recipes[${index}] "${recipe.slug}"`;
@@ -197,6 +239,9 @@ export function validateSeedData({ foods, importedFoods, recipes }: SeedData): V
       }
       if (typeof ingredient.quantityG !== 'number' || ingredient.quantityG <= 0) {
         errors.push(`${ingredientAt}: quantityG must be a positive number`);
+      }
+      if (!categorized.has(ingredient.food)) {
+        errors.push(`${ingredientAt}: no categories in food-categories.json`);
       }
     });
   });

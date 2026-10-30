@@ -1,0 +1,1025 @@
+{
+  "$comment": "Categories of the foods the seed recipes use (`FoodCategory`). `food` is a slug of foods.json or usda_fdc:<FDC id> of usda-foods.json, `name` is that food's name. Recipe diet tags and allergens are derived from these (`npm run data:classify`), so check a new food here by hand.",
+  "foods": [
+    {
+      "food": "apple-raw",
+      "name": "Apple",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "banana-raw",
+      "name": "Banana",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "beef-ground-lean-raw",
+      "name": "Ground beef 10% fat, raw",
+      "categories": ["meat"]
+    },
+    {
+      "food": "beetroot-raw",
+      "name": "Beetroot",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "bell-pepper-red-raw",
+      "name": "Red bell pepper",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "blueberries-raw",
+      "name": "Blueberries",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "bread-whole-wheat",
+      "name": "Whole-wheat bread",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "broccoli-raw",
+      "name": "Broccoli",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "buckwheat-dry",
+      "name": "Buckwheat, dry",
+      "categories": ["grain"]
+    },
+    {
+      "food": "butter",
+      "name": "Butter",
+      "categories": ["dairy", "fat"]
+    },
+    {
+      "food": "cabbage-raw",
+      "name": "White cabbage",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "carrot-raw",
+      "name": "Carrot",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "cheese-cheddar",
+      "name": "Cheddar cheese",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "chicken-breast-raw",
+      "name": "Chicken breast, raw",
+      "categories": ["poultry"]
+    },
+    {
+      "food": "chickpeas-boiled",
+      "name": "Chickpeas, boiled",
+      "categories": ["legume"]
+    },
+    {
+      "food": "cottage-cheese-4pct",
+      "name": "Cottage cheese 4%",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "cucumber-raw",
+      "name": "Cucumber",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "dill-raw",
+      "name": "Dill",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "egg-raw",
+      "name": "Chicken egg, raw",
+      "categories": ["egg"]
+    },
+    {
+      "food": "garlic-raw",
+      "name": "Garlic",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "greek-yogurt-nonfat",
+      "name": "Greek yogurt, nonfat",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "honey",
+      "name": "Honey",
+      "categories": ["honey"]
+    },
+    {
+      "food": "lemon-juice",
+      "name": "Lemon juice",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "lentils-red-dry",
+      "name": "Red lentils, dry",
+      "categories": ["legume"]
+    },
+    {
+      "food": "milk-2pct",
+      "name": "Milk 2%",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "mushrooms-raw",
+      "name": "White mushrooms",
+      "categories": ["mushroom"]
+    },
+    {
+      "food": "oats-dry",
+      "name": "Rolled oats, dry",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "olive-oil",
+      "name": "Olive oil",
+      "categories": ["fat"]
+    },
+    {
+      "food": "onion-raw",
+      "name": "Onion",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "pasta-dry",
+      "name": "Durum wheat pasta, dry",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "potato-raw",
+      "name": "Potato, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "rice-white-boiled",
+      "name": "White rice, boiled",
+      "categories": ["grain"]
+    },
+    {
+      "food": "rice-white-dry",
+      "name": "White rice, dry",
+      "categories": ["grain"]
+    },
+    {
+      "food": "salmon-raw",
+      "name": "Atlantic salmon, raw",
+      "categories": ["fish"]
+    },
+    {
+      "food": "salt",
+      "name": "Salt",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "sour-cream",
+      "name": "Sour cream 20%",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "spinach-raw",
+      "name": "Spinach",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "sunflower-oil",
+      "name": "Sunflower oil",
+      "categories": ["fat"]
+    },
+    {
+      "food": "tofu-firm",
+      "name": "Firm tofu",
+      "categories": ["soy", "legume"]
+    },
+    {
+      "food": "tomato-raw",
+      "name": "Tomato",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "tuna-canned-water",
+      "name": "Tuna in water, canned",
+      "categories": ["fish"]
+    },
+    {
+      "food": "usda_fdc:167765",
+      "name": "Watermelon, raw",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:167872",
+      "name": "Pork, cured, ham, boneless, regular (approximately 11% fat), roasted",
+      "categories": ["meat"]
+    },
+    {
+      "food": "usda_fdc:167902",
+      "name": "Pork, fresh, ground, raw",
+      "categories": ["meat"]
+    },
+    {
+      "food": "usda_fdc:168156",
+      "name": "Lime juice, raw",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:168165",
+      "name": "Raisins, dark, seedless (Includes foods for USDA's Food Distribution Program)",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:168312",
+      "name": "Pork, fresh, loin, tenderloin, separable lean and fat, raw",
+      "categories": ["meat"]
+    },
+    {
+      "food": "usda_fdc:168389",
+      "name": "Asparagus, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:168398",
+      "name": "Corn, sweet, yellow, frozen, kernels cut off cob, unprepared (Includes foods for USDA's Food Distribution Program)",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:168410",
+      "name": "Edamame, frozen, unprepared",
+      "categories": ["soy", "legume"]
+    },
+    {
+      "food": "usda_fdc:168450",
+      "name": "Pumpkin, canned, without salt",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:168567",
+      "name": "Tomatoes, sun-dried",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:168576",
+      "name": "Peppers, jalapeno, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:168872",
+      "name": "Oat bran, raw",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:168874",
+      "name": "Quinoa, uncooked",
+      "categories": ["grain"]
+    },
+    {
+      "food": "usda_fdc:169094",
+      "name": "Olives, ripe, canned (small-extra large)",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:169097",
+      "name": "Oranges, raw, all commercial varieties",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:169118",
+      "name": "Pears, raw",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:169124",
+      "name": "Pineapple, raw, all varieties",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:169134",
+      "name": "Pomegranates, raw",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:169231",
+      "name": "Ginger root, raw",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:169255",
+      "name": "Mushrooms, portabella, raw",
+      "categories": ["mushroom"]
+    },
+    {
+      "food": "usda_fdc:169276",
+      "name": "Radishes, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:169291",
+      "name": "Squash, summer, zucchini, includes skin, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:169387",
+      "name": "Arugula, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:169414",
+      "name": "Seeds, flaxseed",
+      "categories": ["seed"]
+    },
+    {
+      "food": "usda_fdc:169563",
+      "name": "Beef, flank, steak, separable lean and fat, trimmed to 0\" fat, all grades, raw",
+      "categories": ["meat"]
+    },
+    {
+      "food": "usda_fdc:169593",
+      "name": "Cocoa, dry powder, unsweetened",
+      "categories": ["other"]
+    },
+    {
+      "food": "usda_fdc:169661",
+      "name": "Syrups, maple",
+      "categories": ["sweetener"]
+    },
+    {
+      "food": "usda_fdc:169697",
+      "name": "Cornmeal, whole-grain, yellow",
+      "categories": ["grain"]
+    },
+    {
+      "food": "usda_fdc:169699",
+      "name": "Couscous, dry",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:169731",
+      "name": "Noodles, egg, dry, enriched",
+      "categories": ["gluten_grain", "egg"]
+    },
+    {
+      "food": "usda_fdc:169742",
+      "name": "Rice noodles, dry",
+      "categories": ["grain"]
+    },
+    {
+      "food": "usda_fdc:169910",
+      "name": "Mangos, raw",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:169957",
+      "name": "Mung beans, mature seeds, sprouted, raw",
+      "categories": ["legume"]
+    },
+    {
+      "food": "usda_fdc:169994",
+      "name": "Chives, raw",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:169997",
+      "name": "Coriander (cilantro) leaves, raw",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:170005",
+      "name": "Onions, spring or scallions (includes tops and bulb), raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:170010",
+      "name": "Peas, edible-podded, raw",
+      "categories": ["legume"]
+    },
+    {
+      "food": "usda_fdc:170016",
+      "name": "Peas, green, frozen, unprepared (Includes foods for USDA's Food Distribution Program)",
+      "categories": ["legume"]
+    },
+    {
+      "food": "usda_fdc:170051",
+      "name": "Tomatoes, red, ripe, canned, packed in tomato juice",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:170150",
+      "name": "Seeds, sesame seeds, whole, dried",
+      "categories": ["sesame"]
+    },
+    {
+      "food": "usda_fdc:170170",
+      "name": "Nuts, coconut meat, dried (desiccated), not sweetened",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:170173",
+      "name": "Nuts, coconut milk, canned (liquid expressed from grated meat and water)",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:170189",
+      "name": "Seeds, sesame butter, tahini, from roasted and toasted kernels (most common type)",
+      "categories": ["sesame"]
+    },
+    {
+      "food": "usda_fdc:170272",
+      "name": "Chocolate, dark, 60-69% cacao solids",
+      "categories": ["sweetener", "dairy"]
+    },
+    {
+      "food": "usda_fdc:170284",
+      "name": "Barley, pearled, raw",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:170390",
+      "name": "Cabbage, chinese (pak-choi), raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:170416",
+      "name": "Parsley, fresh",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:170427",
+      "name": "Peppers, sweet, green, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:170460",
+      "name": "Tomato products, canned, puree, without salt added",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:170499",
+      "name": "Shallots, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:170554",
+      "name": "Seeds, chia seeds, dried",
+      "categories": ["seed"]
+    },
+    {
+      "food": "usda_fdc:170556",
+      "name": "Seeds, pumpkin and squash seed kernels, dried",
+      "categories": ["seed"]
+    },
+    {
+      "food": "usda_fdc:170562",
+      "name": "Seeds, sunflower seed kernels, dried",
+      "categories": ["seed"]
+    },
+    {
+      "food": "usda_fdc:170567",
+      "name": "Nuts, almonds",
+      "categories": ["tree_nut"]
+    },
+    {
+      "food": "usda_fdc:170591",
+      "name": "Nuts, pine nuts, dried",
+      "categories": ["tree_nut"]
+    },
+    {
+      "food": "usda_fdc:170688",
+      "name": "Bulgur, dry",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:170874",
+      "name": "Milk, buttermilk, fluid, cultured, lowfat",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "usda_fdc:170886",
+      "name": "Yogurt, plain, low fat",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "usda_fdc:170917",
+      "name": "Spices, bay leaf",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:170919",
+      "name": "Spices, cardamom",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:170923",
+      "name": "Spices, cumin seed",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:170924",
+      "name": "Spices, curry powder",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:170931",
+      "name": "Spices, pepper, black",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:171009",
+      "name": "Salad dressing, mayonnaise, regular",
+      "categories": ["condiment", "egg"]
+    },
+    {
+      "food": "usda_fdc:171016",
+      "name": "Oil, sesame, salad or cooking",
+      "categories": ["fat", "sesame"]
+    },
+    {
+      "food": "usda_fdc:171116",
+      "name": "Chicken, ground, raw",
+      "categories": ["poultry"]
+    },
+    {
+      "food": "usda_fdc:171167",
+      "name": "Sauce, teriyaki, ready-to-serve",
+      "categories": ["condiment", "soy", "gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:171186",
+      "name": "Sauce, hot chile, sriracha",
+      "categories": ["condiment"]
+    },
+    {
+      "food": "usda_fdc:171206",
+      "name": "Beef, chuck for stew, separable lean and fat, all grades, raw",
+      "categories": ["meat"]
+    },
+    {
+      "food": "usda_fdc:171319",
+      "name": "Spices, chili powder",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:171320",
+      "name": "Spices, cinnamon, ground",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:171328",
+      "name": "Spices, oregano, dried",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:171329",
+      "name": "Spices, paprika",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:171505",
+      "name": "Turkey, Ground, raw",
+      "categories": ["poultry"]
+    },
+    {
+      "food": "usda_fdc:171538",
+      "name": "Soup, beef broth or bouillon canned, ready-to-serve",
+      "categories": ["meat"]
+    },
+    {
+      "food": "usda_fdc:171579",
+      "name": "Sauce, pesto, ready-to-serve, refrigerated",
+      "categories": ["condiment", "dairy", "tree_nut"]
+    },
+    {
+      "food": "usda_fdc:171583",
+      "name": "Soup, vegetable broth, ready to serve",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:171705",
+      "name": "Avocados, raw, all commercial varieties",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:171723",
+      "name": "Cranberries, dried, sweetened (Includes foods for USDA's Food Distribution Program)",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:171726",
+      "name": "Dates, deglet noor",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:171955",
+      "name": "Fish, cod, Atlantic, raw",
+      "categories": ["fish"]
+    },
+    {
+      "food": "usda_fdc:172183",
+      "name": "Egg, white, raw, fresh",
+      "categories": ["egg"]
+    },
+    {
+      "food": "usda_fdc:172231",
+      "name": "Spices, turmeric, ground",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:172232",
+      "name": "Basil, fresh",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:172240",
+      "name": "Vinegar, red wine",
+      "categories": ["condiment"]
+    },
+    {
+      "food": "usda_fdc:172373",
+      "name": "Chicken, broilers or fryers, drumstick, meat and skin, raw",
+      "categories": ["poultry"]
+    },
+    {
+      "food": "usda_fdc:172420",
+      "name": "Lentils, raw",
+      "categories": ["legume"]
+    },
+    {
+      "food": "usda_fdc:172675",
+      "name": "Bread, french or vienna (includes sourdough)",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:172684",
+      "name": "Bread, rye",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:172803",
+      "name": "Leavening agents, baking powder, double-acting, sodium aluminum sulfate",
+      "categories": ["other"]
+    },
+    {
+      "food": "usda_fdc:173418",
+      "name": "Cheese, cream",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "usda_fdc:173420",
+      "name": "Cheese, feta",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "usda_fdc:173435",
+      "name": "Cheese, goat, soft type",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "usda_fdc:173469",
+      "name": "Vinegar, cider",
+      "categories": ["condiment"]
+    },
+    {
+      "food": "usda_fdc:173470",
+      "name": "Thyme, fresh",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:173473",
+      "name": "Rosemary, fresh",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:173474",
+      "name": "Peppermint, fresh",
+      "categories": ["herb_spice"]
+    },
+    {
+      "food": "usda_fdc:173647",
+      "name": "Beverages, water, tap, drinking",
+      "categories": ["beverage"]
+    },
+    {
+      "food": "usda_fdc:173687",
+      "name": "Fish, salmon, chinook, smoked",
+      "categories": ["fish"]
+    },
+    {
+      "food": "usda_fdc:173717",
+      "name": "Fish, trout, rainbow, farmed, raw",
+      "categories": ["fish"]
+    },
+    {
+      "food": "usda_fdc:173941",
+      "name": "Apricots, dried, sulfured, uncooked",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:173946",
+      "name": "Blackberries, raw",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:173950",
+      "name": "Blueberries, frozen, unsweetened (Includes foods for USDA's Food Distribution Program)",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:174196",
+      "name": "Fish, flatfish (flounder and sole species), raw",
+      "categories": ["fish"]
+    },
+    {
+      "food": "usda_fdc:174200",
+      "name": "Fish, halibut, Atlantic and Pacific, raw",
+      "categories": ["fish"]
+    },
+    {
+      "food": "usda_fdc:174216",
+      "name": "Mollusks, mussel, blue, raw",
+      "categories": ["shellfish"]
+    },
+    {
+      "food": "usda_fdc:174223",
+      "name": "Mollusks, squid, mixed species, raw",
+      "categories": ["shellfish"]
+    },
+    {
+      "food": "usda_fdc:174277",
+      "name": "Soy sauce made from soy and wheat (shoyu)",
+      "categories": ["condiment", "soy", "gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:174285",
+      "name": "Beans, kidney, red, mature seeds, canned, drained solids",
+      "categories": ["legume"]
+    },
+    {
+      "food": "usda_fdc:174311",
+      "name": "Lamb, leg, whole (shank and sirloin), separable lean and fat, trimmed to 1/4\" fat, choice, raw",
+      "categories": ["meat"]
+    },
+    {
+      "food": "usda_fdc:174531",
+      "name": "Sauce, fish, ready-to-serve",
+      "categories": ["condiment", "fish"]
+    },
+    {
+      "food": "usda_fdc:174536",
+      "name": "Soup, chicken broth, ready-to-serve",
+      "categories": ["poultry"]
+    },
+    {
+      "food": "usda_fdc:174915",
+      "name": "Bread, pita, white, enriched",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:174928",
+      "name": "Bread, crumbs, dry, grated, plain",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:175036",
+      "name": "Tortillas, ready-to-bake or -fry, corn",
+      "categories": ["grain"]
+    },
+    {
+      "food": "usda_fdc:175037",
+      "name": "Tortillas, ready-to-bake or -fry, flour, refrigerated",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:175040",
+      "name": "Leavening agents, baking soda",
+      "categories": ["other"]
+    },
+    {
+      "food": "usda_fdc:175139",
+      "name": "Fish, sardine, Atlantic, canned in oil, drained solids with bone",
+      "categories": ["fish"]
+    },
+    {
+      "food": "usda_fdc:175176",
+      "name": "Fish, tilapia, raw",
+      "categories": ["fish"]
+    },
+    {
+      "food": "usda_fdc:175179",
+      "name": "Crustaceans, shrimp, raw",
+      "categories": ["shellfish"]
+    },
+    {
+      "food": "usda_fdc:175204",
+      "name": "Beans, white, mature seeds, canned",
+      "categories": ["legume"]
+    },
+    {
+      "food": "usda_fdc:175238",
+      "name": "Beans, black, mature seeds, canned, low sodium",
+      "categories": ["legume"]
+    },
+    {
+      "food": "usda_fdc:2257045",
+      "name": "Almond milk, unsweetened, plain, refrigerated",
+      "categories": ["beverage", "tree_nut"]
+    },
+    {
+      "food": "usda_fdc:2346400",
+      "name": "Beans, snap, green, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:2346404",
+      "name": "Sweet potatoes, orange flesh, without skin, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:2346405",
+      "name": "Celery, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:2346408",
+      "name": "Cabbage, red, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:2346409",
+      "name": "Strawberries, raw",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:2346410",
+      "name": "Raspberries, raw",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:2512380",
+      "name": "Rice, brown, long grain, unenriched, raw",
+      "categories": ["grain"]
+    },
+    {
+      "food": "usda_fdc:2515379",
+      "name": "Nuts, pistachio nuts, raw",
+      "categories": ["tree_nut"]
+    },
+    {
+      "food": "usda_fdc:2646171",
+      "name": "Chicken, thigh, boneless, skinless, raw",
+      "categories": ["poultry"]
+    },
+    {
+      "food": "usda_fdc:2685570",
+      "name": "Squash, winter, butternut, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:2685573",
+      "name": "Cauliflower, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:2685575",
+      "name": "Brussels sprouts, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:2685577",
+      "name": "Eggplant, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:2685580",
+      "name": "Tomato, paste, canned, without salt added",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:2727574",
+      "name": "Beef, top sirloin steak, raw",
+      "categories": ["meat"]
+    },
+    {
+      "food": "usda_fdc:2747655",
+      "name": "Fennel, bulb, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:2747659",
+      "name": "Parsnips, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:321360",
+      "name": "Tomatoes, grape, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:323505",
+      "name": "Kale, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:324860",
+      "name": "Peanut butter, smooth style, with salt",
+      "categories": ["peanut"]
+    },
+    {
+      "food": "usda_fdc:325036",
+      "name": "Cheese, parmesan, grated",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "usda_fdc:325430",
+      "name": "Peaches, yellow, raw",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:326698",
+      "name": "Mustard, prepared, yellow",
+      "categories": ["condiment"]
+    },
+    {
+      "food": "usda_fdc:327046",
+      "name": "Kiwifruit, green, raw",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:329370",
+      "name": "Cheese, mozzarella, low moisture, part-skim",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "usda_fdc:330458",
+      "name": "Oil, coconut",
+      "categories": ["fat"]
+    },
+    {
+      "food": "usda_fdc:332282",
+      "name": "Sauce, pasta, spaghetti/marinara, ready-to-serve",
+      "categories": ["condiment"]
+    },
+    {
+      "food": "usda_fdc:333374",
+      "name": "Fish, haddock, raw",
+      "categories": ["fish"]
+    },
+    {
+      "food": "usda_fdc:746766",
+      "name": "Cheese, ricotta, whole milk",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "usda_fdc:746767",
+      "name": "Cheese, swiss",
+      "categories": ["dairy"]
+    },
+    {
+      "food": "usda_fdc:746768",
+      "name": "Figs, dried, uncooked",
+      "categories": ["fruit"]
+    },
+    {
+      "food": "usda_fdc:746769",
+      "name": "Lettuce, cos or romaine, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "usda_fdc:746777",
+      "name": "Sauce, salsa, ready-to-serve",
+      "categories": ["condiment"]
+    },
+    {
+      "food": "usda_fdc:746783",
+      "name": "Sausage, turkey, breakfast links, mild, raw",
+      "categories": ["poultry"]
+    },
+    {
+      "food": "usda_fdc:746784",
+      "name": "Sugars, granulated",
+      "categories": ["sweetener"]
+    },
+    {
+      "food": "usda_fdc:790085",
+      "name": "Flour, whole wheat, unenriched",
+      "categories": ["gluten_grain"]
+    },
+    {
+      "food": "usda_fdc:790577",
+      "name": "Onions, red, raw",
+      "categories": ["vegetable"]
+    },
+    {
+      "food": "walnuts",
+      "name": "Walnuts",
+      "categories": ["tree_nut"]
+    },
+    {
+      "food": "wheat-flour",
+      "name": "Wheat flour",
+      "categories": ["gluten_grain"]
+    }
+  ]
+}
