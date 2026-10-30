@@ -2,10 +2,13 @@ import {
   MENU_PLAN_CANDIDATES_MAX,
   MENU_PLAN_INSTRUCTIONS,
   MealType,
+  MenuIssueCode,
+  MenuIssueSeverity,
   menuPlanMaxOutputTokens,
+  menuPlanRetryMessage,
 } from '../../../common/constants';
 import { MenuPlan, MenuPlanSchema } from '../../../common/contracts';
-import { ProfileContext } from '../../../common/types';
+import { MenuComposition, ProfileContext } from '../../../common/types';
 import { PROFILE_ID } from '../../../test/fixtures';
 import { toModelProfile } from '../profile-context/model-profile';
 import {
@@ -13,9 +16,11 @@ import {
   labelCandidates,
   MenuPlanCandidate,
   MenuPlanCandidates,
+  menuPlanErrors,
   menuPlanModelCall,
   planDays,
   planProblems,
+  planWithRetries,
   selectCandidates,
 } from './menu-plan';
 
@@ -187,5 +192,94 @@ describe('planDays', () => {
         ],
       }),
     ).toEqual([first, second]);
+  });
+});
+
+describe('menuPlanErrors', () => {
+  const candidates: MenuPlanCandidates = {
+    breakfast: [candidate('b', 400)],
+    lunch: [candidate('l', 700)],
+    dinner: [candidate('d', 600)],
+    snack: [candidate('s', 150)],
+  };
+  const meals = { breakfast: 'b', lunch: 'l', dinner: 'd', snack: 's' };
+  const plan: MenuPlan = { message: '', days: [{ dayIndex: 0, meals }] };
+  const menu = (issues: MenuComposition['issues']): MenuComposition => ({
+    days: [],
+    dailyAverage: { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 },
+    issues,
+  });
+
+  it('names the problems of the plan without composing it', () => {
+    const compose = jest.fn();
+
+    expect(menuPlanErrors(plan, candidates, 2, compose)).toEqual([
+      'Return exactly 2 days with dayIndex 0 to 1, each once; you returned dayIndex [0].',
+    ]);
+    expect(compose).not.toHaveBeenCalled();
+  });
+
+  it('names the errors of the composed menu, not its warnings', () => {
+    const compose = jest.fn().mockReturnValue(
+      menu([
+        {
+          severity: MenuIssueSeverity.Error,
+          code: MenuIssueCode.DietViolation,
+          message: 'Day 1, lunch: l is not vegan',
+        },
+        {
+          severity: MenuIssueSeverity.Warning,
+          code: MenuIssueCode.DislikedFood,
+          message: 'Day 1, dinner: d contains fish, which you dislike',
+        },
+      ]),
+    );
+
+    expect(menuPlanErrors(plan, candidates, 1, compose)).toEqual(['Day 1, lunch: l is not vegan.']);
+    expect(compose).toHaveBeenCalledWith([meals]);
+  });
+});
+
+describe('planWithRetries', () => {
+  const input = [{ role: 'user' as const, content: 'plan' }];
+  const plan = (message: string): MenuPlan => ({ message, days: [] });
+
+  it('stops at the first plan without problems', async () => {
+    const generate = jest.fn().mockResolvedValue(plan('ok'));
+
+    await expect(planWithRetries(input, generate, () => [])).resolves.toEqual([
+      { plan: plan('ok'), problems: [] },
+    ]);
+    expect(generate).toHaveBeenCalledWith(input);
+  });
+
+  it('sends a plan with problems back with them and keeps every attempt', async () => {
+    const generate = jest
+      .fn()
+      .mockResolvedValueOnce(plan('wrong'))
+      .mockResolvedValueOnce(plan('ok'));
+    const problemsOf = (p: MenuPlan): string[] => (p.message === 'wrong' ? ['Bad id.'] : []);
+
+    const attempts = await planWithRetries(input, generate, problemsOf);
+
+    expect(attempts).toEqual([
+      { plan: plan('wrong'), problems: ['Bad id.'] },
+      { plan: plan('ok'), problems: [] },
+    ]);
+    expect(generate).toHaveBeenLastCalledWith([
+      ...input,
+      { role: 'assistant', content: JSON.stringify(plan('wrong')) },
+      { role: 'user', content: menuPlanRetryMessage(['Bad id.']) },
+    ]);
+  });
+
+  it('gives up after the last attempt, returning the plans with their problems', async () => {
+    const generate = jest.fn().mockResolvedValue(plan('wrong'));
+
+    const attempts = await planWithRetries(input, generate, () => ['Bad id.'], 2);
+
+    expect(attempts).toHaveLength(2);
+    expect(attempts[1].problems).toEqual(['Bad id.']);
+    expect(generate).toHaveBeenCalledTimes(2);
   });
 });

@@ -15,6 +15,7 @@ export function buildCaseResult(overrides: Partial<CaseResult> = {}): CaseResult
     latencyMs: 100,
     usage: { inputTokens: 100, cachedInputTokens: 0, outputTokens: 10 },
     costUsd: 0.001,
+    metrics: {},
     ...overrides,
   };
 }

@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -40,8 +40,18 @@ describe('eval baseline', () => {
       passRate: 0.75,
       fields: { intent: 0.75 },
       tags: { en: 0.75 },
+      metrics: {},
       passedCases: ['c00', 'c01', 'c02'],
     });
+  });
+
+  it('keeps the mean of every metric', () => {
+    const runs = [
+      buildCaseResult({ id: 'a', metrics: { retries: 0 } }),
+      buildCaseResult({ id: 'b', metrics: { retries: 1 } }),
+    ];
+
+    expect(toBaseline(summarize('s', runs), runs, new Date()).metrics).toEqual({ retries: 0.5 });
   });
 
   it('keeps only the cases that passed every run', () => {
@@ -147,5 +157,13 @@ describe('eval baseline', () => {
     expect(readBaseline(dir, 'intent')).toBeNull();
     expect(writeBaseline(dir, baseline)).toBe(baselineFile(dir, 'intent'));
     expect(readBaseline(dir, 'intent')).toEqual(baseline);
+  });
+
+  it('reads a baseline saved without metrics', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'evals-'));
+    const { metrics: _metrics, ...older } = baselineOf(2, 1);
+    writeFileSync(baselineFile(dir, 'intent'), JSON.stringify(older));
+
+    expect(readBaseline(dir, 'intent')?.metrics).toEqual({});
   });
 });

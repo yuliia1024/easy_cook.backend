@@ -61,6 +61,22 @@ describe('eval runner', () => {
         latencyMs: 42,
         usage,
         costUsd: (1000 * 0.15 + 100 * 0.6) / 1_000_000,
+        metrics: {},
+      });
+    });
+
+    it('keeps the metrics the suite measured', async () => {
+      const suite = buildEchoSuite();
+      suite.run.mockResolvedValue({
+        output: 'yes',
+        modelId: 'm',
+        latencyMs: 1,
+        usage,
+        metrics: { retries: 1 },
+      });
+
+      await expect(runCase(suite, testCase, openAi)).resolves.toMatchObject({
+        metrics: { retries: 1 },
       });
     });
 

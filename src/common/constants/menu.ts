@@ -7,6 +7,15 @@ export const MENU_MAX_DAYS = 7;
 
 /** How far a day may be from the calorie goal before the menu gets a warning. */
 export const MENU_DAY_KCAL_TOLERANCE = 0.15;
+/**
+ * A planned meal is one serving of its recipe, changed in steps of `MENU_SERVINGS_STEP` within
+ * `MENU_SERVINGS_MIN`..`MENU_SERVINGS_MAX` until the day is within `MENU_SERVINGS_KCAL_TOLERANCE`
+ * of the daily calories: the servings of the seed recipes are smaller than a meal's share.
+ */
+export const MENU_SERVINGS_STEP = 0.25;
+export const MENU_SERVINGS_MIN = 0.5;
+export const MENU_SERVINGS_MAX = 2;
+export const MENU_SERVINGS_KCAL_TOLERANCE = 0.05;
 
 export enum MenuIssueSeverity {
   /**

@@ -18,6 +18,12 @@ export interface FieldScore {
   actual: unknown;
 }
 
+/** The model result of a case and the numbers the suite measured on the way (`metrics`). */
+export interface SuiteRun<T> extends ModelResult<T> {
+  /** Measured per run and averaged in the summary, e.g. the retries a plan needed. */
+  metrics?: Record<string, number>;
+}
+
 /** A set of cases on one prompt, run by `npm run eval -- --suite <name>`. */
 export interface EvalSuite<TCase extends EvalCase = EvalCase, TOutput = unknown> {
   name: string;
@@ -25,7 +31,7 @@ export interface EvalSuite<TCase extends EvalCase = EvalCase, TOutput = unknown>
   casesFile: string;
   caseSchema: z.ZodType<TCase, unknown>;
   /** Calls the real model for a case through the same code the app uses. */
-  run(testCase: TCase, openAi: OpenAiService): Promise<ModelResult<TOutput>>;
+  run(testCase: TCase, openAi: OpenAiService): Promise<SuiteRun<TOutput>>;
   /** Scores every field of the case; `null` is output that did not match the schema. */
   score(testCase: TCase, output: TOutput | null): FieldScore[];
 }
@@ -61,6 +67,8 @@ export interface CaseResult {
   usage: ModelUsage;
   /** Null when the price of the model is unknown. */
   costUsd: number | null;
+  /** What the suite measured (`SuiteRun.metrics`); empty when the output did not come. */
+  metrics: Record<string, number>;
 }
 
 export interface Rate {
@@ -76,6 +84,13 @@ export interface LatencyStats {
   maxMs: number;
 }
 
+export interface MetricStats {
+  /** Runs that measured the metric. */
+  runs: number;
+  mean: number;
+  max: number;
+}
+
 export interface SuiteSummary {
   suite: string;
   models: string[];
@@ -87,6 +102,8 @@ export interface SuiteSummary {
   invalidOutputs: number;
   fields: Record<string, Rate>;
   tags: Record<string, Rate>;
+  /** Of the runs that measured each metric. */
+  metrics: Record<string, MetricStats>;
   usage: ModelUsage;
   /** Of the runs whose call did not fail. */
   latency: LatencyStats;

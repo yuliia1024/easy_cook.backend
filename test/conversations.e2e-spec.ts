@@ -9,8 +9,6 @@ import {
   DietTag,
   Intent,
   MealType,
-  MenuIssueCode,
-  MenuIssueSeverity,
   MENU_PLAN_FAILED_REPLY,
   MENU_PLAN_MAX_ATTEMPTS,
   NO_MENU_RECIPES_REPLY,
@@ -94,7 +92,7 @@ describe('/api/conversations (e2e)', () => {
     },
   );
 
-  it('plans a one-day menu with a snack from the model choice and saves its message', async () => {
+  it('plans a one-day menu with a snack from the model choice, servings fitted to the goal, and saves its message', async () => {
     const { recipe } = await createMenuWorld(ctx);
     const id = await start();
     fakeOpenAiState.intent = Intent.GenerateMenu;
@@ -115,19 +113,13 @@ describe('/api/conversations (e2e)', () => {
         meal.servings,
       ]),
     ).toEqual([
-      [recipe.oats, 1],
-      [recipe.chicken, 1],
-      [recipe.snack, 1],
-      [recipe.bowl, 1],
+      [recipe.oats, 1.25],
+      [recipe.chicken, 1.25],
+      [recipe.snack, 1.25],
+      [recipe.bowl, 1.25],
     ]);
-    expect(menu.days[0].totals.kcal).toBe(1730);
-    expect(menu.issues).toEqual([
-      expect.objectContaining({
-        severity: MenuIssueSeverity.Warning,
-        code: MenuIssueCode.CaloriesOffTarget,
-        message: 'Day 1: 1730 kcal is 20 % below the 2172 kcal goal',
-      }),
-    ]);
+    expect(menu.days[0].totals.kcal).toBe(2162.5);
+    expect(menu.issues).toEqual([]);
     expect(fakeOpenAiState.streamTextCalls).toBe(0);
     expect(await savedMessages(id)).toEqual([
       { role: 'user', content: 'Plan my day' },
@@ -158,7 +150,7 @@ describe('/api/conversations (e2e)', () => {
     expect(menu.days.map(({ dayIndex }: { dayIndex: number }) => dayIndex)).toEqual([
       0, 1, 2, 3, 4,
     ]);
-    expect(menu.dailyAverage.kcal).toBe(1730);
+    expect(menu.dailyAverage.kcal).toBe(2162.5);
   });
 
   it('retries a plan with fewer days than requested and fails after the last attempt', async () => {

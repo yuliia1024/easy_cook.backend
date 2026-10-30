@@ -1,4 +1,10 @@
-import { MealType } from '../../../common/constants';
+import {
+  MealType,
+  MENU_SERVINGS_KCAL_TOLERANCE,
+  MENU_SERVINGS_MAX,
+  MENU_SERVINGS_MIN,
+  MENU_SERVINGS_STEP,
+} from '../../../common/constants';
 import {
   DayComposition,
   MacroValues,
@@ -104,6 +110,55 @@ export function composeMenu(days: ResolvedDay[]): Omit<MenuComposition, 'issues'
   });
 
   return { days: composed, dailyAverage: roundMacros(average) };
+}
+
+const dayKcal = (meals: ResolvedMeal[]): number =>
+  meals.reduce((total, meal) => total + meal.recipe.perServing.kcal * meal.servings, 0);
+
+const toServings = (value: number): number =>
+  Math.min(
+    MENU_SERVINGS_MAX,
+    Math.max(MENU_SERVINGS_MIN, Math.round(value / MENU_SERVINGS_STEP) * MENU_SERVINGS_STEP),
+  );
+
+/**
+ * The servings of every day brought towards `dailyKcal`, within
+ * `MENU_SERVINGS_MIN`..`MENU_SERVINGS_MAX` in steps of `MENU_SERVINGS_STEP`: a day off by more
+ * than `MENU_SERVINGS_KCAL_TOLERANCE` gets the same servings of every meal (the ratio of the
+ * calories, rounded to a step), then one step of one meal at a time, the one that brings the day
+ * closest, while the day is off and a step helps. A day close enough keeps its servings.
+ * Deterministic.
+ */
+export function fitServings(days: ResolvedDay[], dailyKcal: number): ResolvedDay[] {
+  const isOff = (meals: ResolvedMeal[]): boolean =>
+    Math.abs(dayKcal(meals) - dailyKcal) > dailyKcal * MENU_SERVINGS_KCAL_TOLERANCE;
+  return days.map((day) => {
+    const kcal = dayKcal(day.meals);
+    if (!isOff(day.meals) || kcal <= 0) {
+      return day;
+    }
+    const servings = toServings(dailyKcal / kcal);
+    const meals = day.meals.map((meal) => ({ ...meal, servings }));
+    while (isOff(meals)) {
+      const miss = (meal: ResolvedMeal, value: number): number =>
+        Math.abs(
+          dayKcal(meals) + meal.recipe.perServing.kcal * (value - meal.servings) - dailyKcal,
+        );
+      const steps = meals
+        .flatMap((meal) =>
+          [meal.servings + MENU_SERVINGS_STEP, meal.servings - MENU_SERVINGS_STEP]
+            .filter((value) => value >= MENU_SERVINGS_MIN && value <= MENU_SERVINGS_MAX)
+            .map((value) => ({ meal, value, miss: miss(meal, value) })),
+        )
+        .filter((step) => step.miss < Math.abs(dayKcal(meals) - dailyKcal))
+        .sort((a, b) => a.miss - b.miss);
+      if (steps.length === 0) {
+        break;
+      }
+      steps[0].meal.servings = steps[0].value;
+    }
+    return { ...day, meals };
+  });
 }
 
 /** A saved version, its meals resolved to the snapshots it was built with. */

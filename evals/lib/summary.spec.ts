@@ -1,5 +1,5 @@
 import { buildCaseResult } from '../test/helpers';
-import { isFailedCall, latencyStats, percentile, summarize } from './summary';
+import { isFailedCall, latencyStats, metricStats, percentile, summarize } from './summary';
 import { RunErrorKind } from './types';
 
 describe('eval summary', () => {
@@ -68,6 +68,7 @@ describe('eval summary', () => {
         en: { total: 1, passed: 1, rate: 1 },
         uk: { total: 2, passed: 0, rate: 0 },
       },
+      metrics: {},
       usage: { inputTokens: 300, cachedInputTokens: 0, outputTokens: 30 },
       latency: { meanMs: 200, p50Ms: 100, p95Ms: 400, maxMs: 400 },
       costUsd: 0.003,
@@ -96,6 +97,31 @@ describe('eval summary', () => {
       fields: { intent: { total: 1, passed: 1, rate: 1 } },
       tags: { en: { total: 1, passed: 1, rate: 1 } },
       latency: { maxMs: 100 },
+    });
+  });
+
+  it('averages every metric over the runs that measured it', () => {
+    expect(
+      metricStats([
+        buildCaseResult({ metrics: { retries: 0, calls: 1 } }),
+        buildCaseResult({ metrics: { retries: 2 } }),
+        buildCaseResult({ metrics: { retries: 0 } }),
+        buildCaseResult(),
+      ]),
+    ).toEqual({
+      calls: { runs: 1, mean: 1, max: 1 },
+      retries: { runs: 3, mean: 0.67, max: 2 },
+    });
+  });
+
+  it('leaves the metrics of failed calls out', () => {
+    const failed = buildCaseResult({
+      error: { kind: RunErrorKind.CallFailed, message: 'timeout' },
+      metrics: { retries: 2 },
+    });
+
+    expect(summarize('s', [buildCaseResult({ metrics: { retries: 0 } }), failed]).metrics).toEqual({
+      retries: { runs: 1, mean: 0, max: 0 },
     });
   });
 

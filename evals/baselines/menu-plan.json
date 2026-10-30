@@ -1,40 +1,58 @@
 {
   "suite": "menu-plan",
-  "createdAt": "2026-10-29T13:44:29.849Z",
+  "createdAt": "2026-10-29T20:18:09.704Z",
   "models": [
     "gpt-4o-mini-2024-07-18"
   ],
-  "cases": 13,
+  "cases": 22,
   "repeat": 3,
-  "passRate": 1,
+  "passRate": 0.9696969696969697,
   "fields": {
+    "calories": 1,
     "candidates": 1,
     "days": 1,
+    "disliked": 0.9696969696969697,
+    "validation": 1,
     "variety": 1
   },
   "tags": {
+    "allergy": 0.7777777777777778,
+    "basic": 1,
     "days-1": 1,
     "days-2": 1,
     "days-3": 1,
     "days-4": 1,
     "days-5": 1,
     "days-6": 1,
-    "days-7": 1,
+    "days-7": 0.8888888888888888,
+    "low-kcal": 1,
+    "vegan": 1,
     "vegetarian": 1
   },
+  "metrics": {
+    "repairs": 0
+  },
   "passedCases": [
+    "days-1-allergy",
     "days-1-basic",
+    "days-1-low-kcal",
+    "days-1-vegan",
     "days-1-vegetarian",
     "days-2-basic",
+    "days-3-allergy",
     "days-3-basic",
+    "days-3-low-kcal",
     "days-3-rotated",
+    "days-3-vegan",
     "days-3-vegetarian",
     "days-4-basic",
     "days-5-basic",
     "days-5-vegetarian",
     "days-6-basic",
     "days-7-basic",
+    "days-7-low-kcal",
     "days-7-rotated",
+    "days-7-vegan",
     "days-7-vegetarian"
   ]
 }

@@ -33,6 +33,17 @@ export function mentions(text: string, value: string): boolean {
   );
 }
 
+/** Whether the food name mentions an allergy or an excluded ingredient of the rules. */
+export function isForbiddenFood(
+  name: string,
+  nameEn: string | null,
+  { allergies, excludedIngredients }: PreferenceRules,
+): boolean {
+  return [...allergies, ...excludedIngredients].some(
+    (value) => mentions(name, value) || (nameEn !== null && mentions(nameEn, value)),
+  );
+}
+
 /** The first ingredient (optional ones too) whose name mentions the value. */
 function ingredientMentioning(recipe: RecipeSnapshot, value: string): string | undefined {
   return recipe.ingredients.find(

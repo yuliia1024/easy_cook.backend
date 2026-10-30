@@ -9,6 +9,7 @@ import {
 import { NutritionService } from '../nutrition/nutrition.service';
 import {
   composeMenu,
+  fitServings,
   resolveVersion,
   ResolvedDay,
   snapshotRecipe,
@@ -102,6 +103,60 @@ describe('menu composition', () => {
   it('formats a date column as YYYY-MM-DD', () => {
     expect(toIsoDate(new Date('2026-10-20T00:00:00Z'))).toBe('2026-10-20');
     expect(toIsoDate(null)).toBeNull();
+  });
+
+  describe('fitServings', () => {
+    /** One day of one serving of recipes with these kcal per serving. */
+    const dayOf = (...kcal: number[]): ResolvedDay[] => [
+      {
+        dayIndex: 0,
+        date: null,
+        meals: kcal.map((value, i) => ({
+          mealType: MealType.Lunch,
+          servings: 1,
+          recipeId: `r${i}`,
+          recipe: buildRecipeSnapshot({
+            id: `r${i}`,
+            perServing: { kcal: value, proteinG: 0, fatG: 0, carbsG: 0 },
+          }),
+        })),
+      },
+    ];
+    const servingsOf = (days: ResolvedDay[]): number[] =>
+      days[0].meals.map(({ servings }) => servings);
+
+    it('keeps the servings of a day close enough to the calories', () => {
+      const days = dayOf(500, 700, 200, 550);
+
+      expect(fitServings(days, 2000)).toEqual(days);
+    });
+
+    it('gives every meal the same servings when that is enough', () => {
+      expect(servingsOf(fitServings(dayOf(400, 400, 400, 400), 2000))).toEqual([
+        1.25, 1.25, 1.25, 1.25,
+      ]);
+      expect(servingsOf(fitServings(dayOf(1000, 1000, 1000, 1000), 2000))).toEqual([
+        0.5, 0.5, 0.5, 0.5,
+      ]);
+    });
+
+    it('then steps the meal that brings the day closest', () => {
+      // 1700 kcal is 1.12 x short of 1900, rounded to 1; a step of the 600 kcal meal gives 1850.
+      expect(servingsOf(fitServings(dayOf(500, 400, 200, 600), 1900))).toEqual([1, 1, 1, 1.25]);
+    });
+
+    it('stays within the servings a meal can have', () => {
+      expect(servingsOf(fitServings(dayOf(100, 100), 2000))).toEqual([2, 2]);
+      expect(servingsOf(fitServings(dayOf(1000, 1000), 200))).toEqual([0.5, 0.5]);
+    });
+
+    it('leaves the days it gets as they are', () => {
+      const days = dayOf(400, 400, 400, 400);
+
+      fitServings(days, 2000);
+
+      expect(servingsOf(days)).toEqual([1, 1, 1, 1]);
+    });
   });
 
   describe('saved versions', () => {
