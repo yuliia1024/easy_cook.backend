@@ -2,6 +2,7 @@ import { Prisma, PrismaClient } from '../../src/generated/prisma/client';
 import { RecipeSource, SortOrder } from '../../src/common/constants';
 import { NutritionService } from '../../src/modules/services/nutrition/nutrition.service';
 import { compareNutrition, ControlRecipe } from './control-recipes';
+import { checkRecipeRules } from './recipe-rules';
 
 export interface CheckResult {
   name: string;
@@ -108,6 +109,45 @@ export async function checkRecipesHaveIngredients(prisma: PrismaClient): Promise
   return result('recipes have ingredients', empty, 'recipes without ingredients');
 }
 
+/**
+ * The import rules (`checkRecipeRules`) over the imported recipes in the database: every recipe
+ * not created through the API or the assistant. The detail lists each failing recipe with the
+ * reasons.
+ */
+export async function checkImportedRecipes(
+  prisma: PrismaClient,
+  nutrition: NutritionService = new NutritionService(),
+): Promise<CheckResult> {
+  const recipes = await prisma.recipe.findMany({
+    where: { source: { notIn: [RecipeSource.Manual, RecipeSource.Llm] } },
+    include: { ingredients: { include: { foodItem: true }, orderBy: { position: SortOrder.Asc } } },
+    orderBy: [{ source: SortOrder.Asc }, { sourceId: SortOrder.Asc }],
+  });
+
+  const failing = recipes.flatMap((recipe) => {
+    const { reasons } = checkRecipeRules(
+      {
+        instructions: recipe.instructions,
+        servings: recipe.servings,
+        ingredients: recipe.ingredients.map((ingredient) => ({
+          label: ingredient.foodItem?.name ?? ingredient.foodItemId,
+          quantityG: ingredient.quantityG,
+          isOptional: ingredient.isOptional,
+          foodItem: ingredient.foodItem ?? null,
+        })),
+      },
+      nutrition,
+    );
+    return reasons.length > 0 ? [`${recipe.sourceId ?? recipe.id} (${reasons.join('; ')})`] : [];
+  });
+
+  return {
+    name: 'imported recipes pass the import rules',
+    ok: failing.length === 0,
+    detail: failing.length === 0 ? 'ok' : `${failing.length} recipes: ${failing.join(', ')}`,
+  };
+}
+
 /** Loads each control recipe (source `seed`, slug) and runs the real `NutritionService` on it. */
 export async function checkControlRecipes(
   prisma: PrismaClient,
@@ -169,6 +209,7 @@ export async function verifyData(
     ...(await checkForeignKeys(prisma)),
     ...(await checkDuplicateSources(prisma)),
     await checkRecipesHaveIngredients(prisma),
+    await checkImportedRecipes(prisma),
     ...(await checkControlRecipes(prisma, controls)),
   ];
   return { ok: checks.every((c) => c.ok), checks, summary: await summarize(prisma) };

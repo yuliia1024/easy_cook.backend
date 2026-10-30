@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { foodCategoriesOf } from '../scripts/lib/classify-recipes';
 import { compareNutrition, loadControlRecipes } from '../scripts/lib/control-recipes';
-import { loadSeedData } from '../scripts/lib/seed-data';
+import { acceptedRecipes, loadSeedData, validateSeedData } from '../scripts/lib/seed-data';
 import { upsertExternalFoods, upsertSeedFoods, upsertSeedRecipes } from '../scripts/lib/seed-db';
 import { verifyData } from '../scripts/lib/verify-data';
 import { createTestApp, resetDatabase, TestApp } from './test-app';
@@ -91,4 +91,42 @@ describe('seed data (e2e)', () => {
       expect(compareNutrition(control, body)).toEqual([]);
     },
   );
+
+  it('does not import a recipe that breaks an import rule', async () => {
+    const broken = { ...data.recipes[0], slug: 'broken-no-instructions', instructions: ' ' };
+    const recipes = [...data.recipes, broken];
+    const { errors, rejected } = validateSeedData({ ...data, recipes });
+
+    expect(errors).toEqual([]);
+    expect(rejected).toEqual([{ slug: 'broken-no-instructions', reasons: ['no instructions'] }]);
+
+    await expect(
+      upsertSeedRecipes(ctx.prisma, acceptedRecipes(recipes, rejected), foodCategoriesOf(data)),
+    ).resolves.toEqual({ created: 0, updated: data.recipes.length });
+    await expect(
+      ctx.prisma.recipe.count({ where: { sourceId: 'broken-no-instructions' } }),
+    ).resolves.toBe(0);
+  });
+
+  it('data:verify reports an imported recipe in the database that breaks a rule', async () => {
+    const slug = data.recipes[0].slug;
+    const where = { source_sourceId: { source: 'seed', sourceId: slug } };
+    const { instructions } = await ctx.prisma.recipe.findUniqueOrThrow({ where });
+    await ctx.prisma.recipe.update({ where, data: { instructions: '' } });
+
+    try {
+      const report = await verifyData(ctx.prisma, controls);
+
+      expect(report.ok).toBe(false);
+      expect(report.checks.filter((c) => !c.ok)).toEqual([
+        {
+          name: 'imported recipes pass the import rules',
+          ok: false,
+          detail: `1 recipes: ${slug} (no instructions)`,
+        },
+      ]);
+    } finally {
+      await ctx.prisma.recipe.update({ where, data: { instructions } });
+    }
+  });
 });

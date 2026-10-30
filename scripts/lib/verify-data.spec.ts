@@ -6,6 +6,7 @@ import {
   checkControlRecipes,
   checkDuplicateSources,
   checkForeignKeys,
+  checkImportedRecipes,
   checkRecipesHaveIngredients,
   FOREIGN_KEYS,
   formatReport,
@@ -137,6 +138,50 @@ describe('verify data', () => {
     });
   });
 
+  describe('checkImportedRecipes', () => {
+    const imported = { ...recipe, source: 'seed', sourceId: 'rice', instructions: 'Boil' };
+
+    it('checks the recipes not created through the API or the assistant', async () => {
+      prisma.recipe.findMany.mockResolvedValue([imported]);
+
+      await expect(checkImportedRecipes(prisma)).resolves.toEqual({
+        name: 'imported recipes pass the import rules',
+        ok: true,
+        detail: 'ok',
+      });
+      expect(prisma.recipe.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { source: { notIn: ['manual', 'llm'] } } }),
+      );
+    });
+
+    it('lists every recipe that breaks a rule with the reasons', async () => {
+      const unknown = { ...recipe.ingredients[0].foodItem, name: 'Rice', fatG: null };
+      prisma.recipe.findMany.mockResolvedValue([
+        imported,
+        {
+          ...imported,
+          sourceId: 'empty-rice',
+          instructions: ' ',
+          ingredients: [{ ...recipe.ingredients[0], foodItem: unknown }],
+        },
+        {
+          ...imported,
+          sourceId: 'big-rice',
+          servings: 1,
+          ingredients: [{ ...recipe.ingredients[0], quantityG: new Prisma.Decimal(1000) }],
+        },
+      ]);
+
+      await expect(checkImportedRecipes(prisma)).resolves.toEqual({
+        name: 'imported recipes pass the import rules',
+        ok: false,
+        detail:
+          '2 recipes: empty-rice (no instructions; Rice has no fatG), ' +
+          'big-rice (3650 kcal per serving, outside 50-2500)',
+      });
+    });
+  });
+
   it('summarize counts foods by source, recipes and ingredients', async () => {
     prisma.foodItem.groupBy.mockResolvedValue([
       { source: 'seed', _count: { _all: 45 } },
@@ -155,6 +200,7 @@ describe('verify data', () => {
   describe('verifyData', () => {
     beforeEach(() => {
       prisma.recipe.findUnique.mockResolvedValue(recipe);
+      prisma.recipe.findMany.mockResolvedValue([]);
       prisma.foodItem.groupBy.mockResolvedValue([{ source: 'seed', _count: { _all: 1 } }]);
       prisma.recipe.count.mockResolvedValue(1);
       prisma.recipeIngredient.count.mockResolvedValue(1);
@@ -164,7 +210,7 @@ describe('verify data', () => {
       const report = await verifyData(prisma, [control]);
 
       expect(report.ok).toBe(true);
-      expect(report.checks).toHaveLength(FOREIGN_KEYS.length + 2 + 1 + 1);
+      expect(report.checks).toHaveLength(FOREIGN_KEYS.length + 2 + 1 + 1 + 1);
       expect(report.summary.recipes).toBe(1);
     });
 

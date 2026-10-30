@@ -8,18 +8,19 @@
  */
 import { parseArgs } from 'util';
 import { classifyRecipes, formatClassificationReport } from './lib/classify-recipes';
-import { loadSeedData, validateSeedData } from './lib/seed-data';
+import { acceptedRecipes, loadSeedData, validateSeedData } from './lib/seed-data';
 
 const { values } = parseArgs({ options: { all: { type: 'boolean', default: false } } });
 
 const data = loadSeedData();
-const { errors } = validateSeedData(data);
+const { errors, rejected } = validateSeedData(data);
 if (errors.length > 0) {
   errors.forEach((error) => console.error(`error: ${error}`));
   process.exit(1);
 }
 
-const reports = classifyRecipes(data);
+// Rejected recipes are not seeded, and a food they use may have no categories.
+const reports = classifyRecipes({ ...data, recipes: acceptedRecipes(data.recipes, rejected) });
 if (values.all) {
   for (const { slug, dietType, allergens } of reports) {
     console.log(

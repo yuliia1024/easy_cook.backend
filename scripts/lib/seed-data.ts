@@ -9,7 +9,9 @@ import {
   MAX_KCAL_PER_100G,
   MealType,
 } from '../../src/common/constants';
+import { FoodValues } from '../../src/modules/services/nutrition/nutrition.service';
 import { ImportedFood } from './fdc';
+import { checkRecipeRules } from './recipe-rules';
 
 export const SEED_DIR = resolve(__dirname, '../../data/seed');
 
@@ -69,6 +71,13 @@ export interface ValidationReport {
   errors: string[];
   /** Suspicious but loadable data. */
   warnings: string[];
+  /** Well-formed recipes that break an import rule (`checkRecipeRules`); they are not seeded. */
+  rejected: RecipeRejection[];
+}
+
+export interface RecipeRejection {
+  slug: string;
+  reasons: string[];
 }
 
 export interface FoodRef {
@@ -112,7 +121,10 @@ export function estimateKcal({
   return proteinG * KCAL_PER_GRAM.protein + fatG * KCAL_PER_GRAM.fat + carbsG * KCAL_PER_GRAM.carbs;
 }
 
-/** Checks the seed files without a database: shapes, ranges and references between them. */
+/**
+ * Checks the seed files without a database: shapes, ranges and references between them, and the
+ * import rules of every well-formed recipe (a recipe that breaks one goes to `rejected`).
+ */
 export function validateSeedData({
   foods,
   importedFoods,
@@ -167,10 +179,16 @@ export function validateSeedData({
     }
   });
 
-  const importedRefs = new Set(importedFoods.map((f) => `${f.source}:${f.sourceId}`));
-  const foodNames = new Map<string, string>([
-    ...foods.map((f): [string, string] => [f.slug, f.name]),
-    ...importedFoods.map((f): [string, string] => [`${f.source}:${f.sourceId}`, f.name]),
+  // Plain numbers where the DB has Decimals: NutritionService reads both through toNumber.
+  const foodsByRef = new Map<string, FoodValues>([
+    ...foods.map((f): [string, FoodValues] => [
+      f.slug,
+      { id: f.slug, ...f } as unknown as FoodValues,
+    ]),
+    ...importedFoods.map((f): [string, FoodValues] => {
+      const ref = `${f.source}:${f.sourceId}`;
+      return [ref, { id: ref, ...f } as unknown as FoodValues];
+    }),
   ]);
   const categorized = new Set<string>();
   foodCategories.forEach(({ food, name, categories }, index) => {
@@ -179,11 +197,11 @@ export function validateSeedData({
     if (categorized.has(food)) errors.push(`${at}: duplicate food`);
     categorized.add(food);
 
-    if (!foodNames.has(food)) {
-      if (parseFoodRef(food).source === FoodSource.Seed) errors.push(`${at}: unknown food`);
-      else warnings.push(`${at}: imported food, checked when seeding`);
-    } else if (foodNames.get(food) !== name) {
-      errors.push(`${at}: name must be "${foodNames.get(food)}"`);
+    const known = foodsByRef.get(food);
+    if (!known) {
+      errors.push(`${at}: unknown food`);
+    } else if (known.name !== name) {
+      errors.push(`${at}: name must be "${known.name}"`);
     }
     if (!categories?.length) errors.push(`${at}: has no categories`);
     for (const category of categories ?? []) {
@@ -192,8 +210,10 @@ export function validateSeedData({
     }
   });
 
+  const rejected: RecipeRejection[] = [];
   const recipeSlugs = new Set<string>();
   recipes.forEach((recipe, index) => {
+    const errorCount = errors.length;
     const at = `recipes[${index}] "${recipe.slug}"`;
 
     if (!SLUG.test(recipe.slug ?? '')) errors.push(`${at}: slug must be kebab-case`);
@@ -201,7 +221,6 @@ export function validateSeedData({
     recipeSlugs.add(recipe.slug);
 
     if (!recipe.name?.trim()) errors.push(`${at}: name is empty`);
-    if (!recipe.instructions?.trim()) errors.push(`${at}: instructions are empty`);
     if (!Object.values<string>(MealType).includes(recipe.mealType)) {
       errors.push(`${at}: unknown meal type "${recipe.mealType}"`);
     }
@@ -229,22 +248,45 @@ export function validateSeedData({
       return;
     }
     recipe.ingredients.forEach((ingredient, i) => {
-      const ingredientAt = `${at} ingredient ${i} "${ingredient.food}"`;
-      const ref = parseFoodRef(ingredient.food ?? '');
-
-      if (ref.source === FoodSource.Seed && !foodSlugs.has(ref.sourceId)) {
-        errors.push(`${ingredientAt}: unknown food`);
-      } else if (ref.source !== FoodSource.Seed && !importedRefs.has(ingredient.food)) {
-        warnings.push(`${ingredientAt}: imported food, checked when seeding`);
-      }
       if (typeof ingredient.quantityG !== 'number' || ingredient.quantityG <= 0) {
-        errors.push(`${ingredientAt}: quantityG must be a positive number`);
-      }
-      if (!categorized.has(ingredient.food)) {
-        errors.push(`${ingredientAt}: no categories in food-categories.json`);
+        errors.push(
+          `${at} ingredient ${i} "${ingredient.food}": quantityG must be a positive number`,
+        );
       }
     });
+    if (errors.length > errorCount) return;
+
+    const rules = checkRecipeRules({
+      instructions: recipe.instructions,
+      servings: recipe.servings,
+      ingredients: recipe.ingredients.map((ingredient) => ({
+        label: ingredient.food,
+        quantityG: ingredient.quantityG,
+        isOptional: ingredient.isOptional ?? false,
+        foodItem: foodsByRef.get(ingredient.food) ?? null,
+      })),
+    });
+    const uncategorized = recipe.ingredients
+      .filter(({ food }) => foodsByRef.has(food) && !categorized.has(food))
+      .map(({ food }) => food);
+    if (uncategorized.length > 0) {
+      rules.reasons.push(`no categories in food-categories.json: ${uncategorized.join(', ')}`);
+    }
+
+    rules.warnings.forEach((warning) => warnings.push(`${at}: ${warning}`));
+    if (rules.reasons.length > 0) rejected.push({ slug: recipe.slug, reasons: rules.reasons });
   });
 
-  return { errors, warnings };
+  return { errors, warnings, rejected };
+}
+
+/** The recipes to seed: all but the rejected ones. */
+export function acceptedRecipes(recipes: SeedRecipe[], rejected: RecipeRejection[]): SeedRecipe[] {
+  const slugs = new Set(rejected.map((r) => r.slug));
+  return recipes.filter((recipe) => !slugs.has(recipe.slug));
+}
+
+/** One line per rejected recipe, with every reason. */
+export function formatRejections(rejected: RecipeRejection[]): string[] {
+  return rejected.map(({ slug, reasons }) => `rejected ${slug}: ${reasons.join('; ')}`);
 }

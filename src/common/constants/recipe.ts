@@ -39,6 +39,9 @@ export const MAX_RECIPE_INGREDIENTS = 100;
 export const MAX_SERVING_WEIGHT_G = 2000;
 export const MAX_SERVING_KCAL = 2500;
 
+/** Calories of one serving of an imported recipe (seed, datasets); outside it is not imported. */
+export const IMPORT_SERVING_KCAL = { min: 50, max: MAX_SERVING_KCAL } as const;
+
 /** Diets that cannot be followed together. */
 export const CONFLICTING_DIETS: ReadonlyArray<readonly [DietTag, DietTag]> = [
   [DietTag.Pescatarian, DietTag.Vegetarian],
