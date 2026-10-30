@@ -115,6 +115,7 @@ describe('seed db', () => {
         data: expect.objectContaining({
           name: 'Rice',
           dietType: ['vegan', 'gluten_free', 'dairy_free', 'high_protein'],
+          allergens: [],
           description: null,
           prepTimeMinutes: null,
           source: 'seed',

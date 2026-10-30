@@ -36,6 +36,9 @@ model Recipe {
   mealType        String   @map("meal_type") @db.VarChar(32)
   /// `DietTag[]`
   dietType        String[] @default([]) @map("diet_type") @db.VarChar(32)
+  /// `Allergen[]`, derived from the food categories when a recipe is imported; empty for a
+  /// recipe created through the API (not derived, its food names are still checked).
+  allergens       String[] @default([]) @db.VarChar(32)
   servings        Int
   prepTimeMinutes Int?     @map("prep_time_minutes")
   source          String   @db.VarChar(32)

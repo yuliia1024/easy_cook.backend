@@ -55,6 +55,7 @@ export function snapshotRecipe(
     name: recipe.name,
     mealType: recipe.mealType,
     dietType: recipe.dietType,
+    allergens: recipe.allergens,
     servings: recipe.servings,
     prepTimeMinutes: recipe.prepTimeMinutes,
     perServing: nutrition.perServing,

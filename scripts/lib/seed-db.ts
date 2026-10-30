@@ -1,6 +1,6 @@
 import { PrismaClient } from '../../src/generated/prisma/client';
 import { FoodSource, RecipeSource } from '../../src/common/constants';
-import { FoodCategories, seedDietType } from './classify-recipes';
+import { classifyRecipe, FoodCategories, seedDietType } from './classify-recipes';
 import { parseFoodRef, SeedFood, SeedRecipe } from './seed-data';
 
 export interface UpsertResult {
@@ -67,7 +67,8 @@ export async function resolveFoodRefs(
 /**
  * Inserts or refreshes the seed recipes, keyed by (`seed`, slug). An existing recipe gets its
  * fields updated and its ingredient list replaced, each recipe in its own transaction. The diet
- * tags are derived from the food categories (`seedDietType`), not taken from the file.
+ * tags and the allergens are derived from the food categories (`seedDietType`,
+ * `classifyRecipe`); the tags of the file are not used.
  */
 export async function upsertSeedRecipes(
   prisma: PrismaClient,
@@ -82,6 +83,7 @@ export async function upsertSeedRecipes(
     const data = {
       ...recipe,
       dietType: seedDietType({ slug, ingredients, ...recipe }, categoriesOf),
+      allergens: classifyRecipe({ slug, ingredients, ...recipe }, categoriesOf).allergens,
       description: recipe.description ?? null,
       prepTimeMinutes: recipe.prepTimeMinutes ?? null,
     };

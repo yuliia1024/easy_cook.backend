@@ -79,6 +79,7 @@ describe('/api/recipes (e2e)', () => {
       expect(recipe).toMatchObject({
         name: 'Chicken with rice',
         source: 'manual',
+        allergens: [],
         servings: 2,
         nutritionPerServing: { kcal: 520.1, proteinG: 39.1, fatG: 11.9, carbsG: 60 },
         nutritionComplete: true,

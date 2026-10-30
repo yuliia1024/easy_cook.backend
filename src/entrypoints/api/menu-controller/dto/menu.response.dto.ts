@@ -80,6 +80,7 @@ export class RecipeSnapshotResponseDto implements RecipeSnapshot {
   name: string;
   mealType: string;
   dietType: string[];
+  allergens?: string[];
   servings: number;
   prepTimeMinutes: number | null;
   perServing: MacrosResponseDto;

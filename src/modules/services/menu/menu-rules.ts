@@ -1,4 +1,6 @@
 import {
+  Allergen,
+  ALLERGEN_ALIASES,
   DIET_SATISFIED_BY,
   DietTag,
   MENU_DAY_KCAL_TOLERANCE,
@@ -44,6 +46,21 @@ export function isForbiddenFood(
   );
 }
 
+/** The allergens a profile allergy names: "dairy" -> milk, "tree nuts" -> tree nut, "kiwi" -> none. */
+export function allergensOf(allergy: string): Allergen[] {
+  return (Object.entries(ALLERGEN_ALIASES) as [Allergen, readonly string[]][])
+    .filter(([, aliases]) => aliases.some((alias) => mentions(allergy, alias)))
+    .map(([allergen]) => allergen);
+}
+
+/** The first allergen of the recipe that the allergy names. */
+export function allergenMatching(
+  recipeAllergens: readonly string[],
+  allergy: string,
+): Allergen | undefined {
+  return allergensOf(allergy).find((allergen) => recipeAllergens.includes(allergen));
+}
+
 /** The first ingredient (optional ones too) whose name mentions the value. */
 function ingredientMentioning(recipe: RecipeSnapshot, value: string): string | undefined {
   return recipe.ingredients.find(
@@ -64,7 +81,8 @@ export function recipeIssues(recipe: RecipeSnapshot, rules: PreferenceRules): Re
     }
   }
   for (const allergy of rules.allergies) {
-    const food = ingredientMentioning(recipe, allergy);
+    const food =
+      ingredientMentioning(recipe, allergy) ?? allergenMatching(recipe.allergens ?? [], allergy);
     if (food) {
       error(MenuIssueCode.Allergen, `${recipe.name} contains ${food} (allergy: ${allergy})`);
     }

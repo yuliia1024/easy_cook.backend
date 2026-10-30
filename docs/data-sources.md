@@ -164,7 +164,8 @@ Seed data (`data/seed/`):
    `db:seed`; the tags written in the recipe files are only the source's claim. `high_protein` and
    `low_carb` are taken as written. `npm run data:classify` reports a source tag the ingredients
    contradict (`not vegetarian (salmon-raw)`) and a derived tag the source misses; fix the recipe
-   file or the categories by hand. Allergens (`Allergen`) come from the same categories.
+   file or the categories by hand. Allergens (`Allergen`) come from the same categories and are
+   stored in `recipes.allergens`, which the menu rules check against the profile allergies.
 3. If a control recipe or a food it uses changed, recompute its values in `control-recipes.json` by hand.
 4. `npm run data:validate`, then `npm run db:seed` (upsert by slug, safe to repeat), then `npm run data:verify`.
    A recipe that breaks an import rule (no instruction, an ingredient not matched to a food, an

@@ -26,11 +26,11 @@ describe('menu composition', () => {
     complete: false,
   });
 
-  it('snapshotRecipe keeps the recipe, its foods and its nutrition per serving', () => {
-    const recipe = buildRecipe();
+  it('snapshotRecipe keeps the recipe, its allergens, its foods and its nutrition per serving', () => {
+    const recipe = buildRecipe({ allergens: ['gluten'] });
 
     expect(snapshotRecipe(recipe, new NutritionService().calculateRecipe(recipe))).toEqual(
-      buildRecipeSnapshot(),
+      buildRecipeSnapshot({ allergens: ['gluten'] }),
     );
   });
 

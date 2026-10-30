@@ -16,6 +16,8 @@ export interface RecipeSnapshot {
   name: string;
   mealType: string;
   dietType: string[];
+  /** `Allergen[]`; missing in snapshots taken before recipes had allergens. */
+  allergens?: string[];
   servings: number;
   prepTimeMinutes: number | null;
   /** Without optional ingredients. */

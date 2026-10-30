@@ -24,7 +24,7 @@ import {
   RecipeWithIngredients,
 } from '../../data-access/recipe/recipe.repository';
 import { FoodItemService } from '../food-item/food-item.service';
-import { dietTagsSatisfying, isForbiddenFood } from '../menu/menu-rules';
+import { allergenMatching, dietTagsSatisfying, isForbiddenFood } from '../menu/menu-rules';
 import { NutritionIngredientInput, NutritionService } from '../nutrition/nutrition.service';
 
 export type NewRecipeData = Omit<RecipeData, 'source'> & { source?: string };
@@ -47,7 +47,7 @@ export class RecipeService {
 
   /**
    * Recipes that satisfy every diet of the profile (a vegan one fits a vegetarian) and no allergen or excluded ingredient (optional
-   * ones too). Disliked foods stay: they only warn.
+   * ones too), by food name and by the allergens of the recipe. Disliked foods stay: they only warn.
    */
   public async getAllowed(rules: PreferenceRules): Promise<RecipeWithIngredients[]> {
     const recipes = await this.recipeRepository.findAll({
@@ -57,7 +57,7 @@ export class RecipeService {
       (recipe) =>
         !recipe.ingredients.some(({ foodItem }) =>
           isForbiddenFood(foodItem.name, foodItem.nameEn, rules),
-        ),
+        ) && !rules.allergies.some((allergy) => allergenMatching(recipe.allergens, allergy)),
     );
   }
 
