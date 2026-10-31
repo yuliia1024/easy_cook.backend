@@ -22,6 +22,7 @@ import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repositor
 import { NutritionService, RecipeNutrition } from '../nutrition/nutrition.service';
 import { RecipeService } from '../recipe/recipe.service';
 import { MenuComposer } from './menu-composer';
+import { requestRules } from './menu-request';
 import { fitServings, snapshotRecipe } from './menu-composition';
 import {
   candidatesPerMeal,
@@ -57,6 +58,8 @@ const roundToUnits = ({ kcal, proteinG, fatG, carbsG }: MacroValues): MacroValue
  * output. The servings of every day are fitted to the daily calories of the request
  * (`fitServings`), one each without them. The menu comes with its issues against the profile and
  * its meals with the recipe snapshots. Nothing is saved.
+ * The rules are the profile's with the constraints of the request added (`requestRules`), so
+ * "without chicken" from the chat is enforced like an excluded ingredient of the profile.
  * Without a profile there are no rules to follow, so it asks to fill one in instead.
  */
 @Injectable()
@@ -80,7 +83,8 @@ export class MenuPlannerService {
       return { type: ChatResponseType.Text, message: NO_PROFILE_REPLY };
     }
     const days = request.days ?? MENU_MIN_DAYS;
-    const recipes = await this.recipeService.getAllowed(profile.rules);
+    const context = { ...profile, rules: requestRules(profile.rules, request) };
+    const recipes = await this.recipeService.getAllowed(context.rules);
     const options = new Map<string, RecipeOption>(
       recipes.map((recipe) => [
         recipe.id,
@@ -98,11 +102,11 @@ export class MenuPlannerService {
       input,
       schema,
       options: callOptions,
-    } = menuPlanModelCall(message, days, profile, candidates, abortSignal);
+    } = menuPlanModelCall(message, days, context, candidates, abortSignal);
     const resolve = (planned: PlannedDay[]): ResolvedDay[] =>
       this.resolve(planned, recipeIds, options, request.caloriesKcal);
-    const compose = (planned: PlannedDay[]): MenuComposition =>
-      this.menuComposer.compose(resolve(planned), profile);
+    const compose = (plan: PlannedDay[]): MenuComposition =>
+      this.menuComposer.compose(resolve(plan), context);
     const attempts = await planWithRetries(
       input,
       (messages) => this.openAiService.generateStructured(messages, schema, callOptions),
@@ -125,7 +129,7 @@ export class MenuPlannerService {
     return {
       type: ChatResponseType.MenuReady,
       message: plan.message,
-      menu: this.menuComposer.compose(resolved, profile),
+      menu: this.menuComposer.compose(resolved, context),
       days: resolved,
     };
   }

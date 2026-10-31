@@ -5,6 +5,7 @@ import { PROFILE_ID } from '../../../test/fixtures';
 import {
   describeMenuRequest,
   EMPTY_MENU_REQUEST,
+  requestRules,
   resolveClarification,
   resolveMenuRequest,
 } from './menu-request';
@@ -133,11 +134,81 @@ describe('resolveMenuRequest', () => {
     expect(resolved.request.days).toBe(offered);
   });
 
+  it('adds the constraints of a revision to those of the chat and keeps the other fields', () => {
+    const chat = request({
+      days: 3,
+      mealTypes: [MealType.Lunch],
+      diets: [DietTag.Vegetarian],
+      excludedIngredients: ['mushrooms'],
+      dislikedFoods: ['olives'],
+    });
+
+    const resolved = resolveMenuRequest(
+      profile,
+      chat,
+      request({
+        mealTypes: [MealType.Dinner],
+        diets: [DietTag.GlutenFree],
+        excludedIngredients: ['chicken', 'mushrooms'],
+      }),
+      { revision: true },
+    );
+
+    expect(resolved.chat).toEqual({
+      ...chat,
+      mealTypes: [MealType.Dinner],
+      diets: [DietTag.Vegetarian, DietTag.GlutenFree],
+      excludedIngredients: ['mushrooms', 'chicken'],
+    });
+  });
+
+  it('replaces the constraint lists of the chat with those of a new request', () => {
+    const resolved = resolveMenuRequest(
+      null,
+      request({ excludedIngredients: ['mushrooms'] }),
+      request({ excludedIngredients: ['chicken'] }),
+    );
+
+    expect(resolved.chat.excludedIngredients).toEqual(['chicken']);
+  });
+
   it.each([1, 7])('accepts %i days', (days) => {
     const resolved = resolveMenuRequest(null, null, request({ days }));
 
     expect(resolved.daysOutOfRange).toBeNull();
     expect(resolved.chat.days).toBe(days);
+  });
+});
+
+describe('requestRules', () => {
+  it('adds the constraints of the request to the rules, without duplicates', () => {
+    expect(
+      requestRules(
+        {
+          diets: [DietTag.Vegetarian],
+          allergies: ['peanut'],
+          excludedIngredients: ['pork'],
+          dislikedFoods: ['olives'],
+        },
+        {
+          ...EMPTY_MENU_REQUEST,
+          diets: [DietTag.Vegetarian, DietTag.GlutenFree],
+          excludedIngredients: ['chicken'],
+          dislikedFoods: ['olives', 'onion'],
+        },
+      ),
+    ).toEqual({
+      diets: [DietTag.Vegetarian, DietTag.GlutenFree],
+      allergies: ['peanut'],
+      excludedIngredients: ['pork', 'chicken'],
+      dislikedFoods: ['olives', 'onion'],
+    });
+  });
+
+  it('keeps the rules for a request without constraints', () => {
+    const rules = { diets: [], allergies: [], excludedIngredients: ['pork'], dislikedFoods: [] };
+
+    expect(requestRules(rules, EMPTY_MENU_REQUEST)).toEqual(rules);
   });
 });
 

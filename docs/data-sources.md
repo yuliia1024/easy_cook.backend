@@ -8,9 +8,9 @@ Where the food and recipe data comes from, what is committed, and how to refresh
 |---|---|---|---|
 | `data/seed/foods.json` (45 base foods) | Derived from USDA FoodData Central, **SR Legacy**: values per 100 g, rounded; English display names and `state` added for the project | Public domain (CC0 1.0), see below | `food_items`, `source = seed`, `source_id` = slug |
 | `data/seed/usda-foods.json` (478 foods) | USDA FoodData Central, **Foundation Foods** + **SR Legacy**, picked by hand from foods common in recipes, all four macros present | Public domain (CC0 1.0), see below | `food_items`, `source = usda_fdc`, `source_id` = FDC id |
-| `data/seed/recipes.json` (12 recipes), `data/seed/menu-recipes.json` (140 recipes) | Written for this project; some dish ideas come from Kyiv meal-plan menus (healthynutrition.kyiv.ua, kyiv.perfectbalance.ua), no text or quantities copied | Project's own | `recipes` + `recipe_ingredients`, `source = seed`, `source_id` = slug |
+| `data/seed/recipes.json` (12 recipes), `data/seed/menu-recipes.json` (288 recipes) | Written for this project; some dish ideas come from Kyiv meal-plan menus (healthynutrition.kyiv.ua, kyiv.perfectbalance.ua), no text or quantities copied | Project's own | `recipes` + `recipe_ingredients`, `source = seed`, `source_id` = slug |
 | `data/seed/food-aliases.json` (1265 aliases) | Ingredient names as recipes write them (`scallion`), mapped by hand to the foods of `usda-foods.json` | Project's own; FDC descriptions are CC0 | Not loaded yet, for matching recipe ingredients to foods |
-| `data/seed/food-categories.json` | Categories (`FoodCategory`) of the 204 foods the recipes use, assigned by hand | Project's own | Not loaded, recipe diet tags and allergens are derived from it when seeding |
+| `data/seed/food-categories.json` | Categories (`FoodCategory`) of the 208 foods the recipes use, assigned by hand | Project's own | Not loaded, recipe diet tags and allergens are derived from it when seeding |
 | `data/seed/control-recipes.json` | Hand-computed nutrition of 3 seed recipes, the arithmetic is in the file | Project's own | Not loaded, used by `data:validate` / `data:verify` |
 | USDA FoodData Central **Foundation Foods** (default) and optionally **SR Legacy**, CSV | https://fdc.nal.usda.gov/download-datasets | Public domain (CC0 1.0), see below | `food_items`, `source = usda_fdc`, `source_id` = FDC id |
 | Foods created through the API | The user | | `food_items`, `source = manual` |
@@ -37,7 +37,7 @@ fat 1004 → 1085, carbs 1005 → 1050 (see `scripts/lib/fdc.ts`).
 ### Recipes
 
 Current state: **the database is seeded with the project's own recipes only** (`recipes.json` +
-`menu-recipes.json`, 152 recipes), so no recipe licence applies. Dish ideas from other menus are
+`menu-recipes.json`, 300 recipes), so no recipe licence applies. Dish ideas from other menus are
 fine (an idea is not protected), copying their text, photos or exact recipes is not.
 
 Spike before DATA-4: RecipeNLG was considered for a larger prototype import of ~500 recipes. It is
@@ -79,7 +79,7 @@ What this means for us:
 - **Wikibooks Cookbook** (https://en.wikibooks.org/wiki/Cookbook:Recipes): several thousand
   recipes, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Credit the page
   (title, URL, "Wikibooks contributors"); rows derived from it stay under CC BY-SA 4.0.
-- **Own recipes**, written in grams like `data/seed/recipes.json` (already 152).
+- **Own recipes**, written in grams like `data/seed/recipes.json` (already 300).
 
 #### Rejected
 
@@ -167,7 +167,11 @@ Seed data (`data/seed/`):
    file or the categories by hand. Allergens (`Allergen`) come from the same categories and are
    stored in `recipes.allergens`, which the menu rules check against the profile allergies.
 3. If a control recipe or a food it uses changed, recompute its values in `control-recipes.json` by hand.
-4. `npm run data:validate`, then `npm run db:seed` (upsert by slug, safe to repeat), then `npm run data:verify`.
+4. `npm run data:coverage`: every derived diet (vegan, vegetarian, pescatarian, gluten_free,
+   dairy_free) needs at least 14 breakfasts, lunches and dinners (`MIN_RECIPES_PER_MEAL`), so that
+   a 7-day menu repeats none even for vegan. A vegan recipe counts for vegetarian and pescatarian
+   too. Exit code 1 lists the short pairs (`short vegan dinner: 5, needs 9 more`).
+5. `npm run data:validate`, then `npm run db:seed` (upsert by slug, safe to repeat), then `npm run data:verify`.
    A recipe that breaks an import rule (no instruction, an ingredient not matched to a food, an
    unknown nutrient of a counted ingredient, a serving outside 50-2500 kcal) is not seeded and is
    reported as `rejected <slug>: <reasons>`; `data:verify` applies the same rules to the database.

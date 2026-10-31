@@ -415,6 +415,35 @@ describe('ChatOrchestratorService', () => {
     expect(menuPlannerService.plan).toHaveBeenCalled();
   });
 
+  it('keeps the constraints of the conversation for a revision that names only the change', async () => {
+    conversationService.getMenuRequest.mockReturnValue({
+      ...EMPTY_MENU_REQUEST,
+      days: 3,
+      mealTypes: [MealType.Lunch],
+      excludedIngredients: ['mushrooms'],
+    });
+    classifyAs(Intent.ReviseMenu, 'Plan a 3-day menu without chicken.', {
+      ...EMPTY_MENU_REQUEST,
+      excludedIngredients: ['chicken'],
+    });
+
+    await send('redo it without chicken');
+
+    const expected = {
+      ...EMPTY_MENU_REQUEST,
+      days: 3,
+      mealTypes: [MealType.Lunch],
+      excludedIngredients: ['mushrooms', 'chicken'],
+    };
+    expect(conversationService.saveMenuRequest).toHaveBeenCalledWith(CONVERSATION_ID, expected);
+    expect(menuPlannerService.plan).toHaveBeenCalledWith(
+      'Plan a 3-day menu without chicken.',
+      expect.objectContaining({ excludedIngredients: ['mushrooms', 'chicken'] }),
+      profile,
+      undefined,
+    );
+  });
+
   it.each([Intent.GeneralChat, Intent.Clarification, Intent.OutOfScope])(
     'keeps request fields of %s out of the conversation',
     async (intent) => {

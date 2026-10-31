@@ -42,6 +42,11 @@
       "categories": ["vegetable"]
     },
     {
+      "food": "buckwheat-boiled",
+      "name": "Buckwheat, boiled",
+      "categories": ["grain"]
+    },
+    {
       "food": "buckwheat-dry",
       "name": "Buckwheat, dry",
       "categories": ["grain"]
@@ -150,6 +155,11 @@
       "food": "pasta-dry",
       "name": "Durum wheat pasta, dry",
       "categories": ["gluten_grain"]
+    },
+    {
+      "food": "potato-boiled",
+      "name": "Potato, boiled",
+      "categories": ["vegetable"]
     },
     {
       "food": "potato-raw",
@@ -772,6 +782,11 @@
       "categories": ["poultry"]
     },
     {
+      "food": "usda_fdc:174683",
+      "name": "Grapes, red or green (European type, such as Thompson seedless), raw",
+      "categories": ["fruit"]
+    },
+    {
       "food": "usda_fdc:174915",
       "name": "Bread, pita, white, enriched",
       "categories": ["gluten_grain"]
@@ -860,6 +875,11 @@
       "food": "usda_fdc:2512380",
       "name": "Rice, brown, long grain, unenriched, raw",
       "categories": ["grain"]
+    },
+    {
+      "food": "usda_fdc:2515374",
+      "name": "Nuts, cashew nuts, raw",
+      "categories": ["tree_nut"]
     },
     {
       "food": "usda_fdc:2515379",

@@ -1,6 +1,7 @@
 import request from 'supertest';
-import { createMenuWorld, seedMenu } from './menu-fixtures';
+import { addLentilStew, createMenuWorld, seedMenu } from './menu-fixtures';
 import { readStream } from './menu-stream';
+import { EMPTY_MENU_REQUEST } from '../src/modules/services/menu/menu-request';
 import {
   ASSISTANT_INVALID_OUTPUT_REPLY,
   ASSISTANT_UNAVAILABLE_REPLY,
@@ -397,6 +398,64 @@ describe('/api/conversations (e2e)', () => {
     expect(await ctx.prisma.menu.count()).toBe(1);
   });
 
+  it('revises the whole menu without chicken as the next version, keeping the earlier constraints', async () => {
+    const { recipe } = await createMenuWorld(ctx);
+    const stew = await addLentilStew(ctx);
+    const id = await start();
+    const menuOf = (chunks: Array<{ type: string; data?: any }>) =>
+      chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+    const candidates = (): Record<string, Array<{ name: string }>> =>
+      JSON.parse((fakeOpenAiState.structuredInputs.at(-1) as Array<{ content: string }>)[0].content)
+        .recipes;
+    const names = (meal: string): string[] => candidates()[meal].map(({ name }) => name);
+
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.request = 'Plan a one-day menu without peanuts.';
+    fakeOpenAiState.menuRequest = {
+      ...EMPTY_MENU_REQUEST,
+      days: 1,
+      mealTypes: [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner],
+      excludedIngredients: ['peanut'],
+    };
+    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+      breakfast: 'Oatmeal',
+      lunch: 'Chicken with rice',
+      dinner: 'Rice bowl',
+    });
+    const first = menuOf((await say(id, 'Plan my day, no peanuts')).chunks);
+    expect(names('dinner')).not.toContain('Peanut satay');
+    expect(names('lunch')).toContain('Chicken with rice');
+
+    fakeOpenAiState.intent = Intent.ReviseMenu;
+    fakeOpenAiState.request = 'Plan a one-day menu without chicken.';
+    fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST, excludedIngredients: ['chicken'] };
+    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day without chicken.', {
+      breakfast: 'Oatmeal',
+      lunch: 'Lentil stew',
+      dinner: 'Rice bowl',
+    });
+    const second = menuOf((await say(id, 'Redo it without chicken')).chunks);
+
+    expect(names('lunch')).toEqual(['Lentil stew']);
+    expect(names('dinner')).not.toContain('Peanut satay');
+    expect(second.menuId).toBe(first.menuId);
+    expect(
+      second.composition.days[0].meals.map((meal: { recipeId: string }) => meal.recipeId),
+    ).toEqual([recipe.oats, stew, recipe.snack, recipe.bowl]);
+    const { body } = await http().get(`/api/menus/${first.menuId}`).expect(200);
+    expect(
+      body.versions.map((v: { id: string; versionNumber: number }) => [v.id, v.versionNumber]),
+    ).toEqual([
+      [second.versionId, 2],
+      [first.versionId, 1],
+    ]);
+    const conversation = await ctx.prisma.conversation.findUniqueOrThrow({ where: { id } });
+    expect(conversation.menuRequest).toMatchObject({
+      days: 1,
+      excludedIngredients: ['peanut', 'chicken'],
+    });
+  });
+
   it('gives the planner the profile, marking a missing goal as not set, and finds no calorie issues', async () => {
     await createMenuWorld(ctx, { goal: false });
     await http()
@@ -566,6 +625,7 @@ describe('/api/conversations (e2e)', () => {
 
   it('keeps the answer to a clarification in the conversation for later requests', async () => {
     await createMenuWorld(ctx);
+    await addLentilStew(ctx);
     const id = await start();
     fakeOpenAiState.intent = Intent.Clarification;
     await say(id, 'Make a menu');
@@ -587,6 +647,11 @@ describe('/api/conversations (e2e)', () => {
     expect(await storedMenuRequest(id)).toEqual(fakeOpenAiState.menuRequest);
 
     fakeOpenAiState.menuRequest = { ...menuRequest, diets: [DietTag.Vegetarian] };
+    fakeOpenAiState.menuPlan = fakeMenuPlan(
+      'Here are your days.',
+      { breakfast: 'Oatmeal', lunch: 'Lentil stew', dinner: 'Rice bowl' },
+      3,
+    );
     await say(id, 'regenerate it vegetarian');
     expect(await storedMenuRequest(id)).toEqual({
       ...menuRequest,

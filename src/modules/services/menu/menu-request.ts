@@ -6,7 +6,7 @@ import {
   MENU_REQUEST_REQUIRED_FIELDS,
 } from '../../../common/constants';
 import { IntentResult, MenuRequest } from '../../../common/contracts';
-import { ProfileContext } from '../../../common/types';
+import { PreferenceRules, ProfileContext } from '../../../common/types';
 
 export type MenuRequestField = keyof MenuRequest;
 
@@ -52,12 +52,27 @@ function fromProfile(profile: ProfileContext | null): MenuRequest {
 const isGiven = (value: unknown): boolean =>
   Array.isArray(value) ? value.length > 0 : value !== null;
 
-/** Field by field, `top` wins where it has a value; null and an empty list are not one. */
-function overlay(base: MenuRequest, top: MenuRequest): MenuRequest {
+/** The fields a revision adds to instead of replacing: what the menu must or should avoid. */
+const CONSTRAINT_FIELDS = new Set<MenuRequestField>([
+  'diets',
+  'excludedIngredients',
+  'dislikedFoods',
+]);
+
+const union = <T>(base: readonly T[], top: readonly T[]): T[] => [...new Set([...base, ...top])];
+
+/**
+ * Field by field, `top` wins where it has a value; null and an empty list are not one. With
+ * `keepConstraints`, the constraint lists of `top` are added to those of `base` instead.
+ */
+function overlay(base: MenuRequest, top: MenuRequest, keepConstraints = false): MenuRequest {
   const merged = { ...base };
   for (const field of Object.keys(top) as MenuRequestField[]) {
     if (isGiven(top[field])) {
-      Object.assign(merged, { [field]: top[field] });
+      const keep = keepConstraints && CONSTRAINT_FIELDS.has(field);
+      Object.assign(merged, {
+        [field]: keep ? union(base[field] as string[], top[field] as string[]) : top[field],
+      });
     }
   }
   return merged;
@@ -76,6 +91,9 @@ function overlay(base: MenuRequest, top: MenuRequest): MenuRequest {
  * conversation drops them. A `withdrawn` field in the classifier output fixed it, but cost the
  * intent eval about 5 points on the other cases (gpt-4o-mini, 2026-10-29), so it was not kept.
  *
+ * A `revision` of the menu ("now without chicken") keeps the constraints the chat gathered and
+ * adds those of the message, so a classifier that restates only the change loses none.
+ *
  * Days outside
  * `MENU_MIN_DAYS`..`MENU_MAX_DAYS` are not cut silently: they become the nearest allowed number
  * and are reported in `daysOutOfRange`. Pure.
@@ -84,6 +102,7 @@ export function resolveMenuRequest(
   profile: ProfileContext | null,
   chat: MenuRequest | null,
   message: MenuRequest | null,
+  { revision = false }: { revision?: boolean } = {},
 ): ResolvedMenuRequest {
   let latest = message ?? EMPTY_MENU_REQUEST;
   let daysOutOfRange: ResolvedMenuRequest['daysOutOfRange'] = null;
@@ -92,13 +111,26 @@ export function resolveMenuRequest(
     daysOutOfRange = { requested: latest.days, offered };
     latest = { ...latest, days: offered };
   }
-  const merged = overlay(chat ?? EMPTY_MENU_REQUEST, latest);
+  const merged = overlay(chat ?? EMPTY_MENU_REQUEST, latest, revision);
   const request = overlay(fromProfile(profile), merged);
   return {
     chat: merged,
     request,
     missingFields: MENU_REQUEST_REQUIRED_FIELDS.filter((field) => !isGiven(request[field])),
     daysOutOfRange,
+  };
+}
+
+/**
+ * The rules a menu for the request follows: the profile's, with the diets, excluded ingredients
+ * and disliked foods of the request added. The request can only add rules, never drop one. Pure.
+ */
+export function requestRules(rules: PreferenceRules, request: MenuRequest): PreferenceRules {
+  return {
+    diets: union(rules.diets, request.diets),
+    allergies: rules.allergies,
+    excludedIngredients: union(rules.excludedIngredients, request.excludedIngredients),
+    dislikedFoods: union(rules.dislikedFoods, request.dislikedFoods),
   };
 }
 

@@ -3,6 +3,7 @@ import {
   ChatResponseType,
   Goal,
   CalculationMode,
+  DietTag,
   MealType,
   MenuIssueCode,
   MenuIssueSeverity,
@@ -278,6 +279,38 @@ describe('MenuPlannerService', () => {
       },
     });
     expect(openAiService.generateStructured).toHaveBeenCalledTimes(1);
+  });
+
+  it('follows the constraints of the request on top of the profile rules', async () => {
+    const rules = {
+      diets: ['vegan'],
+      allergies: [],
+      excludedIngredients: ['chicken'],
+      dislikedFoods: ['rice'],
+    };
+
+    const response = await service.plan(
+      'Light day without chicken',
+      {
+        ...oneDay,
+        diets: [DietTag.Vegan],
+        excludedIngredients: ['chicken'],
+        dislikedFoods: ['rice'],
+      },
+      profile,
+    );
+
+    expect(recipeService.getAllowed).toHaveBeenCalledWith(rules);
+    expect(JSON.parse(sentMessages()[0].content).profile).toEqual(
+      toModelProfile({ ...profile, rules }),
+    );
+    expect(response).toMatchObject({
+      menu: {
+        issues: expect.arrayContaining([
+          expect.objectContaining({ code: MenuIssueCode.DislikedFood }),
+        ]),
+      },
+    });
   });
 
   it('reports the issues of the chosen recipes against the preferences', async () => {
