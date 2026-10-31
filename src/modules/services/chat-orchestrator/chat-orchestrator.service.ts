@@ -214,7 +214,8 @@ export class ChatOrchestratorService {
 
   /**
    * Resolves the request with the one the chat gathered and keeps the result when it changed. Only
-   * a menu request brings new fields; any other intent reads what the chat gathered, unchanged.
+   * a menu request brings new fields; any other intent reads what the chat gathered, unchanged. A
+   * revision adds its constraints to the gathered ones.
    */
   private async mergeMenuRequest(
     conversation: Conversation,
@@ -223,7 +224,9 @@ export class ChatOrchestratorService {
   ): Promise<ResolvedMenuRequest> {
     const isMenuRequest = intent === Intent.GenerateMenu || intent === Intent.ReviseMenu;
     const stored = this.conversationService.getMenuRequest(conversation);
-    const resolved = resolveMenuRequest(profile, stored, isMenuRequest ? menuRequest : null);
+    const resolved = resolveMenuRequest(profile, stored, isMenuRequest ? menuRequest : null, {
+      revision: intent === Intent.ReviseMenu,
+    });
     if (!isDeepStrictEqual(resolved.chat, stored ?? EMPTY_MENU_REQUEST)) {
       await this.conversationService.saveMenuRequest(conversation.id, resolved.chat);
     }

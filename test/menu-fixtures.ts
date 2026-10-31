@@ -107,6 +107,32 @@ export async function createMenuWorld(
   };
 }
 
+/** A vegan lunch, `Lentil stew` (400 g boiled lentils), for menus that leave out the chicken. */
+export async function addLentilStew(ctx: TestApp): Promise<string> {
+  const post = (path: string, body: object): Test =>
+    request(ctx.app.getHttpServer()).post(path).send(body).expect(201);
+  const lentils = (
+    await post('/api/foods', {
+      name: 'Lentils, boiled',
+      state: 'boiled',
+      kcalPer100g: 116,
+      proteinG: 9,
+      fatG: 0.4,
+      carbsG: 20,
+    })
+  ).body.id as string;
+  return (
+    await post('/api/recipes', {
+      name: 'Lentil stew',
+      instructions: 'Cook.',
+      mealType: 'lunch',
+      dietType: ['vegan'],
+      servings: 1,
+      ingredients: [{ foodItemId: lentils, quantityG: 400 }],
+    })
+  ).body.id as string;
+}
+
 /**
  * A menu with a manual version 1, saved directly through Prisma: the API does not create menus.
  * Fails on broken rules, so a seeded version can always be confirmed until the rules change.

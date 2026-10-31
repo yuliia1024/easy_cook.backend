@@ -30,8 +30,9 @@ function menu(days: DayComposition[]): MenuComposition {
 const fullDay = (dayIndex: number): DayComposition =>
   day(
     dayIndex,
-    [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner].map((mealType, position) =>
-      meal({ position, mealType, recipeName: `A rather long recipe name number ${position}` }),
+    [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner].map(
+      (mealType, position) =>
+        meal({ position, mealType, recipeName: `A rather long recipe name number ${position}` }),
     ),
   );
 
