@@ -11,7 +11,14 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { ErrorResponseDto } from '../dto/error.response.dto';
 import { MenuListQueryDto, RenameMenuDto } from './dto/menu.dto';
 import { MenuResponseDto, MenuSummaryResponseDto } from './dto/menu.response.dto';
 import { MenuControllerService } from './menu-controller.service';
@@ -52,9 +59,36 @@ export class MenuController {
     return this.menuControllerService.delete(id);
   }
 
-  /** 400 when the version breaks the current dietary preferences. */
   @Post(':id/versions/:versionId/confirm')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Confirm a version of the menu',
+    description:
+      'Makes the version the confirmed one of its menu. For a menu planned in the chat, take the ids ' +
+      'from the reply: `menuId` and `versionId` of the `data-menu` stream part, or `menuId` and ' +
+      '`menuVersionId` of the saved assistant message. The version is checked again against the ' +
+      'current goal and dietary preferences first, since they may have changed since it was built. ' +
+      'Confirming another version of the same menu replaces the confirmed one; confirming the ' +
+      'confirmed version again only updates `confirmedAt`. A confirmed menu is listed by ' +
+      '`GET /menus` (without `status`), a menu without one only with `status=draft` or `all`.',
+  })
+  @ApiOkResponse({
+    type: MenuResponseDto,
+    description:
+      'The whole menu: `confirmedVersionId` is the version, `confirmedAt` the time, and the ' +
+      'version has `isConfirmed: true`.',
+  })
+  @ApiBadRequestResponse({
+    type: ErrorResponseDto,
+    description:
+      'The version breaks a hard rule of the current preferences (diet, allergy, excluded ' +
+      'ingredient); `message` lists the problems. The confirmed version stays as it was. Also for ' +
+      'an id that is not a UUID.',
+  })
+  @ApiNotFoundResponse({
+    type: ErrorResponseDto,
+    description: 'Unknown menu or a version of another menu; or no profile yet.',
+  })
   async confirm(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('versionId', ParseUUIDPipe) versionId: string,

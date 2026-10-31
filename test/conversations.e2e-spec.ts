@@ -209,6 +209,79 @@ describe('/api/conversations (e2e)', () => {
     await http().get('/api/menus?status=draft').expect(200, []);
   });
 
+  it('confirms the version of a reply, lists the menu, and switches to another confirmed version', async () => {
+    await createMenuWorld(ctx);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+      breakfast: 'Oatmeal',
+      lunch: 'Chicken with rice',
+      dinner: 'Rice bowl',
+    });
+    await say(id, 'Plan my day');
+    await say(id, 'Plan it again');
+    const replies = (await http().get(`/api/conversations/${id}`).expect(200)).body.messages.filter(
+      (m: { role: string }) => m.role === 'assistant',
+    );
+    const [first, second] = replies.map((m: { menuId: string; menuVersionId: string }) => ({
+      menuId: m.menuId,
+      versionId: m.menuVersionId,
+    }));
+    const confirm = (version: { menuId: string; versionId: string }) =>
+      http().post(`/api/menus/${version.menuId}/versions/${version.versionId}/confirm`).expect(200);
+    const confirmedOf = (menu: { versions: Array<{ id: string; isConfirmed: boolean }> }) =>
+      menu.versions.filter((v) => v.isConfirmed).map((v) => v.id);
+
+    await http().get('/api/menus').expect(200, []);
+
+    const confirmedFirst = (await confirm(first)).body;
+    expect(confirmedFirst).toMatchObject({
+      id: first.menuId,
+      confirmedVersionId: first.versionId,
+      confirmedAt: expect.any(String),
+    });
+    expect(confirmedOf(confirmedFirst)).toEqual([first.versionId]);
+    expect((await http().get('/api/menus').expect(200)).body).toEqual([
+      expect.objectContaining({ id: first.menuId, confirmedVersionId: first.versionId }),
+    ]);
+
+    const switched = (await confirm(second)).body;
+    expect(switched.confirmedVersionId).toBe(second.versionId);
+    expect(confirmedOf(switched)).toEqual([second.versionId]);
+    expect((await http().get('/api/menus').expect(200)).body).toEqual([
+      expect.objectContaining({ id: first.menuId, confirmedVersionId: second.versionId }),
+    ]);
+    await http().get('/api/menus?status=draft').expect(200, []);
+  });
+
+  it('keeps the confirmed version when another one breaks the preferences now', async () => {
+    await createMenuWorld(ctx);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+      breakfast: 'Oatmeal',
+      lunch: 'Chicken with rice',
+      dinner: 'Rice bowl',
+    });
+    const menuOf = async (content: string) =>
+      (await say(id, content)).chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+    const first = await menuOf('Plan my day');
+    const second = await menuOf('Plan it again');
+    await http().post(`/api/menus/${first.menuId}/versions/${first.versionId}/confirm`).expect(200);
+    await http()
+      .post('/api/preferences')
+      .send({ preferenceType: 'excluded_ingredient', value: 'chicken' })
+      .expect(201);
+
+    const { body } = await http()
+      .post(`/api/menus/${second.menuId}/versions/${second.versionId}/confirm`)
+      .expect(400);
+
+    expect(body.message).toContain('The menu breaks the profile rules');
+    const menu = (await http().get(`/api/menus/${first.menuId}`).expect(200)).body;
+    expect(menu.confirmedVersionId).toBe(first.versionId);
+  });
+
   it('starts a new draft menu when the menu of the conversation was deleted', async () => {
     await createMenuWorld(ctx);
     const id = await start();
