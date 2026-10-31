@@ -1,6 +1,8 @@
 import { MealType } from './recipe';
 
 export const MENU_TITLE_MAX_LENGTH = 255;
+/** The title of a menu the chat generated, until the user renames it. */
+export const generatedMenuTitle = (days: number): string => `${days}-day menu`;
 export const MENU_MIN_DAYS = 1;
 /** A longer request is not cut silently: the chat offers this many days instead. */
 export const MENU_MAX_DAYS = 7;
@@ -16,6 +18,13 @@ export const MENU_SERVINGS_STEP = 0.25;
 export const MENU_SERVINGS_MIN = 0.5;
 export const MENU_SERVINGS_MAX = 2;
 export const MENU_SERVINGS_KCAL_TOLERANCE = 0.05;
+
+/** Which menus `GET /menus` lists; a menu is a draft until one of its versions is confirmed. */
+export enum MenuStatus {
+  Confirmed = 'confirmed',
+  Draft = 'draft',
+  All = 'all',
+}
 
 export enum MenuIssueSeverity {
   /**

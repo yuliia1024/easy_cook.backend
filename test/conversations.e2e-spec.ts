@@ -21,6 +21,7 @@ import {
   fakeOpenAiState,
   resetDatabase,
   resetFakeOpenAi,
+  resetRateLimits,
   TestApp,
 } from './test-app';
 
@@ -39,6 +40,7 @@ describe('/api/conversations (e2e)', () => {
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
     resetFakeOpenAi();
+    resetRateLimits();
   });
 
   afterAll(async () => {
@@ -92,7 +94,7 @@ describe('/api/conversations (e2e)', () => {
     },
   );
 
-  it('plans a one-day menu with a snack from the model choice, servings fitted to the goal, and saves its message', async () => {
+  it('plans a one-day menu with a snack from the model choice, servings fitted to the goal, and saves it with its message', async () => {
     const { recipe } = await createMenuWorld(ctx);
     const id = await start();
     fakeOpenAiState.intent = Intent.GenerateMenu;
@@ -105,7 +107,7 @@ describe('/api/conversations (e2e)', () => {
     const { chunks } = await say(id, 'Plan my day');
 
     expect(textOf(chunks)).toBe('Here is your day.');
-    const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+    const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data.composition;
     expect(menu.days).toHaveLength(1);
     expect(
       menu.days[0].meals.map((meal: { recipeId: string; servings: number }) => [
@@ -128,7 +130,102 @@ describe('/api/conversations (e2e)', () => {
     const { body } = await http().get(`/api/conversations/${id}`).expect(200);
     expect(body.messages[0].suggestedMenu).toBeNull();
     expect(body.messages[1].suggestedMenu).toEqual(menu);
-    expect(await ctx.prisma.menu.count()).toBe(0);
+    const { menuId, versionId } = chunks.find((chunk) => chunk.type === 'data-menu')?.data ?? {};
+    expect(body).toMatchObject({ menuId });
+    expect(body.messages[1]).toMatchObject({ menuId, menuVersionId: versionId });
+
+    const saved = await http().get(`/api/menus/${menuId}`).expect(200);
+    expect(saved.body).toMatchObject({ title: '1-day menu', confirmedVersionId: null });
+    expect(saved.body.versions).toEqual([
+      expect.objectContaining({
+        id: versionId,
+        versionNumber: 1,
+        generatedBy: 'llm',
+        isConfirmed: false,
+        nutritionGoal: expect.objectContaining({ caloriesKcal: 2172 }),
+        dailyAverage: menu.dailyAverage,
+        issues: [],
+      }),
+    ]);
+    expect(
+      saved.body.versions[0].days[0].meals.map(
+        (meal: { recipeId: string; servings: number; recipe: { name: string } }) => [
+          meal.recipeId,
+          meal.servings,
+          meal.recipe.name,
+        ],
+      ),
+    ).toEqual([
+      [recipe.oats, 1.25, 'Oatmeal'],
+      [recipe.chicken, 1.25, 'Chicken with rice'],
+      [recipe.snack, 1.25, 'Oat snack'],
+      [recipe.bowl, 1.25, 'Rice bowl'],
+    ]);
+  });
+
+  it('saves two generations of a conversation as one draft menu with two versions, out of the menu list', async () => {
+    await createMenuWorld(ctx);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+      breakfast: 'Oatmeal',
+      lunch: 'Chicken with rice',
+      dinner: 'Rice bowl',
+    });
+    const menuOf = (chunks: Array<{ type: string; data?: any }>) =>
+      chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+
+    const first = menuOf((await say(id, 'Plan my day')).chunks);
+    fakeOpenAiState.intent = Intent.ReviseMenu;
+    const second = menuOf((await say(id, 'Another one')).chunks);
+
+    expect(second.menuId).toBe(first.menuId);
+    expect(second.versionId).not.toBe(first.versionId);
+    expect(await ctx.prisma.menu.count()).toBe(1);
+    const { body } = await http().get(`/api/menus/${first.menuId}`).expect(200);
+    expect(
+      body.versions.map((v: { id: string; versionNumber: number }) => [v.id, v.versionNumber]),
+    ).toEqual([
+      [second.versionId, 2],
+      [first.versionId, 1],
+    ]);
+    const conversation = (await http().get(`/api/conversations/${id}`).expect(200)).body;
+    expect(conversation.menuId).toBe(first.menuId);
+    expect(
+      conversation.messages.map((m: { menuVersionId: string | null }) => m.menuVersionId),
+    ).toEqual([null, first.versionId, null, second.versionId]);
+
+    await http().get('/api/menus').expect(200, []);
+    expect((await http().get('/api/menus?status=draft').expect(200)).body).toEqual([
+      expect.objectContaining({ id: first.menuId, versionCount: 2, confirmedVersionId: null }),
+    ]);
+
+    await http()
+      .post(`/api/menus/${first.menuId}/versions/${second.versionId}/confirm`)
+      .expect(200);
+    expect((await http().get('/api/menus').expect(200)).body).toEqual([
+      expect.objectContaining({ id: first.menuId, confirmedVersionId: second.versionId }),
+    ]);
+    await http().get('/api/menus?status=draft').expect(200, []);
+  });
+
+  it('starts a new draft menu when the menu of the conversation was deleted', async () => {
+    await createMenuWorld(ctx);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+      breakfast: 'Oatmeal',
+      lunch: 'Chicken with rice',
+      dinner: 'Rice bowl',
+    });
+    const first = (await say(id, 'Plan my day')).chunks.find((c) => c.type === 'data-menu')?.data;
+    await http().delete(`/api/menus/${first.menuId}`).expect(204);
+
+    const second = (await say(id, 'Plan again')).chunks.find((c) => c.type === 'data-menu')?.data;
+
+    expect(second.menuId).not.toBe(first.menuId);
+    const { body } = await http().get(`/api/conversations/${id}`).expect(200);
+    expect(body.menuId).toBe(second.menuId);
   });
 
   it('plans every day of the request and composes them all', async () => {
@@ -146,7 +243,7 @@ describe('/api/conversations (e2e)', () => {
 
     const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
     expect(JSON.parse(planned[0].content).days).toBe(5);
-    const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+    const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data.composition;
     expect(menu.days.map(({ dayIndex }: { dayIndex: number }) => dayIndex)).toEqual([
       0, 1, 2, 3, 4,
     ]);
@@ -224,7 +321,7 @@ describe('/api/conversations (e2e)', () => {
     expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(true);
     const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
     expect(JSON.parse(planned[0].content).request).toBe('Plan a one-day menu with another lunch.');
-    expect(await ctx.prisma.menu.count()).toBe(0);
+    expect(await ctx.prisma.menu.count()).toBe(1);
   });
 
   it('gives the planner the profile, marking a missing goal as not set, and finds no calorie issues', async () => {
@@ -252,7 +349,7 @@ describe('/api/conversations (e2e)', () => {
       excludedIngredients: [],
       dislikedFoods: [],
     });
-    const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+    const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data.composition;
     expect(menu.issues).toEqual([]);
   });
 
@@ -356,7 +453,7 @@ describe('/api/conversations (e2e)', () => {
 
     const { chunks } = await say(id, 'Plan my day');
 
-    const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+    const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data.composition;
     expect(menu.days[0].meals.map((meal: { recipeId: string }) => meal.recipeId)).toEqual([
       recipe.oats,
       lunch,

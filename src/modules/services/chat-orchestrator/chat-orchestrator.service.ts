@@ -14,12 +14,7 @@ import {
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
 import { IntentResult } from '../../../common/contracts';
-import {
-  ChatResponse,
-  ChatStreamEvent,
-  MenuComposition,
-  ProfileContext,
-} from '../../../common/types';
+import { ChatResponse, ChatStreamEvent, ProfileContext } from '../../../common/types';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
@@ -29,6 +24,7 @@ import { ConversationService } from '../conversation/conversation.service';
 import { GeneralChatService } from '../general-chat/general-chat.service';
 import { IntentService } from '../intent/intent.service';
 import { MenuPlannerService } from '../menu/menu-planner.service';
+import { MenuService } from '../menu/menu.service';
 import {
   EMPTY_MENU_REQUEST,
   resolveClarification,
@@ -45,8 +41,9 @@ import { ProfileContextService } from '../profile-context/profile-context.servic
  * merged into the conversation (`resolveMenuRequest`), so an answer to a question is kept, a
  * clarification asks only for what is still missing and is a menu request when nothing is
  * (`resolveClarification`), and too many days are offered as the most a menu can have instead of
- * being cut. The reply is saved once it is complete, with the menu it
- * suggests; a failure becomes an `error` event and is not saved.
+ * being cut. Every planned menu is saved as a draft: the first one of the conversation as a new
+ * menu linked to it, the next ones as new versions of that menu. The reply is saved once it is
+ * complete, with the menu version it created; a failure becomes an `error` event and is not saved.
  */
 @Injectable()
 export class ChatOrchestratorService {
@@ -57,6 +54,7 @@ export class ChatOrchestratorService {
     private readonly intentService: IntentService,
     private readonly generalChatService: GeneralChatService,
     private readonly menuPlannerService: MenuPlannerService,
+    private readonly menuService: MenuService,
     private readonly profileContextService: ProfileContextService,
   ) {}
 
@@ -81,7 +79,7 @@ export class ChatOrchestratorService {
   ): AsyncGenerator<ChatStreamEvent> {
     const conversationId = conversation.id;
     let reply = '';
-    let menu: MenuComposition | undefined;
+    let menu: Extract<ChatStreamEvent, { type: ChatStreamEventType.MenuReady }> | undefined;
     let failed = false;
     try {
       for await (const event of this.route(conversation, content, abortSignal)) {
@@ -90,7 +88,7 @@ export class ChatOrchestratorService {
         } else if (event.type === ChatStreamEventType.Clarification) {
           reply += event.message;
         } else if (event.type === ChatStreamEventType.MenuReady) {
-          menu = event.menu;
+          menu = event;
         } else if (event.type === ChatStreamEventType.Error) {
           failed = true;
         }
@@ -100,7 +98,12 @@ export class ChatOrchestratorService {
         return;
       }
       if (!failed && reply) {
-        await this.conversationService.addAssistantMessage(conversationId, reply, menu);
+        await this.conversationService.addAssistantMessage(
+          conversationId,
+          reply,
+          menu?.menu,
+          menu?.versionId,
+        );
       }
     } catch (error) {
       if (abortSignal?.aborted) {
@@ -135,7 +138,7 @@ export class ChatOrchestratorService {
       // `target`.
       case Intent.GenerateMenu:
       case Intent.ReviseMenu:
-        yield* this.planMenu(request ?? content, menuRequest, profile, abortSignal);
+        yield* this.planMenu(conversation, request ?? content, menuRequest, profile, abortSignal);
         return;
       case Intent.Clarification:
         yield {
@@ -156,9 +159,11 @@ export class ChatOrchestratorService {
 
   /**
    * Days out of range are offered as the nearest allowed number instead of being planned. A plan
-   * still invalid after every attempt of the planner ends with `MENU_PLAN_FAILED_REPLY`.
+   * still invalid after every attempt of the planner ends with `MENU_PLAN_FAILED_REPLY`. A planned
+   * menu is saved as a draft version before it is sent, so the client gets its ids.
    */
   private async *planMenu(
+    conversation: Conversation,
     request: string,
     menuRequest: ResolvedMenuRequest,
     profile: ProfileContext | null,
@@ -194,6 +199,16 @@ export class ChatOrchestratorService {
         retryable: true,
       };
     }
+    if (response.type === ChatResponseType.MenuReady) {
+      const saved = await this.menuService.saveGenerated(conversation, {
+        menu: response.menu,
+        days: response.days,
+        nutritionGoal: profile?.nutritionGoal ?? null,
+      });
+      yield { type: ChatStreamEventType.TextDelta, content: response.message };
+      yield { type: ChatStreamEventType.MenuReady, ...saved, menu: response.menu };
+      return;
+    }
     yield* this.toEvents(response);
   }
 
@@ -215,16 +230,13 @@ export class ChatOrchestratorService {
     return resolved;
   }
 
-  /** A menu comes with its message as text, so the message is saved with the reply. */
-  private toEvents(response: ChatResponse): ChatStreamEvent[] {
+  /** A response without a menu; `planMenu` saves and sends a menu itself. */
+  private toEvents(
+    response: Exclude<ChatResponse, { type: ChatResponseType.MenuReady }>,
+  ): ChatStreamEvent[] {
     switch (response.type) {
       case ChatResponseType.Text:
         return [{ type: ChatStreamEventType.TextDelta, content: response.message }];
-      case ChatResponseType.MenuReady:
-        return [
-          { type: ChatStreamEventType.TextDelta, content: response.message },
-          { type: ChatStreamEventType.MenuReady, menu: response.menu },
-        ];
       case ChatResponseType.Clarification:
         return [
           {

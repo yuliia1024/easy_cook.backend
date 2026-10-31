@@ -1,5 +1,5 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
-import { MENU_TITLE_MAX_LENGTH } from '../../../../common/constants';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { MENU_TITLE_MAX_LENGTH, MenuStatus } from '../../../../common/constants';
 import { Trim } from '../../dto/validators';
 
 export class RenameMenuDto {
@@ -8,4 +8,11 @@ export class RenameMenuDto {
   @IsNotEmpty()
   @MaxLength(MENU_TITLE_MAX_LENGTH)
   title: string;
+}
+
+export class MenuListQueryDto {
+  /** `confirmed` by default: menus the chat generated stay drafts until one is confirmed. */
+  @IsOptional()
+  @IsEnum(MenuStatus)
+  status?: MenuStatus;
 }

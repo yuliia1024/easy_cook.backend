@@ -5,9 +5,9 @@ import {
   MenuIssueCode,
   MenuIssueSeverity,
 } from '../../../common/constants';
-import { NutritionGoalSnapshot, PreferenceRules } from '../../../common/types';
+import { NutritionGoalSnapshot, PreferenceRules, ResolvedDay } from '../../../common/types';
 import { buildRecipeSnapshot, RECIPE_ID } from '../../../test/fixtures';
-import { composeMenu, ResolvedDay } from './menu-composition';
+import { composeMenu } from './menu-composition';
 import {
   allergenMatching,
   allergensOf,

@@ -9,24 +9,27 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { RenameMenuDto } from './dto/menu.dto';
+import { MenuListQueryDto, RenameMenuDto } from './dto/menu.dto';
 import { MenuResponseDto, MenuSummaryResponseDto } from './dto/menu.response.dto';
 import { MenuControllerService } from './menu-controller.service';
 
 /**
- * Menus and their immutable versions. The API does not create menus or add versions; it reads,
- * renames and deletes them, and a version becomes the menu only when it is confirmed.
+ * Menus and their immutable versions. The API does not create menus or add versions (the chat
+ * saves the menus it generates as drafts); it reads, renames and deletes them, and a version
+ * becomes the menu only when it is confirmed.
  */
 @ApiTags('Menus')
 @Controller('menus')
 export class MenuController {
   constructor(private readonly menuControllerService: MenuControllerService) {}
 
+  /** The confirmed menus, or the ones of `status`. */
   @Get()
-  async getAll(): Promise<MenuSummaryResponseDto[]> {
-    return this.menuControllerService.getAll();
+  async getAll(@Query() query: MenuListQueryDto): Promise<MenuSummaryResponseDto[]> {
+    return this.menuControllerService.getAll(query);
   }
 
   /** With every version, newest first. */

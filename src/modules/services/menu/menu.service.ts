@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import { generatedMenuTitle, MenuGeneratedBy, MenuStatus } from '../../../common/constants';
 import {
   MenuNotFoundException,
   MenuVersionNotFoundException,
   MenuViolatesRulesBadRequestException,
 } from '../../../common/exceptions';
-import { MenuIssue } from '../../../common/types';
+import {
+  MenuComposition,
+  MenuIssue,
+  NutritionGoalSnapshot,
+  ResolvedDay,
+} from '../../../common/types';
 import {
   MenuRepository,
   MenuSummary,
@@ -16,9 +22,21 @@ import { UserProfileService } from '../user-profile/user-profile.service';
 import { MenuComposer } from './menu-composer';
 import { errorsOf } from './menu-rules';
 
+export interface GeneratedMenu {
+  menu: MenuComposition;
+  days: ResolvedDay[];
+  nutritionGoal: NutritionGoalSnapshot | null;
+}
+
+export interface SavedMenuVersion {
+  menuId: string;
+  versionId: string;
+}
+
 /**
- * Menus of the profile and their immutable versions. Menus are read, renamed and deleted here; a
- * version becomes the menu only through an explicit `confirm`.
+ * Menus of the profile and their immutable versions. Menus are read, renamed and deleted here, and
+ * a menu the chat generated is saved as a draft version; a version becomes the menu only through an
+ * explicit `confirm`.
  */
 @Injectable()
 export class MenuService {
@@ -29,9 +47,9 @@ export class MenuService {
     private readonly profileContextService: ProfileContextService,
   ) {}
 
-  public async getAll(): Promise<MenuSummary[]> {
+  public async getAll(status: MenuStatus = MenuStatus.Confirmed): Promise<MenuSummary[]> {
     const profile = await this.userProfileService.getCurrent();
-    return this.menuRepository.findAll(profile.id);
+    return this.menuRepository.findAll(profile.id, status);
   }
 
   public async getById(id: string): Promise<MenuWithVersions> {
@@ -54,6 +72,34 @@ export class MenuService {
       this.menuComposer.revalidate(version, await this.profileContextService.get()),
     );
     return this.menuRepository.confirm(id, version.id);
+  }
+
+  /**
+   * Saves a menu generated in the conversation as an unconfirmed version: a new menu, linked to the
+   * conversation, when it has none, otherwise the next version of its menu.
+   */
+  public async saveGenerated(
+    conversation: { id: string; menuId: string | null },
+    { menu, days, nutritionGoal }: GeneratedMenu,
+  ): Promise<SavedMenuVersion> {
+    const version = {
+      generatedBy: MenuGeneratedBy.Llm,
+      nutritionGoal,
+      composition: menu,
+      days,
+    };
+    if (conversation.menuId) {
+      const saved = await this.menuRepository.addVersion(conversation.menuId, version);
+      return { menuId: saved.menuId, versionId: saved.id };
+    }
+    const profile = await this.userProfileService.getCurrent();
+    const saved = await this.menuRepository.createDraft(
+      profile.id,
+      generatedMenuTitle(days.length),
+      version,
+      conversation.id,
+    );
+    return { menuId: saved.menuId, versionId: saved.id };
   }
 
   public async rename(id: string, title: string): Promise<MenuWithVersions> {

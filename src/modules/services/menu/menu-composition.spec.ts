@@ -1,5 +1,6 @@
 import { Prisma } from '../../../generated/prisma/client';
 import { MealType } from '../../../common/constants';
+import { ResolvedDay } from '../../../common/types';
 import {
   buildMenuVersion,
   buildRecipe,
@@ -11,7 +12,6 @@ import {
   composeMenu,
   fitServings,
   resolveVersion,
-  ResolvedDay,
   snapshotRecipe,
   toIsoDate,
 } from './menu-composition';

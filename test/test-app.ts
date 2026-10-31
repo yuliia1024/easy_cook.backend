@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { ThrottlerStorage, ThrottlerStorageService } from '@nestjs/throttler';
 import { Prisma } from '../src/generated/prisma/client';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -118,12 +119,37 @@ export async function createTestApp(): Promise<TestApp> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(OpenAiService)
     .useValue(fakeOpenAi)
+    .overrideProvider(ThrottlerStorage)
+    .useValue(rateLimits)
     .compile();
   const app = moduleRef.createNestApplication<INestApplication<App>>({ logger: false });
   configureApp(app);
   await app.init();
 
   return { app, prisma: app.get(PrismaService) };
+}
+
+/** The in-memory rate limit storage, started afresh by `reset()`. */
+class ResettableThrottlerStorage implements ThrottlerStorage {
+  private storage = new ThrottlerStorageService();
+
+  public async increment(
+    ...args: Parameters<ThrottlerStorage['increment']>
+  ): ReturnType<ThrottlerStorage['increment']> {
+    return this.storage.increment(...args);
+  }
+
+  public reset(): void {
+    this.storage.onApplicationShutdown();
+    this.storage = new ThrottlerStorageService();
+  }
+}
+
+const rateLimits = new ResettableThrottlerStorage();
+
+/** Forgets the requests the rate limits counted, so every test starts with the full limits. */
+export function resetRateLimits(): void {
+  rateLimits.reset();
 }
 
 /** Empties every table except Prisma's migration log. */

@@ -89,16 +89,18 @@ export class ConversationService {
     }
   }
 
-  /** `suggestedMenu` is the menu the reply suggests; it is kept with the message only. */
+  /** `suggestedMenu` is the menu the reply suggests, saved as the draft version `menuVersionId`. */
   public async addAssistantMessage(
     conversationId: string,
     content: string,
     suggestedMenu?: MenuComposition,
+    menuVersionId?: string,
   ): Promise<void> {
     await this.conversationRepository.addMessage(conversationId, {
       role: MessageRole.Assistant,
       content,
       suggestedMenu,
+      menuVersionId,
     });
   }
 

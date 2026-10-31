@@ -1,12 +1,9 @@
 import request, { Test } from 'supertest';
 import { MealType, MenuGeneratedBy, MenuIssueSeverity } from '../src/common/constants';
+import { ResolvedDay } from '../src/common/types';
 import { Prisma } from '../src/generated/prisma/client';
 import { RECIPE_INCLUDE } from '../src/modules/data-access/recipe/recipe.repository';
-import {
-  composeMenu,
-  ResolvedDay,
-  snapshotRecipe,
-} from '../src/modules/services/menu/menu-composition';
+import { composeMenu, snapshotRecipe } from '../src/modules/services/menu/menu-composition';
 import { validateMenu } from '../src/modules/services/menu/menu-rules';
 import { NutritionService } from '../src/modules/services/nutrition/nutrition.service';
 import { ProfileContextService } from '../src/modules/services/profile-context/profile-context.service';

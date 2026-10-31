@@ -50,13 +50,20 @@ describe('/api/menus (e2e)', () => {
     expect(await ctx.prisma.menuVersion.count()).toBe(1);
   });
 
-  it('lists the menus with their version count', async () => {
+  it('lists the menus with their version count, only confirmed ones unless asked for drafts', async () => {
     await seedVersion(ctx, menuId, days());
+    const listed = [expect.objectContaining({ id: menuId, title: 'My week', versionCount: 2 })];
 
-    const { body } = await http().get('/api/menus').expect(200);
-    expect(body).toEqual([
-      expect.objectContaining({ id: menuId, title: 'My week', versionCount: 2 }),
-    ]);
+    await http().get('/api/menus').expect(200, []);
+    await http().get('/api/menus?status=confirmed').expect(200, []);
+    expect((await http().get('/api/menus?status=draft').expect(200)).body).toEqual(listed);
+    expect((await http().get('/api/menus?status=all').expect(200)).body).toEqual(listed);
+    await http().get('/api/menus?status=pending').expect(400);
+
+    const { body: menu } = await http().get(`/api/menus/${menuId}`).expect(200);
+    await http().post(`/api/menus/${menuId}/versions/${menu.versions[0].id}/confirm`).expect(200);
+    expect((await http().get('/api/menus').expect(200)).body).toEqual(listed);
+    await http().get('/api/menus?status=draft').expect(200, []);
   });
 
   it('returns a menu with snapshots and nutrition per meal and day', async () => {

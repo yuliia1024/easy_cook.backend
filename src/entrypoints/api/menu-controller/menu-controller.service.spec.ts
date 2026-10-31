@@ -1,3 +1,4 @@
+import { MenuStatus } from '../../../common/constants';
 import { MenuService } from '../../../modules/services/menu/menu.service';
 import { createMock } from '../../../test/create-mock';
 import { buildMenu, buildMenuVersion, MENU_ID, MENU_VERSION_ID } from '../../../test/fixtures';
@@ -20,9 +21,10 @@ describe('MenuControllerService', () => {
     const { versions: _versions, ...summary } = buildMenu();
     menuService.getAll.mockResolvedValue([{ ...summary, _count: { versions: 2 } }]);
 
-    await expect(service.getAll()).resolves.toEqual([
+    await expect(service.getAll({ status: MenuStatus.All })).resolves.toEqual([
       expect.objectContaining({ id: MENU_ID, versionCount: 2 }),
     ]);
+    expect(menuService.getAll).toHaveBeenCalledWith(MenuStatus.All);
   });
 
   it('maps one menu', async () => {

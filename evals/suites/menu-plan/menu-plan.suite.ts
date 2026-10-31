@@ -17,9 +17,10 @@ import {
   ModelUsage,
   ProfileContext,
   RecipeSnapshot,
+  ResolvedDay,
 } from '../../../src/common/types';
 import { MenuComposer } from '../../../src/modules/services/menu/menu-composer';
-import { fitServings, ResolvedDay } from '../../../src/modules/services/menu/menu-composition';
+import { fitServings } from '../../../src/modules/services/menu/menu-composition';
 import {
   candidateProblems,
   candidatesPerMeal,

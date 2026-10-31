@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { MenuComposition, MenuIssue, ProfileContext } from '../../../common/types';
+import { MenuComposition, MenuIssue, ProfileContext, ResolvedDay } from '../../../common/types';
 import { MenuVersionWithDays } from '../../data-access/menu/menu.repository';
-import { composeMenu, resolveVersion, ResolvedDay } from './menu-composition';
+import { composeMenu, resolveVersion } from './menu-composition';
 import { validateMenu } from './menu-rules';
 
 /**
