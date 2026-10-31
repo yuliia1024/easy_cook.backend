@@ -1,5 +1,9 @@
 import { createUIMessageStream, UIMessageChunk } from 'ai';
-import { ChatStreamEventType, INTERNAL_ERROR_REPLY } from '../../common/constants';
+import {
+  CHAT_STATUS_MESSAGES,
+  ChatStreamEventType,
+  INTERNAL_ERROR_REPLY,
+} from '../../common/constants';
 import { ChatStreamEvent } from '../../common/types';
 
 const TEXT_ID = 'text';
@@ -7,6 +11,9 @@ const TEXT_ID = 'text';
 /**
  * Writes chat events into an AI SDK UI message stream as they arrive:
  * - `text_delta` - one text part;
+ * - `status` - a transient `data-status` with `{ step, message }` of the step under way;
+ * - `menu_pending` - a transient `data-menu-pending` with `{ days, mealTypes }` of the menu being
+ *   planned, to show its placeholders until `data-menu` or the end of the stream;
  * - `clarification` - its message as text, then `data-clarification` with the missing fields;
  * - `menu_ready` - `data-menu` with `{ menuId, versionId, composition }` of the saved draft version;
  * - `error` - a transient `data-error` with the code, then an `error` chunk; nothing follows it;
@@ -39,6 +46,20 @@ export function toChatStream(
         switch (event.type) {
           case ChatStreamEventType.TextDelta:
             writeText(event.content);
+            break;
+          case ChatStreamEventType.Status:
+            writer.write({
+              type: 'data-status',
+              data: { step: event.step, message: CHAT_STATUS_MESSAGES[event.step] },
+              transient: true,
+            });
+            break;
+          case ChatStreamEventType.MenuPending:
+            writer.write({
+              type: 'data-menu-pending',
+              data: { days: event.days, mealTypes: event.mealTypes },
+              transient: true,
+            });
             break;
           case ChatStreamEventType.Clarification:
             writeText(event.message);

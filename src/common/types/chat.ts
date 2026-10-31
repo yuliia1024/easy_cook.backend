@@ -1,4 +1,4 @@
-import { ChatResponseType, ChatStreamEventType } from '../constants';
+import { ChatResponseType, ChatStatusStep, ChatStreamEventType, MealType } from '../constants';
 import { MenuComposition, ResolvedDay } from './menu';
 
 /** The result of a business service that answers without streaming. */
@@ -15,11 +15,15 @@ export type ChatResponse =
   | { type: ChatResponseType.Error; code: string; message: string; retryable: boolean };
 
 /**
- * The reply to a chat message, event by event. `menu_ready` carries a menu only after the server
+ * The reply to a chat message, event by event. `status` and `menu_pending` are progress only: they
+ * are not part of the saved reply. `menu_pending` gives the shape of the menu being planned (for
+ * placeholders); a reply without `menu_ready` after it planned no menu. `menu_ready` carries a menu only after the server
  * composed and validated it (`MenuPlannerService`) and saved it as a draft version.
  */
 export type ChatStreamEvent =
   | { type: ChatStreamEventType.TextDelta; content: string }
+  | { type: ChatStreamEventType.Status; step: ChatStatusStep }
+  | { type: ChatStreamEventType.MenuPending; days: number; mealTypes: MealType[] }
   | {
       type: ChatStreamEventType.MenuReady;
       menuId: string;
@@ -29,3 +33,9 @@ export type ChatStreamEvent =
   | { type: ChatStreamEventType.Clarification; message: string; missingFields: string[] }
   | { type: ChatStreamEventType.Error; code: string; message: string; retryable: boolean }
   | { type: ChatStreamEventType.Done };
+
+/** The events that only report progress; nothing of them is saved. */
+export type ChatProgressEvent = Extract<
+  ChatStreamEvent,
+  { type: ChatStreamEventType.Status | ChatStreamEventType.MenuPending }
+>;

@@ -5,6 +5,7 @@ import {
   ChatErrorCode,
   CLARIFICATION_REPLY,
   ChatResponseType,
+  ChatStatusStep,
   DietTag,
   Goal,
   ChatStreamEventType,
@@ -68,8 +69,13 @@ describe('ChatOrchestratorService', () => {
     issues: [],
   };
   const saved = { menuId: MENU_ID, versionId: MENU_VERSION_ID };
-  const send = async (content = 'Hi', signal?: AbortSignal): Promise<ChatStreamEvent[]> =>
+  const isProgress = ({ type }: ChatStreamEvent): boolean =>
+    type === ChatStreamEventType.Status || type === ChatStreamEventType.MenuPending;
+  /** The events of the reply, progress left out; `sendAll` keeps it. */
+  const sendAll = async (content = 'Hi', signal?: AbortSignal): Promise<ChatStreamEvent[]> =>
     collect(await service.handleMessage(CONVERSATION_ID, content, signal));
+  const send = async (content = 'Hi', signal?: AbortSignal): Promise<ChatStreamEvent[]> =>
+    (await sendAll(content, signal)).filter((event) => !isProgress(event));
   const classifyAs = (
     intent: Intent,
     request: string | null = null,
@@ -145,6 +151,58 @@ describe('ChatOrchestratorService', () => {
     expect(menuPlannerService.plan).not.toHaveBeenCalled();
   });
 
+  it('says it is thinking first and keeps the status out of the saved reply', async () => {
+    classifyAs(Intent.GeneralChat);
+
+    await expect(sendAll()).resolves.toEqual([
+      { type: ChatStreamEventType.Status, step: ChatStatusStep.Thinking },
+      { type: ChatStreamEventType.TextDelta, content: 'A ' },
+      { type: ChatStreamEventType.TextDelta, content: 'reply' },
+      { type: ChatStreamEventType.Done },
+    ]);
+    expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+      CONVERSATION_ID,
+      'A reply',
+      undefined,
+      undefined,
+    );
+  });
+
+  it('streams the progress of the planner while it plans, before the menu', async () => {
+    classifyAs(Intent.GenerateMenu, 'Plan a one-day menu.');
+    const pending: ChatStreamEvent = {
+      type: ChatStreamEventType.MenuPending,
+      days: 1,
+      mealTypes: [MealType.Breakfast],
+    };
+    menuPlannerService.plan.mockImplementation(
+      async (_message, _request, _profile, _signal, onProgress) => {
+        onProgress?.({
+          type: ChatStreamEventType.Status,
+          step: ChatStatusStep.SearchingBreakfasts,
+        });
+        await Promise.resolve();
+        onProgress?.(pending);
+        return { type: ChatResponseType.MenuReady, message: 'Your day', menu, days: [] };
+      },
+    );
+
+    await expect(sendAll()).resolves.toEqual([
+      { type: ChatStreamEventType.Status, step: ChatStatusStep.Thinking },
+      { type: ChatStreamEventType.Status, step: ChatStatusStep.SearchingBreakfasts },
+      pending,
+      { type: ChatStreamEventType.TextDelta, content: 'Your day' },
+      { type: ChatStreamEventType.MenuReady, ...saved, menu },
+      { type: ChatStreamEventType.Done },
+    ]);
+    expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+      CONVERSATION_ID,
+      'Your day',
+      menu,
+      MENU_VERSION_ID,
+    );
+  });
+
   it('hands the restated request to MenuPlannerService, saves the menu as a draft and the message with its version', async () => {
     classifyAs(Intent.GenerateMenu, 'Plan a one-day menu.');
     const abort = new AbortController();
@@ -161,6 +219,7 @@ describe('ChatOrchestratorService', () => {
       EMPTY_MENU_REQUEST,
       profile,
       abort.signal,
+      expect.any(Function),
     );
     expect(menuService.saveGenerated).toHaveBeenCalledWith(conversation, {
       menu,
@@ -189,6 +248,7 @@ describe('ChatOrchestratorService', () => {
       EMPTY_MENU_REQUEST,
       profile,
       undefined,
+      expect.any(Function),
     );
   });
 
@@ -202,6 +262,7 @@ describe('ChatOrchestratorService', () => {
       EMPTY_MENU_REQUEST,
       profile,
       undefined,
+      expect.any(Function),
     );
   });
 
@@ -217,6 +278,7 @@ describe('ChatOrchestratorService', () => {
       EMPTY_MENU_REQUEST,
       null,
       undefined,
+      expect.any(Function),
     );
   });
 
@@ -306,6 +368,7 @@ describe('ChatOrchestratorService', () => {
       { ...EMPTY_MENU_REQUEST, days: 5, caloriesKcal: 1800 },
       withGoal,
       undefined,
+      expect.any(Function),
     );
   });
 
@@ -389,6 +452,7 @@ describe('ChatOrchestratorService', () => {
       { ...EMPTY_MENU_REQUEST, days: 3, mealTypes: [MealType.Dinner] },
       profile,
       undefined,
+      expect.any(Function),
     );
     expect(conversationService.saveMenuRequest).not.toHaveBeenCalled();
   });
@@ -441,6 +505,7 @@ describe('ChatOrchestratorService', () => {
       expect.objectContaining({ excludedIngredients: ['mushrooms', 'chicken'] }),
       profile,
       undefined,
+      expect.any(Function),
     );
   });
 

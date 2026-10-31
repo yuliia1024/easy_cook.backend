@@ -27,11 +27,28 @@ export enum ChatResponseType {
 
 export enum ChatStreamEventType {
   TextDelta = 'text_delta',
+  Status = 'status',
+  MenuPending = 'menu_pending',
   MenuReady = 'menu_ready',
   Clarification = 'clarification',
   Error = 'error',
   Done = 'done',
 }
+
+/** The step of a reply the client shows while it waits; never saved. */
+export enum ChatStatusStep {
+  Thinking = 'thinking',
+  SearchingBreakfasts = 'searching_breakfasts',
+  PickingLunches = 'picking_lunches',
+  CheckingConstraints = 'checking_constraints',
+}
+
+export const CHAT_STATUS_MESSAGES: Record<ChatStatusStep, string> = {
+  [ChatStatusStep.Thinking]: 'Thinking',
+  [ChatStatusStep.SearchingBreakfasts]: 'Looking for breakfasts',
+  [ChatStatusStep.PickingLunches]: 'Picking lunches',
+  [ChatStatusStep.CheckingConstraints]: 'Checking the constraints',
+};
 
 export enum ChatErrorCode {
   AssistantUnavailable = 'assistant_unavailable',

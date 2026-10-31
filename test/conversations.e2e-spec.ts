@@ -95,6 +95,55 @@ describe('/api/conversations (e2e)', () => {
     },
   );
 
+  it('streams the steps and the shape of the pending menu as transient parts before the menu, and saves none of them', async () => {
+    await createMenuWorld(ctx);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+      breakfast: 'Oatmeal',
+      lunch: 'Chicken with rice',
+      dinner: 'Rice bowl',
+    });
+
+    const { chunks } = await say(id, 'Plan my day');
+
+    const progress = chunks.filter(
+      (chunk) => chunk.type === 'data-status' || chunk.type === 'data-menu-pending',
+    );
+    expect(progress).toEqual([
+      { type: 'data-status', data: { step: 'thinking', message: 'Thinking' }, transient: true },
+      {
+        type: 'data-status',
+        data: { step: 'searching_breakfasts', message: 'Looking for breakfasts' },
+        transient: true,
+      },
+      {
+        type: 'data-menu-pending',
+        data: {
+          days: 1,
+          mealTypes: [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner],
+        },
+        transient: true,
+      },
+      {
+        type: 'data-status',
+        data: { step: 'picking_lunches', message: 'Picking lunches' },
+        transient: true,
+      },
+      {
+        type: 'data-status',
+        data: { step: 'checking_constraints', message: 'Checking the constraints' },
+        transient: true,
+      },
+    ]);
+    const types = chunks.map((chunk) => chunk.type);
+    expect(types.lastIndexOf('data-status')).toBeLessThan(types.indexOf('data-menu'));
+    expect(await savedMessages(id)).toEqual([
+      { role: 'user', content: 'Plan my day' },
+      { role: 'assistant', content: 'Here is your day.' },
+    ]);
+  });
+
   it('plans a one-day menu with a snack from the model choice, servings fitted to the goal, and saves it with its message', async () => {
     const { recipe } = await createMenuWorld(ctx);
     const id = await start();

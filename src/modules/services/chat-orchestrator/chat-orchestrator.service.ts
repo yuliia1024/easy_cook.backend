@@ -6,6 +6,7 @@ import {
   CLARIFICATION_REPLY,
   ChatErrorCode,
   ChatResponseType,
+  ChatStatusStep,
   ChatStreamEventType,
   daysOutOfRangeReply,
   INTERNAL_ERROR_REPLY,
@@ -19,6 +20,7 @@ import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
 } from '../../../common/exceptions';
+import { withProgress } from '../../../common/utils';
 import { Conversation } from '../../../generated/prisma/client';
 import { ConversationService } from '../conversation/conversation.service';
 import { GeneralChatService } from '../general-chat/general-chat.service';
@@ -44,6 +46,7 @@ import { ProfileContextService } from '../profile-context/profile-context.servic
  * being cut. Every planned menu is saved as a draft: the first one of the conversation as a new
  * menu linked to it, the next ones as new versions of that menu. The reply is saved once it is
  * complete, with the menu version it created; a failure becomes an `error` event and is not saved.
+ * Progress (`status`, `menu_pending`) is streamed as it happens and is never part of the reply.
  */
 @Injectable()
 export class ChatOrchestratorService {
@@ -120,6 +123,7 @@ export class ChatOrchestratorService {
     abortSignal: AbortSignal | undefined,
   ): AsyncGenerator<ChatStreamEvent> {
     const conversationId = conversation.id;
+    yield { type: ChatStreamEventType.Status, step: ChatStatusStep.Thinking };
     const profile = await this.profileContextService.find();
     const classified = await this.intentService.classify(conversationId, profile, abortSignal);
     const menuRequest = await this.mergeMenuRequest(conversation, profile, classified);
@@ -181,12 +185,14 @@ export class ChatOrchestratorService {
     }
     let response: ChatResponse;
     try {
-      // TODO: add sort of stream text until get the menu
-      response = await this.menuPlannerService.plan(
-        request,
-        menuRequest.request,
-        profile,
-        abortSignal,
+      response = yield* withProgress<ChatStreamEvent, ChatResponse>((onProgress) =>
+        this.menuPlannerService.plan(
+          request,
+          menuRequest.request,
+          profile,
+          abortSignal,
+          onProgress,
+        ),
       );
     } catch (error) {
       if (!(error instanceof AssistantInvalidOutputException)) {
