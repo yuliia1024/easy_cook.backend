@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   ChatResponseType,
+  ChatStatusStep,
+  ChatStreamEventType,
   MENU_MIN_DAYS,
   MENU_PLAN_CANDIDATE_POOL_FACTOR,
   MENU_PLAN_MAX_ATTEMPTS,
@@ -10,6 +12,7 @@ import {
 } from '../../../common/constants';
 import { MenuRequest } from '../../../common/contracts';
 import {
+  ChatProgressEvent,
   ChatResponse,
   MacroValues,
   MenuComposition,
@@ -61,6 +64,8 @@ const roundToUnits = ({ kcal, proteinG, fatG, carbsG }: MacroValues): MacroValue
  * The rules are the profile's with the constraints of the request added (`requestRules`), so
  * "without chicken" from the chat is enforced like an excluded ingredient of the profile.
  * Without a profile there are no rules to follow, so it asks to fill one in instead.
+ * `onProgress` hears the steps: looking for recipes, the shape of the menu once there are
+ * candidates for every meal (`menu_pending`), then picking and checking on every attempt.
  */
 @Injectable()
 export class MenuPlannerService {
@@ -78,11 +83,15 @@ export class MenuPlannerService {
     request: MenuRequest,
     profile: ProfileContext | null,
     abortSignal?: AbortSignal,
+    onProgress: (event: ChatProgressEvent) => void = () => undefined,
   ): Promise<ChatResponse> {
     if (!profile) {
       return { type: ChatResponseType.Text, message: NO_PROFILE_REPLY };
     }
+    const status = (step: ChatStatusStep): void =>
+      onProgress({ type: ChatStreamEventType.Status, step });
     const days = request.days ?? MENU_MIN_DAYS;
+    status(ChatStatusStep.SearchingBreakfasts);
     const context = { ...profile, rules: requestRules(profile.rules, request) };
     const recipes = await this.recipeService.getAllowed(context.rules);
     const options = new Map<string, RecipeOption>(
@@ -97,6 +106,11 @@ export class MenuPlannerService {
     if (MENU_PLAN_MEAL_TYPES.some((mealType) => candidates[mealType].length === 0)) {
       return { type: ChatResponseType.Text, message: NO_MENU_RECIPES_REPLY };
     }
+    onProgress({
+      type: ChatStreamEventType.MenuPending,
+      days,
+      mealTypes: [...MENU_PLAN_MEAL_TYPES],
+    });
 
     const {
       input,
@@ -109,8 +123,14 @@ export class MenuPlannerService {
       this.menuComposer.compose(resolve(plan), context);
     const attempts = await planWithRetries(
       input,
-      (messages) => this.openAiService.generateStructured(messages, schema, callOptions),
-      (plan) => menuPlanErrors(plan, candidates, days, compose),
+      (messages) => {
+        status(ChatStatusStep.PickingLunches);
+        return this.openAiService.generateStructured(messages, schema, callOptions);
+      },
+      (plan) => {
+        status(ChatStatusStep.CheckingConstraints);
+        return menuPlanErrors(plan, candidates, days, compose);
+      },
     );
     attempts.forEach(({ problems }, i) => {
       if (problems.length > 0) {

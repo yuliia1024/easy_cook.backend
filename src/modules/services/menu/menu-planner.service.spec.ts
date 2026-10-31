@@ -1,6 +1,8 @@
 import { Logger } from '@nestjs/common';
 import {
   ChatResponseType,
+  ChatStatusStep,
+  ChatStreamEventType,
   Goal,
   CalculationMode,
   DietTag,
@@ -16,7 +18,7 @@ import {
 } from '../../../common/constants';
 import { MenuPlan, MenuPlanSchema, MenuRequest } from '../../../common/contracts';
 import { AssistantInvalidOutputException } from '../../../common/exceptions';
-import { ProfileContext } from '../../../common/types';
+import { ChatProgressEvent, ProfileContext } from '../../../common/types';
 import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { Prisma } from '../../../generated/prisma/client';
 import { createMock } from '../../../test/create-mock';
@@ -340,11 +342,35 @@ describe('MenuPlannerService', () => {
   ])('answers without the model when there is no allowed recipe for %s', async (_case, recipes) => {
     recipeService.getAllowed.mockResolvedValue(recipes);
 
-    await expect(service.plan('Light day', oneDay, profile)).resolves.toEqual({
+    const onProgress = jest.fn();
+
+    await expect(
+      service.plan('Light day', oneDay, profile, undefined, onProgress),
+    ).resolves.toEqual({
       type: ChatResponseType.Text,
       message: NO_MENU_RECIPES_REPLY,
     });
     expect(openAiService.generateStructured).not.toHaveBeenCalled();
+    expect(onProgress.mock.calls).toEqual([
+      [{ type: ChatStreamEventType.Status, step: ChatStatusStep.SearchingBreakfasts }],
+    ]);
+  });
+
+  it('reports the steps and the shape of the menu as it plans', async () => {
+    const events: ChatProgressEvent[] = [];
+
+    await service.plan('Light day', oneDay, profile, undefined, (event) => events.push(event));
+
+    expect(events).toEqual([
+      { type: ChatStreamEventType.Status, step: ChatStatusStep.SearchingBreakfasts },
+      {
+        type: ChatStreamEventType.MenuPending,
+        days: 1,
+        mealTypes: [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner],
+      },
+      { type: ChatStreamEventType.Status, step: ChatStatusStep.PickingLunches },
+      { type: ChatStreamEventType.Status, step: ChatStatusStep.CheckingConstraints },
+    ]);
   });
 
   it('asks to fill in the profile first, without recipes or the model', async () => {
@@ -361,10 +387,20 @@ describe('MenuPlannerService', () => {
       const wrong: MenuPlan = { ...plan, days: [{ dayIndex: 0, meals: { ...meals, lunch: 'x' } }] };
       openAiService.generateStructured.mockResolvedValueOnce(wrong).mockResolvedValueOnce(plan);
 
-      const response = await service.plan('Light day', oneDay, profile);
+      const onProgress = jest.fn();
+
+      const response = await service.plan('Light day', oneDay, profile, undefined, onProgress);
 
       expect(response).toMatchObject({ type: ChatResponseType.MenuReady });
       expect(openAiService.generateStructured).toHaveBeenCalledTimes(2);
+      expect(onProgress.mock.calls.map(([event]) => event.step ?? event.type)).toEqual([
+        ChatStatusStep.SearchingBreakfasts,
+        ChatStreamEventType.MenuPending,
+        ChatStatusStep.PickingLunches,
+        ChatStatusStep.CheckingConstraints,
+        ChatStatusStep.PickingLunches,
+        ChatStatusStep.CheckingConstraints,
+      ]);
       expect(sentMessages(1).slice(1)).toEqual([
         { role: 'assistant', content: JSON.stringify(wrong) },
         {

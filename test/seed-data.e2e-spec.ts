@@ -7,12 +7,26 @@ import { verifyData } from '../scripts/lib/verify-data';
 import { createTestApp, resetDatabase, TestApp } from './test-app';
 import { SortOrder } from '../src/common/constants';
 
+/**
+ * Recipes the database is seeded with: the first ones of the seed, the control recipes among them.
+ * Seeding all of them twice is too slow for a test; every recipe of the seed is checked by
+ * `validateSeedData` in `seed-data.spec.ts`.
+ */
+const SEEDED_RECIPES = 24;
+
 /** `npm run db:seed` on an empty database, twice, then `data:verify` and the API. */
 describe('seed data (e2e)', () => {
   let ctx: TestApp;
   const http = () => request(ctx.app.getHttpServer());
-  const data = loadSeedData();
+  const seedData = loadSeedData();
+  const data = { ...seedData, recipes: seedData.recipes.slice(0, SEEDED_RECIPES) };
   const controls = loadControlRecipes();
+
+  it('seeds every control recipe', () => {
+    const seeded = new Set(data.recipes.map(({ slug }) => slug));
+
+    expect(controls.filter(({ slug }) => !seeded.has(slug))).toEqual([]);
+  });
 
   const seed = async () => ({
     foods: await upsertSeedFoods(ctx.prisma, data.foods),

@@ -1,5 +1,10 @@
 import { UIMessageChunk } from 'ai';
-import { ChatStreamEventType, INTERNAL_ERROR_REPLY } from '../../common/constants';
+import {
+  ChatStatusStep,
+  ChatStreamEventType,
+  INTERNAL_ERROR_REPLY,
+  MealType,
+} from '../../common/constants';
 import { ChatStreamEvent } from '../../common/types';
 import { toChatStream } from './chat-stream';
 
@@ -30,6 +35,43 @@ describe('toChatStream', () => {
       { type: 'text-start', id: 'text' },
       { type: 'text-delta', id: 'text', delta: 'Day 1: ' },
       { type: 'text-delta', id: 'text', delta: 'oatmeal' },
+      { type: 'text-end', id: 'text' },
+      expect.objectContaining({ type: 'finish' }),
+    ]);
+  });
+
+  it('sends statuses and the pending menu as transient data parts around the text', async () => {
+    await expect(
+      read([
+        { type: ChatStreamEventType.Status, step: ChatStatusStep.Thinking },
+        {
+          type: ChatStreamEventType.MenuPending,
+          days: 2,
+          mealTypes: [MealType.Breakfast, MealType.Lunch],
+        },
+        { type: ChatStreamEventType.Status, step: ChatStatusStep.CheckingConstraints },
+        { type: ChatStreamEventType.TextDelta, content: 'Your menu' },
+        { type: ChatStreamEventType.Done },
+      ]),
+    ).resolves.toEqual([
+      expect.objectContaining({ type: 'start' }),
+      {
+        type: 'data-status',
+        data: { step: 'thinking', message: 'Thinking' },
+        transient: true,
+      },
+      {
+        type: 'data-menu-pending',
+        data: { days: 2, mealTypes: ['breakfast', 'lunch'] },
+        transient: true,
+      },
+      {
+        type: 'data-status',
+        data: { step: 'checking_constraints', message: 'Checking the constraints' },
+        transient: true,
+      },
+      { type: 'text-start', id: 'text' },
+      { type: 'text-delta', id: 'text', delta: 'Your menu' },
       { type: 'text-end', id: 'text' },
       expect.objectContaining({ type: 'finish' }),
     ]);
