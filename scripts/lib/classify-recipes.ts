@@ -27,7 +27,7 @@ export interface RecipeClassificationReport extends RecipeClassification {
 }
 
 /** The tags that are decided by the categories; the others (`high_protein`...) stay as given. */
-const DERIVED_TAGS = Object.keys(DIET_EXCLUDED_CATEGORIES) as DietTag[];
+export const DERIVED_TAGS = Object.keys(DIET_EXCLUDED_CATEGORIES) as DietTag[];
 
 const inEnumOrder = <T extends string>(values: Iterable<T>, order: Record<string, T>): T[] => {
   const set = new Set(values);

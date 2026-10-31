@@ -148,7 +148,7 @@ Sources, licences (USDA FDC: public domain, CC0 1.0) and the update procedure:
 | `data/seed/foods.json` | ~45 base foods, values per 100 g (rounded USDA values), committed |
 | `data/seed/usda-foods.json` | 478 USDA foods (Foundation + SR Legacy) with full macros, committed |
 | `data/seed/recipes.json` | 12 recipes using those foods (`food` = slug, or `usda_fdc:<fdc_id>`), committed |
-| `data/seed/menu-recipes.json` | 140 more recipes in the same format, committed |
+| `data/seed/menu-recipes.json` | 288 more recipes in the same format, committed |
 | `data/seed/food-categories.json` | categories of the foods the recipes use (`meat`, `dairy`, `gluten_grain`...), committed |
 | `data/seed/food-aliases.json` | ingredient name aliases (`scallion` -> `usda_fdc:170005`), not loaded |
 | `data/seed/control-recipes.json` | hand-computed nutrition of 3 seed recipes (arithmetic included), committed |
@@ -160,6 +160,9 @@ npm run data:validate        # checks data/seed without a database (ranges, refe
                              # and lists the rejected recipes with the reasons (import rules below)
 npm run data:classify        # recipe diet tags and allergens from the food categories, and where
                              # they differ from the tags of the recipe files (--all: every recipe)
+npm run data:coverage        # recipes per meal type for every derived diet (vegan, vegetarian,
+                             # pescatarian, gluten_free, dairy_free); exit 1 below 14 breakfasts,
+                             # lunches or dinners per diet (two weeks without a repeat)
 npm run db:seed              # upserts seed foods, USDA foods of usda-foods.json and recipes
 npm run data:seed-recipes    # recipes only (the foods must already exist)
 npm run data:verify          # checks the database: orphan rows per FK, duplicated source ids,
