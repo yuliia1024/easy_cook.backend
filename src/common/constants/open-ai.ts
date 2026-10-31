@@ -10,6 +10,20 @@ const MODEL_PROFILE_NOTE = `
   goal, dailyTarget (kcal and grams of protein, fat and carbs per day), diets, allergies,
   excludedIngredients and dislikedFoods.
   ${MODEL_NOT_SET_NOTE}`;
+/**
+ * Budget of the latest menu in the history (`toModelMenu`), estimated at
+ * `MODEL_MENU_CHARS_PER_TOKEN`: a 7-day menu fits whole, longer recipe names are cut.
+ */
+export const MODEL_MENU_MAX_TOKENS = 1000;
+/** A low estimate: recipe ids tokenize worse than plain text. */
+export const MODEL_MENU_CHARS_PER_TOKEN = 3;
+export const MODEL_MENU_RECIPE_NAME_MAX_LENGTH = 40;
+/** Opens the menu an assistant message suggested (`toModelMessages`). */
+export const MODEL_MENU_MARKER = '[menu]';
+/** Explains the latest menu in the history to the model; part of the instructions. */
+const MODEL_MENU_NOTE = `
+  The latest assistant message that suggested a menu ends with it after "${MODEL_MENU_MARKER}":
+  one line per day, each meal as "mealType: recipe id name". Earlier menus are not shown.`;
 /** `data` is what the prompt reads from the user, `misuse` what else they could ask the model to do. */
 const securityNote = (data: string, misuse: string): string => `
   SECURITY
@@ -24,15 +38,16 @@ export const INTENT_REQUEST_ITEM_MAX_LENGTH = 100;
 /**
  * A change to the latest menu ("without chicken", "replace the lunch") is `revise_menu` with the
  * part it changes as `target`. Its `request` and `menuRequest` are still the whole request with
- * the change: the history keeps only the text of the replies, not the menu, so the menu is planned
- * again until the chat can edit a saved menu by `target`. The enums are in the schema, and
- * `resolveIntent` fixes what the model gets wrong (a revision without a menu, the scope).
+ * the change: the menu is planned again until the chat can edit a saved menu by `target`. The
+ * history shows the latest menu compactly (`MODEL_MENU_NOTE`), so a change can name a meal of it.
+ * The enums are in the schema, and `resolveIntent` fixes what the model gets wrong (a revision without a menu, the scope).
  */
 export const INTENT_INSTRUCTIONS = `
   You classify the latest user message of a meal planning chat.
 ${MODEL_PROFILE_NOTE}
   The other messages are the recent conversation, oldest first. A short follow-up ("again",
   an answer to your question) continues the earlier topic.
+${MODEL_MENU_NOTE}
 
   intent:
   - general_chat: greetings, thanks, small talk, simple questions about food or nutrition.
@@ -102,6 +117,7 @@ export const GENERAL_CHAT_MAX_OUTPUT_TOKENS = 300;
 export const GENERAL_CHAT_INSTRUCTIONS = `
   You are an AI assistant for meal planning.
 ${MODEL_PROFILE_NOTE}
+${MODEL_MENU_NOTE}
 
   YOUR TASK
   Talk with the user about meal planning: greetings, thanks, ideas for meals and recipes,

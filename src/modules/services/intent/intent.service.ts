@@ -16,7 +16,7 @@ import {
   OpenAiService,
 } from '../../../providers/open-ai/open-ai.service';
 import { ConversationService } from '../conversation/conversation.service';
-import { toModelMessages } from '../conversation/model-messages';
+import { ModelHistoryMessage, toModelMessages } from '../conversation/model-messages';
 import { profileMessage } from '../profile-context/model-profile';
 
 /** One classifier call: the input, the schema of the answer and the options. */
@@ -32,7 +32,7 @@ export interface IntentModelCall {
  */
 export function intentModelCall(
   profile: ProfileContext | null,
-  messages: Pick<Message, 'role' | 'content'>[],
+  messages: ModelHistoryMessage[],
   abortSignal?: AbortSignal,
 ): IntentModelCall {
   return {
