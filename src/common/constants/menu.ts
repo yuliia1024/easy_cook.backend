@@ -80,3 +80,19 @@ export const MENU_PLAN_MEAL_KCAL_SHARE: Record<(typeof MENU_PLAN_MEAL_TYPES)[num
   [MealType.Snack]: 0.1,
   [MealType.Dinner]: 0.3,
 };
+
+/**
+ * A good menu serves a recipe for the same meal on at most this many days and never on two days
+ * in a row, so a meal of a menu of `days` days needs this many recipes (`menuMinRecipes`). With
+ * fewer, the chat explains which rule leaves too few instead of planning.
+ */
+export const MENU_RECIPE_MAX_DAYS = 2;
+/** The ways out of too few recipes the chat offers at most, besides fewer days. */
+export const MENU_SHORTAGE_MAX_OPTIONS = 3;
+
+/** A rule of the menu that can leave too few recipes. */
+export enum MenuConstraintKind {
+  Diet = 'diet',
+  ExcludedIngredient = 'excluded_ingredient',
+  Allergy = 'allergy',
+}

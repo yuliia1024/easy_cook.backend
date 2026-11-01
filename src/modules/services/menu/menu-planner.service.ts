@@ -7,7 +7,6 @@ import {
   MENU_PLAN_CANDIDATE_POOL_FACTOR,
   MENU_PLAN_MAX_ATTEMPTS,
   MENU_PLAN_MEAL_TYPES,
-  NO_MENU_RECIPES_REPLY,
   NO_PROFILE_REPLY,
 } from '../../../common/constants';
 import { MenuRequest } from '../../../common/contracts';
@@ -25,6 +24,7 @@ import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repositor
 import { NutritionService, RecipeNutrition } from '../nutrition/nutrition.service';
 import { RecipeService } from '../recipe/recipe.service';
 import { MenuComposer } from './menu-composer';
+import { findMenuShortage, hasEnoughRecipes, menuShortageReply } from './menu-shortage';
 import { requestRules } from './menu-request';
 import { fitServings, snapshotRecipe } from './menu-composition';
 import {
@@ -64,6 +64,9 @@ const roundToUnits = ({ kcal, proteinG, fatG, carbsG }: MacroValues): MacroValue
  * The rules are the profile's with the constraints of the request added (`requestRules`), so
  * "without chicken" from the chat is enforced like an excluded ingredient of the profile.
  * Without a profile there are no rules to follow, so it asks to fill one in instead.
+ * Before the model is called, every meal must have enough allowed recipes for the days
+ * (`menuMinRecipes`); otherwise the reply names the rules that leave too few and offers to drop
+ * one or plan fewer days (`findMenuShortage`), instead of a menu that repeats the same recipes.
  * `onProgress` hears the steps: looking for recipes, the shape of the menu once there are
  * candidates for every meal (`menu_pending`), then picking and checking on every attempt.
  */
@@ -94,6 +97,20 @@ export class MenuPlannerService {
     status(ChatStatusStep.SearchingBreakfasts);
     const context = { ...profile, rules: requestRules(profile.rules, request) };
     const recipes = await this.recipeService.getAllowed(context.rules);
+    if (!hasEnoughRecipes(recipes, days)) {
+      const shortage = findMenuShortage(
+        await this.recipeService.getAll(),
+        context.rules,
+        profile.rules,
+        days,
+      );
+      if (shortage) {
+        this.logger.log(
+          `Too few recipes for a ${days}-day menu: ${JSON.stringify(shortage.shortMeals)}`,
+        );
+        return { type: ChatResponseType.Text, message: menuShortageReply(shortage) };
+      }
+    }
     const options = new Map<string, RecipeOption>(
       recipes.map((recipe) => [
         recipe.id,
@@ -103,9 +120,6 @@ export class MenuPlannerService {
     const { candidates, recipeIds } = labelCandidates(
       this.candidates([...options.values()], days, request.caloriesKcal),
     );
-    if (MENU_PLAN_MEAL_TYPES.some((mealType) => candidates[mealType].length === 0)) {
-      return { type: ChatResponseType.Text, message: NO_MENU_RECIPES_REPLY };
-    }
     onProgress({
       type: ChatStreamEventType.MenuPending,
       days,

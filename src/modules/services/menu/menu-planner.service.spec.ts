@@ -13,7 +13,6 @@ import {
   MENU_PLAN_MAX_ATTEMPTS,
   menuPlanMaxOutputTokens,
   menuPlanRetryMessage,
-  NO_MENU_RECIPES_REPLY,
   NO_PROFILE_REPLY,
 } from '../../../common/constants';
 import { MenuPlan, MenuPlanSchema, MenuRequest } from '../../../common/contracts';
@@ -154,7 +153,16 @@ describe('MenuPlannerService', () => {
 
   it('plans every requested day, in the order of dayIndex, and composes them all', async () => {
     const lunch2 = buildRecipe({ id: 'rec-l2', name: 'Rice soup', mealType: MealType.Lunch });
-    recipeService.getAllowed.mockResolvedValue([breakfast, lunch, lunch2, dinner, snack]);
+    recipeService.getAllowed.mockResolvedValue([
+      breakfast,
+      buildRecipe({ id: 'rec-b2', mealType: MealType.Breakfast }),
+      lunch,
+      lunch2,
+      snack,
+      buildRecipe({ id: 'rec-s2', mealType: MealType.Snack }),
+      dinner,
+      buildRecipe({ id: 'rec-d2', mealType: MealType.Dinner }),
+    ]);
     openAiService.generateStructured.mockResolvedValue({
       message: 'Three days.',
       days: [
@@ -333,27 +341,65 @@ describe('MenuPlannerService', () => {
     });
   });
 
-  it.each([
-    [
-      'a lunch',
-      [breakfast, buildRecipe({ id: 'b2', mealType: MealType.Breakfast }), dinner, snack],
-    ],
-    ['a snack', [breakfast, lunch, dinner]],
-  ])('answers without the model when there is no allowed recipe for %s', async (_case, recipes) => {
-    recipeService.getAllowed.mockResolvedValue(recipes);
-
-    const onProgress = jest.fn();
-
-    await expect(
-      service.plan('Light day', oneDay, profile, undefined, onProgress),
-    ).resolves.toEqual({
-      type: ChatResponseType.Text,
-      message: NO_MENU_RECIPES_REPLY,
+  describe('too few recipes', () => {
+    const meat = buildRecipe({
+      id: 'rec-meat',
+      name: 'Chicken bowl',
+      mealType: MealType.Lunch,
+      dietType: [],
     });
-    expect(openAiService.generateStructured).not.toHaveBeenCalled();
-    expect(onProgress.mock.calls).toEqual([
-      [{ type: ChatStreamEventType.Status, step: ChatStatusStep.SearchingBreakfasts }],
-    ]);
+
+    it('answers without the model, naming the rule that leaves too few and how to relax it', async () => {
+      recipeService.getAllowed.mockResolvedValue([breakfast, dinner, snack]);
+      recipeService.getAll.mockResolvedValue([breakfast, meat, dinner, snack]);
+      const onProgress = jest.fn();
+
+      await expect(
+        service.plan('Light day', oneDay, profile, undefined, onProgress),
+      ).resolves.toEqual({
+        type: ChatResponseType.Text,
+        message:
+          "I can't plan a good 1-day menu: the vegan diet leaves no lunches, and it needs at least 1 recipe for every meal. To get a good menu, you could remove the vegan diet from your profile. Which would you like?",
+      });
+      expect(openAiService.generateStructured).not.toHaveBeenCalled();
+      expect(onProgress.mock.calls).toEqual([
+        [{ type: ChatStreamEventType.Status, step: ChatStatusStep.SearchingBreakfasts }],
+      ]);
+    });
+
+    it('checks the rules of the request too and offers fewer days', async () => {
+      const request: MenuRequest = { ...oneDay, days: 3, excludedIngredients: ['rice'] };
+      recipeService.getAllowed.mockResolvedValue([]);
+      recipeService.getAll.mockResolvedValue([breakfast, lunch, dinner, snack]);
+
+      const response = await service.plan('Three days', request, profile);
+
+      expect(recipeService.getAllowed).toHaveBeenCalledWith({
+        ...profile.rules,
+        excludedIngredients: ['rice'],
+      });
+      expect(response).toEqual({
+        type: ChatResponseType.Text,
+        message:
+          "I can't plan a good 3-day menu: excluding rice leaves no breakfasts, no lunches, no snacks and no dinners, and it needs at least 2 different recipes for every meal. Please try a different request.",
+      });
+    });
+
+    it('goes on to the model when every recipe shows no shortage (a recipe was added meanwhile)', async () => {
+      recipeService.getAllowed.mockResolvedValue([breakfast, lunch, dinner]);
+      recipeService.getAll.mockResolvedValue([breakfast, lunch, dinner, snack]);
+
+      await expect(service.plan('Light day', oneDay, profile)).rejects.toBeInstanceOf(
+        AssistantInvalidOutputException,
+      );
+      expect(openAiService.generateStructured).toHaveBeenCalled();
+    });
+
+    it('does not load every recipe when the allowed ones are enough', async () => {
+      await service.plan('Light day', oneDay, profile);
+
+      expect(recipeService.getAll).not.toHaveBeenCalled();
+    });
   });
 
   it('reports the steps and the shape of the menu as it plans', async () => {

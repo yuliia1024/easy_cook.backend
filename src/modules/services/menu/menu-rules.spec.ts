@@ -6,7 +6,13 @@ import {
   MenuIssueSeverity,
 } from '../../../common/constants';
 import { NutritionGoalSnapshot, PreferenceRules, ResolvedDay } from '../../../common/types';
-import { buildRecipeSnapshot, RECIPE_ID } from '../../../test/fixtures';
+import {
+  buildFoodItem,
+  buildIngredient,
+  buildRecipe,
+  buildRecipeSnapshot,
+  RECIPE_ID,
+} from '../../../test/fixtures';
 import { composeMenu } from './menu-composition';
 import {
   allergenMatching,
@@ -14,6 +20,7 @@ import {
   dietTagsSatisfying,
   errorsOf,
   isForbiddenFood,
+  isRecipeAllowed,
   mentions,
   recipeIssues,
   validateMenu,
@@ -51,6 +58,35 @@ describe('menu rules', () => {
       ['Rice (1+1)', '1+1', true],
     ])('%s / %s → %s', (text, value, expected) => {
       expect(mentions(text, value)).toBe(expected);
+    });
+  });
+
+  describe('isRecipeAllowed', () => {
+    const satay = buildRecipe({
+      dietType: ['vegan'],
+      allergens: [Allergen.Peanut],
+      ingredients: [
+        buildIngredient({ foodItem: buildFoodItem({ name: 'Rice, boiled', nameEn: null }) }),
+        buildIngredient({
+          isOptional: true,
+          foodItem: buildFoodItem({ name: 'Арахіс', nameEn: 'Peanuts' }),
+        }),
+      ],
+    });
+
+    it('allows a recipe of every diet, a vegan one for a vegetarian, whatever it dislikes', () => {
+      expect(isRecipeAllowed(satay, NO_RULES)).toBe(true);
+      expect(
+        isRecipeAllowed(satay, { ...NO_RULES, diets: ['vegetarian'], dislikedFoods: ['rice'] }),
+      ).toBe(true);
+    });
+
+    it.each([
+      ['a diet it does not satisfy', { diets: ['vegetarian', 'low_carb'] }],
+      ['an excluded ingredient, optional too', { excludedIngredients: ['peanut'] }],
+      ['an allergy by its allergens', { allergies: ['peanuts'] }],
+    ])('rules it out for %s', (_case, rules) => {
+      expect(isRecipeAllowed(satay, { ...NO_RULES, ...rules })).toBe(false);
     });
   });
 

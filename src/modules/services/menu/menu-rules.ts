@@ -61,6 +61,30 @@ export function allergenMatching(
   return allergensOf(allergy).find((allergen) => recipeAllergens.includes(allergen));
 }
 
+/** What `isRecipeAllowed` reads of a recipe. */
+export interface AllowableRecipe {
+  dietType: string[];
+  allergens: string[];
+  ingredients: Array<{ foodItem: { name: string; nameEn: string | null } }>;
+}
+
+/**
+ * Whether the recipe satisfies every diet (a vegan one fits a vegetarian) and has no allergen or
+ * excluded ingredient (optional ones too), by food name and by its allergens. Disliked foods
+ * only warn, so they never rule a recipe out. Pure.
+ */
+export function isRecipeAllowed(recipe: AllowableRecipe, rules: PreferenceRules): boolean {
+  return (
+    rules.diets.every((diet) =>
+      dietTagsSatisfying(diet).some((tag) => recipe.dietType.includes(tag)),
+    ) &&
+    !recipe.ingredients.some(({ foodItem }) =>
+      isForbiddenFood(foodItem.name, foodItem.nameEn, rules),
+    ) &&
+    !rules.allergies.some((allergy) => allergenMatching(recipe.allergens, allergy))
+  );
+}
+
 /** The first ingredient (optional ones too) whose name mentions the value. */
 function ingredientMentioning(recipe: RecipeSnapshot, value: string): string | undefined {
   return recipe.ingredients.find(
