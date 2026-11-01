@@ -1,5 +1,15 @@
-import { INTENT_REQUEST_ITEM_MAX_LENGTH, INTENT_REQUEST_MAX_LENGTH } from '../constants';
-import { IntentResultSchema, MenuPlanSchema, MenuRequestSchema, MenuTargetSchema } from './chat';
+import {
+  INTENT_REQUEST_ITEM_MAX_LENGTH,
+  INTENT_REQUEST_MAX_LENGTH,
+  SUMMARY_MAX_LENGTH,
+} from '../constants';
+import {
+  IntentResultSchema,
+  MenuPlanSchema,
+  MenuRequestSchema,
+  MenuTargetSchema,
+  SummaryResultSchema,
+} from './chat';
 
 describe('chat contracts', () => {
   const menuRequest = {
@@ -126,6 +136,20 @@ describe('chat contracts', () => {
       { message: 'x', days: [{ dayIndex: 0, meals: { breakfast: 'b1', lunch: 'l1' } }] },
     ])('rejects %j', (plan) => {
       expect(MenuPlanSchema.safeParse(plan).success).toBe(false);
+    });
+  });
+
+  describe('SummaryResultSchema', () => {
+    it('accepts a summary that is not empty and within the limit', () => {
+      expect(SummaryResultSchema.safeParse({ summary: 'Rejected the salmon.' }).success).toBe(true);
+      expect(
+        SummaryResultSchema.safeParse({ summary: 'a'.repeat(SUMMARY_MAX_LENGTH) }).success,
+      ).toBe(true);
+      expect(
+        SummaryResultSchema.safeParse({ summary: 'a'.repeat(SUMMARY_MAX_LENGTH + 1) }).success,
+      ).toBe(false);
+      expect(SummaryResultSchema.safeParse({ summary: '' }).success).toBe(false);
+      expect(SummaryResultSchema.safeParse({}).success).toBe(false);
     });
   });
 });

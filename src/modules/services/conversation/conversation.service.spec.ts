@@ -1,4 +1,9 @@
-import { MealType, MessageRole } from '../../../common/constants';
+import {
+  MealType,
+  MESSAGE_MAX_LENGTH,
+  MessageRole,
+  MODEL_HISTORY_MAX_TOKENS,
+} from '../../../common/constants';
 import { ConversationNotFoundException, MenuNotFoundException } from '../../../common/exceptions';
 import { createMock } from '../../../test/create-mock';
 import {
@@ -16,6 +21,7 @@ import { ConversationRepository } from '../../data-access/conversation/conversat
 import { MenuService } from '../menu/menu.service';
 import { UserProfileService } from '../user-profile/user-profile.service';
 import { ConversationService } from './conversation.service';
+import { historyTokens } from './model-messages';
 
 describe('ConversationService', () => {
   let repository: jest.Mocked<ConversationRepository>;
@@ -64,6 +70,7 @@ describe('ConversationService', () => {
       expect(repository.create).toHaveBeenCalledWith(PROFILE_ID, {
         title: 'New conversation',
         menuId: null,
+        menuRequest: null,
       });
       expect(menuService.getById).not.toHaveBeenCalled();
     });
@@ -75,7 +82,51 @@ describe('ConversationService', () => {
       expect(repository.create).toHaveBeenCalledWith(PROFILE_ID, {
         title: 'About week 1',
         menuId: MENU_ID,
+        menuRequest: null,
       });
+    });
+
+    it('carries the menu request and the menu of another conversation, never its messages', async () => {
+      const menuRequest = {
+        days: 3,
+        mealTypes: [],
+        caloriesKcal: null,
+        diets: [],
+        excludedIngredients: ['mushrooms'],
+        dislikedFoods: [],
+      };
+      repository.findById.mockResolvedValue(
+        buildConversation({
+          menuId: MENU_ID,
+          menuRequest,
+          summary: 'Rejected the salmon.',
+          messages: [buildMessage()],
+        }),
+      );
+
+      await service.create({ fromConversationId: CONVERSATION_ID });
+      await service.create({ fromConversationId: CONVERSATION_ID, menuId: null });
+
+      expect(repository.findById).toHaveBeenCalledWith(PROFILE_ID, CONVERSATION_ID);
+      expect(repository.create).toHaveBeenNthCalledWith(1, PROFILE_ID, {
+        title: 'New conversation',
+        menuId: MENU_ID,
+        menuRequest,
+      });
+      expect(repository.create).toHaveBeenNthCalledWith(2, PROFILE_ID, {
+        title: 'New conversation',
+        menuId: null,
+        menuRequest,
+      });
+    });
+
+    it('fails for an unknown conversation to start from', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(service.create({ fromConversationId: CONVERSATION_ID })).rejects.toBeInstanceOf(
+        ConversationNotFoundException,
+      );
+      expect(repository.create).not.toHaveBeenCalled();
     });
 
     it('fails for an unknown menu', async () => {
@@ -162,12 +213,44 @@ describe('ConversationService', () => {
     });
   });
 
-  it('returns the latest messages', async () => {
-    const messages = [buildMessage()];
-    repository.findRecentMessages.mockResolvedValue(messages);
+  describe('history', () => {
+    const summarized = buildConversation({
+      summary: 'Rejected the salmon.',
+      lastSummarizedMessageId: 'last-summarized',
+    });
 
-    await expect(service.getRecentMessages(CONVERSATION_ID, 10)).resolves.toBe(messages);
-    expect(repository.findRecentMessages).toHaveBeenCalledWith(CONVERSATION_ID, 10);
+    it('returns the messages after the summary', async () => {
+      const messages = [buildMessage()];
+      repository.findMessagesAfter.mockResolvedValue(messages);
+
+      await expect(service.getUnsummarizedMessages(summarized)).resolves.toBe(messages);
+      expect(repository.findMessagesAfter).toHaveBeenCalledWith(CONVERSATION_ID, 'last-summarized');
+    });
+
+    it('gives the model the summary and the latest messages within the budget', async () => {
+      const long = 'a'.repeat(MESSAGE_MAX_LENGTH);
+      const messages = Array.from({ length: 60 }, (_, index) =>
+        buildMessage({ id: `message-${index}`, content: long }),
+      );
+      repository.findMessagesAfter.mockResolvedValue(messages);
+
+      const history = await service.getModelHistory(summarized);
+
+      expect(history.summary).toBe('Rejected the salmon.');
+      expect(history.messages.length).toBeLessThan(messages.length);
+      expect(history.messages.at(-1)).toBe(messages.at(-1));
+      expect(historyTokens(history.messages)).toBeLessThanOrEqual(MODEL_HISTORY_MAX_TOKENS);
+    });
+
+    it('saves the summary', async () => {
+      await service.saveSummary(CONVERSATION_ID, 'Rejected the salmon.', 'message-id');
+
+      expect(repository.updateSummary).toHaveBeenCalledWith(
+        CONVERSATION_ID,
+        'Rejected the salmon.',
+        'message-id',
+      );
+    });
   });
 
   describe('menu request', () => {

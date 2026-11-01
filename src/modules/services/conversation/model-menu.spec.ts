@@ -1,7 +1,8 @@
 import { MealType, MENU_MAX_DAYS, MODEL_MENU_MAX_TOKENS } from '../../../common/constants';
 import { DayComposition, MealComposition, MenuComposition } from '../../../common/types';
 import { MENU_VERSION_ID, RECIPE_ID } from '../../../test/fixtures';
-import { estimateTokens, toModelMenu } from './model-menu';
+import { estimateTokens } from '../../../common/utils';
+import { toModelMenu } from './model-menu';
 
 const macros = { kcal: 400, proteinG: 20, fatG: 10, carbsG: 50 };
 const RECIPE_ID_2 = '22222222-2222-4222-8222-222222222222';
@@ -114,12 +115,5 @@ describe('toModelMenu', () => {
     expect(lines.at(-1)).toBe(`(${5 - shown} more days not shown)`);
     expect(shown).toBeGreaterThan(0);
     expect(estimateTokens(text)).toBeLessThanOrEqual(maxTokens);
-  });
-});
-
-describe('estimateTokens', () => {
-  it('rounds up', () => {
-    expect(estimateTokens('')).toBe(0);
-    expect(estimateTokens('abcd')).toBe(2);
   });
 });

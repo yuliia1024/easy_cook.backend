@@ -1,15 +1,10 @@
 import {
-  MODEL_MENU_CHARS_PER_TOKEN,
   MODEL_MENU_MARKER,
   MODEL_MENU_MAX_TOKENS,
   MODEL_MENU_RECIPE_NAME_MAX_LENGTH,
 } from '../../../common/constants';
 import { DayComposition, MealComposition, MenuComposition } from '../../../common/types';
-
-/** A low estimate of the tokens of `text`, enough to keep a prompt part within a budget. */
-export function estimateTokens(text: string): number {
-  return Math.ceil(text.length / MODEL_MENU_CHARS_PER_TOKEN);
-}
+import { estimateTokens } from '../../../common/utils';
 
 function recipeName(name: string): string {
   return name.length > MODEL_MENU_RECIPE_NAME_MAX_LENGTH

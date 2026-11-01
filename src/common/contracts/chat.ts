@@ -6,6 +6,7 @@ import {
   INTENT_REQUEST_MAX_LENGTH,
   MealType,
   MenuTargetScope,
+  SUMMARY_MAX_LENGTH,
 } from '../constants';
 
 const requestItem = z.string().min(1).max(INTENT_REQUEST_ITEM_MAX_LENGTH);
@@ -75,3 +76,10 @@ export const MenuPlanSchema = z.object({
 });
 
 export type MenuPlan = z.infer<typeof MenuPlanSchema>;
+
+/** What `ConversationSummaryService` accepts from the model: the summary of the older messages. */
+export const SummaryResultSchema = z.object({
+  summary: z.string().min(1).max(SUMMARY_MAX_LENGTH),
+});
+
+export type SummaryResult = z.infer<typeof SummaryResultSchema>;

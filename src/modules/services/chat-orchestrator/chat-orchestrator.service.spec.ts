@@ -4,6 +4,8 @@ import {
   CalculationMode,
   ChatErrorCode,
   CLARIFICATION_REPLY,
+  CONVERSATION_LIMIT_REPLY,
+  CONVERSATION_MAX_USER_MESSAGES,
   ChatResponseType,
   ChatStatusStep,
   DietTag,
@@ -14,6 +16,7 @@ import {
   Intent,
   MealType,
   MENU_PLAN_FAILED_REPLY,
+  MessageRole,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
 import { MenuRequest } from '../../../common/contracts';
@@ -26,12 +29,14 @@ import {
 import { createMock } from '../../../test/create-mock';
 import {
   buildConversation,
+  buildMessage,
   CONVERSATION_ID,
   MENU_ID,
   MENU_VERSION_ID,
   PROFILE_ID,
 } from '../../../test/fixtures';
-import { ConversationService } from '../conversation/conversation.service';
+import { ConversationService, ModelHistory } from '../conversation/conversation.service';
+import { ConversationSummaryService } from '../conversation-summary/conversation-summary.service';
 import { GeneralChatService } from '../general-chat/general-chat.service';
 import { IntentService } from '../intent/intent.service';
 import { MenuPlannerService } from '../menu/menu-planner.service';
@@ -47,8 +52,10 @@ describe('ChatOrchestratorService', () => {
   let menuPlannerService: jest.Mocked<MenuPlannerService>;
   let menuService: jest.Mocked<MenuService>;
   let profileContextService: jest.Mocked<ProfileContextService>;
+  let conversationSummaryService: jest.Mocked<ConversationSummaryService>;
   let service: ChatOrchestratorService;
   const conversation = buildConversation();
+  const history: ModelHistory = { summary: 'Rejected the salmon.', messages: [buildMessage()] };
   const profile: ProfileContext = {
     profileId: PROFILE_ID,
     goal: Goal.Maintain,
@@ -88,6 +95,7 @@ describe('ChatOrchestratorService', () => {
     conversationService = createMock<ConversationService>();
     conversationService.getById.mockResolvedValue(conversation);
     conversationService.getMenuRequest.mockReturnValue(null);
+    conversationService.getModelHistory.mockResolvedValue(history);
     intentService = createMock<IntentService>();
     generalChatService = createMock<GeneralChatService>();
     generalChatService.reply.mockImplementation(async function* () {
@@ -105,6 +113,8 @@ describe('ChatOrchestratorService', () => {
     menuService.saveGenerated.mockResolvedValue({ menuId: MENU_ID, versionId: MENU_VERSION_ID });
     profileContextService = createMock<ProfileContextService>();
     profileContextService.find.mockResolvedValue(profile);
+    conversationSummaryService = createMock<ConversationSummaryService>();
+    conversationSummaryService.summarizeIfNeeded.mockResolvedValue(false);
     service = new ChatOrchestratorService(
       conversationService,
       intentService,
@@ -112,6 +122,7 @@ describe('ChatOrchestratorService', () => {
       menuPlannerService,
       menuService,
       profileContextService,
+      conversationSummaryService,
     );
   });
 
@@ -140,8 +151,14 @@ describe('ChatOrchestratorService', () => {
       { type: ChatStreamEventType.Done },
     ]);
     expect(profileContextService.find).toHaveBeenCalledTimes(1);
-    expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, profile, abort.signal);
-    expect(generalChatService.reply).toHaveBeenCalledWith(CONVERSATION_ID, profile, abort.signal);
+    expect(conversationService.getModelHistory).toHaveBeenCalledWith(conversation);
+    expect(intentService.classify).toHaveBeenCalledWith(history, null, profile, abort.signal);
+    expect(generalChatService.reply).toHaveBeenCalledWith(
+      history,
+      EMPTY_MENU_REQUEST,
+      profile,
+      abort.signal,
+    );
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       'A reply',
@@ -213,7 +230,7 @@ describe('ChatOrchestratorService', () => {
       { type: ChatStreamEventType.Done },
     ]);
     expect(profileContextService.find).toHaveBeenCalledTimes(1);
-    expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, profile, abort.signal);
+    expect(intentService.classify).toHaveBeenCalledWith(history, null, profile, abort.signal);
     expect(menuPlannerService.plan).toHaveBeenCalledWith(
       'Plan a one-day menu.',
       EMPTY_MENU_REQUEST,
@@ -272,7 +289,7 @@ describe('ChatOrchestratorService', () => {
 
     await send('Plan a day');
 
-    expect(intentService.classify).toHaveBeenCalledWith(CONVERSATION_ID, null, undefined);
+    expect(intentService.classify).toHaveBeenCalledWith(history, null, null, undefined);
     expect(menuPlannerService.plan).toHaveBeenCalledWith(
       'Plan a day',
       EMPTY_MENU_REQUEST,
@@ -635,5 +652,93 @@ describe('ChatOrchestratorService', () => {
       { type: ChatStreamEventType.TextDelta, content: 'A ' },
     ]);
     expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
+  });
+
+  describe('context budget', () => {
+    it('gives the classifier the menu request the chat gathered', async () => {
+      const stored = { ...EMPTY_MENU_REQUEST, days: 3, excludedIngredients: ['mushrooms'] };
+      conversationService.getMenuRequest.mockReturnValue(stored);
+      classifyAs(Intent.GeneralChat);
+
+      await send();
+
+      expect(intentService.classify).toHaveBeenCalledWith(history, stored, profile, undefined);
+      expect(generalChatService.reply).toHaveBeenCalledWith(history, stored, profile, undefined);
+    });
+
+    it('brings the summary up to date after a saved reply', async () => {
+      classifyAs(Intent.GeneralChat);
+      const abort = new AbortController();
+
+      await send('Hi', abort.signal);
+
+      expect(conversationSummaryService.summarizeIfNeeded).toHaveBeenCalledWith(
+        conversation,
+        abort.signal,
+      );
+      expect(conversationService.addAssistantMessage.mock.invocationCallOrder[0]).toBeLessThan(
+        conversationSummaryService.summarizeIfNeeded.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('keeps the reply when the summary fails', async () => {
+      classifyAs(Intent.GeneralChat);
+      conversationSummaryService.summarizeIfNeeded.mockRejectedValue(
+        new AssistantUnavailableException(true),
+      );
+
+      await expect(send()).resolves.toEqual([
+        { type: ChatStreamEventType.TextDelta, content: 'A ' },
+        { type: ChatStreamEventType.TextDelta, content: 'reply' },
+        { type: ChatStreamEventType.Done },
+      ]);
+      expect(conversationService.addAssistantMessage).toHaveBeenCalled();
+    });
+
+    it('does not summarize after a failed reply', async () => {
+      intentService.classify.mockRejectedValue(new AssistantUnavailableException(true));
+
+      await send();
+
+      expect(conversationSummaryService.summarizeIfNeeded).not.toHaveBeenCalled();
+    });
+
+    /** `users` messages of the user, each with a reply. */
+    const chatOf = (users: number): ReturnType<typeof buildConversation> =>
+      buildConversation({
+        messages: Array.from({ length: users }, () => [
+          buildMessage(),
+          buildMessage({ role: MessageRole.Assistant }),
+        ]).flat(),
+      });
+
+    it('answers a full conversation with an error, saving nothing and calling no model', async () => {
+      conversationService.getById.mockResolvedValue(chatOf(CONVERSATION_MAX_USER_MESSAGES));
+
+      await expect(sendAll()).resolves.toEqual([
+        {
+          type: ChatStreamEventType.Error,
+          code: ChatErrorCode.ConversationLimitReached,
+          message: CONVERSATION_LIMIT_REPLY,
+          retryable: false,
+        },
+        { type: ChatStreamEventType.Done },
+      ]);
+      expect(conversationService.addUserMessage).not.toHaveBeenCalled();
+      expect(intentService.classify).not.toHaveBeenCalled();
+    });
+
+    it('counts only the messages of the user', async () => {
+      const conversation = chatOf(CONVERSATION_MAX_USER_MESSAGES - 1);
+      conversation.messages.push(
+        ...Array.from({ length: 10 }, () => buildMessage({ role: MessageRole.Assistant })),
+      );
+      conversationService.getById.mockResolvedValue(conversation);
+      classifyAs(Intent.GeneralChat);
+
+      await send();
+
+      expect(conversationService.addUserMessage).toHaveBeenCalled();
+    });
   });
 });

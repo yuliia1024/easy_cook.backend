@@ -1,13 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import {
   Intent,
-  INTENT_HISTORY_LIMIT,
   INTENT_INSTRUCTIONS,
   INTENT_MAX_OUTPUT_TOKENS,
   MenuTargetScope,
   MessageRole,
 } from '../../../common/constants';
-import { IntentResult, IntentResultSchema, MenuTarget } from '../../../common/contracts';
+import {
+  IntentResult,
+  IntentResultSchema,
+  MenuRequest,
+  MenuTarget,
+} from '../../../common/contracts';
 import { ProfileContext } from '../../../common/types';
 import { Message } from '../../../generated/prisma/client';
 import {
@@ -15,9 +19,13 @@ import {
   ModelInput,
   OpenAiService,
 } from '../../../providers/open-ai/open-ai.service';
-import { ConversationService } from '../conversation/conversation.service';
+import { ModelHistory } from '../conversation/conversation.service';
 import { ModelHistoryMessage, toModelMessages } from '../conversation/model-messages';
-import { profileMessage } from '../profile-context/model-profile';
+import {
+  EMPTY_CONVERSATION_CONTEXT,
+  ModelConversationContext,
+  profileMessage,
+} from '../profile-context/model-profile';
 
 /** One classifier call: the input, the schema of the answer and the options. */
 export interface IntentModelCall {
@@ -27,16 +35,18 @@ export interface IntentModelCall {
 }
 
 /**
- * The classifier call for the profile and the recent messages, oldest first. The intent evals
- * (`evals/suites/intent`) run the same call, so they measure the prompt the chat uses.
+ * The classifier call for the profile, the conversation context (the menu request and the summary)
+ * and the recent messages, oldest first. The intent evals (`evals/suites/intent`) run the same
+ * call, so they measure the prompt the chat uses.
  */
 export function intentModelCall(
   profile: ProfileContext | null,
   messages: ModelHistoryMessage[],
   abortSignal?: AbortSignal,
+  context: ModelConversationContext = EMPTY_CONVERSATION_CONTEXT,
 ): IntentModelCall {
   return {
-    input: [profileMessage(profile), ...toModelMessages(messages)],
+    input: [profileMessage(profile, context), ...toModelMessages(messages)],
     schema: IntentResultSchema,
     options: {
       instructions: INTENT_INSTRUCTIONS,
@@ -81,29 +91,27 @@ export function resolveIntent(
 
 /**
  * Classifies the latest message of a conversation by the model, which reads the recent history
- * to understand follow-ups and the profile to tell whether a request is enough, and restates a menu
- * request on its own. No recipes. Output
+ * (and the summary of the older one) to understand follow-ups, the menu request gathered so far
+ * and the profile to tell whether a request is enough, and restates a menu request on its own. No recipes. Output
  * that does not match the schema (`AssistantInvalidOutputException`) and API failures are
  * rethrown; the chat answers both with a neutral error, never with a guessed intent.
  */
 @Injectable()
 export class IntentService {
-  constructor(
-    private readonly conversationService: ConversationService,
-    private readonly openAiService: OpenAiService,
-  ) {}
+  constructor(private readonly openAiService: OpenAiService) {}
 
+  /** `history` ends with the message to classify. */
   public async classify(
-    conversationId: string,
+    history: ModelHistory,
+    menuRequest: MenuRequest | null,
     profile: ProfileContext | null,
     abortSignal?: AbortSignal,
   ): Promise<IntentResult> {
-    const messages = await this.conversationService.getRecentMessages(
-      conversationId,
-      INTENT_HISTORY_LIMIT,
-    );
-    const { input, schema, options } = intentModelCall(profile, messages, abortSignal);
+    const { input, schema, options } = intentModelCall(profile, history.messages, abortSignal, {
+      menuRequest,
+      summary: history.summary,
+    });
     const result = await this.openAiService.generateStructured(input, schema, options);
-    return resolveIntent(result, messages);
+    return resolveIntent(result, history.messages);
   }
 }

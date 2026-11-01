@@ -69,4 +69,27 @@ describe('profileMessage', () => {
         '"allergies":"not set","excludedIngredients":"not set","dislikedFoods":"not set"}}',
     });
   });
+
+  it('adds the menu request and the summary of the conversation when there are any', () => {
+    const menuRequest = {
+      days: 3,
+      mealTypes: [],
+      caloriesKcal: null,
+      diets: [],
+      excludedIngredients: ['mushrooms'],
+      dislikedFoods: [],
+    };
+    const content = JSON.parse(
+      profileMessage(null, { menuRequest, summary: 'Rejected the salmon.' }).content as string,
+    );
+
+    expect(content).toEqual({
+      profile: toModelProfile(null),
+      menuRequest,
+      earlierConversation: 'Rejected the salmon.',
+    });
+    expect(
+      JSON.parse(profileMessage(null, { menuRequest: null, summary: null }).content as string),
+    ).toEqual({ profile: toModelProfile(null) });
+  });
 });

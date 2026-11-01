@@ -2,17 +2,22 @@
 // database itself: it proposes actions, the backend validates and runs them.
 
 model Conversation {
-  id          String   @id @default(uuid()) @db.Uuid
-  profileId   String   @map("profile_id") @db.Uuid
-  title       String   @db.VarChar(255)
+  id                      String   @id @default(uuid()) @db.Uuid
+  profileId               String   @map("profile_id") @db.Uuid
+  title                   String   @db.VarChar(255)
   /// The menu the conversation is about; the last one the assistant built or the user picked.
-  menuId      String?  @map("menu_id") @db.Uuid
+  menuId                  String?  @map("menu_id") @db.Uuid
   /// The menu request gathered from the chat so far (`MenuRequest`): every detail the user gave,
   /// the latest message winning. Null until the first menu request. A detail the user takes back
   /// stays here: an empty value never clears one (`resolveMenuRequest`).
-  menuRequest Json?    @map("menu_request")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  menuRequest             Json?    @map("menu_request")
+  /// The older messages folded into one text by the model (`ConversationSummaryService`): only
+  /// what the menu request does not keep. Null until the history first outgrows its budget.
+  summary                 String?
+  /// The last message `summary` covers; the model reads the messages after it as they are.
+  lastSummarizedMessageId String?  @map("last_summarized_message_id") @db.Uuid
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   profile  UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
   menu     Menu?       @relation(fields: [menuId], references: [id], onDelete: SetNull)
