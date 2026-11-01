@@ -4,6 +4,7 @@ import { MENU_VERSION_ID, RECIPE_ID } from '../../../test/fixtures';
 import { estimateTokens, toModelMenu } from './model-menu';
 
 const macros = { kcal: 400, proteinG: 20, fatG: 10, carbsG: 50 };
+const MACROS_TEXT = '400 kcal, protein 20 g, fat 10 g, carbs 50 g';
 const RECIPE_ID_2 = '22222222-2222-4222-8222-222222222222';
 
 function meal(overrides: Partial<MealComposition> = {}): MealComposition {
@@ -51,9 +52,9 @@ describe('toModelMenu', () => {
       ),
     ).toBe(
       [
-        `[menu] version ${MENU_VERSION_ID}`,
-        `Day 1 | breakfast: ${RECIPE_ID} Oatmeal | lunch: ${RECIPE_ID_2} Rice with vegetables`,
-        `Day 2 | lunch: ${RECIPE_ID} Rice with vegetables`,
+        `[menu] version ${MENU_VERSION_ID}, daily average ${MACROS_TEXT}`,
+        `Day 1 (${MACROS_TEXT}) | breakfast: ${RECIPE_ID} Oatmeal | lunch: ${RECIPE_ID_2} Rice with vegetables`,
+        `Day 2 (${MACROS_TEXT}) | lunch: ${RECIPE_ID} Rice with vegetables`,
       ].join('\n'),
     );
   });
@@ -72,9 +73,9 @@ describe('toModelMenu', () => {
       ),
     ).toBe(
       [
-        '[menu]',
-        `Day 1 | breakfast: ${RECIPE_ID} Eggs | dinner: ${RECIPE_ID} Soup`,
-        `Day 2 | lunch: ${RECIPE_ID} Rice with vegetables`,
+        `[menu], daily average ${MACROS_TEXT}`,
+        `Day 1 (${MACROS_TEXT}) | breakfast: ${RECIPE_ID} Eggs | dinner: ${RECIPE_ID} Soup`,
+        `Day 2 (${MACROS_TEXT}) | lunch: ${RECIPE_ID} Rice with vegetables`,
       ].join('\n'),
     );
   });
@@ -82,7 +83,30 @@ describe('toModelMenu', () => {
   it('marks a deleted recipe and cuts a long name', () => {
     expect(
       toModelMenu(menu([day(0, [meal({ recipeId: null, recipeName: 'x'.repeat(60) })])]), null),
-    ).toBe(`[menu]\nDay 1 | lunch: deleted ${'x'.repeat(39)}…`);
+    ).toBe(
+      `[menu], daily average ${MACROS_TEXT}\nDay 1 (${MACROS_TEXT}) | lunch: deleted ${'x'.repeat(39)}…`,
+    );
+  });
+
+  it('rounds the totals and marks those with unknown values as a lower bound', () => {
+    const exact = { kcal: 1849.6, proteinG: 90.4, fatG: 60.5, carbsG: 199.49 };
+    const text = toModelMenu(
+      {
+        days: [
+          { ...day(0), totals: exact, complete: false },
+          { ...day(1), totals: exact },
+        ],
+        dailyAverage: exact,
+        issues: [],
+      },
+      null,
+    );
+
+    expect(text?.split('\n')).toEqual([
+      '[menu], daily average at least 1850 kcal, protein 90 g, fat 61 g, carbs 199 g',
+      `Day 1 (at least 1850 kcal, protein 90 g, fat 61 g, carbs 199 g) | lunch: ${RECIPE_ID} Rice with vegetables`,
+      `Day 2 (1850 kcal, protein 90 g, fat 61 g, carbs 199 g) | lunch: ${RECIPE_ID} Rice with vegetables`,
+    ]);
   });
 
   it('returns null for a menu without days', () => {

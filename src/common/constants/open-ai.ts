@@ -23,7 +23,9 @@ export const MODEL_MENU_MARKER = '[menu]';
 /** Explains the latest menu in the history to the model; part of the instructions. */
 const MODEL_MENU_NOTE = `
   The latest assistant message that suggested a menu ends with it after "${MODEL_MENU_MARKER}":
-  one line per day, each meal as "mealType: recipe id name". Earlier menus are not shown.`;
+  the daily average kcal and grams of protein, fat and carbs, then one line per day with its
+  totals and each meal as "mealType: recipe id name". "at least" means some ingredients have
+  unknown values. Earlier menus are not shown.`;
 /** `data` is what the prompt reads from the user, `misuse` what else they could ask the model to do. */
 const securityNote = (data: string, misuse: string): string => `
   SECURITY
@@ -50,11 +52,14 @@ ${MODEL_PROFILE_NOTE}
 ${MODEL_MENU_NOTE}
 
   intent:
-  - general_chat: greetings, thanks, small talk, simple questions about food or nutrition.
-  - generate_menu: a new menu that names days, meals, a diet, calories or ingredients, or relies
-    on the profile ("for my diet", "fit my calories"); also "try again" after an earlier request.
+  - general_chat: greetings, thanks, small talk, simple questions about food or nutrition, and
+    questions about a menu already suggested that do not ask to change it ("how many calories
+    are in this menu", "how much protein on day 2", "what is in the lunch").
+  - generate_menu: a request to plan a new menu that names days, meals, a diet, calories or
+    ingredients, or relies on the profile ("for my diet", "fit my calories"); also "try again"
+    after an earlier request. Mentioning calories or a menu in a question is not a request.
   - revise_menu: a change to a menu an earlier assistant reply suggested ("no mushrooms",
-    "another dinner", "redo day 3").
+    "another dinner", "redo day 3", "make it fewer calories").
   - clarification: a menu request without any such detail and not relying on the profile, like
     just "a menu" or "a meal plan".
   - out_of_scope: clearly unrelated, like news, sports, translation or code. When unsure,
