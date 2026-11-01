@@ -141,6 +141,16 @@ describe('RecipeService', () => {
     });
   });
 
+  describe('getAll', () => {
+    it('returns every recipe, unfiltered', async () => {
+      const recipes = [buildRecipe()];
+      recipeRepository.findAll.mockResolvedValue(recipes);
+
+      await expect(service.getAll()).resolves.toBe(recipes);
+      expect(recipeRepository.findAll).toHaveBeenCalledWith({});
+    });
+  });
+
   describe('getById', () => {
     it('returns the recipe with ingredients', async () => {
       await expect(service.getById(RECIPE_ID)).resolves.toBe(recipe);

@@ -1,5 +1,10 @@
 import request, { Test } from 'supertest';
-import { MealType, MenuGeneratedBy, MenuIssueSeverity } from '../src/common/constants';
+import {
+  MealType,
+  MENU_PLAN_MEAL_TYPES,
+  MenuGeneratedBy,
+  MenuIssueSeverity,
+} from '../src/common/constants';
 import { ResolvedDay } from '../src/common/types';
 import { Prisma } from '../src/generated/prisma/client';
 import { RECIPE_INCLUDE } from '../src/modules/data-access/recipe/recipe.repository';
@@ -221,4 +226,27 @@ export async function seedVersion(
     },
   });
   return version.id;
+}
+
+/**
+ * `count` more vegan recipes of every meal of a planned day (`Rice breakfast 1`, ...), each a
+ * serving of boiled rice from `createMenuWorld`, so a menu of several days has enough of them.
+ */
+export async function addRiceRecipes(ctx: TestApp, count: number): Promise<void> {
+  const rice = await ctx.prisma.foodItem.findFirstOrThrow({ where: { name: 'Rice, boiled' } });
+  for (const mealType of MENU_PLAN_MEAL_TYPES) {
+    for (let i = 1; i <= count; i++) {
+      await request(ctx.app.getHttpServer())
+        .post('/api/recipes')
+        .send({
+          name: `Rice ${mealType} ${i}`,
+          instructions: 'Cook.',
+          mealType,
+          dietType: ['vegan'],
+          servings: 1,
+          ingredients: [{ foodItemId: rice.id, quantityG: 200 }],
+        })
+        .expect(201);
+    }
+  }
 }

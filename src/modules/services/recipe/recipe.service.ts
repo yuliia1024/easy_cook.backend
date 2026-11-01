@@ -24,7 +24,7 @@ import {
   RecipeWithIngredients,
 } from '../../data-access/recipe/recipe.repository';
 import { FoodItemService } from '../food-item/food-item.service';
-import { allergenMatching, dietTagsSatisfying, isForbiddenFood } from '../menu/menu-rules';
+import { dietTagsSatisfying, isRecipeAllowed } from '../menu/menu-rules';
 import { NutritionIngredientInput, NutritionService } from '../nutrition/nutrition.service';
 
 export type NewRecipeData = Omit<RecipeData, 'source'> & { source?: string };
@@ -46,19 +46,19 @@ export class RecipeService {
   }
 
   /**
-   * Recipes that satisfy every diet of the profile (a vegan one fits a vegetarian) and no allergen or excluded ingredient (optional
-   * ones too), by food name and by the allergens of the recipe. Disliked foods stay: they only warn.
+   * Recipes the rules allow (`isRecipeAllowed`): the diets are searched in the database, the
+   * allergies and excluded ingredients checked here. Disliked foods stay: they only warn.
    */
   public async getAllowed(rules: PreferenceRules): Promise<RecipeWithIngredients[]> {
     const recipes = await this.recipeRepository.findAll({
       dietTypeGroups: rules.diets.map((diet) => [...dietTagsSatisfying(diet)]),
     });
-    return recipes.filter(
-      (recipe) =>
-        !recipe.ingredients.some(({ foodItem }) =>
-          isForbiddenFood(foodItem.name, foodItem.nameEn, rules),
-        ) && !rules.allergies.some((allergy) => allergenMatching(recipe.allergens, allergy)),
-    );
+    return recipes.filter((recipe) => isRecipeAllowed(recipe, rules));
+  }
+
+  /** Every recipe, whatever the rules: to tell which rule leaves too few of them. */
+  public async getAll(): Promise<RecipeWithIngredients[]> {
+    return this.recipeRepository.findAll({});
   }
 
   public async getById(id: string): Promise<RecipeWithIngredients> {

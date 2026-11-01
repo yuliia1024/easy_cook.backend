@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { addLentilStew, createMenuWorld, seedMenu } from './menu-fixtures';
+import { addLentilStew, addRiceRecipes, createMenuWorld, seedMenu } from './menu-fixtures';
 import { readStream } from './menu-stream';
 import { EMPTY_MENU_REQUEST } from '../src/modules/services/menu/menu-request';
 import {
@@ -17,7 +17,6 @@ import {
   MealType,
   MENU_PLAN_FAILED_REPLY,
   MENU_PLAN_MAX_ATTEMPTS,
-  NO_MENU_RECIPES_REPLY,
   OUT_OF_SCOPE_REPLY,
 } from '../src/common/constants';
 import { estimateTokens } from '../src/common/utils';
@@ -360,6 +359,7 @@ describe('/api/conversations (e2e)', () => {
 
   it('plans every day of the request and composes them all', async () => {
     await createMenuWorld(ctx);
+    await addRiceRecipes(ctx, 2);
     const id = await start();
     fakeOpenAiState.intent = Intent.GenerateMenu;
     fakeOpenAiState.menuRequest = { ...menuRequest, days: 5 };
@@ -382,6 +382,7 @@ describe('/api/conversations (e2e)', () => {
 
   it('retries a plan with fewer days than requested and fails after the last attempt', async () => {
     await createMenuWorld(ctx);
+    await addRiceRecipes(ctx, 1);
     const id = await start();
     fakeOpenAiState.intent = Intent.GenerateMenu;
     fakeOpenAiState.menuRequest = { ...menuRequest, days: 3 };
@@ -596,7 +597,7 @@ describe('/api/conversations (e2e)', () => {
     expect(await savedMessages(id)).toEqual([{ role: 'user', content: 'Plan my day' }]);
   });
 
-  it('answers without the model when a meal has no allowed recipe', async () => {
+  it('answers without the model when a meal has no allowed recipe, naming the diet', async () => {
     await createMenuWorld(ctx);
     await http()
       .post('/api/preferences')
@@ -607,8 +608,53 @@ describe('/api/conversations (e2e)', () => {
 
     const { chunks } = await say(id, 'Plan my day');
 
-    expect(textOf(chunks)).toBe(NO_MENU_RECIPES_REPLY);
+    expect(textOf(chunks)).toBe(
+      "I can't plan a good 1-day menu: the vegan diet leaves no lunches, and it needs at least 1 recipe for every meal. To get a good menu, you could remove the vegan diet from your profile. Which would you like?",
+    );
     expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(false);
+  });
+
+  it('explains which rules leave too few recipes for the days before asking the model, then plans the fewer days offered', async () => {
+    await createMenuWorld(ctx);
+    await addRiceRecipes(ctx, 3);
+    await addLentilStew(ctx);
+    await http()
+      .post('/api/preferences')
+      .send({ preferenceType: 'diet', value: 'vegan' })
+      .expect(201);
+    const id = await start();
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuRequest = { ...menuRequest, days: 7, excludedIngredients: ['lentils'] };
+
+    const { chunks } = await say(id, 'A vegan week without lentils');
+
+    const reply =
+      "I can't plan a good 7-day menu: the vegan diet and excluding lentils leave 3 lunches, and it needs at least 4 different recipes for every meal. To get a good menu, you could remove the vegan diet from your profile, allow lentils or plan 6 days instead of 7. Which would you like?";
+    expect(textOf(chunks)).toBe(reply);
+    expect(chunks.some((chunk) => chunk.type === 'data-menu-pending')).toBe(false);
+    expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(false);
+    // Only the classification: the planner never reached the model.
+    expect(fakeOpenAiState.structuredInputs).toHaveLength(1);
+    expect(await savedMessages(id)).toEqual([
+      { role: 'user', content: 'A vegan week without lentils' },
+      { role: 'assistant', content: reply },
+    ]);
+
+    fakeOpenAiState.menuRequest = { ...menuRequest, days: 6 };
+    fakeOpenAiState.menuPlan = fakeMenuPlan(
+      'Here are your days.',
+      { breakfast: 'Oatmeal', lunch: 'Rice lunch 1', dinner: 'Rice bowl' },
+      6,
+    );
+    const next = await say(id, 'Plan 6 days then');
+
+    const menu = next.chunks.find((chunk) => chunk.type === 'data-menu')?.data.composition;
+    expect(menu.days).toHaveLength(6);
+    expect(await storedMenuRequest(id)).toEqual({
+      ...menuRequest,
+      days: 6,
+      excludedIngredients: ['lentils'],
+    });
   });
 
   it('plans vegan recipes for a vegetarian', async () => {
@@ -681,6 +727,7 @@ describe('/api/conversations (e2e)', () => {
 
   it('keeps the answer to a clarification in the conversation for later requests', async () => {
     await createMenuWorld(ctx);
+    await addRiceRecipes(ctx, 1);
     await addLentilStew(ctx);
     const id = await start();
     fakeOpenAiState.intent = Intent.Clarification;
@@ -871,6 +918,7 @@ describe('/api/conversations (e2e)', () => {
 
     it('keeps the history within the budget, summarizes the older messages and does not lose the days and constraints', async () => {
       await createMenuWorld(ctx);
+      await addRiceRecipes(ctx, 1);
       const id = await start();
       await seedChat(id, 40);
 
