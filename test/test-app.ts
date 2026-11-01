@@ -6,7 +6,12 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap';
 import { Intent } from '../src/common/constants';
-import { IntentResultSchema, MenuPlan, MenuRequest } from '../src/common/contracts';
+import {
+  IntentResultSchema,
+  MenuPlan,
+  MenuRequest,
+  SummaryResultSchema,
+} from '../src/common/contracts';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
@@ -17,12 +22,14 @@ import { PrismaService } from '../src/providers/prisma/prisma.service';
 
 /** Text the fake OpenAI streams instead of calling the API. */
 export const FAKE_OPEN_AI_DELTAS = ['Day 1: ', 'oatmeal'];
+export const FAKE_SUMMARY = 'The user rejected the salmon soup.';
 
 /**
  * What the fake model answers. `intent` is the classification: an intent, `'unavailable'` to fail
  * like a broken API or `'invalid'` like output that does not match the schema; it fails the menu
  * plan the same way; `request` is the menu request it restates and `menuRequest` its fields. `menuPlan` is the answer to any
- * other structured call, made from the candidates the planner sent (`fakeMenuPlan`). `structuredInputs` records what each structured call was given. Set them in
+ * other structured call, made from the candidates the planner sent (`fakeMenuPlan`); `summary` is
+ * the summary of the older messages. `structuredInputs` records what each structured call was given. Set them in
  * a test; `resetFakeOpenAi()` restores `general_chat` and no plan.
  */
 export const fakeOpenAiState: {
@@ -30,6 +37,7 @@ export const fakeOpenAiState: {
   request: string | null;
   menuRequest: MenuRequest | null;
   menuPlan: FakeMenuPlan | null;
+  summary: string;
   streamTextCalls: number;
   structuredInputs: unknown[];
 } = {
@@ -37,6 +45,7 @@ export const fakeOpenAiState: {
   request: null,
   menuRequest: null,
   menuPlan: null,
+  summary: FAKE_SUMMARY,
   streamTextCalls: 0,
   structuredInputs: [],
 };
@@ -76,6 +85,7 @@ export function resetFakeOpenAi(): void {
   fakeOpenAiState.request = null;
   fakeOpenAiState.menuRequest = null;
   fakeOpenAiState.menuPlan = null;
+  fakeOpenAiState.summary = FAKE_SUMMARY;
   fakeOpenAiState.streamTextCalls = 0;
   fakeOpenAiState.structuredInputs = [];
 }
@@ -87,6 +97,9 @@ const fakeOpenAi: Pick<OpenAiService, 'streamText' | 'generateStructured'> = {
   },
   async generateStructured<T>(input: unknown, schema: unknown): Promise<T> {
     fakeOpenAiState.structuredInputs.push(input);
+    if (schema === SummaryResultSchema) {
+      return { summary: fakeOpenAiState.summary } as T;
+    }
     if (fakeOpenAiState.intent === 'unavailable') {
       throw new AssistantUnavailableException(true);
     }

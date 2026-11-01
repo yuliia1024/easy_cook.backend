@@ -22,6 +22,16 @@ describe('conversation DTOs', () => {
     expect(await errorsOf(CreateConversationDto, {})).toEqual([]);
     expect(await errorsOf(CreateConversationDto, { title: 'Week', menuId: MENU_ID })).toEqual([]);
     expect(await errorsOf(UpdateConversationDto, { menuId: null })).toEqual([]);
+    expect(await errorsOf(CreateConversationDto, { fromConversationId: CONVERSATION_ID })).toEqual(
+      [],
+    );
+  });
+
+  it('starts a conversation from another one only by its id', async () => {
+    expect(await errorsOf(CreateConversationDto, { fromConversationId: 'chat' })).toEqual([
+      'fromConversationId',
+    ]);
+    expect(await errorsOf(CreateConversationDto, { fromConversationId: null })).toEqual([]);
   });
 
   it.each([

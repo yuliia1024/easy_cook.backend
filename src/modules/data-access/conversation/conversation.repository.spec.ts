@@ -48,20 +48,25 @@ describe('ConversationRepository', () => {
     });
   });
 
-  it('returns the latest messages oldest first', async () => {
-    const newer = buildMessage({ id: 'b', content: 'newer' });
-    const older = buildMessage({ id: 'a', content: 'older' });
-    prisma.message.findMany.mockResolvedValue([newer, older]);
+  it('returns every message oldest first, or only those after the given one', async () => {
+    const messages = [buildMessage()];
+    prisma.message.findMany.mockResolvedValue(messages);
+    const orderBy = [{ createdAt: SortOrder.Asc }, { id: SortOrder.Asc }];
 
-    await expect(repository.findRecentMessages(CONVERSATION_ID, 2)).resolves.toEqual([
-      older,
-      newer,
-    ]);
-    expect(prisma.message.findMany).toHaveBeenCalledWith({
+    await expect(repository.findMessagesAfter(CONVERSATION_ID, null)).resolves.toBe(messages);
+    await repository.findMessagesAfter(CONVERSATION_ID, 'last-summarized');
+
+    expect(prisma.message.findMany).toHaveBeenNthCalledWith(1, {
       where: { conversationId: CONVERSATION_ID },
       include: MESSAGE_INCLUDE,
-      orderBy: [{ createdAt: SortOrder.Desc }, { id: SortOrder.Desc }],
-      take: 2,
+      orderBy,
+    });
+    expect(prisma.message.findMany).toHaveBeenNthCalledWith(2, {
+      where: { conversationId: CONVERSATION_ID },
+      include: MESSAGE_INCLUDE,
+      orderBy,
+      cursor: { id: 'last-summarized' },
+      skip: 1,
     });
   });
 
@@ -77,6 +82,32 @@ describe('ConversationRepository', () => {
       where: { id: CONVERSATION_ID },
       data: { menuId: null },
       include: CONVERSATION_INCLUDE,
+    });
+  });
+
+  it('creates a conversation with the menu request of another one', async () => {
+    const menuRequest = {
+      days: 3,
+      mealTypes: [],
+      caloriesKcal: null,
+      diets: [],
+      excludedIngredients: ['mushrooms'],
+      dislikedFoods: [],
+    };
+    await repository.create(PROFILE_ID, { title: 'Chat', menuRequest });
+
+    expect(prisma.conversation.create).toHaveBeenCalledWith({
+      data: { profileId: PROFILE_ID, title: 'Chat', menuRequest },
+      include: CONVERSATION_INCLUDE,
+    });
+  });
+
+  it('saves the summary with the last message it covers', async () => {
+    await repository.updateSummary(CONVERSATION_ID, 'Rejected the salmon.', 'message-id');
+
+    expect(prisma.conversation.update).toHaveBeenCalledWith({
+      where: { id: CONVERSATION_ID },
+      data: { summary: 'Rejected the salmon.', lastSummarizedMessageId: 'message-id' },
     });
   });
 

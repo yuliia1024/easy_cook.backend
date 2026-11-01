@@ -34,10 +34,15 @@ describe('ConversationControllerService', () => {
     const expected = expect.objectContaining({ id: CONVERSATION_ID, messages: [] });
 
     await expect(service.getById(CONVERSATION_ID)).resolves.toEqual(expected);
-    await expect(service.create({ menuId: MENU_ID })).resolves.toEqual(expected);
+    await expect(
+      service.create({ menuId: MENU_ID, fromConversationId: CONVERSATION_ID }),
+    ).resolves.toEqual(expected);
     await expect(service.update(CONVERSATION_ID, { title: 'T' })).resolves.toEqual(expected);
 
-    expect(conversationService.create).toHaveBeenCalledWith({ menuId: MENU_ID });
+    expect(conversationService.create).toHaveBeenCalledWith({
+      menuId: MENU_ID,
+      fromConversationId: CONVERSATION_ID,
+    });
     expect(conversationService.update).toHaveBeenCalledWith(CONVERSATION_ID, { title: 'T' });
   });
 

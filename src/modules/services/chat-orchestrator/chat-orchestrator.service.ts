@@ -4,6 +4,8 @@ import {
   ASSISTANT_INVALID_OUTPUT_REPLY,
   ASSISTANT_UNAVAILABLE_REPLY,
   CLARIFICATION_REPLY,
+  CONVERSATION_LIMIT_REPLY,
+  CONVERSATION_MAX_USER_MESSAGES,
   ChatErrorCode,
   ChatResponseType,
   ChatStatusStep,
@@ -12,6 +14,7 @@ import {
   INTERNAL_ERROR_REPLY,
   Intent,
   MENU_PLAN_FAILED_REPLY,
+  MessageRole,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
 import { IntentResult } from '../../../common/contracts';
@@ -23,6 +26,7 @@ import {
 import { withProgress } from '../../../common/utils';
 import { Conversation } from '../../../generated/prisma/client';
 import { ConversationService } from '../conversation/conversation.service';
+import { ConversationSummaryService } from '../conversation-summary/conversation-summary.service';
 import { GeneralChatService } from '../general-chat/general-chat.service';
 import { IntentService } from '../intent/intent.service';
 import { MenuPlannerService } from '../menu/menu-planner.service';
@@ -47,6 +51,10 @@ import { ProfileContextService } from '../profile-context/profile-context.servic
  * menu linked to it, the next ones as new versions of that menu. The reply is saved once it is
  * complete, with the menu version it created; a failure becomes an `error` event and is not saved.
  * Progress (`status`, `menu_pending`) is streamed as it happens and is never part of the reply.
+ * The model reads the latest messages within a token budget, the summary of the older ones and the
+ * gathered menu request; the summary is brought up to date after a saved reply. A conversation that
+ * holds `CONVERSATION_MAX_USER_MESSAGES` messages of the user takes no more: the message is not saved and the reply is an error
+ * that asks for a new conversation, which can start with the menu request of this one.
  */
 @Injectable()
 export class ChatOrchestratorService {
@@ -59,6 +67,7 @@ export class ChatOrchestratorService {
     private readonly menuPlannerService: MenuPlannerService,
     private readonly menuService: MenuService,
     private readonly profileContextService: ProfileContextService,
+    private readonly conversationSummaryService: ConversationSummaryService,
   ) {}
 
   /**
@@ -71,8 +80,22 @@ export class ChatOrchestratorService {
     abortSignal?: AbortSignal,
   ): Promise<AsyncGenerator<ChatStreamEvent>> {
     const conversation = await this.conversationService.getById(conversationId);
+    const userMessages = conversation.messages.filter(({ role }) => role === MessageRole.User);
+    if (userMessages.length >= CONVERSATION_MAX_USER_MESSAGES) {
+      return this.limitReached();
+    }
     await this.conversationService.addUserMessage(conversation, content);
     return this.reply(conversation, content, abortSignal);
+  }
+
+  private async *limitReached(): AsyncGenerator<ChatStreamEvent> {
+    yield {
+      type: ChatStreamEventType.Error,
+      code: ChatErrorCode.ConversationLimitReached,
+      message: CONVERSATION_LIMIT_REPLY,
+      retryable: false,
+    };
+    yield { type: ChatStreamEventType.Done };
   }
 
   private async *reply(
@@ -102,6 +125,7 @@ export class ChatOrchestratorService {
       }
       if (!failed && reply) {
         await this.conversationService.addAssistantMessage(conversationId, reply, menu?.versionId);
+        await this.summarize(conversation, abortSignal);
       }
     } catch (error) {
       if (abortSignal?.aborted) {
@@ -117,16 +141,22 @@ export class ChatOrchestratorService {
     content: string,
     abortSignal: AbortSignal | undefined,
   ): AsyncGenerator<ChatStreamEvent> {
-    const conversationId = conversation.id;
     yield { type: ChatStreamEventType.Status, step: ChatStatusStep.Thinking };
     const profile = await this.profileContextService.find();
-    const classified = await this.intentService.classify(conversationId, profile, abortSignal);
+    const history = await this.conversationService.getModelHistory(conversation);
+    const classified = await this.intentService.classify(
+      history,
+      this.conversationService.getMenuRequest(conversation),
+      profile,
+      abortSignal,
+    );
     const menuRequest = await this.mergeMenuRequest(conversation, profile, classified);
     const { intent, request } = resolveClarification(classified, menuRequest);
     switch (intent) {
       case Intent.GeneralChat:
         for await (const delta of this.generalChatService.reply(
-          conversationId,
+          history,
+          menuRequest.chat,
           profile,
           abortSignal,
         )) {
@@ -232,6 +262,25 @@ export class ChatOrchestratorService {
       await this.conversationService.saveMenuRequest(conversation.id, resolved.chat);
     }
     return resolved;
+  }
+
+  /**
+   * Brings the summary up to date for the next message. The reply is already saved and sent, so a
+   * failure only leaves the summary behind: it is logged, and the next reply tries again.
+   */
+  private async summarize(
+    conversation: Conversation,
+    abortSignal: AbortSignal | undefined,
+  ): Promise<void> {
+    try {
+      await this.conversationSummaryService.summarizeIfNeeded(conversation, abortSignal);
+    } catch (error) {
+      if (!abortSignal?.aborted) {
+        this.logger.warn(
+          `Conversation summary failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
   }
 
   /** A response without a menu; `planMenu` saves and sends a menu itself. */

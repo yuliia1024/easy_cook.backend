@@ -3,6 +3,7 @@ import {
   AUTO_TITLE_LENGTH,
   DEFAULT_CONVERSATION_TITLE,
   MessageRole,
+  MODEL_HISTORY_MAX_TOKENS,
 } from '../../../common/constants';
 import { ConversationNotFoundException } from '../../../common/exceptions';
 import { MenuRequest, MenuRequestSchema } from '../../../common/contracts';
@@ -15,10 +16,26 @@ import {
 import { Conversation } from '../../../generated/prisma/client';
 import { MenuService } from '../menu/menu.service';
 import { UserProfileService } from '../user-profile/user-profile.service';
+import { fitHistory } from './model-messages';
 
 export interface ConversationInput {
   title?: string | null;
   menuId?: string | null;
+}
+
+export interface NewConversationInput extends ConversationInput {
+  /** The conversation to carry the menu request and, unless `menuId` is given, the menu from. */
+  fromConversationId?: string | null;
+}
+
+/** The part of a conversation that tells which of its messages the summary covers. */
+export type SummaryState = Pick<Conversation, 'id' | 'summary' | 'lastSummarizedMessageId'>;
+
+/** What the model reads of a conversation: the summary of the older messages and the latest ones. */
+export interface ModelHistory {
+  summary: string | null;
+  /** Oldest first, within `MODEL_HISTORY_MAX_TOKENS`. */
+  messages: MessageWithMenu[];
 }
 
 /**
@@ -47,15 +64,22 @@ export class ConversationService {
     return conversation;
   }
 
-  /** 404 for a menu of another profile or an unknown one. */
-  public async create(input: ConversationInput): Promise<ConversationWithMessages> {
+  /**
+   * A conversation started from another one (`fromConversationId`, such as one that is full) gets
+   * its menu request and its menu, never its messages. 404 for a menu or a conversation of another
+   * profile or an unknown one.
+   */
+  public async create(input: NewConversationInput): Promise<ConversationWithMessages> {
     const profile = await this.userProfileService.getCurrent();
+    const source = input.fromConversationId ? await this.getById(input.fromConversationId) : null;
+    const menuId = input.menuId !== undefined ? input.menuId : (source?.menuId ?? null);
     if (input.menuId) {
       await this.menuService.getById(input.menuId);
     }
     return this.conversationRepository.create(profile.id, {
       title: input.title ?? DEFAULT_CONVERSATION_TITLE,
-      menuId: input.menuId ?? null,
+      menuId,
+      menuRequest: source && this.getMenuRequest(source),
     });
   }
 
@@ -115,12 +139,36 @@ export class ConversationService {
     await this.conversationRepository.updateMenuRequest(conversationId, menuRequest);
   }
 
-  /** The latest `limit` messages, oldest first. */
-  public async getRecentMessages(
+  /** The messages the summary does not cover yet, oldest first. */
+  public async getUnsummarizedMessages(conversation: SummaryState): Promise<MessageWithMenu[]> {
+    return this.conversationRepository.findMessagesAfter(
+      conversation.id,
+      conversation.lastSummarizedMessageId,
+    );
+  }
+
+  /**
+   * The summary and the latest messages after it that fit the history budget. Messages that do
+   * not fit and are not summarized yet are left out (`ConversationSummaryService` folds them in).
+   */
+  public async getModelHistory(conversation: SummaryState): Promise<ModelHistory> {
+    const messages = await this.getUnsummarizedMessages(conversation);
+    return {
+      summary: conversation.summary,
+      messages: fitHistory(messages, MODEL_HISTORY_MAX_TOKENS),
+    };
+  }
+
+  public async saveSummary(
     conversationId: string,
-    limit: number,
-  ): Promise<MessageWithMenu[]> {
-    return this.conversationRepository.findRecentMessages(conversationId, limit);
+    summary: string,
+    lastSummarizedMessageId: string,
+  ): Promise<void> {
+    await this.conversationRepository.updateSummary(
+      conversationId,
+      summary,
+      lastSummarizedMessageId,
+    );
   }
 
   private titleFrom(content: string): string {

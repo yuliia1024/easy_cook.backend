@@ -261,6 +261,8 @@ export function buildConversation(
     title: 'New conversation',
     menuId: null,
     menuRequest: null,
+    summary: null,
+    lastSummarizedMessageId: null,
     createdAt: CREATED_AT,
     updatedAt: UPDATED_AT,
   };
