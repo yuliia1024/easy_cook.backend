@@ -146,7 +146,6 @@ describe('ChatOrchestratorService', () => {
       CONVERSATION_ID,
       'A reply',
       undefined,
-      undefined,
     );
     expect(menuPlannerService.plan).not.toHaveBeenCalled();
   });
@@ -163,7 +162,6 @@ describe('ChatOrchestratorService', () => {
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       'A reply',
-      undefined,
       undefined,
     );
   });
@@ -198,7 +196,6 @@ describe('ChatOrchestratorService', () => {
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       'Your day',
-      menu,
       MENU_VERSION_ID,
     );
   });
@@ -229,7 +226,6 @@ describe('ChatOrchestratorService', () => {
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       'Your day',
-      menu,
       MENU_VERSION_ID,
     );
     expect(generalChatService.reply).not.toHaveBeenCalled();
@@ -419,7 +415,6 @@ describe('ChatOrchestratorService', () => {
       CONVERSATION_ID,
       CLARIFICATION_REPLY,
       undefined,
-      undefined,
     );
     expect(conversationService.saveMenuRequest).not.toHaveBeenCalled();
   });
@@ -555,7 +550,6 @@ describe('ChatOrchestratorService', () => {
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       message,
-      undefined,
       undefined,
     );
   });

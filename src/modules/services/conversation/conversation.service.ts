@@ -5,14 +5,14 @@ import {
   MessageRole,
 } from '../../../common/constants';
 import { ConversationNotFoundException } from '../../../common/exceptions';
-import { MenuComposition } from '../../../common/types';
 import { MenuRequest, MenuRequestSchema } from '../../../common/contracts';
 import {
   ConversationRepository,
   ConversationSummary,
   ConversationWithMessages,
+  MessageWithMenu,
 } from '../../data-access/conversation/conversation.repository';
-import { Conversation, Message } from '../../../generated/prisma/client';
+import { Conversation } from '../../../generated/prisma/client';
 import { MenuService } from '../menu/menu.service';
 import { UserProfileService } from '../user-profile/user-profile.service';
 
@@ -89,17 +89,15 @@ export class ConversationService {
     }
   }
 
-  /** `suggestedMenu` is the menu the reply suggests, saved as the draft version `menuVersionId`. */
+  /** `menuVersionId` is the draft version the reply suggests. */
   public async addAssistantMessage(
     conversationId: string,
     content: string,
-    suggestedMenu?: MenuComposition,
     menuVersionId?: string,
   ): Promise<void> {
     await this.conversationRepository.addMessage(conversationId, {
       role: MessageRole.Assistant,
       content,
-      suggestedMenu,
       menuVersionId,
     });
   }
@@ -118,7 +116,10 @@ export class ConversationService {
   }
 
   /** The latest `limit` messages, oldest first. */
-  public async getRecentMessages(conversationId: string, limit: number): Promise<Message[]> {
+  public async getRecentMessages(
+    conversationId: string,
+    limit: number,
+  ): Promise<MessageWithMenu[]> {
     return this.conversationRepository.findRecentMessages(conversationId, limit);
   }
 

@@ -247,7 +247,6 @@ export function buildMessage(overrides: Partial<MessageWithMenu> = {}): MessageW
     role: MessageRole.User,
     content: 'Plan a menu for 3 days',
     menuVersionId: null,
-    suggestedMenu: null,
     createdAt: CREATED_AT,
   };
   return { ...message, menuVersion: null, ...overrides };

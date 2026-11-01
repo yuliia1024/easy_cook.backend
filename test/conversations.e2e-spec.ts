@@ -178,11 +178,11 @@ describe('/api/conversations (e2e)', () => {
       { role: 'assistant', content: 'Here is your day.' },
     ]);
     const { body } = await http().get(`/api/conversations/${id}`).expect(200);
-    expect(body.messages[0].suggestedMenu).toBeNull();
-    expect(body.messages[1].suggestedMenu).toEqual(menu);
     const { menuId, versionId } = chunks.find((chunk) => chunk.type === 'data-menu')?.data ?? {};
     expect(body).toMatchObject({ menuId });
+    expect(body.messages[0]).toMatchObject({ menuId: null, menuVersionId: null });
     expect(body.messages[1]).toMatchObject({ menuId, menuVersionId: versionId });
+    expect(body.messages[1]).not.toHaveProperty('suggestedMenu');
 
     const saved = await http().get(`/api/menus/${menuId}`).expect(200);
     expect(saved.body).toMatchObject({ title: '1-day menu', confirmedVersionId: null });

@@ -1,7 +1,17 @@
 import { MessageRole, SortOrder } from '../../../common/constants';
-import { buildMessage, CONVERSATION_ID, MENU_ID, PROFILE_ID } from '../../../test/fixtures';
+import {
+  buildMessage,
+  CONVERSATION_ID,
+  MENU_ID,
+  MENU_VERSION_ID,
+  PROFILE_ID,
+} from '../../../test/fixtures';
 import { createPrismaMock, PrismaMock } from '../../../test/prisma-mock';
-import { CONVERSATION_INCLUDE, ConversationRepository } from './conversation.repository';
+import {
+  CONVERSATION_INCLUDE,
+  ConversationRepository,
+  MESSAGE_INCLUDE,
+} from './conversation.repository';
 
 describe('ConversationRepository', () => {
   let prisma: PrismaMock;
@@ -12,10 +22,10 @@ describe('ConversationRepository', () => {
     repository = new ConversationRepository(prisma);
   });
 
-  it('orders messages oldest first, with the menu of their version', () => {
+  it('orders messages oldest first, with the menu and the composition of their version', () => {
     expect(CONVERSATION_INCLUDE.messages).toEqual({
       orderBy: [{ createdAt: SortOrder.Asc }, { id: SortOrder.Asc }],
-      include: { menuVersion: { select: { menuId: true } } },
+      include: { menuVersion: { select: { menuId: true, compositionSnapshot: true } } },
     });
   });
 
@@ -49,6 +59,7 @@ describe('ConversationRepository', () => {
     ]);
     expect(prisma.message.findMany).toHaveBeenCalledWith({
       where: { conversationId: CONVERSATION_ID },
+      include: MESSAGE_INCLUDE,
       orderBy: [{ createdAt: SortOrder.Desc }, { id: SortOrder.Desc }],
       take: 2,
     });
@@ -87,17 +98,11 @@ describe('ConversationRepository', () => {
     });
   });
 
-  it('stores the suggested menu of a message as JSON', async () => {
-    const suggestedMenu = {
-      days: [],
-      dailyAverage: { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 },
-      issues: [],
-    };
-
+  it('saves the menu version a message suggested', async () => {
     await repository.addMessage(CONVERSATION_ID, {
       role: MessageRole.Assistant,
       content: 'Your day',
-      suggestedMenu,
+      menuVersionId: MENU_VERSION_ID,
     });
 
     expect(prisma.message.create).toHaveBeenCalledWith({
@@ -105,7 +110,7 @@ describe('ConversationRepository', () => {
         conversationId: CONVERSATION_ID,
         role: MessageRole.Assistant,
         content: 'Your day',
-        suggestedMenu,
+        menuVersionId: MENU_VERSION_ID,
       },
     });
   });
