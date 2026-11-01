@@ -124,12 +124,7 @@ export class ChatOrchestratorService {
         return;
       }
       if (!failed && reply) {
-        await this.conversationService.addAssistantMessage(
-          conversationId,
-          reply,
-          menu?.menu,
-          menu?.versionId,
-        );
+        await this.conversationService.addAssistantMessage(conversationId, reply, menu?.versionId);
         await this.summarize(conversation, abortSignal);
       }
     } catch (error) {

@@ -6,14 +6,14 @@ import {
   MODEL_HISTORY_MAX_TOKENS,
 } from '../../../common/constants';
 import { ConversationNotFoundException } from '../../../common/exceptions';
-import { MenuComposition } from '../../../common/types';
 import { MenuRequest, MenuRequestSchema } from '../../../common/contracts';
 import {
   ConversationRepository,
   ConversationSummary,
   ConversationWithMessages,
+  MessageWithMenu,
 } from '../../data-access/conversation/conversation.repository';
-import { Conversation, Message } from '../../../generated/prisma/client';
+import { Conversation } from '../../../generated/prisma/client';
 import { MenuService } from '../menu/menu.service';
 import { UserProfileService } from '../user-profile/user-profile.service';
 import { fitHistory } from './model-messages';
@@ -35,7 +35,7 @@ export type SummaryState = Pick<Conversation, 'id' | 'summary' | 'lastSummarized
 export interface ModelHistory {
   summary: string | null;
   /** Oldest first, within `MODEL_HISTORY_MAX_TOKENS`. */
-  messages: Message[];
+  messages: MessageWithMenu[];
 }
 
 /**
@@ -113,17 +113,15 @@ export class ConversationService {
     }
   }
 
-  /** `suggestedMenu` is the menu the reply suggests, saved as the draft version `menuVersionId`. */
+  /** `menuVersionId` is the draft version the reply suggests. */
   public async addAssistantMessage(
     conversationId: string,
     content: string,
-    suggestedMenu?: MenuComposition,
     menuVersionId?: string,
   ): Promise<void> {
     await this.conversationRepository.addMessage(conversationId, {
       role: MessageRole.Assistant,
       content,
-      suggestedMenu,
       menuVersionId,
     });
   }
@@ -142,7 +140,7 @@ export class ConversationService {
   }
 
   /** The messages the summary does not cover yet, oldest first. */
-  public async getUnsummarizedMessages(conversation: SummaryState): Promise<Message[]> {
+  public async getUnsummarizedMessages(conversation: SummaryState): Promise<MessageWithMenu[]> {
     return this.conversationRepository.findMessagesAfter(
       conversation.id,
       conversation.lastSummarizedMessageId,

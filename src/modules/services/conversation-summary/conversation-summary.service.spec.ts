@@ -101,7 +101,10 @@ describe('ConversationSummaryService', () => {
 describe('summaryModelInput', () => {
   it('sends the earlier summary and only the role and text of the messages as JSON', () => {
     const input = summaryModelInput(null, [
-      buildMessage({ content: 'No salmon please', suggestedMenu: { days: [] } }),
+      buildMessage({
+        content: 'No salmon please',
+        menuVersion: { menuId: 'menu', compositionSnapshot: { days: [] } },
+      }),
     ]);
 
     expect(input).toEqual([

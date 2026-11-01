@@ -196,19 +196,12 @@ describe('ConversationService', () => {
     });
   });
 
-  it('saves an assistant message with the menu it suggests and its saved version', async () => {
-    const menu = {
-      days: [],
-      dailyAverage: { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 },
-      issues: [],
-    };
-
-    await service.addAssistantMessage(CONVERSATION_ID, 'Hello', menu, MENU_VERSION_ID);
+  it('saves an assistant message with the menu version it suggests', async () => {
+    await service.addAssistantMessage(CONVERSATION_ID, 'Hello', MENU_VERSION_ID);
 
     expect(repository.addMessage).toHaveBeenCalledWith(CONVERSATION_ID, {
       role: MessageRole.Assistant,
       content: 'Hello',
-      suggestedMenu: menu,
       menuVersionId: MENU_VERSION_ID,
     });
   });

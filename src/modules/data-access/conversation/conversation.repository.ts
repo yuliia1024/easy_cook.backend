@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Message, Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
 import { SortOrder } from '../../../common/constants';
-import { MenuComposition } from '../../../common/types';
 import { MenuRequest } from '../../../common/contracts';
 
 /** Oldest first; the id only makes ties deterministic. */
@@ -11,11 +10,13 @@ const MESSAGE_ORDER = [
   { id: SortOrder.Asc },
 ] satisfies Prisma.MessageOrderByWithRelationInput[];
 
+/** A message with the menu of its version; the composition is the menu the message suggested. */
+export const MESSAGE_INCLUDE = {
+  menuVersion: { select: { menuId: true, compositionSnapshot: true } },
+} satisfies Prisma.MessageInclude;
+
 export const CONVERSATION_INCLUDE = {
-  messages: {
-    orderBy: MESSAGE_ORDER,
-    include: { menuVersion: { select: { menuId: true } } },
-  },
+  messages: { orderBy: MESSAGE_ORDER, include: MESSAGE_INCLUDE },
 } satisfies Prisma.ConversationInclude;
 
 export type ConversationWithMessages = Prisma.ConversationGetPayload<{
@@ -40,7 +41,6 @@ export interface MessageData {
   role: string;
   content: string;
   menuVersionId?: string | null;
-  suggestedMenu?: MenuComposition;
 }
 
 @Injectable()
@@ -67,9 +67,10 @@ export class ConversationRepository {
   public async findMessagesAfter(
     conversationId: string,
     afterMessageId: string | null,
-  ): Promise<Message[]> {
+  ): Promise<MessageWithMenu[]> {
     return this.prisma.message.findMany({
       where: { conversationId },
+      include: MESSAGE_INCLUDE,
       orderBy: MESSAGE_ORDER,
       ...(afterMessageId && { cursor: { id: afterMessageId }, skip: 1 }),
     });
@@ -124,11 +125,7 @@ export class ConversationRepository {
   public async addMessage(conversationId: string, data: MessageData): Promise<Message> {
     const [message] = await this.prisma.$transaction([
       this.prisma.message.create({
-        data: {
-          conversationId,
-          ...data,
-          suggestedMenu: data.suggestedMenu as unknown as Prisma.InputJsonObject | undefined,
-        },
+        data: { conversationId, ...data },
       }),
       this.prisma.conversation.update({
         where: { id: conversationId },

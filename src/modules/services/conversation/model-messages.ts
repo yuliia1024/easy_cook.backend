@@ -2,16 +2,16 @@ import { ModelMessage } from 'ai';
 import { MessageRole } from '../../../common/constants';
 import { MenuComposition } from '../../../common/types';
 import { estimateTokens } from '../../../common/utils';
-import { Message } from '../../../generated/prisma/client';
+import { MessageWithMenu } from '../../data-access/conversation/conversation.repository';
 import { toModelMenu } from './model-menu';
 
 /** A saved message as the model reads it; the evals pass only the role and the text. */
-export type ModelHistoryMessage = Pick<Message, 'role' | 'content'> &
-  Partial<Pick<Message, 'suggestedMenu' | 'menuVersionId'>>;
+export type ModelHistoryMessage = Pick<MessageWithMenu, 'role' | 'content'> &
+  Partial<Pick<MessageWithMenu, 'menuVersionId' | 'menuVersion'>>;
 
-/** A stored value without days is not a menu the model can read. */
+/** The menu of the version the message suggested; a snapshot without days is not one. */
 function suggestedMenu(message: ModelHistoryMessage): MenuComposition | null {
-  const menu = message.suggestedMenu as Partial<MenuComposition> | null | undefined;
+  const menu = message.menuVersion?.compositionSnapshot as Partial<MenuComposition> | undefined;
   return menu && Array.isArray(menu.days) ? (menu as MenuComposition) : null;
 }
 
