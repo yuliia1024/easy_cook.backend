@@ -7,6 +7,11 @@ import {
   ASSISTANT_UNAVAILABLE_REPLY,
   ChatErrorCode,
   CLARIFICATION_REPLY,
+  CONVERSATION_LIMIT_REPLY,
+  CONVERSATION_MAX_USER_MESSAGES,
+  MESSAGE_MAX_LENGTH,
+  MessageRole,
+  MODEL_HISTORY_MAX_TOKENS,
   DietTag,
   Intent,
   MealType,
@@ -15,9 +20,11 @@ import {
   NO_MENU_RECIPES_REPLY,
   OUT_OF_SCOPE_REPLY,
 } from '../src/common/constants';
+import { estimateTokens } from '../src/common/utils';
 import {
   createTestApp,
   FAKE_OPEN_AI_DELTAS,
+  FAKE_SUMMARY,
   fakeMenuPlan,
   fakeOpenAiState,
   resetDatabase,
@@ -842,5 +849,131 @@ describe('/api/conversations (e2e)', () => {
 
   it('needs a profile', async () => {
     await http().get('/api/conversations').expect(404);
+  });
+
+  describe('long conversations', () => {
+    /** An earlier chat: `count` user and assistant messages of the longest length, and its menu request. */
+    const seedChat = async (id: string, count: number): Promise<void> => {
+      const startedAt = Date.now() - 3_600_000;
+      await ctx.prisma.message.createMany({
+        data: Array.from({ length: count }, (_, index) => ({
+          conversationId: id,
+          role: index % 2 === 0 ? MessageRole.User : MessageRole.Assistant,
+          content: `${index} ${'x'.repeat(MESSAGE_MAX_LENGTH - 4)}`,
+          createdAt: new Date(startedAt + index * 1000),
+        })),
+      });
+      await ctx.prisma.conversation.update({
+        where: { id },
+        data: { menuRequest: { ...menuRequest, days: 3, excludedIngredients: ['mushrooms'] } },
+      });
+    };
+
+    it('keeps the history within the budget, summarizes the older messages and does not lose the days and constraints', async () => {
+      await createMenuWorld(ctx);
+      const id = await start();
+      await seedChat(id, 40);
+
+      await say(id, 'Thanks!');
+
+      const [classified, summarized] = fakeOpenAiState.structuredInputs as Array<
+        Array<{ role: string; content: string }>
+      >;
+      const history = classified.slice(1);
+      expect(history.at(-1)).toEqual({ role: 'user', content: 'Thanks!' });
+      expect(history.length).toBeLessThan(42);
+      expect(
+        history.reduce((sum, message) => sum + estimateTokens(message.content), 0),
+      ).toBeLessThanOrEqual(MODEL_HISTORY_MAX_TOKENS);
+      expect(JSON.parse(classified[0].content).menuRequest).toMatchObject({
+        days: 3,
+        excludedIngredients: ['mushrooms'],
+      });
+      expect(JSON.parse(summarized[0].content).earlierSummary).toBeNull();
+
+      const stored = await ctx.prisma.conversation.findUniqueOrThrow({ where: { id } });
+      expect(stored.summary).toBe(FAKE_SUMMARY);
+      expect(stored.lastSummarizedMessageId).not.toBeNull();
+
+      fakeOpenAiState.intent = Intent.GenerateMenu;
+      fakeOpenAiState.menuRequest = { ...menuRequest, mealTypes: [MealType.Breakfast] };
+      fakeOpenAiState.menuPlan = fakeMenuPlan(
+        'Here are your days.',
+        { breakfast: 'Oatmeal', lunch: 'Chicken with rice', dinner: 'Rice bowl' },
+        3,
+      );
+      fakeOpenAiState.structuredInputs = [];
+      const { chunks } = await say(id, 'A menu with breakfast');
+
+      const [reclassified, planned] = fakeOpenAiState.structuredInputs as Array<
+        Array<{ role: string; content: string }>
+      >;
+      expect(JSON.parse(reclassified[0].content)).toMatchObject({
+        earlierConversation: FAKE_SUMMARY,
+        menuRequest: { days: 3, excludedIngredients: ['mushrooms'] },
+      });
+      expect(reclassified.slice(1).map(({ content }) => content.split(' ')[0])).toEqual([
+        '38',
+        '39',
+        'Thanks!',
+        FAKE_OPEN_AI_DELTAS.join('').split(' ')[0],
+        'A',
+      ]);
+      expect(JSON.parse(planned[0].content).days).toBe(3);
+      expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(true);
+      expect(await storedMenuRequest(id)).toEqual({
+        ...menuRequest,
+        days: 3,
+        mealTypes: [MealType.Breakfast],
+        excludedIngredients: ['mushrooms'],
+      });
+    });
+
+    it('answers a full conversation with an error and starts a new one with its menu details', async () => {
+      const world = await createMenuWorld(ctx);
+      const menuId = await seedMenu(ctx, 'Week', [
+        {
+          dayIndex: 0,
+          meals: [{ mealType: 'lunch', recipeId: world.recipe.chicken, servings: 1 }],
+        },
+      ]);
+      const id = await start({ menuId });
+      await seedChat(id, 2 * CONVERSATION_MAX_USER_MESSAGES);
+
+      const { status, chunks } = await say(id, 'One more?');
+
+      expect(status).toBe(201);
+      expect(chunks.slice(-2)).toEqual([
+        expect.objectContaining({
+          type: 'data-error',
+          data: {
+            code: ChatErrorCode.ConversationLimitReached,
+            message: CONVERSATION_LIMIT_REPLY,
+            retryable: false,
+          },
+        }),
+        { type: 'error', errorText: CONVERSATION_LIMIT_REPLY },
+      ]);
+      expect(fakeOpenAiState.structuredInputs).toEqual([]);
+      expect(await ctx.prisma.message.count({ where: { conversationId: id } })).toBe(
+        2 * CONVERSATION_MAX_USER_MESSAGES,
+      );
+
+      const next = await http()
+        .post('/api/conversations')
+        .send({ fromConversationId: id })
+        .expect(201);
+      expect(next.body).toMatchObject({ menuId, messages: [] });
+      expect(await storedMenuRequest(next.body.id)).toEqual({
+        ...menuRequest,
+        days: 3,
+        excludedIngredients: ['mushrooms'],
+      });
+
+      await http()
+        .post('/api/conversations')
+        .send({ fromConversationId: '2b1e7f3a-5d47-4a8e-9f6c-1d2e3f4a5b6c' })
+        .expect(404);
+    });
   });
 });

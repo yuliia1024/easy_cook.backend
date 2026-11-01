@@ -1,5 +1,4 @@
 import {
-  INTENT_HISTORY_LIMIT,
   INTENT_INSTRUCTIONS,
   INTENT_MAX_OUTPUT_TOKENS,
   Goal,
@@ -16,12 +15,11 @@ import {
 import { ProfileContext } from '../../../common/types';
 import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { createMock } from '../../../test/create-mock';
-import { buildMessage, CONVERSATION_ID, PROFILE_ID } from '../../../test/fixtures';
-import { ConversationService } from '../conversation/conversation.service';
+import { buildMessage, PROFILE_ID } from '../../../test/fixtures';
+import { ModelHistory } from '../conversation/conversation.service';
 import { intentModelCall, IntentService, resolveIntent } from './intent.service';
 
 describe('IntentService', () => {
-  let conversationService: jest.Mocked<ConversationService>;
   let openAiService: jest.Mocked<OpenAiService>;
   let service: IntentService;
   const profile: ProfileContext = {
@@ -30,6 +28,11 @@ describe('IntentService', () => {
     nutritionGoal: null,
     rules: { diets: ['vegan'], allergies: [], excludedIngredients: [], dislikedFoods: [] },
   };
+
+  const history = (...messages: ModelHistory['messages']): ModelHistory => ({
+    summary: null,
+    messages,
+  });
 
   const revision: IntentResult = {
     intent: Intent.ReviseMenu,
@@ -46,18 +49,16 @@ describe('IntentService', () => {
   };
 
   beforeEach(() => {
-    conversationService = createMock<ConversationService>();
-    conversationService.getRecentMessages.mockResolvedValue([buildMessage({ content: 'Hi' })]);
     openAiService = createMock<OpenAiService>();
-    service = new IntentService(conversationService, openAiService);
+    service = new IntentService(openAiService);
   });
 
   it('classifies the latest message with the recent history, the profile, its own instructions and schema', async () => {
-    conversationService.getRecentMessages.mockResolvedValue([
+    const messages = history(
       buildMessage({ content: 'Plan a day' }),
       buildMessage({ role: MessageRole.Assistant, content: 'No recipes' }),
       buildMessage({ content: 'done do it again' }),
-    ]);
+    );
     const result = {
       intent: Intent.GenerateMenu,
       request: 'Plan a one-day menu.',
@@ -74,11 +75,7 @@ describe('IntentService', () => {
     openAiService.generateStructured.mockResolvedValue(result);
     const abort = new AbortController();
 
-    await expect(service.classify(CONVERSATION_ID, profile, abort.signal)).resolves.toEqual(result);
-    expect(conversationService.getRecentMessages).toHaveBeenCalledWith(
-      CONVERSATION_ID,
-      INTENT_HISTORY_LIMIT,
-    );
+    await expect(service.classify(messages, null, profile, abort.signal)).resolves.toEqual(result);
     expect(openAiService.generateStructured).toHaveBeenCalledWith(
       [
         {
@@ -108,7 +105,7 @@ describe('IntentService', () => {
       target: null,
     });
 
-    await service.classify(CONVERSATION_ID, null);
+    await service.classify(history(buildMessage({ content: 'Hi' })), null, null);
 
     const [[input]] = openAiService.generateStructured.mock.calls;
     expect(input).toEqual([
@@ -121,15 +118,41 @@ describe('IntentService', () => {
   });
 
   it('turns a revision without an earlier reply into a new menu', async () => {
-    conversationService.getRecentMessages.mockResolvedValue([
-      buildMessage({ content: 'A menu for a week, no chicken' }),
-    ]);
     openAiService.generateStructured.mockResolvedValue(revision);
 
-    await expect(service.classify(CONVERSATION_ID, profile)).resolves.toEqual({
+    await expect(
+      service.classify(
+        history(buildMessage({ content: 'A menu for a week, no chicken' })),
+        null,
+        profile,
+      ),
+    ).resolves.toEqual({
       ...revision,
       intent: Intent.GenerateMenu,
       target: null,
+    });
+  });
+
+  it('gives the model the menu request and the summary of the conversation', async () => {
+    openAiService.generateStructured.mockResolvedValue({
+      intent: Intent.GeneralChat,
+      request: null,
+      menuRequest: null,
+      target: null,
+    });
+
+    await service.classify(
+      { summary: 'Rejected the salmon.', messages: [buildMessage({ content: 'And now?' })] },
+      revision.menuRequest,
+      null,
+    );
+
+    const [[[first]]] = openAiService.generateStructured.mock.calls as unknown as [
+      [[{ content: string }]],
+    ];
+    expect(JSON.parse(first.content)).toMatchObject({
+      menuRequest: revision.menuRequest,
+      earlierConversation: 'Rejected the salmon.',
     });
   });
 
@@ -187,7 +210,7 @@ describe('IntentService', () => {
   it('rethrows invalid model output instead of guessing an intent', async () => {
     openAiService.generateStructured.mockRejectedValue(new AssistantInvalidOutputException());
 
-    await expect(service.classify(CONVERSATION_ID, profile)).rejects.toBeInstanceOf(
+    await expect(service.classify(history(buildMessage()), null, profile)).rejects.toBeInstanceOf(
       AssistantInvalidOutputException,
     );
   });
@@ -195,7 +218,7 @@ describe('IntentService', () => {
   it('rethrows an API failure', async () => {
     openAiService.generateStructured.mockRejectedValue(new AssistantUnavailableException(false));
 
-    await expect(service.classify(CONVERSATION_ID, profile)).rejects.toBeInstanceOf(
+    await expect(service.classify(history(buildMessage()), null, profile)).rejects.toBeInstanceOf(
       AssistantUnavailableException,
     );
   });

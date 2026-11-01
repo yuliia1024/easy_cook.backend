@@ -31,6 +31,11 @@ export interface ConversationData {
   menuId?: string | null;
 }
 
+/** A new conversation can start with the menu request of another one. */
+export interface NewConversationData extends ConversationData {
+  menuRequest?: MenuRequest | null;
+}
+
 export interface MessageData {
   role: string;
   content: string;
@@ -58,22 +63,28 @@ export class ConversationRepository {
     });
   }
 
-  /** The latest `limit` messages, oldest first. */
-  public async findRecentMessages(conversationId: string, limit: number): Promise<Message[]> {
-    const latest = await this.prisma.message.findMany({
+  /** The messages after `afterMessageId`, or all of them when it is null; oldest first. */
+  public async findMessagesAfter(
+    conversationId: string,
+    afterMessageId: string | null,
+  ): Promise<Message[]> {
+    return this.prisma.message.findMany({
       where: { conversationId },
-      orderBy: [{ createdAt: SortOrder.Desc }, { id: SortOrder.Desc }],
-      take: limit,
+      orderBy: MESSAGE_ORDER,
+      ...(afterMessageId && { cursor: { id: afterMessageId }, skip: 1 }),
     });
-    return latest.reverse();
   }
 
   public async create(
     profileId: string,
-    data: ConversationData,
+    { menuRequest, ...data }: NewConversationData,
   ): Promise<ConversationWithMessages> {
     return this.prisma.conversation.create({
-      data: { profileId, ...data },
+      data: {
+        profileId,
+        ...data,
+        ...(menuRequest && { menuRequest: menuRequest as unknown as Prisma.InputJsonObject }),
+      },
       include: CONVERSATION_INCLUDE,
     });
   }
@@ -94,6 +105,18 @@ export class ConversationRepository {
     await this.prisma.conversation.update({
       where: { id },
       data: { menuRequest: menuRequest as unknown as Prisma.InputJsonObject },
+    });
+  }
+
+  /** Saves the summary of the messages up to `lastSummarizedMessageId`, that one included. */
+  public async updateSummary(
+    id: string,
+    summary: string,
+    lastSummarizedMessageId: string,
+  ): Promise<void> {
+    await this.prisma.conversation.update({
+      where: { id },
+      data: { summary, lastSummarizedMessageId },
     });
   }
 

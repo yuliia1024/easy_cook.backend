@@ -2,7 +2,7 @@ import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, ValidateIf } from 
 import { CONVERSATION_TITLE_MAX_LENGTH, MESSAGE_MAX_LENGTH } from '../../../../common/constants';
 import { IsOptionalNotNull, Trim } from '../../dto/validators';
 
-export class CreateConversationDto {
+export class UpdateConversationDto {
   /** Defaults to the start of the first message. */
   @IsOptionalNotNull()
   @Trim()
@@ -18,7 +18,16 @@ export class CreateConversationDto {
   menuId?: string | null;
 }
 
-export class UpdateConversationDto extends CreateConversationDto {}
+export class CreateConversationDto extends UpdateConversationDto {
+  /**
+   * A conversation to carry the menu details and, unless `menuId` is given, the menu from, such
+   * as one that is full (`conversation_limit_reached`). Its messages stay there.
+   */
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID()
+  fromConversationId?: string | null;
+}
 
 export class SendMessageDto {
   /** @example Plan a menu for 3 days */

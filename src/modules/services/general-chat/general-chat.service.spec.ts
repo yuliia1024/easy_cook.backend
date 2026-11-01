@@ -1,5 +1,4 @@
 import {
-  GENERAL_CHAT_HISTORY_LIMIT,
   GENERAL_CHAT_INSTRUCTIONS,
   GENERAL_CHAT_MAX_OUTPUT_TOKENS,
   Goal,
@@ -8,8 +7,7 @@ import {
 import { ProfileContext } from '../../../common/types';
 import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { createMock } from '../../../test/create-mock';
-import { buildMessage, CONVERSATION_ID, PROFILE_ID } from '../../../test/fixtures';
-import { ConversationService } from '../conversation/conversation.service';
+import { buildMessage, PROFILE_ID } from '../../../test/fixtures';
 import { GeneralChatService } from './general-chat.service';
 
 describe('GeneralChatService', () => {
@@ -36,12 +34,14 @@ describe('GeneralChatService', () => {
   ])(
     'streams the reply to the recent history with the chat instructions and %s',
     async (_case, context, profileJson) => {
-      const conversationService = createMock<ConversationService>();
-      conversationService.getRecentMessages.mockResolvedValue([
-        buildMessage({ content: 'Hi' }),
-        buildMessage({ role: MessageRole.Assistant, content: 'Hello' }),
-        buildMessage({ content: 'How are you?' }),
-      ]);
+      const history = {
+        summary: null,
+        messages: [
+          buildMessage({ content: 'Hi' }),
+          buildMessage({ role: MessageRole.Assistant, content: 'Hello' }),
+          buildMessage({ content: 'How are you?' }),
+        ],
+      };
       const openAiService = createMock<OpenAiService>();
       openAiService.streamText.mockImplementation(async function* () {
         yield 'Fine';
@@ -50,8 +50,9 @@ describe('GeneralChatService', () => {
       const abort = new AbortController();
 
       const deltas: string[] = [];
-      for await (const delta of new GeneralChatService(conversationService, openAiService).reply(
-        CONVERSATION_ID,
+      for await (const delta of new GeneralChatService(openAiService).reply(
+        history,
+        null,
         context,
         abort.signal,
       )) {
@@ -59,10 +60,6 @@ describe('GeneralChatService', () => {
       }
 
       expect(deltas).toEqual(['Fine', '!']);
-      expect(conversationService.getRecentMessages).toHaveBeenCalledWith(
-        CONVERSATION_ID,
-        GENERAL_CHAT_HISTORY_LIMIT,
-      );
       expect(openAiService.streamText).toHaveBeenCalledWith(
         [
           { role: 'user', content: profileJson },
@@ -78,4 +75,34 @@ describe('GeneralChatService', () => {
       );
     },
   );
+
+  it('gives the model the menu request and the summary of the conversation', async () => {
+    const openAiService = createMock<OpenAiService>();
+    openAiService.streamText.mockImplementation(async function* () {
+      yield 'Sure';
+    });
+    const menuRequest = {
+      days: 3,
+      mealTypes: [],
+      caloriesKcal: null,
+      diets: [],
+      excludedIngredients: ['mushrooms'],
+      dislikedFoods: [],
+    };
+    const history = { summary: 'Rejected the salmon.', messages: [buildMessage()] };
+
+    for await (const _delta of new GeneralChatService(openAiService).reply(
+      history,
+      menuRequest,
+      null,
+    )) {
+      // drain
+    }
+
+    const [[[first]]] = openAiService.streamText.mock.calls as unknown as [[[{ content: string }]]];
+    expect(JSON.parse(first.content)).toMatchObject({
+      menuRequest,
+      earlierConversation: 'Rejected the salmon.',
+    });
+  });
 });
