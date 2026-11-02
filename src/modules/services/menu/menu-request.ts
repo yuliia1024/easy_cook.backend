@@ -1,4 +1,6 @@
 import {
+  CLARIFICATION_REPLY,
+  daysOutOfRangeReply,
   DietTag,
   Intent,
   MENU_MAX_DAYS,
@@ -165,4 +167,33 @@ export function resolveClarification(
     request: describeMenuRequest(resolved.chat),
     menuRequest: resolved.chat,
   };
+}
+
+/** A question the chat asks instead of planning, with the request fields it asks for. */
+export interface MenuClarification {
+  message: string;
+  missingFields: MenuRequestField[];
+}
+
+/**
+ * The question for the intent after `resolveClarification`: a clarification asks for the missing
+ * fields (`CLARIFICATION_REPLY`), a menu request for too many or too few days offers the nearest
+ * allowed number. Null when the chat answers otherwise. The clarification evals
+ * (`evals/suites/clarification`) ask the same. Pure.
+ */
+export function menuClarification(
+  intent: Intent,
+  resolved: ResolvedMenuRequest,
+): MenuClarification | null {
+  const { daysOutOfRange, missingFields } = resolved;
+  if (intent === Intent.Clarification) {
+    return { message: CLARIFICATION_REPLY, missingFields };
+  }
+  if ((intent === Intent.GenerateMenu || intent === Intent.ReviseMenu) && daysOutOfRange) {
+    return {
+      message: daysOutOfRangeReply(daysOutOfRange.requested, daysOutOfRange.offered),
+      missingFields: ['days'],
+    };
+  }
+  return null;
 }

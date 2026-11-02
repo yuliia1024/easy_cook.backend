@@ -65,6 +65,25 @@ describe('eval runner', () => {
       });
     });
 
+    it.each([
+      ['adds the cost of the judge call', 'gpt-4.1-2025-04-14', (210 + 1000 * 2 + 100 * 8) / 1e6],
+      ['has no cost when the judge model has no price', 'judge-x', null],
+    ])('%s, keeping its tokens out of the usage', async (_case, judgeModel, cost) => {
+      const suite = buildEchoSuite();
+      suite.run.mockResolvedValue({
+        output: 'yes',
+        modelId: 'gpt-4o-mini-2024-07-18',
+        latencyMs: 42,
+        usage,
+        judge: { modelId: judgeModel, usage },
+      });
+
+      const result = await runCase(suite, testCase, openAi);
+
+      expect(result.usage).toEqual(usage);
+      expect(result.costUsd === null ? null : Number(result.costUsd.toFixed(9))).toBe(cost);
+    });
+
     it('keeps the metrics the suite measured', async () => {
       const suite = buildEchoSuite();
       suite.run.mockResolvedValue({
