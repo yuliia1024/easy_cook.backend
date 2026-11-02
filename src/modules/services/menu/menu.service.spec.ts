@@ -82,12 +82,18 @@ describe('MenuService', () => {
       { dayIndex: 1, date: null, meals: [] },
     ];
     const composition = { days: [], dailyAverage: {}, issues: [] } as unknown as MenuComposition;
-    const generated = { menu: composition, days, nutritionGoal: context.nutritionGoal };
+    const generated = {
+      menu: composition,
+      days,
+      nutritionGoal: context.nutritionGoal,
+      generatedWith: { modelId: 'gpt-test', prompt: 'menu-plan@v1' },
+    };
     const version = {
       generatedBy: MenuGeneratedBy.Llm,
       nutritionGoal: null,
       composition,
       days,
+      notes: 'model: gpt-test; prompt: menu-plan@v1',
     };
 
     beforeEach(() => {
@@ -96,7 +102,7 @@ describe('MenuService', () => {
       repository.addVersion.mockResolvedValue(saved);
     });
 
-    it('creates a draft menu linked to a conversation without one', async () => {
+    it('creates a draft menu linked to a conversation without one, noting the model and prompt', async () => {
       await expect(
         service.saveGenerated({ id: CONVERSATION_ID, menuId: null }, generated),
       ).resolves.toEqual({ menuId: MENU_ID, versionId: MENU_VERSION_ID });

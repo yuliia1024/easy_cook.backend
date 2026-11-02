@@ -31,6 +31,7 @@ export function buildEchoSuite(
     name: 'echo',
     casesFile,
     caseSchema: EchoCaseSchema,
+    prompts: [{ name: 'echo', version: 1, instructions: 'Echo.' }],
     run: jest.fn(),
     score: (testCase: EchoCase, output: string | null): FieldScore[] => [
       {

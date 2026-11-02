@@ -1,5 +1,5 @@
 import {
-  INTENT_INSTRUCTIONS,
+  INTENT_PROMPT,
   INTENT_MAX_OUTPUT_TOKENS,
   Goal,
   Intent,
@@ -90,7 +90,7 @@ describe('IntentService', () => {
       ],
       IntentResultSchema,
       {
-        instructions: INTENT_INSTRUCTIONS,
+        prompt: INTENT_PROMPT,
         maxOutputTokens: INTENT_MAX_OUTPUT_TOKENS,
         abortSignal: abort.signal,
       },
@@ -231,7 +231,7 @@ describe('IntentService', () => {
       ],
       schema: IntentResultSchema,
       options: {
-        instructions: INTENT_INSTRUCTIONS,
+        prompt: INTENT_PROMPT,
         maxOutputTokens: INTENT_MAX_OUTPUT_TOKENS,
         abortSignal: undefined,
       },

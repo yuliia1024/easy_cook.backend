@@ -224,6 +224,7 @@ export class ChatOrchestratorService {
         menu: response.menu,
         days: response.days,
         nutritionGoal: profile?.nutritionGoal ?? null,
+        generatedWith: response.generatedWith,
       });
       yield { type: ChatStreamEventType.TextDelta, content: response.message };
       yield { type: ChatStreamEventType.MenuReady, ...saved, menu: response.menu };

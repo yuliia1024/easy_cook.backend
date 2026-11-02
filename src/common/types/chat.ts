@@ -1,5 +1,6 @@
 import { ChatResponseType, ChatStatusStep, ChatStreamEventType, MealType } from '../constants';
 import { MenuComposition, ResolvedDay } from './menu';
+import { ModelProvenance } from './model';
 
 /** The result of a business service that answers without streaming. */
 export type ChatResponse =
@@ -10,6 +11,8 @@ export type ChatResponse =
       menu: MenuComposition;
       /** The meals of `menu` with their recipe snapshots, to save it as a menu version. */
       days: ResolvedDay[];
+      /** The model and the prompt version of the plan, noted on the saved menu version. */
+      generatedWith: ModelProvenance;
     }
   | { type: ChatResponseType.Clarification; message: string; missingFields: string[] }
   | { type: ChatResponseType.Error; code: string; message: string; retryable: boolean };

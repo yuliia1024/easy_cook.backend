@@ -1,6 +1,6 @@
 import {
   MENU_PLAN_CANDIDATES_MAX,
-  MENU_PLAN_INSTRUCTIONS,
+  MENU_PLAN_PROMPT,
   MealType,
   MenuIssueCode,
   MenuIssueSeverity,
@@ -126,7 +126,7 @@ describe('menuPlanModelCall', () => {
       ],
       schema: MenuPlanSchema,
       options: {
-        instructions: MENU_PLAN_INSTRUCTIONS,
+        prompt: MENU_PLAN_PROMPT,
         maxOutputTokens: menuPlanMaxOutputTokens(2),
         abortSignal: abort.signal,
       },

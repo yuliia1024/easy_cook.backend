@@ -1,6 +1,9 @@
 {
   "suite": "intent",
   "createdAt": "2026-10-27T15:26:19.025Z",
+  "prompts": [
+    "intent@v1"
+  ],
   "models": [
     "gpt-4o-mini-2024-07-18"
   ],

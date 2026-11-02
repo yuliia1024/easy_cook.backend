@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  GENERAL_CHAT_INSTRUCTIONS,
-  GENERAL_CHAT_MAX_OUTPUT_TOKENS,
-} from '../../../common/constants';
+import { GENERAL_CHAT_PROMPT, GENERAL_CHAT_MAX_OUTPUT_TOKENS } from '../../../common/constants';
 import { MenuRequest } from '../../../common/contracts';
 import { ProfileContext } from '../../../common/types';
 import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
@@ -29,7 +26,7 @@ export class GeneralChatService {
     yield* this.openAiService.streamText(
       [profileMessage(profile, context), ...toModelMessages(history.messages)],
       {
-        instructions: GENERAL_CHAT_INSTRUCTIONS,
+        prompt: GENERAL_CHAT_PROMPT,
         maxOutputTokens: GENERAL_CHAT_MAX_OUTPUT_TOKENS,
         abortSignal,
       },

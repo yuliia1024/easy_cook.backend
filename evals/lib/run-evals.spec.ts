@@ -108,10 +108,32 @@ describe('runEvals', () => {
     );
 
     expect(readBaseline(dirs.baselines, 'intent')).toMatchObject({
+      prompts: ['echo@v1'],
       passRate: 0.5,
       passedCases: ['c0'],
     });
     expect(lines).toContain(`Baseline saved: ${join(root, 'intent.json')}`);
+  });
+
+  it('names the prompt versions in the report and compares a new version with the baseline', async () => {
+    await runEvals(
+      args({ saveBaseline: true }),
+      [suiteOf('intent', 2, 2)],
+      openAi,
+      dirs,
+      () => undefined,
+      now,
+    );
+    const changed = suiteOf('intent', 2, 2);
+    changed.prompts = [{ name: 'echo', version: 2, instructions: 'Echo it.' }];
+
+    const outcome = await runEvals(args(), [changed], openAi, dirs, (l) => lines.push(l), now);
+
+    expect(outcome.ok).toBe(true);
+    const written = report(outcome.reportFile).suites[0];
+    expect(written.summary.prompts).toEqual(['echo@v2']);
+    expect(written.baseline?.promptChange).toEqual({ baseline: ['echo@v1'], current: ['echo@v2'] });
+    expect(lines).toContain('  baseline   prompts echo@v1 -> echo@v2');
   });
 
   it('passes within the tolerance and fails when a suite is worse than its baseline', async () => {
@@ -149,6 +171,7 @@ describe('runEvals', () => {
         { metric: 'field answer', baseline: 0.8, current: 0.56 },
       ],
       modelMismatch: null,
+      promptChange: null,
       newlyFailed: ['c14', 'c15', 'c16', 'c17', 'c18', 'c19'],
     });
     expect(lines).toContain(

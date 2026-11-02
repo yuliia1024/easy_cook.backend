@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
+import { ModelPrompt } from '../../src/common/types';
 import {
   ModelCallOptions,
   ModelResult,
@@ -24,6 +25,12 @@ export const JUDGE_INSTRUCTIONS = `
 
   RUBRIC
 `;
+
+/**
+ * The version of the judge prompt: `JUDGE_INSTRUCTIONS` with a rubric. Raise it with every change
+ * of either; the eval reports and baselines name it, so verdicts of two versions are not mixed.
+ */
+export const JUDGE_PROMPT_VERSION = 1;
 
 /** The rubric of a suite: its text (`rubric.md`) and the ids of its criteria. */
 export interface Rubric<C extends string = string> {
@@ -51,6 +58,13 @@ export function loadRubric<C extends string>(file: string, criteria: readonly C[
   return { criteria, text };
 }
 
+/** The judge prompt: the instructions with the rubric. */
+export const judgePrompt = (rubric: Rubric): ModelPrompt => ({
+  name: 'judge',
+  version: JUDGE_PROMPT_VERSION,
+  instructions: `${JUDGE_INSTRUCTIONS}${rubric.text}`,
+});
+
 /** The judge call for `subject` (sent as JSON) on `rubric`. */
 export function judgeModelCall<C extends string>(
   rubric: Rubric<C>,
@@ -60,7 +74,7 @@ export function judgeModelCall<C extends string>(
     input: JSON.stringify(subject),
     schema: judgeSchema(rubric.criteria),
     options: {
-      instructions: `${JUDGE_INSTRUCTIONS}${rubric.text}`,
+      prompt: judgePrompt(rubric),
       maxOutputTokens: JUDGE_MAX_OUTPUT_TOKENS,
       model: JUDGE_MODEL,
     },

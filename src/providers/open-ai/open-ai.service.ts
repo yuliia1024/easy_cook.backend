@@ -18,15 +18,16 @@ import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
 } from '../../common/exceptions';
-import { ModelCallInfo, ModelUsage } from '../../common/types';
+import { ModelCallInfo, ModelPrompt, ModelUsage } from '../../common/types';
+import { promptLabel } from '../../common/utils';
 import { OpenAiConfigService } from '../../configs/open-ai-config/open-ai-config.service';
 
 /** A single prompt or a conversation, oldest message first. */
 export type ModelInput = string | ModelMessage[];
 
 export interface ModelCallOptions {
-  /** The system instructions; never mixed into `input`. */
-  instructions: string;
+  /** The system instructions with their version; never mixed into `input`. */
+  prompt: ModelPrompt;
   maxOutputTokens: number;
   abortSignal?: AbortSignal;
   /** `OPEN_AI_MODEL` unless set; only the evals judge sets another one. */
@@ -84,6 +85,7 @@ export class OpenAiService {
           yield part.text;
         } else if (part.type === 'finish-step') {
           this.logSummary(
+            options.prompt,
             {
               modelId: part.response.modelId,
               responseId: part.response.id,
@@ -135,7 +137,7 @@ export class OpenAiService {
         rawFinishReason: result.rawFinishReason,
         usage: result.usage,
       };
-      this.logSummary(step, startedAt);
+      this.logSummary(options.prompt, step, startedAt);
       const call: ModelCallInfo = { modelId: step.modelId, usage: toModelUsage(result.usage) };
       const parsed = schema.safeParse(result.output);
       if (!parsed.success) {
@@ -150,11 +152,11 @@ export class OpenAiService {
 
   private callSettings(
     input: ModelInput,
-    { instructions, maxOutputTokens, abortSignal, model = OPEN_AI_MODEL }: ModelCallOptions,
+    { prompt, maxOutputTokens, abortSignal, model = OPEN_AI_MODEL }: ModelCallOptions,
   ): Parameters<typeof streamText>[0] & Parameters<typeof generateText>[0] {
     return {
       model: this.provider.responses(model),
-      instructions,
+      instructions: prompt.instructions,
       maxOutputTokens,
       timeout: OPEN_AI_TIMEOUT_MS,
       abortSignal,
@@ -184,8 +186,13 @@ export class OpenAiService {
     );
   }
 
-  /** Model, outcome, timings and token usage of a finished response. */
-  private logSummary(step: StepSummary, startedAt: number, firstDeltaAt?: number | null): void {
+  /** Model, prompt version, outcome, timings and token usage of a finished response. */
+  private logSummary(
+    prompt: ModelPrompt,
+    step: StepSummary,
+    startedAt: number,
+    firstDeltaAt?: number | null,
+  ): void {
     const { usage } = step;
     const tokens =
       usage.totalTokens === undefined
@@ -198,7 +205,7 @@ export class OpenAiService {
         ? ''
         : ` (first text after ${firstDeltaAt === null ? 'none' : `${firstDeltaAt - startedAt}ms`})`;
     const summary =
-      `${step.modelId} ${step.responseId} ${step.finishReason} in ${Date.now() - startedAt}ms` +
+      `${step.modelId} ${promptLabel(prompt)} ${step.responseId} ${step.finishReason} in ${Date.now() - startedAt}ms` +
       `${firstDelta}, ${tokens}`;
 
     if (step.finishReason === 'stop') {

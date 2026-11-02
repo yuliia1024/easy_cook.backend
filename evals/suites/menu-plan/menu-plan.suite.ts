@@ -8,6 +8,7 @@ import {
   MENU_MAX_DAYS,
   MENU_MIN_DAYS,
   MENU_PLAN_MEAL_TYPES,
+  MENU_PLAN_PROMPT,
   MenuIssueCode,
 } from '../../../src/common/constants';
 import { MenuPlan } from '../../../src/common/contracts';
@@ -318,6 +319,7 @@ export const menuPlanSuite: EvalSuite<MenuPlanCase, MenuPlan> = {
   name: 'menu-plan',
   casesFile: join(__dirname, 'cases.jsonl'),
   caseSchema: MenuPlanCaseSchema,
+  prompts: [MENU_PLAN_PROMPT],
   run: runMenuPlan,
   score: scoreMenuPlan,
 };

@@ -9,7 +9,7 @@ import {
   MealType,
   MenuIssueCode,
   MenuIssueSeverity,
-  MENU_PLAN_INSTRUCTIONS,
+  MENU_PLAN_PROMPT,
   MENU_PLAN_MAX_ATTEMPTS,
   menuPlanMaxOutputTokens,
   menuPlanRetryMessage,
@@ -18,7 +18,7 @@ import {
 import { MenuPlan, MenuPlanSchema, MenuRequest } from '../../../common/contracts';
 import { AssistantInvalidOutputException } from '../../../common/exceptions';
 import { ChatProgressEvent, ProfileContext } from '../../../common/types';
-import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
+import { ModelResult, OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { Prisma } from '../../../generated/prisma/client';
 import { createMock } from '../../../test/create-mock';
 import { buildFoodItem, buildIngredient, buildRecipe, PROFILE_ID } from '../../../test/fixtures';
@@ -55,16 +55,25 @@ describe('MenuPlannerService', () => {
     rules: { diets: ['vegan'], allergies: [], excludedIngredients: [], dislikedFoods: [] },
   };
   const sentMessages = (call = 0): Array<{ role: string; content: string }> =>
-    openAiService.generateStructured.mock.calls[call][0] as Array<{
+    openAiService.generateStructuredResult.mock.calls[call][0] as Array<{
       role: string;
       content: string;
     }>;
+
+  const modelId = 'gpt-test';
+  /** What `generateStructuredResult` returns for `output`. */
+  const result = (output: MenuPlan): ModelResult<MenuPlan> => ({
+    output,
+    modelId,
+    latencyMs: 1,
+    usage: { inputTokens: 1, cachedInputTokens: 0, outputTokens: 1 },
+  });
 
   beforeEach(() => {
     recipeService = createMock<RecipeService>();
     recipeService.getAllowed.mockResolvedValue([breakfast, lunch, dinner, snack]);
     openAiService = createMock<OpenAiService>();
-    openAiService.generateStructured.mockResolvedValue(plan);
+    openAiService.generateStructuredResult.mockResolvedValue(result(plan));
     service = new MenuPlannerService(
       recipeService,
       new NutritionService(),
@@ -84,7 +93,7 @@ describe('MenuPlannerService', () => {
     await service.plan('Light day', oneDay, profile, abort.signal);
 
     expect(recipeService.getAllowed).toHaveBeenCalledWith(profile.rules);
-    expect(openAiService.generateStructured).toHaveBeenCalledWith(
+    expect(openAiService.generateStructuredResult).toHaveBeenCalledWith(
       [
         {
           role: 'user',
@@ -103,14 +112,14 @@ describe('MenuPlannerService', () => {
       ],
       MenuPlanSchema,
       {
-        instructions: MENU_PLAN_INSTRUCTIONS,
+        prompt: MENU_PLAN_PROMPT,
         maxOutputTokens: menuPlanMaxOutputTokens(1),
         abortSignal: abort.signal,
       },
     );
   });
 
-  it('composes the chosen recipes into a one-day menu with a snack, one serving each, without issues when there is no goal', async () => {
+  it('composes the chosen recipes into a one-day menu with a snack, one serving each, without issues when there is no goal, with the model and prompt version', async () => {
     await expect(service.plan('Light day', oneDay, profile)).resolves.toMatchObject({
       type: ChatResponseType.MenuReady,
       message: 'Here is your day.',
@@ -147,8 +156,11 @@ describe('MenuPlannerService', () => {
           ],
         },
       ],
+      generatedWith: { modelId, prompt: 'menu-plan@v1' },
     });
-    expect(log).toHaveBeenCalledWith('Menu of 1 days planned in 1 attempt(s)');
+    expect(log).toHaveBeenCalledWith(
+      'Menu of 1 days planned in 1 attempt(s) by gpt-test with menu-plan@v1',
+    );
   });
 
   it('plans every requested day, in the order of dayIndex, and composes them all', async () => {
@@ -163,19 +175,21 @@ describe('MenuPlannerService', () => {
       dinner,
       buildRecipe({ id: 'rec-d2', mealType: MealType.Dinner }),
     ]);
-    openAiService.generateStructured.mockResolvedValue({
-      message: 'Three days.',
-      days: [
-        { dayIndex: 2, meals },
-        { dayIndex: 0, meals },
-        { dayIndex: 1, meals: { ...meals, lunch: 'l2' } },
-      ],
-    });
+    openAiService.generateStructuredResult.mockResolvedValue(
+      result({
+        message: 'Three days.',
+        days: [
+          { dayIndex: 2, meals },
+          { dayIndex: 0, meals },
+          { dayIndex: 1, meals: { ...meals, lunch: 'l2' } },
+        ],
+      }),
+    );
 
     const response = await service.plan('Three days', { ...oneDay, days: 3 }, profile);
 
     expect(JSON.parse(sentMessages()[0].content).days).toBe(3);
-    expect(openAiService.generateStructured.mock.calls[0][2].maxOutputTokens).toBe(
+    expect(openAiService.generateStructuredResult.mock.calls[0][2].maxOutputTokens).toBe(
       menuPlanMaxOutputTokens(3),
     );
     expect(response).toMatchObject({
@@ -208,10 +222,12 @@ describe('MenuPlannerService', () => {
       }),
     );
     recipeService.getAllowed.mockResolvedValue([...breakfasts, lunch, dinner, snack]);
-    openAiService.generateStructured.mockResolvedValue({
-      ...plan,
-      days: [{ dayIndex: 0, meals }],
-    });
+    openAiService.generateStructuredResult.mockResolvedValue(
+      result({
+        ...plan,
+        days: [{ dayIndex: 0, meals }],
+      }),
+    );
 
     await service.plan('Light day', { ...oneDay, caloriesKcal: 2000 }, profile);
 
@@ -288,7 +304,7 @@ describe('MenuPlannerService', () => {
         ],
       },
     });
-    expect(openAiService.generateStructured).toHaveBeenCalledTimes(1);
+    expect(openAiService.generateStructuredResult).toHaveBeenCalledTimes(1);
   });
 
   it('follows the constraints of the request on top of the profile rules', async () => {
@@ -361,7 +377,7 @@ describe('MenuPlannerService', () => {
         message:
           "I can't plan a good 1-day menu: the vegan diet leaves no lunches, and it needs at least 1 recipe for every meal. To get a good menu, you could remove the vegan diet from your profile. Which would you like?",
       });
-      expect(openAiService.generateStructured).not.toHaveBeenCalled();
+      expect(openAiService.generateStructuredResult).not.toHaveBeenCalled();
       expect(onProgress.mock.calls).toEqual([
         [{ type: ChatStreamEventType.Status, step: ChatStatusStep.SearchingBreakfasts }],
       ]);
@@ -392,7 +408,7 @@ describe('MenuPlannerService', () => {
       await expect(service.plan('Light day', oneDay, profile)).rejects.toBeInstanceOf(
         AssistantInvalidOutputException,
       );
-      expect(openAiService.generateStructured).toHaveBeenCalled();
+      expect(openAiService.generateStructuredResult).toHaveBeenCalled();
     });
 
     it('does not load every recipe when the allowed ones are enough', async () => {
@@ -425,20 +441,22 @@ describe('MenuPlannerService', () => {
       message: NO_PROFILE_REPLY,
     });
     expect(recipeService.getAllowed).not.toHaveBeenCalled();
-    expect(openAiService.generateStructured).not.toHaveBeenCalled();
+    expect(openAiService.generateStructuredResult).not.toHaveBeenCalled();
   });
 
   describe('retries', () => {
     it('sends the problems of an unknown recipe back and succeeds on the 2nd attempt', async () => {
       const wrong: MenuPlan = { ...plan, days: [{ dayIndex: 0, meals: { ...meals, lunch: 'x' } }] };
-      openAiService.generateStructured.mockResolvedValueOnce(wrong).mockResolvedValueOnce(plan);
+      openAiService.generateStructuredResult
+        .mockResolvedValueOnce(result(wrong))
+        .mockResolvedValueOnce(result(plan));
 
       const onProgress = jest.fn();
 
       const response = await service.plan('Light day', oneDay, profile, undefined, onProgress);
 
       expect(response).toMatchObject({ type: ChatResponseType.MenuReady });
-      expect(openAiService.generateStructured).toHaveBeenCalledTimes(2);
+      expect(openAiService.generateStructuredResult).toHaveBeenCalledTimes(2);
       expect(onProgress.mock.calls.map(([event]) => event.step ?? event.type)).toEqual([
         ChatStatusStep.SearchingBreakfasts,
         ChatStreamEventType.MenuPending,
@@ -457,7 +475,9 @@ describe('MenuPlannerService', () => {
         },
       ]);
       expect(warn).toHaveBeenCalledWith(expect.stringContaining('attempt 1 of 3 has 1 problem(s)'));
-      expect(log).toHaveBeenCalledWith('Menu of 1 days planned in 2 attempt(s)');
+      expect(log).toHaveBeenCalledWith(
+        'Menu of 1 days planned in 2 attempt(s) by gpt-test with menu-plan@v1',
+      );
     });
 
     it.each([
@@ -471,14 +491,14 @@ describe('MenuPlannerService', () => {
         ],
       ],
     ])('retries %s', async (_case, days) => {
-      openAiService.generateStructured
-        .mockResolvedValueOnce({ ...plan, days })
-        .mockResolvedValueOnce(plan);
+      openAiService.generateStructuredResult
+        .mockResolvedValueOnce(result({ ...plan, days }))
+        .mockResolvedValueOnce(result(plan));
 
       await expect(service.plan('Light day', oneDay, profile)).resolves.toMatchObject({
         type: ChatResponseType.MenuReady,
       });
-      expect(openAiService.generateStructured).toHaveBeenCalledTimes(2);
+      expect(openAiService.generateStructuredResult).toHaveBeenCalledTimes(2);
     });
 
     it('sends the errors of validateMenu back to the model', async () => {
@@ -490,10 +510,14 @@ describe('MenuPlannerService', () => {
         dinner,
         snack,
       ]);
-      openAiService.generateStructured.mockResolvedValueOnce(plan).mockResolvedValueOnce({
-        ...plan,
-        days: [{ dayIndex: 0, meals: { ...meals, lunch: 'l2' } }],
-      });
+      openAiService.generateStructuredResult
+        .mockResolvedValueOnce(result(plan))
+        .mockResolvedValueOnce(
+          result({
+            ...plan,
+            days: [{ dayIndex: 0, meals: { ...meals, lunch: 'l2' } }],
+          }),
+        );
 
       const response = await service.plan('Light day', oneDay, profile);
 
@@ -507,12 +531,12 @@ describe('MenuPlannerService', () => {
     });
 
     it('fails with invalid output after the last attempt', async () => {
-      openAiService.generateStructured.mockResolvedValue({ ...plan, days: [] });
+      openAiService.generateStructuredResult.mockResolvedValue(result({ ...plan, days: [] }));
 
       await expect(service.plan('Light day', oneDay, profile)).rejects.toBeInstanceOf(
         AssistantInvalidOutputException,
       );
-      expect(openAiService.generateStructured).toHaveBeenCalledTimes(MENU_PLAN_MAX_ATTEMPTS);
+      expect(openAiService.generateStructuredResult).toHaveBeenCalledTimes(MENU_PLAN_MAX_ATTEMPTS);
       expect(sentMessages(MENU_PLAN_MAX_ATTEMPTS - 1)).toHaveLength(
         1 + 2 * (MENU_PLAN_MAX_ATTEMPTS - 1),
       );

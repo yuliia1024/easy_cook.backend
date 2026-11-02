@@ -1,3 +1,4 @@
+import { promptLabel } from '../../src/common/utils';
 import { OpenAiService } from '../../src/providers/open-ai/open-ai.service';
 import { compareWithBaseline, readBaseline, toBaseline, writeBaseline } from './baseline';
 import { loadCases } from './cases';
@@ -51,7 +52,7 @@ export async function runEvals(
     const cases = loadCases(suite.casesFile, suite.caseSchema);
     log(`Running ${suite.name}: ${cases.length} cases x ${args.repeat}`);
     const results = await runSuite(suite, cases, openAi, args);
-    const summary = summarize(suite.name, results);
+    const summary = summarize(suite.name, results, suite.prompts.map(promptLabel));
 
     const report: SuiteReport = { summary, baseline: null, results };
     const messages: string[] = [];

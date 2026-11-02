@@ -212,6 +212,9 @@ npm run eval -- --repeat 1 --concurrency 3     # runs per case (3 by default), p
   a field rate drops more than two standard errors below it (one run at least); the same prompt
   does not give the same answers every run, and every case runs 3 times to even that out. Exit
   code 1 also when the run used another model than the baseline (save a new one).
+- Every prompt has a version (`ModelPrompt` in `src/common/constants/open-ai.ts`, `name@vN`). The
+  report and the baseline name the prompt versions of the suite, and the console prints
+  `baseline   prompts intent@v1 -> intent@v2` when a run measured other versions than the baseline.
 - Output that does not match the schema fails the case. A failed call (timeout, rate limit) is
   left out of the rates; more than 10 % of them fail the run as incomplete, and `--save-baseline`
   saves nothing after any.

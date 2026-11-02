@@ -1,5 +1,5 @@
 import {
-  GENERAL_CHAT_INSTRUCTIONS,
+  GENERAL_CHAT_PROMPT,
   GENERAL_CHAT_MAX_OUTPUT_TOKENS,
   Goal,
   MessageRole,
@@ -68,7 +68,7 @@ describe('GeneralChatService', () => {
           { role: 'user', content: 'How are you?' },
         ],
         {
-          instructions: GENERAL_CHAT_INSTRUCTIONS,
+          prompt: GENERAL_CHAT_PROMPT,
           maxOutputTokens: GENERAL_CHAT_MAX_OUTPUT_TOKENS,
           abortSignal: abort.signal,
         },

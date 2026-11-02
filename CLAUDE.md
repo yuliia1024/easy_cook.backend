@@ -44,4 +44,8 @@ repository. Layout:
 - Enum-like columns are `VARCHAR`; add values to the enums in `src/common/constants`, not to the DB.
 - Food values are per 100 g of the food in its `state`; a recipe ingredient must reference the food
   in the state that is weighed (dry vs boiled rice). Null nutrient = unknown, never 0.
+- Every prompt is a `ModelPrompt` with a `version` (`src/common/constants/open-ai.ts`; the evals
+  judge in `evals/lib/judge.ts`). Changing its text means raising the version; `open-ai.spec.ts`
+  pins the hash of every released version. The model and prompt version go to the logs, to
+  `MenuVersion.notes` and to the eval reports and baselines.
 - Local ports: API 3100, Postgres 5442.

@@ -1,6 +1,10 @@
 {
   "suite": "clarification",
   "createdAt": "2026-11-01T21:17:47.697Z",
+  "prompts": [
+    "intent@v1",
+    "judge@v1"
+  ],
   "models": [
     "gpt-4o-mini-2024-07-18"
   ],

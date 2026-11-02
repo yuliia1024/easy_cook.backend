@@ -4,6 +4,7 @@ import {
   CalculationMode,
   Goal,
   Intent,
+  INTENT_PROMPT,
   MealType,
   MenuTargetScope,
   MESSAGE_MAX_LENGTH,
@@ -178,6 +179,7 @@ export const intentSuite: EvalSuite<IntentCase, IntentResult> = {
   name: 'intent',
   casesFile: join(__dirname, 'cases.jsonl'),
   caseSchema: IntentCaseSchema,
+  prompts: [INTENT_PROMPT],
   run: async (testCase: IntentCase, openAi: OpenAiService): Promise<ModelResult<IntentResult>> => {
     const { input, schema, options } = intentModelCall(
       INTENT_PROFILES[testCase.profile],

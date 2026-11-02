@@ -17,11 +17,13 @@ import {
   MealType,
   MENU_PLAN_FAILED_REPLY,
   MENU_PLAN_MAX_ATTEMPTS,
+  MENU_PLAN_PROMPT,
   OUT_OF_SCOPE_REPLY,
 } from '../src/common/constants';
 import { estimateTokens } from '../src/common/utils';
 import {
   createTestApp,
+  FAKE_MODEL_ID,
   FAKE_OPEN_AI_DELTAS,
   FAKE_SUMMARY,
   fakeMenuPlan,
@@ -197,6 +199,7 @@ describe('/api/conversations (e2e)', () => {
         id: versionId,
         versionNumber: 1,
         generatedBy: 'llm',
+        notes: `model: ${FAKE_MODEL_ID}; prompt: menu-plan@v${MENU_PLAN_PROMPT.version}`,
         isConfirmed: false,
         nutritionGoal: expect.objectContaining({ caloriesKcal: 2172 }),
         dailyAverage: menu.dailyAverage,

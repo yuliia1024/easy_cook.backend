@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ModelCallInfo, ModelUsage } from '../../src/common/types';
+import { ModelCallInfo, ModelPrompt, ModelUsage } from '../../src/common/types';
 import { ModelResult, OpenAiService } from '../../src/providers/open-ai/open-ai.service';
 
 /** What every line of a suite's `cases.jsonl` has; a suite adds its input and expectations. */
@@ -35,6 +35,11 @@ export interface EvalSuite<TCase extends EvalCase = EvalCase, TOutput = unknown>
   /** Absolute path of the JSONL file with the cases. */
   casesFile: string;
   caseSchema: z.ZodType<TCase, unknown>;
+  /**
+   * The prompts a run calls, with their versions (the judge's too): the summary, the report and
+   * the baseline name them, so a result is tied to the prompt versions it measured.
+   */
+  prompts: ModelPrompt[];
   /** Calls the real model for a case through the same code the app uses. */
   run(testCase: TCase, openAi: OpenAiService): Promise<SuiteRun<TOutput>>;
   /** Scores every field of the case; `null` is output that did not match the schema. */
@@ -98,6 +103,8 @@ export interface MetricStats {
 
 export interface SuiteSummary {
   suite: string;
+  /** The prompt versions of the suite (`promptLabel`). */
+  prompts: string[];
   models: string[];
   /** Runs of the cases (cases x `--repeat`) whose call did not fail. */
   cases: Rate;

@@ -51,10 +51,11 @@ describe('eval summary', () => {
       }),
     ];
 
-    const summary = summarize('intent', results);
+    const summary = summarize('intent', results, ['intent@v1']);
 
     expect(summary).toEqual({
       suite: 'intent',
+      prompts: ['intent@v1'],
       models: ['gpt-4o-mini-2024-07-18'],
       cases: { total: 3, passed: 1, rate: 1 / 3 },
       failedCalls: 0,
