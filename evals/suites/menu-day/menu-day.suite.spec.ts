@@ -1,0 +1,258 @@
+import {
+  MENU_DAY_MAX_OUTPUT_TOKENS,
+  MENU_MAX_DAYS,
+  MENU_PLAN_MAX_ATTEMPTS,
+  MENU_PLAN_MEAL_TYPES,
+  menuDayRetryMessage,
+  MenuIssueSeverity,
+} from '../../../src/common/constants';
+import { MenuDayPlan, MenuDayPlanSchema } from '../../../src/common/contracts';
+import { AssistantInvalidOutputException } from '../../../src/common/exceptions';
+import { otherDaysRecipeIds } from '../../../src/modules/services/menu/menu-day';
+import { PlannedDay } from '../../../src/modules/services/menu/menu-plan';
+import { ModelResult, OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { createMock } from '../../../src/test/create-mock';
+import { loadCases } from '../../lib/cases';
+import { MENU_PLAN_RECIPES } from '../menu-plan/menu-plan.suite';
+import {
+  composeDay,
+  dayCandidates,
+  MenuDayCase,
+  MenuDayCaseSchema,
+  menuDaySuite,
+  previousDays,
+  replacedDays,
+  scoreMenuDay,
+} from './menu-day.suite';
+
+const recipeOf = (mealType: string, i: number): string =>
+  MENU_PLAN_RECIPES.filter((recipe) => recipe.mealType === mealType)[i].name;
+
+describe('menu-day suite', () => {
+  const day = (i: number): MenuDayCase['previous'][number] => ({
+    breakfast: recipeOf('breakfast', i),
+    lunch: recipeOf('lunch', i),
+    snack: recipeOf('snack', i),
+    dinner: recipeOf('dinner', i),
+  });
+  const theCase: MenuDayCase = {
+    id: 'c',
+    tags: [],
+    profile: 'basic',
+    request: 'Plan a 3-day menu with day 2 planned again.',
+    previous: [day(0), day(1), day(2)],
+    dayIndex: 1,
+    rotation: 0,
+  };
+  const { candidates } = dayCandidates(theCase);
+  const plan = (meals: PlannedDay): MenuDayPlan => ({ message: 'New day.', meals });
+  /** The first meals of the candidates that pass every field, found by trying them. */
+  const good = ((): MenuDayPlan => {
+    const [b, l, s, d] = MENU_PLAN_MEAL_TYPES.map((mealType) => candidates[mealType]);
+    for (const breakfast of b) {
+      for (const lunch of l) {
+        for (const snack of s) {
+          for (const dinner of d) {
+            const candidate = plan({
+              breakfast: breakfast.id,
+              lunch: lunch.id,
+              snack: snack.id,
+              dinner: dinner.id,
+            });
+            if (scoreMenuDay(theCase, candidate).every(({ pass }) => pass)) {
+              return candidate;
+            }
+          }
+        }
+      }
+    }
+    throw new Error('No day of the candidates passes');
+  })();
+  const score = (output: MenuDayPlan | null): Record<string, boolean> =>
+    Object.fromEntries(scoreMenuDay(theCase, output).map(({ field, pass }) => [field, pass]));
+
+  describe('dayCandidates', () => {
+    it('offers the candidates of one day without the recipes of the other days', () => {
+      const excluded = otherDaysRecipeIds(previousDays(theCase), theCase.dayIndex);
+      const { candidates: offered, recipeIds } = dayCandidates(theCase);
+
+      for (const mealType of MENU_PLAN_MEAL_TYPES) {
+        expect(offered[mealType].length).toBeGreaterThan(0);
+        expect(offered[mealType].every(({ id }) => !excluded.has(recipeIds.get(id)!))).toBe(true);
+      }
+    });
+  });
+
+  describe('replacedDays', () => {
+    it('puts the planned day in and keeps the other days of the previous menu as they are', () => {
+      const days = replacedDays(theCase, good.meals);
+      const previous = previousDays(theCase);
+
+      expect(JSON.stringify(days[0])).toBe(JSON.stringify(previous[0]));
+      expect(JSON.stringify(days[2])).toBe(JSON.stringify(previous[2]));
+      expect(days[1].meals.map(({ recipeId }) => recipeId)).toEqual(
+        MENU_PLAN_MEAL_TYPES.map((mealType) =>
+          dayCandidates(theCase).recipeIds.get(good.meals[mealType]),
+        ),
+      );
+    });
+
+    it('composes the whole menu with the planned day', () => {
+      expect(composeDay(theCase, good.meals).days).toHaveLength(3);
+    });
+  });
+
+  describe('scoreMenuDay', () => {
+    it('passes a day of candidates on target without errors or disliked foods', () => {
+      expect(Object.values(score(good)).every(Boolean)).toBe(true);
+    });
+
+    it('fails an id that is not a candidate, and every field it leaves unscored', () => {
+      expect(score(plan({ ...good.meals, lunch: 'l99' }))).toEqual({
+        candidates: false,
+        otherDays: false,
+        exclusions: false,
+        validation: false,
+        calories: false,
+        disliked: false,
+      });
+    });
+
+    it('lets a recipe of another day pass for a meal the other days use up', () => {
+      const vegan = loadCases(menuDaySuite.casesFile, menuDaySuite.caseSchema).find(
+        ({ id }) => id === 'days-7-tuesday-vegan',
+      )!;
+      const { candidates: offered, recipeIds } = dayCandidates(vegan);
+      const excluded = otherDaysRecipeIds(previousDays(vegan), vegan.dayIndex);
+      const meals = Object.fromEntries(
+        MENU_PLAN_MEAL_TYPES.map((mealType) => [mealType, offered[mealType][0].id]),
+      ) as PlannedDay;
+
+      expect(offered.breakfast.every(({ id }) => excluded.has(recipeIds.get(id)!))).toBe(true);
+      expect(
+        scoreMenuDay(vegan, plan(meals)).find(({ field }) => field === 'exclusions')?.pass,
+      ).toBe(true);
+    });
+
+    it('fails every field on output that did not match the schema', () => {
+      expect(scoreMenuDay(theCase, null).every(({ pass }) => !pass)).toBe(true);
+    });
+  });
+
+  describe('run', () => {
+    const usage = { inputTokens: 1000, cachedInputTokens: 100, outputTokens: 50 };
+    const wrong = plan({ ...good.meals, lunch: 'x' });
+    const result = (output: MenuDayPlan): ModelResult<MenuDayPlan> => ({
+      output,
+      modelId: 'm',
+      latencyMs: 10,
+      usage,
+    });
+    let openAi: jest.Mocked<OpenAiService>;
+
+    beforeEach(() => {
+      openAi = createMock<OpenAiService>();
+    });
+
+    it('runs the day call of the app with the candidates of the case', async () => {
+      openAi.generateStructuredResult.mockResolvedValue(result(good) as never);
+
+      await expect(menuDaySuite.run(theCase, openAi)).resolves.toEqual({
+        ...result(good),
+        metrics: { repairs: 0 },
+      });
+
+      const [[input, schema, options]] = openAi.generateStructuredResult.mock.calls;
+      expect(schema).toBe(MenuDayPlanSchema);
+      expect(options.maxOutputTokens).toBe(MENU_DAY_MAX_OUTPUT_TOKENS);
+      const sent = JSON.parse((input as Array<{ content: string }>)[0].content);
+      expect(sent).toMatchObject({ request: theCase.request, dayIndex: 1 });
+      expect(sent.recipes).toEqual(candidates);
+    });
+
+    it('sends a day with problems back and counts the repairs, usage and latency of every call', async () => {
+      openAi.generateStructuredResult
+        .mockResolvedValueOnce(result(wrong) as never)
+        .mockResolvedValueOnce(result(good) as never);
+
+      await expect(menuDaySuite.run(theCase, openAi)).resolves.toEqual({
+        output: good,
+        modelId: 'm',
+        latencyMs: 20,
+        usage: { inputTokens: 2000, cachedInputTokens: 200, outputTokens: 100 },
+        metrics: { repairs: 1 },
+      });
+      const [, [messages]] = openAi.generateStructuredResult.mock.calls;
+      expect((messages as Array<{ content: string }>).at(-1)?.content).toBe(
+        menuDayRetryMessage(['dayIndex 1, lunch: "x" is not an id from the lunch recipes.']),
+      );
+    });
+
+    it('returns the last day after the last attempt', async () => {
+      openAi.generateStructuredResult.mockResolvedValue(result(wrong) as never);
+
+      await expect(menuDaySuite.run(theCase, openAi)).resolves.toMatchObject({
+        output: wrong,
+        metrics: { repairs: MENU_PLAN_MAX_ATTEMPTS - 1 },
+      });
+    });
+
+    it('fails invalid output with the usage of every call', async () => {
+      openAi.generateStructuredResult
+        .mockResolvedValueOnce(result(wrong) as never)
+        .mockRejectedValueOnce(new AssistantInvalidOutputException({ modelId: 'm', usage }));
+
+      const error = await menuDaySuite.run(theCase, openAi).catch((e: unknown) => e);
+
+      expect((error as AssistantInvalidOutputException).call).toEqual({
+        modelId: 'm',
+        usage: { inputTokens: 2000, cachedInputTokens: 200, outputTokens: 100 },
+      });
+    });
+  });
+
+  it.each([
+    ['a day outside the menu', { dayIndex: 3 }],
+    ['a menu of one day', { previous: [day(0)], dayIndex: 0 }],
+    ['an unknown recipe', { previous: [day(0), { ...day(1), lunch: 'Nope' }] }],
+  ])('rejects a case with %s', (_case, overrides) => {
+    expect(MenuDayCaseSchema.safeParse({ ...theCase, ...overrides }).success).toBe(false);
+  });
+
+  describe('cases.jsonl', () => {
+    const cases = loadCases(menuDaySuite.casesFile, menuDaySuite.caseSchema);
+
+    it('redoes the first, a middle and the last day', () => {
+      for (const tag of ['first', 'middle', 'last']) {
+        expect(cases.some((c) => c.tags.includes(tag))).toBe(true);
+      }
+    });
+
+    it('covers a week and every profile', () => {
+      expect(cases.some((c) => c.previous.length === MENU_MAX_DAYS)).toBe(true);
+      for (const profile of ['basic', 'vegan', 'vegetarian', 'allergy', 'low_kcal']) {
+        expect(cases.some((c) => c.profile === profile)).toBe(true);
+      }
+    });
+
+    it('starts every case from a menu without errors', () => {
+      for (const c of cases) {
+        const days = previousDays(c);
+        const meals = days[c.dayIndex].meals;
+        const { recipeIds } = dayCandidates(c);
+        const anyCandidate = Object.fromEntries(
+          MENU_PLAN_MEAL_TYPES.map((mealType) => [
+            mealType,
+            dayCandidates(c).candidates[mealType][0].id,
+          ]),
+        ) as PlannedDay;
+        expect(meals).toHaveLength(MENU_PLAN_MEAL_TYPES.length);
+        expect(recipeIds.size).toBeGreaterThan(0);
+        const otherErrors = composeDay(c, anyCandidate).issues.filter(
+          (issue) => issue.severity === MenuIssueSeverity.Error && issue.dayIndex !== c.dayIndex,
+        );
+        expect(otherErrors).toEqual([]);
+      }
+    });
+  });
+});

@@ -240,6 +240,14 @@ candidates of that meal), `validation` (no problem the planner sends back to the
 recipe on two days in a row, none twice while the meal has unused candidates). The metric
 `repairs` is the mean of the calls after the first one; it is saved in the baseline, not compared.
 
+**menu-day** (EVAL-5) - redoing one day of a suggested menu ("redo Tuesday"; `menuDayModelCall`,
+`menuDayErrors`, `planWithRetries` as `MenuPlannerService.replanDay` runs them) on the same recipes
+and profiles: menus of 2 to 7 days given by recipe names, the first, a middle or the last day
+redone. The candidates leave out the recipes of the other days (`withoutRecipes`). Fields:
+`candidates`; `otherDays` (every other day byte for byte as in the previous menu); `exclusions` (no
+recipe of another day while the meal had another candidate); `validation` (no error in the whole
+menu with the new day); `calories` and `disliked` of the new day. Metric `repairs`.
+
 ## Tests
 
 ```bash

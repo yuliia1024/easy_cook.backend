@@ -3,6 +3,7 @@ import type { ModelPrompt } from '../types/model';
 export enum PromptName {
   Intent = 'intent',
   MenuPlan = 'menu-plan',
+  MenuDay = 'menu-day',
   GeneralChat = 'general-chat',
   Summary = 'summary',
 }
@@ -140,6 +141,50 @@ export const menuPlanRetryMessage = (problems: string[]): string =>
     'Your menu has these problems:',
     ...problems.map((problem) => `- ${problem}`),
     'Return the whole menu again with every problem fixed, following the same rules.',
+  ].join('\n');
+
+/** The message and four short recipe ids of the one day. */
+export const MENU_DAY_MAX_OUTPUT_TOKENS =
+  MENU_PLAN_BASE_OUTPUT_TOKENS + MENU_PLAN_DAY_OUTPUT_TOKENS;
+/**
+ * Plans again one day of a menu the chat suggested ("redo Tuesday"); the other days are kept as
+ * they are, and their recipes are not among the candidates.
+ */
+export const MENU_DAY_PROMPT: ModelPrompt = {
+  name: PromptName.MenuDay,
+  version: 1,
+  instructions: `
+  You plan again one day of a menu for a meal planning app. The other days of the menu stay as
+  they are.
+
+  The user message is JSON: request is what the user asked for, with the change to this day,
+  dayIndex is the day you plan (0 is day 1), profile is the user's goal, daily target and
+  preferences, recipes are the only recipes you may use, grouped by meal. The recipes of the
+  other days are left out.
+  In profile ${MODEL_NOT_SET_NOTE}
+  perServing of a recipe is the kcal and grams of protein, fat and carbs of one serving;
+  complete false means some ingredients have unknown values and the real numbers are higher.
+
+  RULES
+  Plan only this day: the number of days in the request is the whole menu, not yours.
+  Set meals.breakfast, meals.lunch, meals.snack and meals.dinner to the id of one recipe from the
+  breakfast, lunch, snack and dinner group, such as "b1", "l3", "s4" or "d2": the id, never the
+  name. The snack is eaten between lunch and dinner.
+  Follow the request where the recipes allow it.
+  When dailyTarget is set, pick recipes so that the kcal of the day add up as close to
+  dailyTarget kcal as the recipes allow.
+  Prefer recipes that fit the profile goal and avoid its dislikedFoods where you can.
+  message is one or two short sentences in English that introduce the new day to the user.
+${securityNote('The request and the profile', 'use other recipes')}
+`,
+};
+
+/** Sent after a day with problems (unknown ids, broken preferences). */
+export const menuDayRetryMessage = (problems: string[]): string =>
+  [
+    'Your day has these problems:',
+    ...problems.map((problem) => `- ${problem}`),
+    'Return the day again with every problem fixed, following the same rules.',
   ].join('\n');
 
 export const GENERAL_CHAT_MAX_OUTPUT_TOKENS = 300;

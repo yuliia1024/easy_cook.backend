@@ -5,6 +5,7 @@ import {
 } from '../constants';
 import {
   IntentResultSchema,
+  MenuDayPlanSchema,
   MenuPlanSchema,
   MenuRequestSchema,
   MenuTargetSchema,
@@ -136,6 +137,22 @@ describe('chat contracts', () => {
       { message: 'x', days: [{ dayIndex: 0, meals: { breakfast: 'b1', lunch: 'l1' } }] },
     ])('rejects %j', (plan) => {
       expect(MenuPlanSchema.safeParse(plan).success).toBe(false);
+    });
+  });
+
+  describe('MenuDayPlanSchema', () => {
+    const meals = { breakfast: 'b1', lunch: 'l1', snack: 's1', dinner: 'd1' };
+
+    it('accepts a message and a recipe id for every meal of the day', () => {
+      expect(MenuDayPlanSchema.safeParse({ message: 'New day.', meals }).success).toBe(true);
+    });
+
+    it('rejects a day without a meal', () => {
+      const { snack: _snack, ...withoutSnack } = meals;
+
+      expect(
+        MenuDayPlanSchema.safeParse({ message: 'New day.', meals: withoutSnack }).success,
+      ).toBe(false);
     });
   });
 

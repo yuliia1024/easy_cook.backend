@@ -126,6 +126,36 @@ describe('MenuService', () => {
     });
   });
 
+  describe('getVersionDays', () => {
+    it('returns the saved days of a version of the profile', async () => {
+      repository.findVersion.mockResolvedValue(buildMenuVersion());
+
+      await expect(service.getVersionDays(MENU_VERSION_ID)).resolves.toEqual([
+        {
+          dayIndex: 0,
+          date: null,
+          meals: [
+            {
+              mealType: MealType.Lunch,
+              servings: 1,
+              recipeId: buildRecipeSnapshot().id,
+              recipe: buildRecipeSnapshot(),
+            },
+          ],
+        },
+      ]);
+      expect(repository.findVersion).toHaveBeenCalledWith(PROFILE_ID, MENU_VERSION_ID);
+    });
+
+    it('fails for an unknown version', async () => {
+      repository.findVersion.mockResolvedValue(null);
+
+      await expect(service.getVersionDays(MENU_VERSION_ID)).rejects.toBeInstanceOf(
+        MenuVersionNotFoundException,
+      );
+    });
+  });
+
   describe('getById', () => {
     it('returns one menu of the profile', async () => {
       await expect(service.getById(MENU_ID)).resolves.toBe(menu);

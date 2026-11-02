@@ -22,6 +22,7 @@ import {
 import { ProfileContextService } from '../profile-context/profile-context.service';
 import { UserProfileService } from '../user-profile/user-profile.service';
 import { MenuComposer } from './menu-composer';
+import { resolveVersion } from './menu-composition';
 import { errorsOf } from './menu-rules';
 
 export interface GeneratedMenu {
@@ -63,6 +64,16 @@ export class MenuService {
       throw new MenuNotFoundException();
     }
     return menu;
+  }
+
+  /** The days of a version of a menu of the profile, as saved; 404 for an unknown one. */
+  public async getVersionDays(versionId: string): Promise<ResolvedDay[]> {
+    const profile = await this.userProfileService.getCurrent();
+    const version = await this.menuRepository.findVersion(profile.id, versionId);
+    if (!version) {
+      throw new MenuVersionNotFoundException();
+    }
+    return resolveVersion(version);
   }
 
   /**

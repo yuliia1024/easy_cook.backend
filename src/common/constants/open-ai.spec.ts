@@ -3,6 +3,7 @@ import { ModelPrompt } from '../types';
 import {
   GENERAL_CHAT_PROMPT,
   INTENT_PROMPT,
+  MENU_DAY_PROMPT,
   MENU_PLAN_PROMPT,
   PromptName,
   SUMMARY_PROMPT,
@@ -11,6 +12,7 @@ import {
 const PROMPTS: ModelPrompt[] = [
   INTENT_PROMPT,
   MENU_PLAN_PROMPT,
+  MENU_DAY_PROMPT,
   GENERAL_CHAT_PROMPT,
   SUMMARY_PROMPT,
 ];
@@ -27,6 +29,10 @@ const RELEASED: Record<PromptName, { version: number; sha256: string }> = {
   [PromptName.MenuPlan]: {
     version: 1,
     sha256: '0ff81dfc9db18ae2e166a8680f6eae237a9c877ea3a4a730a347fca70d50902d',
+  },
+  [PromptName.MenuDay]: {
+    version: 1,
+    sha256: 'ab50a49a6087ea3cdc82a921cccd06c2e6791357750a2317adc6c40113800344',
   },
   [PromptName.GeneralChat]: {
     version: 1,

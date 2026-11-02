@@ -17,7 +17,9 @@ import {
   MealType,
   MENU_PLAN_FAILED_REPLY,
   MENU_PLAN_MAX_ATTEMPTS,
+  MENU_DAY_PROMPT,
   MENU_PLAN_PROMPT,
+  MenuTargetScope,
   OUT_OF_SCOPE_REPLY,
 } from '../src/common/constants';
 import { estimateTokens } from '../src/common/utils';
@@ -456,6 +458,95 @@ describe('/api/conversations (e2e)', () => {
     const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
     expect(JSON.parse(planned[0].content).request).toBe('Plan a one-day menu with another lunch.');
     expect(await ctx.prisma.menu.count()).toBe(1);
+  });
+
+  it('redoes one day of the suggested menu, copying the other days and leaving their recipes out', async () => {
+    const { recipe } = await createMenuWorld(ctx);
+    await addRiceRecipes(ctx, 2);
+    const id = await start();
+    const threeDays = {
+      ...EMPTY_MENU_REQUEST,
+      days: 3,
+      mealTypes: [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner],
+    };
+    const menuOf = (chunks: Array<{ type: string; data?: any }>) =>
+      chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeOpenAiState.menuRequest = threeDays;
+    fakeOpenAiState.menuPlan = fakeMenuPlan(
+      'Here are your days.',
+      { breakfast: 'Oatmeal', lunch: 'Chicken with rice', dinner: 'Rice bowl' },
+      3,
+    );
+    const first = menuOf((await say(id, 'Plan 3 days')).chunks);
+
+    fakeOpenAiState.structuredInputs = [];
+    fakeOpenAiState.intent = Intent.ReviseMenu;
+    fakeOpenAiState.request = 'Plan a 3-day menu with day 2 planned again.';
+    fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST };
+    fakeOpenAiState.target = { scope: MenuTargetScope.Day, dayIndex: 1, mealType: null };
+    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is a new Tuesday.', {
+      breakfast: 'Rice breakfast 1',
+      lunch: 'Rice lunch 1',
+      snack: 'Rice snack 1',
+      dinner: 'Rice dinner 1',
+    });
+    const second = menuOf((await say(id, 'Redo Tuesday')).chunks);
+
+    const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+    const sent = JSON.parse(planned[0].content);
+    expect(sent).toMatchObject({
+      dayIndex: 1,
+      request: 'Plan a 3-day menu with day 2 planned again.',
+    });
+    expect(sent.days).toBeUndefined();
+    const offered = Object.values(sent.recipes as Record<string, Array<{ name: string }>>)
+      .flat()
+      .map(({ name }) => name);
+    expect(offered).not.toContain('Oatmeal');
+    expect(offered).not.toContain('Chicken with rice');
+    expect(offered).not.toContain('Rice bowl');
+    expect(second.menuId).toBe(first.menuId);
+
+    const versions = await ctx.prisma.menuVersion.findMany({
+      where: { menuId: first.menuId },
+      orderBy: { versionNumber: 'asc' },
+      include: {
+        days: {
+          orderBy: { dayIndex: 'asc' },
+          include: { meals: { orderBy: { position: 'asc' } } },
+        },
+      },
+    });
+    const daysOf = (version: (typeof versions)[number]) =>
+      version.days.map(({ dayIndex, date, meals }) => ({
+        dayIndex,
+        date,
+        meals: meals.map(({ mealType, position, recipeId, servings, recipeSnapshot }) => ({
+          mealType,
+          position,
+          recipeId,
+          servings: servings.toString(),
+          recipeSnapshot,
+        })),
+      }));
+    const [before, after] = versions.map(daysOf);
+    expect(JSON.stringify(after[0])).toBe(JSON.stringify(before[0]));
+    expect(JSON.stringify(after[2])).toBe(JSON.stringify(before[2]));
+    expect(after[1].meals.map(({ recipeId }) => recipeId)).not.toContain(recipe.oats);
+    expect(after[1].meals.map(({ recipeId }) => recipeId)).toHaveLength(4);
+    expect(
+      second.composition.days.map((day: { meals: Array<{ recipeName: string }> }) =>
+        day.meals.map(({ recipeName }) => recipeName),
+      ),
+    ).toEqual([
+      ['Oatmeal', 'Chicken with rice', 'Oat snack', 'Rice bowl'],
+      ['Rice breakfast 1', 'Rice lunch 1', 'Rice snack 1', 'Rice dinner 1'],
+      ['Oatmeal', 'Chicken with rice', 'Oat snack', 'Rice bowl'],
+    ]);
+    expect(versions[1].notes).toBe(
+      `model: ${FAKE_MODEL_ID}; prompt: menu-day@v${MENU_DAY_PROMPT.version}`,
+    );
   });
 
   it('revises the whole menu without chicken as the next version, keeping the earlier constraints', async () => {

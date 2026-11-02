@@ -81,6 +81,17 @@ export class MenuRepository {
     return this.prisma.menu.findFirst({ where: { id, profileId }, include: MENU_INCLUDE });
   }
 
+  /** A version of a menu of the profile with its days and meals. */
+  public async findVersion(
+    profileId: string,
+    versionId: string,
+  ): Promise<MenuVersionWithDays | null> {
+    return this.prisma.menuVersion.findFirst({
+      where: { id: versionId, menu: { profileId } },
+      include: MENU_INCLUDE.versions.include,
+    });
+  }
+
   /**
    * A new unconfirmed menu with its version 1, linked to the conversation it was generated in, in
    * one transaction.

@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ModelMessage } from 'ai';
+import { z } from 'zod';
 import {
   ChatResponseType,
   ChatStatusStep,
@@ -7,6 +9,8 @@ import {
   MENU_PLAN_CANDIDATE_POOL_FACTOR,
   MENU_PLAN_MAX_ATTEMPTS,
   MENU_PLAN_MEAL_TYPES,
+  menuDayRetryMessage,
+  menuPlanRetryMessage,
   NO_PROFILE_REPLY,
 } from '../../../common/constants';
 import { MenuRequest } from '../../../common/contracts';
@@ -15,12 +19,13 @@ import {
   ChatResponse,
   MacroValues,
   MenuComposition,
+  ModelProvenance,
   ProfileContext,
   ResolvedDay,
 } from '../../../common/types';
 import { AssistantInvalidOutputException } from '../../../common/exceptions';
 import { promptLabel } from '../../../common/utils';
-import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
+import { ModelCallOptions, OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repository';
 import { NutritionService, RecipeNutrition } from '../nutrition/nutrition.service';
 import { RecipeService } from '../recipe/recipe.service';
@@ -29,8 +34,16 @@ import { findMenuShortage, hasEnoughRecipes, menuShortageReply } from './menu-sh
 import { requestRules } from './menu-request';
 import { fitServings, snapshotRecipe } from './menu-composition';
 import {
+  menuDayErrors,
+  menuDayModelCall,
+  otherDaysRecipeIds,
+  replaceDay,
+  withoutRecipes,
+} from './menu-day';
+import {
   candidatesPerMeal,
   labelCandidates,
+  LabelledCandidates,
   MenuPlanCandidates,
   menuPlanErrors,
   menuPlanModelCall,
@@ -43,6 +56,11 @@ import {
 interface RecipeOption {
   recipe: RecipeWithIngredients;
   nutrition: RecipeNutrition;
+}
+
+/** The allowed recipes with their nutrition and the labelled candidates. */
+interface PreparedMenu extends LabelledCandidates {
+  options: Map<string, RecipeOption>;
 }
 
 const roundToUnits = ({ kcal, proteinG, fatG, carbsG }: MacroValues): MacroValues => ({
@@ -93,52 +111,211 @@ export class MenuPlannerService {
     if (!profile) {
       return { type: ChatResponseType.Text, message: NO_PROFILE_REPLY };
     }
-    const status = (step: ChatStatusStep): void =>
-      onProgress({ type: ChatStreamEventType.Status, step });
     const days = request.days ?? MENU_MIN_DAYS;
-    status(ChatStatusStep.SearchingBreakfasts);
-    const context = { ...profile, rules: requestRules(profile.rules, request) };
-    const recipes = await this.recipeService.getAllowed(context.rules);
-    if (!hasEnoughRecipes(recipes, days)) {
-      const shortage = findMenuShortage(
-        await this.recipeService.getAll(),
-        context.rules,
-        profile.rules,
-        days,
-      );
-      if (shortage) {
-        this.logger.log(
-          `Too few recipes for a ${days}-day menu: ${JSON.stringify(shortage.shortMeals)}`,
-        );
-        return { type: ChatResponseType.Text, message: menuShortageReply(shortage) };
-      }
+    const { context, recipes } = await this.allowedRecipes(request, profile, onProgress);
+    const shortage = await this.shortageReply(recipes, context, profile, days);
+    if (shortage) {
+      return shortage;
     }
-    const options = new Map<string, RecipeOption>(
-      recipes.map((recipe) => [
-        recipe.id,
-        { recipe, nutrition: this.nutritionService.calculateRecipe(recipe) },
-      ]),
-    );
-    const { candidates, recipeIds } = labelCandidates(
-      this.candidates([...options.values()], days, request.caloriesKcal),
-    );
-    onProgress({
-      type: ChatStreamEventType.MenuPending,
+    const { options, candidates, recipeIds } = this.prepare(
+      recipes,
+      request,
       days,
-      mealTypes: [...MENU_PLAN_MEAL_TYPES],
-    });
-
+      days,
+      onProgress,
+    );
     const {
       input,
       schema,
       options: callOptions,
     } = menuPlanModelCall(message, days, context, candidates, abortSignal);
     const resolve = (planned: PlannedDay[]): ResolvedDay[] =>
-      this.resolve(planned, recipeIds, options, request.caloriesKcal);
-    const compose = (plan: PlannedDay[]): MenuComposition =>
-      this.menuComposer.compose(resolve(plan), context);
+      this.fit(
+        planned.map((meals, dayIndex) =>
+          this.resolveDay(meals, dayIndex, null, recipeIds, options),
+        ),
+        request.caloriesKcal,
+      );
+    const { plan, generatedWith, attempts } = await this.generate(
+      input,
+      schema,
+      callOptions,
+      (planned) =>
+        menuPlanErrors(planned, candidates, days, (d) =>
+          this.menuComposer.compose(resolve(d), context),
+        ),
+      menuPlanRetryMessage,
+      onProgress,
+    );
+    this.logger.log(
+      `Menu of ${days} days planned in ${attempts} attempt(s) by ${generatedWith.modelId} with ${generatedWith.prompt}`,
+    );
+    const resolved = resolve(planDays(plan));
+    return {
+      type: ChatResponseType.MenuReady,
+      message: plan.message,
+      menu: this.menuComposer.compose(resolved, context),
+      days: resolved,
+      generatedWith,
+    };
+  }
+
+  /**
+   * Plans the day `dayIndex` of the menu `previous` again ("redo Tuesday"): the model picks only
+   * that day's meals (`MENU_DAY_PROMPT`), among candidates without the recipes of the other days
+   * (`withoutRecipes`), and the other days are copied from `previous` as they are, servings and
+   * recipe snapshots included. The whole menu with the new day is validated on every attempt; the
+   * errors on the new day go back to the model (`menuDayErrors`), the ones of the kept days stay
+   * in the menu's issues. The new day keeps the date of the old one and its servings are fitted
+   * to the daily calories of the request. Nothing is saved.
+   */
+  public async replanDay(
+    message: string,
+    request: MenuRequest,
+    profile: ProfileContext | null,
+    previous: ResolvedDay[],
+    dayIndex: number,
+    abortSignal?: AbortSignal,
+    onProgress: (event: ChatProgressEvent) => void = () => undefined,
+  ): Promise<ChatResponse> {
+    const old = previous.find((day) => day.dayIndex === dayIndex);
+    if (!old) {
+      throw new Error(`The menu has no day ${dayIndex}`);
+    }
+    if (!profile) {
+      return { type: ChatResponseType.Text, message: NO_PROFILE_REPLY };
+    }
+    const { context, recipes } = await this.allowedRecipes(request, profile, onProgress);
+    const shortage = await this.shortageReply(recipes, context, profile, MENU_MIN_DAYS);
+    if (shortage) {
+      return shortage;
+    }
+    const { options, candidates, recipeIds } = this.prepare(
+      withoutRecipes(recipes, otherDaysRecipeIds(previous, dayIndex)),
+      request,
+      MENU_MIN_DAYS,
+      previous.length,
+      onProgress,
+    );
+    const {
+      input,
+      schema,
+      options: callOptions,
+    } = menuDayModelCall(message, dayIndex, context, candidates, abortSignal);
+    const resolve = (meals: PlannedDay): ResolvedDay[] =>
+      replaceDay(
+        previous,
+        this.fit(
+          [this.resolveDay(meals, dayIndex, old.date, recipeIds, options)],
+          request.caloriesKcal,
+        )[0],
+      );
+    const compose = (meals: PlannedDay): MenuComposition =>
+      this.menuComposer.compose(resolve(meals), context);
+    const { plan, generatedWith, attempts } = await this.generate(
+      input,
+      schema,
+      callOptions,
+      (planned) => menuDayErrors(planned, candidates, dayIndex, compose),
+      menuDayRetryMessage,
+      onProgress,
+    );
+    this.logger.log(
+      `Day ${dayIndex + 1} of ${previous.length} planned again in ${attempts} attempt(s) by ${generatedWith.modelId} with ${generatedWith.prompt}`,
+    );
+    return {
+      type: ChatResponseType.MenuReady,
+      message: plan.message,
+      menu: compose(plan.meals),
+      days: resolve(plan.meals),
+      generatedWith,
+    };
+  }
+
+  /** The profile with the rules of the request and the recipes those rules allow. */
+  private async allowedRecipes(
+    request: MenuRequest,
+    profile: ProfileContext,
+    onProgress: (event: ChatProgressEvent) => void,
+  ): Promise<{ context: ProfileContext; recipes: RecipeWithIngredients[] }> {
+    onProgress({ type: ChatStreamEventType.Status, step: ChatStatusStep.SearchingBreakfasts });
+    const context = { ...profile, rules: requestRules(profile.rules, request) };
+    return { context, recipes: await this.recipeService.getAllowed(context.rules) };
+  }
+
+  /**
+   * The reply that names the rules leaving too few of the allowed `recipes` for `days` days, or
+   * `null` when there are enough.
+   */
+  private async shortageReply(
+    recipes: RecipeWithIngredients[],
+    context: ProfileContext,
+    profile: ProfileContext,
+    days: number,
+  ): Promise<ChatResponse | null> {
+    if (hasEnoughRecipes(recipes, days)) {
+      return null;
+    }
+    const shortage = findMenuShortage(
+      await this.recipeService.getAll(),
+      context.rules,
+      profile.rules,
+      days,
+    );
+    if (!shortage) {
+      return null;
+    }
+    this.logger.log(
+      `Too few recipes for a ${days}-day menu: ${JSON.stringify(shortage.shortMeals)}`,
+    );
+    return { type: ChatResponseType.Text, message: menuShortageReply(shortage) };
+  }
+
+  /**
+   * The recipes with their nutrition and the labelled candidates for `days` planned days.
+   * `menuDays` is the length of the whole menu, for `menu_pending`.
+   */
+  private prepare(
+    recipes: RecipeWithIngredients[],
+    request: MenuRequest,
+    days: number,
+    menuDays: number,
+    onProgress: (event: ChatProgressEvent) => void,
+  ): PreparedMenu {
+    const options = new Map<string, RecipeOption>(
+      recipes.map((recipe) => [
+        recipe.id,
+        { recipe, nutrition: this.nutritionService.calculateRecipe(recipe) },
+      ]),
+    );
+    const labelled = labelCandidates(
+      this.candidates([...options.values()], days, request.caloriesKcal),
+    );
+    onProgress({
+      type: ChatStreamEventType.MenuPending,
+      days: menuDays,
+      mealTypes: [...MENU_PLAN_MEAL_TYPES],
+    });
+    return { options, ...labelled };
+  }
+
+  /**
+   * Asks the model until the plan has no `problemsOf`, up to `MENU_PLAN_MAX_ATTEMPTS` calls
+   * (`planWithRetries`); still with problems after the last one, it is invalid output. Returns the
+   * plan with the model and prompt version of the last call and the number of calls.
+   */
+  private async generate<T>(
+    input: ModelMessage[],
+    schema: z.ZodType<T>,
+    callOptions: ModelCallOptions,
+    problemsOf: (plan: T) => string[],
+    retryMessage: (problems: string[]) => string,
+    onProgress: (event: ChatProgressEvent) => void,
+  ): Promise<{ plan: T; generatedWith: ModelProvenance; attempts: number }> {
+    const status = (step: ChatStatusStep): void =>
+      onProgress({ type: ChatStreamEventType.Status, step });
     let modelId = '';
-    const attempts = await planWithRetries(
+    const attempts = await planWithRetries<T>(
       input,
       async (messages) => {
         status(ChatStatusStep.PickingLunches);
@@ -152,8 +329,10 @@ export class MenuPlannerService {
       },
       (plan) => {
         status(ChatStatusStep.CheckingConstraints);
-        return menuPlanErrors(plan, candidates, days, compose);
+        return problemsOf(plan);
       },
+      MENU_PLAN_MAX_ATTEMPTS,
+      retryMessage,
     );
     attempts.forEach(({ problems }, i) => {
       if (problems.length > 0) {
@@ -167,17 +346,10 @@ export class MenuPlannerService {
       this.logger.warn(`Menu plan failed after ${attempts.length} attempts`);
       throw new AssistantInvalidOutputException();
     }
-    const generatedWith = { modelId, prompt: promptLabel(callOptions.prompt) };
-    this.logger.log(
-      `Menu of ${days} days planned in ${attempts.length} attempt(s) by ${generatedWith.modelId} with ${generatedWith.prompt}`,
-    );
-    const resolved = resolve(planDays(plan));
     return {
-      type: ChatResponseType.MenuReady,
-      message: plan.message,
-      menu: this.menuComposer.compose(resolved, context),
-      days: resolved,
-      generatedWith,
+      plan,
+      generatedWith: { modelId, prompt: promptLabel(callOptions.prompt) },
+      attempts: attempts.length,
     };
   }
 
@@ -210,16 +382,17 @@ export class MenuPlannerService {
     ) as MenuPlanCandidates;
   }
 
-  /** The days with the recipes of the short ids the model picked, servings fitted to `dailyKcal`. */
-  private resolve(
-    days: PlannedDay[],
+  /** The day with the recipes of the short ids the model picked, one serving each. */
+  private resolveDay(
+    meals: PlannedDay,
+    dayIndex: number,
+    date: Date | null,
     recipeIds: Map<string, string>,
     options: Map<string, RecipeOption>,
-    dailyKcal: number | null,
-  ): ResolvedDay[] {
-    const resolved = days.map((meals, dayIndex): ResolvedDay => ({
+  ): ResolvedDay {
+    return {
       dayIndex,
-      date: null,
+      date,
       meals: MENU_PLAN_MEAL_TYPES.map((mealType) => {
         const { recipe, nutrition } = options.get(
           recipeIds.get(meals[mealType]) as string,
@@ -231,7 +404,11 @@ export class MenuPlannerService {
           recipe: snapshotRecipe(recipe, nutrition),
         };
       }),
-    }));
-    return dailyKcal === null ? resolved : fitServings(resolved, dailyKcal);
+    };
+  }
+
+  /** The servings of the days fitted to `dailyKcal`, unchanged without it. */
+  private fit(days: ResolvedDay[], dailyKcal: number | null): ResolvedDay[] {
+    return dailyKcal === null ? days : fitServings(days, dailyKcal);
   }
 }

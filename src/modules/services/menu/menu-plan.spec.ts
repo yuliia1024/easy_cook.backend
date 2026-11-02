@@ -273,6 +273,28 @@ describe('planWithRetries', () => {
     ]);
   });
 
+  it('sends the problems in the retry message it is given', async () => {
+    const generate = jest
+      .fn()
+      .mockResolvedValueOnce(plan('wrong'))
+      .mockResolvedValueOnce(plan('ok'));
+    const retryMessage = (problems: string[]): string => `Fix: ${problems.join(' ')}`;
+
+    await planWithRetries(
+      input,
+      generate,
+      (p) => (p.message === 'wrong' ? ['Bad id.'] : []),
+      3,
+      retryMessage,
+    );
+
+    expect(generate).toHaveBeenLastCalledWith([
+      ...input,
+      { role: 'assistant', content: JSON.stringify(plan('wrong')) },
+      { role: 'user', content: 'Fix: Bad id.' },
+    ]);
+  });
+
   it('gives up after the last attempt, returning the plans with their problems', async () => {
     const generate = jest.fn().mockResolvedValue(plan('wrong'));
 

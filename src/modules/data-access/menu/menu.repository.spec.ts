@@ -156,6 +156,15 @@ describe('MenuRepository', () => {
     });
   });
 
+  it('loads one version of a menu of the profile with its days and meals', async () => {
+    await repository.findVersion(PROFILE_ID, VERSION_ID);
+
+    expect(prisma.menuVersion.findFirst).toHaveBeenCalledWith({
+      where: { id: VERSION_ID, menu: { profileId: PROFILE_ID } },
+      include: MENU_INCLUDE.versions.include,
+    });
+  });
+
   it('confirms a version with the time', async () => {
     await repository.confirm(MENU_ID, VERSION_ID);
 

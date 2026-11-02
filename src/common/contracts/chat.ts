@@ -77,6 +77,17 @@ export const MenuPlanSchema = z.object({
 
 export type MenuPlan = z.infer<typeof MenuPlanSchema>;
 
+/**
+ * What `MenuPlannerService.replanDay` accepts from the model: a recipe id for each meal of the one
+ * day it plans again, checked afterwards against the candidates of that meal (`menuDayErrors`).
+ */
+export const MenuDayPlanSchema = z.object({
+  message: z.string(),
+  meals: MenuPlanSchema.shape.days.element.shape.meals,
+});
+
+export type MenuDayPlan = z.infer<typeof MenuDayPlanSchema>;
+
 /** What `ConversationSummaryService` accepts from the model: the summary of the older messages. */
 export const SummaryResultSchema = z.object({
   summary: z.string().min(1).max(SUMMARY_MAX_LENGTH),
