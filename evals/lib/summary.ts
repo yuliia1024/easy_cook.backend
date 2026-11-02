@@ -54,11 +54,15 @@ export const isFailedCall = (result: CaseResult): boolean =>
 
 /**
  * Pass rate of the runs of the cases, of every scored field and of every tag; the metrics of the
- * suite; tokens, latency and cost of the calls. A field counts only on the cases that score it. With `--repeat` every run
+ * suite; tokens, latency and cost of the calls; the prompt versions it ran. A field counts only on the cases that score it. With `--repeat` every run
  * counts, so a case that passes 2 of 3 times adds 2/3. Failed calls are counted apart and left out
  * of the rates and latency; invalid output fails its fields.
  */
-export function summarize(suite: string, results: CaseResult[]): SuiteSummary {
+export function summarize(
+  suite: string,
+  results: CaseResult[],
+  prompts: string[] = [],
+): SuiteSummary {
   const fields = new Map<string, { total: number; passed: number }>();
   const tags = new Map<string, { total: number; passed: number }>();
   const count = (map: typeof fields, key: string, pass: boolean): void => {
@@ -96,6 +100,7 @@ export function summarize(suite: string, results: CaseResult[]): SuiteSummary {
 
   return {
     suite,
+    prompts,
     models: [...models].sort(),
     cases: rate(answered.length, answered.filter((result) => result.pass).length),
     failedCalls: results.length - answered.length,

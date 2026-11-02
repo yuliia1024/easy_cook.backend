@@ -72,13 +72,16 @@ describe('eval report', () => {
 
   it('prints the comparison with the baseline', () => {
     expect(
-      formatSuite(report({ regressions: [], modelMismatch: null, newlyFailed: [] })),
+      formatSuite(
+        report({ regressions: [], modelMismatch: null, promptChange: null, newlyFailed: [] }),
+      ),
     ).toContain('  baseline   not worse');
     expect(
       formatSuite(
         report({
           regressions: [{ metric: 'field days', baseline: 0.9, current: 0.5 }],
           modelMismatch: null,
+          promptChange: null,
           newlyFailed: ['wrong'],
         }),
       ).slice(-2),
@@ -90,6 +93,7 @@ describe('eval report', () => {
       report({
         regressions: [],
         modelMismatch: { baseline: ['gpt-4o-mini-2024-07-18'], current: ['gpt-4.1-mini'] },
+        promptChange: null,
         newlyFailed: [],
       }),
     );
@@ -98,6 +102,25 @@ describe('eval report', () => {
       '  baseline   OTHER MODEL: gpt-4.1-mini vs gpt-4o-mini-2024-07-18; ' +
         'save a new baseline with --save-baseline',
     );
+  });
+
+  it('prints the prompt versions of the suite and those of the baseline when they differ', () => {
+    const lines = formatSuite({
+      summary: summarize('intent', results, ['intent@v2']),
+      baseline: {
+        regressions: [],
+        modelMismatch: null,
+        promptChange: { baseline: ['intent@v1'], current: ['intent@v2'] },
+        newlyFailed: [],
+      },
+      results,
+    });
+
+    expect(lines[1]).toBe('  prompts    intent@v2');
+    expect(lines.slice(-2)).toEqual([
+      '  baseline   prompts intent@v1 -> intent@v2',
+      '  baseline   not worse',
+    ]);
   });
 
   it('prints an unknown cost and a suite no model answered', () => {

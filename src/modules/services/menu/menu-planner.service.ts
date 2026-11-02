@@ -19,6 +19,7 @@ import {
   ResolvedDay,
 } from '../../../common/types';
 import { AssistantInvalidOutputException } from '../../../common/exceptions';
+import { promptLabel } from '../../../common/utils';
 import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repository';
 import { NutritionService, RecipeNutrition } from '../nutrition/nutrition.service';
@@ -60,7 +61,8 @@ const roundToUnits = ({ kcal, proteinG, fatG, carbsG }: MacroValues): MacroValue
  * model with the problems, up to `MENU_PLAN_MAX_ATTEMPTS` calls; after the last one it is invalid
  * output. The servings of every day are fitted to the daily calories of the request
  * (`fitServings`), one each without them. The menu comes with its issues against the profile and
- * its meals with the recipe snapshots. Nothing is saved.
+ * its meals with the recipe snapshots, and the model and prompt version that planned it
+ * (`generatedWith`, of the last attempt). Nothing is saved.
  * The rules are the profile's with the constraints of the request added (`requestRules`), so
  * "without chicken" from the chat is enforced like an excluded ingredient of the profile.
  * Without a profile there are no rules to follow, so it asks to fill one in instead.
@@ -135,11 +137,18 @@ export class MenuPlannerService {
       this.resolve(planned, recipeIds, options, request.caloriesKcal);
     const compose = (plan: PlannedDay[]): MenuComposition =>
       this.menuComposer.compose(resolve(plan), context);
+    let modelId = '';
     const attempts = await planWithRetries(
       input,
-      (messages) => {
+      async (messages) => {
         status(ChatStatusStep.PickingLunches);
-        return this.openAiService.generateStructured(messages, schema, callOptions);
+        const result = await this.openAiService.generateStructuredResult(
+          messages,
+          schema,
+          callOptions,
+        );
+        modelId = result.modelId;
+        return result.output;
       },
       (plan) => {
         status(ChatStatusStep.CheckingConstraints);
@@ -158,13 +167,17 @@ export class MenuPlannerService {
       this.logger.warn(`Menu plan failed after ${attempts.length} attempts`);
       throw new AssistantInvalidOutputException();
     }
-    this.logger.log(`Menu of ${days} days planned in ${attempts.length} attempt(s)`);
+    const generatedWith = { modelId, prompt: promptLabel(callOptions.prompt) };
+    this.logger.log(
+      `Menu of ${days} days planned in ${attempts.length} attempt(s) by ${generatedWith.modelId} with ${generatedWith.prompt}`,
+    );
     const resolved = resolve(planDays(plan));
     return {
       type: ChatResponseType.MenuReady,
       message: plan.message,
       menu: this.menuComposer.compose(resolved, context),
       days: resolved,
+      generatedWith,
     };
   }
 

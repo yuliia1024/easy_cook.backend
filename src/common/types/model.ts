@@ -11,3 +11,19 @@ export interface ModelCallInfo {
   modelId: string;
   usage: ModelUsage;
 }
+
+/**
+ * A system prompt of the model. `version` goes up with every change of `instructions`; it is
+ * logged with every call, written to the menu versions it planned and to the eval reports.
+ */
+export interface ModelPrompt {
+  name: string;
+  version: number;
+  instructions: string;
+}
+
+/** The model that answered and the prompt it answered (`promptLabel`), e.g. of a planned menu. */
+export interface ModelProvenance {
+  modelId: string;
+  prompt: string;
+}

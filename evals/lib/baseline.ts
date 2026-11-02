@@ -23,6 +23,8 @@ export function allowedDrop(rate: number, runs: number, z = BASELINE_Z): number 
 export const BaselineSchema = z.object({
   suite: z.string(),
   createdAt: z.string(),
+  /** The prompt versions the baseline measured (`promptLabel`). */
+  prompts: z.array(z.string()),
   models: z.array(z.string()),
   cases: z.number().int(),
   repeat: z.number().int(),
@@ -46,6 +48,11 @@ export interface BaselineComparison {
   regressions: Regression[];
   /** Set when the run used other models than the baseline: the rates are not comparable. */
   modelMismatch: { baseline: string[]; current: string[] } | null;
+  /**
+   * Set when the run used other prompt versions than the baseline: the change under test. It does
+   * not fail the run, the rates do.
+   */
+  promptChange: { baseline: string[]; current: string[] } | null;
   /** Cases that passed every run of the baseline and fail a run now. */
   newlyFailed: string[];
 }
@@ -64,6 +71,7 @@ export function toBaseline(summary: SuiteSummary, results: CaseResult[], now: Da
   return {
     suite: summary.suite,
     createdAt: now.toISOString(),
+    prompts: summary.prompts,
     models: summary.models,
     cases: new Set(results.map((result) => result.id)).size,
     repeat: Math.max(0, ...results.map((result) => result.attempt)),
@@ -101,6 +109,7 @@ export function compareWithBaseline(
   ];
   const failed = failedCases(results);
   const sameModels = baseline.models.join() === summary.models.join();
+  const samePrompts = baseline.prompts.join() === summary.prompts.join();
 
   return {
     regressions: metrics
@@ -110,6 +119,7 @@ export function compareWithBaseline(
       )
       .map(([metric, base, current]) => ({ metric, baseline: base, current: current?.rate ?? 0 })),
     modelMismatch: sameModels ? null : { baseline: baseline.models, current: summary.models },
+    promptChange: samePrompts ? null : { baseline: baseline.prompts, current: summary.prompts },
     newlyFailed: baseline.passedCases.filter((id) => failed.has(id)),
   };
 }

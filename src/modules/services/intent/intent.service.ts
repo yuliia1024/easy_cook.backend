@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   Intent,
-  INTENT_INSTRUCTIONS,
+  INTENT_PROMPT,
   INTENT_MAX_OUTPUT_TOKENS,
   MenuTargetScope,
   MessageRole,
@@ -49,7 +49,7 @@ export function intentModelCall(
     input: [profileMessage(profile, context), ...toModelMessages(messages)],
     schema: IntentResultSchema,
     options: {
-      instructions: INTENT_INSTRUCTIONS,
+      prompt: INTENT_PROMPT,
       maxOutputTokens: INTENT_MAX_OUTPUT_TOKENS,
       abortSignal,
     },

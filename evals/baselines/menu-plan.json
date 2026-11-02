@@ -1,6 +1,9 @@
 {
   "suite": "menu-plan",
   "createdAt": "2026-10-29T20:18:09.704Z",
+  "prompts": [
+    "menu-plan@v1"
+  ],
   "models": [
     "gpt-4o-mini-2024-07-18"
   ],

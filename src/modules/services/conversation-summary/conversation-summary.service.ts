@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   MODEL_HISTORY_MAX_TOKENS,
-  SUMMARY_INSTRUCTIONS,
+  SUMMARY_PROMPT,
   SUMMARY_KEEP_MESSAGES,
   SUMMARY_MAX_OUTPUT_TOKENS,
   SUMMARY_TRIGGER_RATIO,
@@ -60,7 +60,7 @@ export class ConversationSummaryService {
       summaryModelInput(conversation.summary, older),
       SummaryResultSchema,
       {
-        instructions: SUMMARY_INSTRUCTIONS,
+        prompt: SUMMARY_PROMPT,
         maxOutputTokens: SUMMARY_MAX_OUTPUT_TOKENS,
         abortSignal,
       },

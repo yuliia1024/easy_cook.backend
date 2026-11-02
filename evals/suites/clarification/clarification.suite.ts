@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { z } from 'zod';
 import {
   Intent,
+  INTENT_PROMPT,
   MENU_MAX_DAYS,
   MENU_MIN_DAYS,
   MENU_REQUEST_REQUIRED_FIELDS,
@@ -21,7 +22,7 @@ import {
   resolveMenuRequest,
 } from '../../../src/modules/services/menu/menu-request';
 import { OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
-import { JudgeVerdict, judgeScores, loadRubric, runJudge } from '../../lib/judge';
+import { judgePrompt, JudgeVerdict, judgeScores, loadRubric, runJudge } from '../../lib/judge';
 import { EvalCaseSchema, EvalSuite, FieldScore, SuiteRun } from '../../lib/types';
 import { INTENT_PROFILES } from '../intent/intent.suite';
 
@@ -185,6 +186,7 @@ export const clarificationSuite: EvalSuite<ClarificationCase, ClarificationOutpu
   name: 'clarification',
   casesFile: join(__dirname, 'cases.jsonl'),
   caseSchema: ClarificationCaseSchema,
+  prompts: [INTENT_PROMPT, judgePrompt(CLARIFICATION_RUBRIC)],
   run: runClarification,
   score: scoreClarification,
 };

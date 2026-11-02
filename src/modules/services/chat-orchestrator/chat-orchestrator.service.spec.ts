@@ -45,6 +45,8 @@ import { EMPTY_MENU_REQUEST } from '../menu/menu-request';
 import { ProfileContextService } from '../profile-context/profile-context.service';
 import { ChatOrchestratorService } from './chat-orchestrator.service';
 
+const generatedWith = { modelId: 'gpt-test', prompt: 'menu-plan@v1' };
+
 describe('ChatOrchestratorService', () => {
   let conversationService: jest.Mocked<ConversationService>;
   let intentService: jest.Mocked<IntentService>;
@@ -108,6 +110,7 @@ describe('ChatOrchestratorService', () => {
       message: 'Your day',
       menu,
       days: [],
+      generatedWith,
     });
     menuService = createMock<MenuService>();
     menuService.saveGenerated.mockResolvedValue({ menuId: MENU_ID, versionId: MENU_VERSION_ID });
@@ -198,7 +201,13 @@ describe('ChatOrchestratorService', () => {
         });
         await Promise.resolve();
         onProgress?.(pending);
-        return { type: ChatResponseType.MenuReady, message: 'Your day', menu, days: [] };
+        return {
+          type: ChatResponseType.MenuReady,
+          message: 'Your day',
+          menu,
+          days: [],
+          generatedWith,
+        };
       },
     );
 
@@ -239,6 +248,7 @@ describe('ChatOrchestratorService', () => {
       menu,
       days: [],
       nutritionGoal: null,
+      generatedWith,
     });
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
@@ -330,6 +340,7 @@ describe('ChatOrchestratorService', () => {
       menu,
       days: [],
       nutritionGoal,
+      generatedWith,
     });
   });
 

@@ -34,6 +34,7 @@ describe('eval baseline', () => {
     expect(baselineOf(4, 3)).toEqual({
       suite: 'intent',
       createdAt: '2026-10-22T10:00:00.000Z',
+      prompts: [],
       models: ['gpt-4o-mini-2024-07-18'],
       cases: 4,
       repeat: 1,
@@ -129,6 +130,22 @@ describe('eval baseline', () => {
     expect(modelMismatch).toEqual({
       baseline: ['gpt-4o-mini-2024-07-18'],
       current: ['gpt-4.1-mini'],
+    });
+  });
+
+  it('names the prompt versions of the run when they differ from the baseline', () => {
+    const current = results(4, 4);
+    const baseline = { ...baselineOf(4, 4), prompts: ['intent@v1'] };
+
+    expect(
+      compareWithBaseline(summarize('intent', current, ['intent@v1']), current, baseline)
+        .promptChange,
+    ).toBeNull();
+    expect(
+      compareWithBaseline(summarize('intent', current, ['intent@v2']), current, baseline),
+    ).toMatchObject({
+      regressions: [],
+      promptChange: { baseline: ['intent@v1'], current: ['intent@v2'] },
     });
   });
 

@@ -58,7 +58,10 @@ const textParts = (...deltas: string[]): StreamPart[] => [
   { type: 'text-end', id: 't' },
 ];
 
-const OPTIONS = { instructions: 'Be brief.', maxOutputTokens: 100 };
+const OPTIONS = {
+  prompt: { name: 'brief', version: 2, instructions: 'Be brief.' },
+  maxOutputTokens: 100,
+};
 
 describe('OpenAiService', () => {
   const openAiConfig = new OpenAiConfigService(fakeConfig({ OPEN_AI_API_KEY: 'sk-test' }));
@@ -132,7 +135,7 @@ describe('OpenAiService', () => {
 
     expect(log).toHaveBeenCalledWith(
       expect.stringMatching(
-        /^gpt-test resp_1 stop in \d+ms \(first text after none\), tokens: 12 in \(2 cached\) \+ 30 out \(5 reasoning\) = 42$/,
+        /^gpt-test brief@v2 resp_1 stop in \d+ms \(first text after none\), tokens: 12 in \(2 cached\) \+ 30 out \(5 reasoning\) = 42$/,
       ),
     );
   });
@@ -229,7 +232,7 @@ describe('OpenAiService', () => {
         }),
       );
       expect(log).toHaveBeenCalledWith(
-        expect.stringMatching(/^gpt-test resp_2 stop in \d+ms, tokens: 12 in/),
+        expect.stringMatching(/^gpt-test brief@v2 resp_2 stop in \d+ms, tokens: 12 in/),
       );
     });
 

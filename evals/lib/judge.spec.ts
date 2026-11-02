@@ -6,6 +6,7 @@ import { createMock } from '../../src/test/create-mock';
 import {
   JUDGE_INSTRUCTIONS,
   JUDGE_MODEL,
+  JUDGE_PROMPT_VERSION,
   judgeModelCall,
   judgeSchema,
   judgeScores,
@@ -65,7 +66,11 @@ describe('judge', () => {
 
     const { options } = judgeModelCall(rubric, { reply: 'Hi?' });
     expect(options).toMatchObject({
-      instructions: `${JUDGE_INSTRUCTIONS}${rubric.text}`,
+      prompt: {
+        name: 'judge',
+        version: JUDGE_PROMPT_VERSION,
+        instructions: `${JUDGE_INSTRUCTIONS}${rubric.text}`,
+      },
       model: JUDGE_MODEL,
     });
     expect(openAi.generateStructuredResult).toHaveBeenCalledWith(

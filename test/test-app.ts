@@ -17,7 +17,7 @@ import {
   AssistantUnavailableException,
 } from '../src/common/exceptions';
 import { MenuPlanCandidates } from '../src/modules/services/menu/menu-plan';
-import { OpenAiService } from '../src/providers/open-ai/open-ai.service';
+import { ModelResult, OpenAiService } from '../src/providers/open-ai/open-ai.service';
 import { PrismaService } from '../src/providers/prisma/prisma.service';
 
 /** Text the fake OpenAI streams instead of calling the API. */
@@ -90,35 +90,51 @@ export function resetFakeOpenAi(): void {
   fakeOpenAiState.structuredInputs = [];
 }
 
-const fakeOpenAi: Pick<OpenAiService, 'streamText' | 'generateStructured'> = {
+async function fakeStructured<T>(input: unknown, schema: unknown): Promise<T> {
+  fakeOpenAiState.structuredInputs.push(input);
+  if (schema === SummaryResultSchema) {
+    return { summary: fakeOpenAiState.summary } as T;
+  }
+  if (fakeOpenAiState.intent === 'unavailable') {
+    throw new AssistantUnavailableException(true);
+  }
+  if (fakeOpenAiState.intent === 'invalid') {
+    throw new AssistantInvalidOutputException();
+  }
+  if (schema !== IntentResultSchema) {
+    if (!fakeOpenAiState.menuPlan) {
+      throw new AssistantInvalidOutputException();
+    }
+    const [sent] = input as Array<{ content: string }>;
+    return fakeOpenAiState.menuPlan(JSON.parse(sent.content).recipes) as T;
+  }
+  return {
+    intent: fakeOpenAiState.intent,
+    request: fakeOpenAiState.request,
+    menuRequest: fakeOpenAiState.menuRequest,
+    target: null,
+  } as T;
+}
+
+/** The model id the fake answers with. */
+export const FAKE_MODEL_ID = 'gpt-fake';
+
+const fakeOpenAi: Pick<
+  OpenAiService,
+  'streamText' | 'generateStructured' | 'generateStructuredResult'
+> = {
   async *streamText(): AsyncGenerator<string> {
     fakeOpenAiState.streamTextCalls += 1;
     yield* FAKE_OPEN_AI_DELTAS;
   },
-  async generateStructured<T>(input: unknown, schema: unknown): Promise<T> {
-    fakeOpenAiState.structuredInputs.push(input);
-    if (schema === SummaryResultSchema) {
-      return { summary: fakeOpenAiState.summary } as T;
-    }
-    if (fakeOpenAiState.intent === 'unavailable') {
-      throw new AssistantUnavailableException(true);
-    }
-    if (fakeOpenAiState.intent === 'invalid') {
-      throw new AssistantInvalidOutputException();
-    }
-    if (schema !== IntentResultSchema) {
-      if (!fakeOpenAiState.menuPlan) {
-        throw new AssistantInvalidOutputException();
-      }
-      const [sent] = input as Array<{ content: string }>;
-      return fakeOpenAiState.menuPlan(JSON.parse(sent.content).recipes) as T;
-    }
+  generateStructured: fakeStructured,
+  async generateStructuredResult<T>(input: unknown, schema: unknown): Promise<ModelResult<T>> {
     return {
-      intent: fakeOpenAiState.intent,
-      request: fakeOpenAiState.request,
-      menuRequest: fakeOpenAiState.menuRequest,
-      target: null,
-    } as T;
+      output: await fakeStructured<T>(input, schema),
+      modelId: FAKE_MODEL_ID,
+      latencyMs: 0,
+      usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 },
+    };
   },
 };
 

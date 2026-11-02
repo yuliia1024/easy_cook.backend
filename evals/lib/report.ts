@@ -22,11 +22,12 @@ const ratio = (value: Rate): string => `${percent(value)} (${value.passed}/${val
 const usd = (value: number | null): string =>
   value === null ? 'unknown (no price for the model)' : `$${value.toFixed(4)}`;
 
-/** The console summary of a suite: rates, metrics, failed cases, tokens, latency, cost, baseline. */
+/** The console summary of a suite: prompt versions, rates, metrics, failed cases, tokens, latency, cost, baseline. */
 export function formatSuite({ summary, baseline, results }: SuiteReport): string[] {
   const { usage, latency } = summary;
   const lines = [
     `Suite ${summary.suite} (${summary.models.join(', ') || 'no model answered'})`,
+    ...(summary.prompts.length > 0 ? [`  prompts    ${summary.prompts.join(', ')}`] : []),
     `  pass rate  ${ratio(summary.cases)}${
       summary.invalidOutputs ? `, ${summary.invalidOutputs} invalid outputs` : ''
     }`,
@@ -65,6 +66,12 @@ export function formatSuite({ summary, baseline, results }: SuiteReport): string
     }
   }
 
+  if (baseline?.promptChange) {
+    lines.push(
+      `  baseline   prompts ${baseline.promptChange.baseline.join(', ') || 'none'} -> ` +
+        `${baseline.promptChange.current.join(', ') || 'none'}`,
+    );
+  }
   if (baseline?.modelMismatch) {
     lines.push(
       `  baseline   OTHER MODEL: ${baseline.modelMismatch.current.join(', ') || 'none'} vs ` +

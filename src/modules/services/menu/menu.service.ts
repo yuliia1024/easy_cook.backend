@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { generatedMenuTitle, MenuGeneratedBy, MenuStatus } from '../../../common/constants';
+import { provenanceNote } from '../../../common/utils';
 import {
   MenuNotFoundException,
   MenuVersionNotFoundException,
@@ -8,6 +9,7 @@ import {
 import {
   MenuComposition,
   MenuIssue,
+  ModelProvenance,
   NutritionGoalSnapshot,
   ResolvedDay,
 } from '../../../common/types';
@@ -26,6 +28,8 @@ export interface GeneratedMenu {
   menu: MenuComposition;
   days: ResolvedDay[];
   nutritionGoal: NutritionGoalSnapshot | null;
+  /** Written to the version's `notes` (`provenanceNote`). */
+  generatedWith: ModelProvenance;
 }
 
 export interface SavedMenuVersion {
@@ -76,17 +80,19 @@ export class MenuService {
 
   /**
    * Saves a menu generated in the conversation as an unconfirmed version: a new menu, linked to the
-   * conversation, when it has none, otherwise the next version of its menu.
+   * conversation, when it has none, otherwise the next version of its menu. Its notes name the model
+   * and the prompt version that planned it.
    */
   public async saveGenerated(
     conversation: { id: string; menuId: string | null },
-    { menu, days, nutritionGoal }: GeneratedMenu,
+    { menu, days, nutritionGoal, generatedWith }: GeneratedMenu,
   ): Promise<SavedMenuVersion> {
     const version = {
       generatedBy: MenuGeneratedBy.Llm,
       nutritionGoal,
       composition: menu,
       days,
+      notes: provenanceNote(generatedWith),
     };
     if (conversation.menuId) {
       const saved = await this.menuRepository.addVersion(conversation.menuId, version);

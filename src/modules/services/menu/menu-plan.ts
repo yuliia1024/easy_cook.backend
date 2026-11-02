@@ -4,7 +4,7 @@ import {
   MENU_PLAN_CANDIDATE_PREFIX,
   MENU_PLAN_CANDIDATES_MAX,
   MENU_PLAN_CANDIDATES_SPARE,
-  MENU_PLAN_INSTRUCTIONS,
+  MENU_PLAN_PROMPT,
   MENU_PLAN_MAX_ATTEMPTS,
   MENU_PLAN_MEAL_KCAL_SHARE,
   MENU_PLAN_MEAL_TYPES,
@@ -119,7 +119,7 @@ export function menuPlanModelCall(
     ],
     schema: MenuPlanSchema,
     options: {
-      instructions: MENU_PLAN_INSTRUCTIONS,
+      prompt: MENU_PLAN_PROMPT,
       maxOutputTokens: menuPlanMaxOutputTokens(days),
       abortSignal,
     },
