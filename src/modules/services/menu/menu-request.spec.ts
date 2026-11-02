@@ -1,13 +1,22 @@
-import { CalculationMode, DietTag, Goal, Intent, MealType } from '../../../common/constants';
+import {
+  CalculationMode,
+  CLARIFICATION_REPLY,
+  DietTag,
+  Goal,
+  Intent,
+  MealType,
+} from '../../../common/constants';
 import { IntentResult, MenuRequest } from '../../../common/contracts';
 import { ProfileContext } from '../../../common/types';
 import { PROFILE_ID } from '../../../test/fixtures';
 import {
   describeMenuRequest,
   EMPTY_MENU_REQUEST,
+  menuClarification,
   requestRules,
   resolveClarification,
   resolveMenuRequest,
+  ResolvedMenuRequest,
 } from './menu-request';
 
 describe('resolveMenuRequest', () => {
@@ -265,4 +274,49 @@ describe('resolveClarification', () => {
       expect(resolveClarification(result, resolveMenuRequest(null, gathered, null))).toBe(result);
     },
   );
+});
+
+describe('menuClarification', () => {
+  const resolved = (overrides: Partial<ResolvedMenuRequest> = {}): ResolvedMenuRequest => ({
+    chat: EMPTY_MENU_REQUEST,
+    request: EMPTY_MENU_REQUEST,
+    missingFields: ['mealTypes'],
+    daysOutOfRange: null,
+    ...overrides,
+  });
+
+  it('asks a clarification for the missing fields', () => {
+    expect(menuClarification(Intent.Clarification, resolved())).toEqual({
+      message: CLARIFICATION_REPLY,
+      missingFields: ['mealTypes'],
+    });
+  });
+
+  it.each([Intent.GenerateMenu, Intent.ReviseMenu])(
+    'offers the nearest days for a %s request out of range',
+    (intent) => {
+      expect(
+        menuClarification(intent, resolved({ daysOutOfRange: { requested: 10, offered: 7 } })),
+      ).toEqual({
+        message: 'I can plan a menu for up to 7 days, not 10. Shall I make a 7-day menu?',
+        missingFields: ['days'],
+      });
+    },
+  );
+
+  it.each([Intent.GenerateMenu, Intent.GeneralChat, Intent.OutOfScope])(
+    'asks nothing for %s otherwise',
+    (intent) => {
+      expect(menuClarification(intent, resolved())).toBeNull();
+    },
+  );
+
+  it('asks nothing for a chat out of range of days', () => {
+    expect(
+      menuClarification(
+        Intent.GeneralChat,
+        resolved({ daysOutOfRange: { requested: 10, offered: 7 } }),
+      ),
+    ).toBeNull();
+  });
 });

@@ -3,14 +3,12 @@ import { isDeepStrictEqual } from 'node:util';
 import {
   ASSISTANT_INVALID_OUTPUT_REPLY,
   ASSISTANT_UNAVAILABLE_REPLY,
-  CLARIFICATION_REPLY,
   CONVERSATION_LIMIT_REPLY,
   CONVERSATION_MAX_USER_MESSAGES,
   ChatErrorCode,
   ChatResponseType,
   ChatStatusStep,
   ChatStreamEventType,
-  daysOutOfRangeReply,
   INTERNAL_ERROR_REPLY,
   Intent,
   MENU_PLAN_FAILED_REPLY,
@@ -33,6 +31,7 @@ import { MenuPlannerService } from '../menu/menu-planner.service';
 import { MenuService } from '../menu/menu.service';
 import {
   EMPTY_MENU_REQUEST,
+  menuClarification,
   resolveClarification,
   resolveMenuRequest,
   ResolvedMenuRequest,
@@ -152,6 +151,11 @@ export class ChatOrchestratorService {
     );
     const menuRequest = await this.mergeMenuRequest(conversation, profile, classified);
     const { intent, request } = resolveClarification(classified, menuRequest);
+    const clarification = menuClarification(intent, menuRequest);
+    if (clarification) {
+      yield { type: ChatStreamEventType.Clarification, ...clarification };
+      return;
+    }
     switch (intent) {
       case Intent.GeneralChat:
         for await (const delta of this.generalChatService.reply(
@@ -169,12 +173,8 @@ export class ChatOrchestratorService {
       case Intent.ReviseMenu:
         yield* this.planMenu(conversation, request ?? content, menuRequest, profile, abortSignal);
         return;
+      // Asked above (`menuClarification`).
       case Intent.Clarification:
-        yield {
-          type: ChatStreamEventType.Clarification,
-          message: CLARIFICATION_REPLY,
-          missingFields: menuRequest.missingFields,
-        };
         return;
       case Intent.OutOfScope:
         yield { type: ChatStreamEventType.TextDelta, content: OUT_OF_SCOPE_REPLY };
@@ -187,8 +187,7 @@ export class ChatOrchestratorService {
   }
 
   /**
-   * Days out of range are offered as the nearest allowed number instead of being planned. A plan
-   * still invalid after every attempt of the planner ends with `MENU_PLAN_FAILED_REPLY`. A planned
+   * A plan still invalid after every attempt of the planner ends with `MENU_PLAN_FAILED_REPLY`. A planned
    * menu is saved as a draft version before it is sent, so the client gets its ids.
    */
   private async *planMenu(
@@ -198,16 +197,6 @@ export class ChatOrchestratorService {
     profile: ProfileContext | null,
     abortSignal: AbortSignal | undefined,
   ): AsyncGenerator<ChatStreamEvent> {
-    const { daysOutOfRange } = menuRequest;
-
-    if (daysOutOfRange) {
-      yield {
-        type: ChatStreamEventType.Clarification,
-        message: daysOutOfRangeReply(daysOutOfRange.requested, daysOutOfRange.offered),
-        missingFields: ['days'],
-      };
-      return;
-    }
     let response: ChatResponse;
     try {
       response = yield* withProgress<ChatStreamEvent, ChatResponse>((onProgress) =>

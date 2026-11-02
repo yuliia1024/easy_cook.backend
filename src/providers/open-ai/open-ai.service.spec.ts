@@ -251,6 +251,18 @@ describe('OpenAiService', () => {
       });
     });
 
+    it('calls another model when the options name one', async () => {
+      jest.spyOn(Logger.prototype, 'log').mockImplementation();
+      doGenerate.mockResolvedValue(generated('{"intent":"a"}'));
+
+      await new OpenAiService(openAiConfig).generateStructured('Hi', schema, {
+        ...OPTIONS,
+        model: 'gpt-judge',
+      });
+
+      expect(responses).toHaveBeenCalledWith('gpt-judge');
+    });
+
     it('counts usage the API did not report as 0', async () => {
       jest.spyOn(Logger.prototype, 'warn').mockImplementation();
       doGenerate.mockResolvedValue({

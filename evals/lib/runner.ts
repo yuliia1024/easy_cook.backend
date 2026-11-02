@@ -1,4 +1,5 @@
 import { AssistantInvalidOutputException } from '../../src/common/exceptions';
+import { ModelCallInfo } from '../../src/common/types';
 import { OpenAiService } from '../../src/providers/open-ai/open-ai.service';
 import { costUsd } from './pricing';
 import { CaseResult, EvalCase, EvalSuite, RunErrorKind } from './types';
@@ -21,6 +22,15 @@ export async function mapConcurrent<T, R>(
   };
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
   return results;
+}
+
+/** `cost` with that of the judge call, null when either is unknown. */
+function withJudge(cost: number | null, judge: ModelCallInfo | undefined): number | null {
+  if (!judge || cost === null) {
+    return cost;
+  }
+  const judged = costUsd(judge.modelId, judge.usage);
+  return judged === null ? null : cost + judged;
 }
 
 const errorMessage = (error: unknown): string =>
@@ -50,7 +60,7 @@ export async function runCase<TCase extends EvalCase, TOutput>(
       modelId: result.modelId,
       latencyMs: result.latencyMs,
       usage: result.usage,
-      costUsd: costUsd(result.modelId, result.usage),
+      costUsd: withJudge(costUsd(result.modelId, result.usage), result.judge),
       metrics: result.metrics ?? {},
     };
   } catch (error) {

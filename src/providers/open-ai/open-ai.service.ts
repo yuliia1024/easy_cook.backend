@@ -29,6 +29,8 @@ export interface ModelCallOptions {
   instructions: string;
   maxOutputTokens: number;
   abortSignal?: AbortSignal;
+  /** `OPEN_AI_MODEL` unless set; only the evals judge sets another one. */
+  model?: string;
 }
 
 /** A structured output with what it cost: the model that answered, time and tokens. */
@@ -148,10 +150,10 @@ export class OpenAiService {
 
   private callSettings(
     input: ModelInput,
-    { instructions, maxOutputTokens, abortSignal }: ModelCallOptions,
+    { instructions, maxOutputTokens, abortSignal, model = OPEN_AI_MODEL }: ModelCallOptions,
   ): Parameters<typeof streamText>[0] & Parameters<typeof generateText>[0] {
     return {
-      model: this.provider.responses(OPEN_AI_MODEL),
+      model: this.provider.responses(model),
       instructions,
       maxOutputTokens,
       timeout: OPEN_AI_TIMEOUT_MS,

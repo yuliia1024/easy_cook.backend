@@ -1,0 +1,56 @@
+{
+  "suite": "clarification",
+  "createdAt": "2026-11-01T21:17:47.697Z",
+  "models": [
+    "gpt-4o-mini-2024-07-18"
+  ],
+  "cases": 25,
+  "repeat": 3,
+  "passRate": 0.92,
+  "fields": {
+    "clarification": 1,
+    "judge.asks_for_missing": 1,
+    "judge.clear": 1,
+    "judge.consistent": 0.9777777777777777,
+    "judge.no_repeat": 1,
+    "missingFields": 0.8666666666666667
+  },
+  "tags": {
+    "chat": 1,
+    "direct": 1,
+    "en": 0.9444444444444444,
+    "follow-up": 1,
+    "no-question": 1,
+    "out-of-range": 0.6,
+    "revise": 1,
+    "surzhyk": 1,
+    "uk": 0.8571428571428571,
+    "vague": 1
+  },
+  "metrics": {},
+  "passedCases": [
+    "chat-en-01",
+    "chat-en-02",
+    "direct-en-01",
+    "direct-en-02",
+    "direct-en-03",
+    "direct-uk-01",
+    "follow-up-en-01",
+    "follow-up-en-02",
+    "follow-up-en-03",
+    "follow-up-en-04",
+    "follow-up-en-05",
+    "follow-up-uk-01",
+    "follow-up-uk-02",
+    "range-en-01",
+    "range-en-02",
+    "range-revise-01",
+    "vague-en-01",
+    "vague-en-02",
+    "vague-en-03",
+    "vague-en-04",
+    "vague-uk-01",
+    "vague-uk-02",
+    "vague-uk-03"
+  ]
+}

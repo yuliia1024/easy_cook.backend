@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ModelUsage } from '../../src/common/types';
+import { ModelCallInfo, ModelUsage } from '../../src/common/types';
 import { ModelResult, OpenAiService } from '../../src/providers/open-ai/open-ai.service';
 
 /** What every line of a suite's `cases.jsonl` has; a suite adds its input and expectations. */
@@ -22,6 +22,11 @@ export interface FieldScore {
 export interface SuiteRun<T> extends ModelResult<T> {
   /** Measured per run and averaged in the summary, e.g. the retries a plan needed. */
   metrics?: Record<string, number>;
+  /**
+   * The judge call of the run (`runJudge`), when there was one: its cost is in the case's, its
+   * model and tokens are not, so `usage` stays what the prompt under test used.
+   */
+  judge?: ModelCallInfo;
 }
 
 /** A set of cases on one prompt, run by `npm run eval -- --suite <name>`. */
@@ -65,7 +70,7 @@ export interface CaseResult {
   modelId: string | null;
   latencyMs: number;
   usage: ModelUsage;
-  /** Null when the price of the model is unknown. */
+  /** Of the judge call too; null when the price of a model is unknown. */
   costUsd: number | null;
   /** What the suite measured (`SuiteRun.metrics`); empty when the output did not come. */
   metrics: Record<string, number>;
