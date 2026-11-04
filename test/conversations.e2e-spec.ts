@@ -18,10 +18,13 @@ import {
   MENU_PLAN_FAILED_REPLY,
   MENU_PLAN_MAX_ATTEMPTS,
   MENU_DAY_PROMPT,
+  MENU_MEAL_PROMPT,
+  menuTargetDayReply,
   MENU_PLAN_PROMPT,
   MenuTargetScope,
   OUT_OF_SCOPE_REPLY,
 } from '../src/common/constants';
+import { MenuTarget } from '../src/common/contracts';
 import { estimateTokens } from '../src/common/utils';
 import {
   createTestApp,
@@ -547,6 +550,103 @@ describe('/api/conversations (e2e)', () => {
     expect(versions[1].notes).toBe(
       `model: ${FAKE_MODEL_ID}; prompt: menu-day@v${MENU_DAY_PROMPT.version}`,
     );
+  });
+
+  describe('replacing one meal', () => {
+    const threeDays = {
+      ...EMPTY_MENU_REQUEST,
+      days: 3,
+      mealTypes: [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner],
+    };
+    const menuOf = (chunks: Array<{ type: string; data?: any }>) =>
+      chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+    const versionsOf = (menuId: string) =>
+      ctx.prisma.menuVersion.findMany({
+        where: { menuId },
+        orderBy: { versionNumber: 'asc' },
+        include: {
+          days: {
+            orderBy: { dayIndex: 'asc' },
+            include: { meals: { orderBy: { position: 'asc' } } },
+          },
+        },
+      });
+    /** A conversation with a suggested 3-day menu, then a revision of the target. */
+    const planThenRevise = async (target: MenuTarget) => {
+      await createMenuWorld(ctx);
+      await addRiceRecipes(ctx, 2);
+      const id = await start();
+      fakeOpenAiState.intent = Intent.GenerateMenu;
+      fakeOpenAiState.menuRequest = threeDays;
+      fakeOpenAiState.menuPlan = fakeMenuPlan(
+        'Here are your days.',
+        { breakfast: 'Oatmeal', lunch: 'Chicken with rice', dinner: 'Rice bowl' },
+        3,
+      );
+      const first = menuOf((await say(id, 'Plan 3 days')).chunks);
+      fakeOpenAiState.structuredInputs = [];
+      fakeOpenAiState.intent = Intent.ReviseMenu;
+      fakeOpenAiState.request = 'Plan a 3-day menu with another dinner on day 3.';
+      fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST };
+      fakeOpenAiState.target = target;
+      fakeOpenAiState.menuPlan = fakeMenuPlan('Here is a new dinner.', {
+        breakfast: 'none',
+        lunch: 'none',
+        dinner: 'Rice dinner 2',
+      });
+      return { first, second: await say(id, 'Another dinner on Wednesday') };
+    };
+
+    it('replaces only the meal, copying every other meal and leaving the recipes of the menu out', async () => {
+      const { first, second } = await planThenRevise({
+        scope: MenuTargetScope.Meal,
+        dayIndex: 2,
+        mealType: MealType.Dinner,
+      });
+
+      const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+      const sent = JSON.parse(planned[0].content);
+      expect(sent).toMatchObject({ dayIndex: 2, mealType: MealType.Dinner });
+      const offered = (sent.recipes as Array<{ name: string }>).map(({ name }) => name);
+      expect(offered).toEqual(expect.arrayContaining(['Rice dinner 1', 'Rice dinner 2']));
+      expect(offered).not.toContain('Rice bowl');
+      expect(menuOf(second.chunks).menuId).toBe(first.menuId);
+
+      const versions = await versionsOf(first.menuId);
+      const mealsOf = (version: (typeof versions)[number]) =>
+        version.days.flatMap(({ meals }) =>
+          meals.map(({ mealType, position, recipeId, servings, recipeSnapshot }) =>
+            JSON.stringify({ mealType, position, recipeId, servings, recipeSnapshot }),
+          ),
+        );
+      const [before, after] = versions.map(mealsOf);
+      const changed = after.filter((meal, i) => meal !== before[i]);
+      expect(changed).toHaveLength(1);
+      expect(versions[1].days[2].meals[3].recipeSnapshot).toMatchObject({
+        name: 'Rice dinner 2',
+      });
+      expect(versions[1].notes).toBe(
+        `model: ${FAKE_MODEL_ID}; prompt: menu-meal@v${MENU_MEAL_PROMPT.version}`,
+      );
+    });
+
+    it('asks which day when a meal of a menu of more days names none, without a new version', async () => {
+      const { first, second } = await planThenRevise({
+        scope: MenuTargetScope.Meal,
+        dayIndex: null,
+        mealType: MealType.Dinner,
+      });
+
+      expect(textOf(second.chunks)).toBe(menuTargetDayReply(MealType.Dinner, 3));
+      expect(second.chunks).toContainEqual(
+        expect.objectContaining({
+          type: 'data-clarification',
+          data: { missingFields: ['dayIndex'] },
+        }),
+      );
+      expect(fakeOpenAiState.structuredInputs).toHaveLength(1);
+      expect(await versionsOf(first.menuId)).toHaveLength(1);
+    });
   });
 
   it('revises the whole menu without chicken as the next version, keeping the earlier constraints', async () => {

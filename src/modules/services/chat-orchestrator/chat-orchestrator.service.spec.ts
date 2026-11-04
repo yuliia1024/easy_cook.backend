@@ -16,7 +16,11 @@ import {
   Intent,
   MealType,
   MENU_PLAN_FAILED_REPLY,
+  MenuTargetField,
   MenuTargetScope,
+  menuTargetDayReply,
+  menuTargetMissingDayReply,
+  menuTargetMissingMealReply,
   MessageRole,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
@@ -281,9 +285,15 @@ describe('ChatOrchestratorService', () => {
     );
   });
 
-  describe('redoing one day', () => {
+  describe('redoing one day or one meal', () => {
     const OLD_VERSION_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
-    const previous = [0, 1, 2].map((dayIndex) => ({ dayIndex, date: null, meals: [] }));
+    const previous = [0, 1, 2].map((dayIndex) => ({
+      dayIndex,
+      date: null,
+      meals: [MealType.Breakfast, MealType.Lunch, MealType.Dinner].map((mealType) => ({
+        mealType,
+      })),
+    }));
     const threeDays = { ...EMPTY_MENU_REQUEST, days: 3 };
     const withMenu = buildConversation({
       menuId: MENU_ID,
@@ -306,6 +316,11 @@ describe('ChatOrchestratorService', () => {
       });
     };
     const dayTarget: MenuTarget = { scope: MenuTargetScope.Day, dayIndex: 1, mealType: null };
+    const mealTarget: MenuTarget = {
+      scope: MenuTargetScope.Meal,
+      dayIndex: 2,
+      mealType: MealType.Dinner,
+    };
 
     beforeEach(() => {
       conversationService.getById.mockResolvedValue(withMenu);
@@ -314,7 +329,14 @@ describe('ChatOrchestratorService', () => {
         type: ChatResponseType.MenuReady,
         message: 'A new Tuesday',
         menu,
-        days: previous,
+        days: previous as ResolvedDay[],
+        generatedWith,
+      });
+      menuPlannerService.replanMeal.mockResolvedValue({
+        type: ChatResponseType.MenuReady,
+        message: 'A new dinner',
+        menu,
+        days: previous as ResolvedDay[],
         generatedWith,
       });
     });
@@ -346,18 +368,96 @@ describe('ChatOrchestratorService', () => {
       });
     });
 
+    it('replaces only the meal of the latest suggested menu and saves the menu as a new version', async () => {
+      reviseDay(mealTarget);
+
+      await expect(send('another dinner on Wednesday')).resolves.toEqual([
+        { type: ChatStreamEventType.TextDelta, content: 'A new dinner' },
+        { type: ChatStreamEventType.MenuReady, ...saved, menu },
+        { type: ChatStreamEventType.Done },
+      ]);
+      expect(menuPlannerService.replanMeal).toHaveBeenCalledWith(
+        'Plan a 3-day menu with another Tuesday.',
+        threeDays,
+        profile,
+        previous,
+        2,
+        MealType.Dinner,
+        undefined,
+        expect.any(Function),
+      );
+      expect(menuPlannerService.plan).not.toHaveBeenCalled();
+      expect(menuPlannerService.replanDay).not.toHaveBeenCalled();
+    });
+
+    it('replaces the meal of a one-day menu without a day named', async () => {
+      menuService.getVersionDays.mockResolvedValue([previous[0]] as ResolvedDay[]);
+      reviseDay({ ...mealTarget, dayIndex: null }, { ...threeDays, days: 1 });
+
+      await send('another dinner');
+
+      expect(menuPlannerService.replanMeal.mock.calls[0][4]).toBe(0);
+    });
+
+    it.each<[string, MenuTarget, string, string[]]>([
+      [
+        'a meal without a day',
+        { ...mealTarget, dayIndex: null },
+        menuTargetDayReply(MealType.Dinner, 3),
+        [MenuTargetField.DayIndex],
+      ],
+      [
+        'a day the menu does not have',
+        { ...dayTarget, dayIndex: 5 },
+        menuTargetMissingDayReply(3),
+        [MenuTargetField.DayIndex],
+      ],
+      [
+        'a meal of a day the menu does not have',
+        { ...mealTarget, dayIndex: 3 },
+        menuTargetMissingDayReply(3),
+        [MenuTargetField.DayIndex],
+      ],
+      [
+        'a meal the day does not have',
+        { ...mealTarget, mealType: MealType.Snack },
+        menuTargetMissingMealReply(MealType.Snack, ['breakfast', 'lunch', 'dinner']),
+        [MenuTargetField.MealType],
+      ],
+    ])('asks about %s instead of planning', async (_case, target, message, missingFields) => {
+      reviseDay(target);
+
+      await expect(send('change it')).resolves.toEqual([
+        { type: ChatStreamEventType.Clarification, message, missingFields },
+        { type: ChatStreamEventType.Done },
+      ]);
+      expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+        CONVERSATION_ID,
+        message,
+        undefined,
+      );
+      expect(menuPlannerService.plan).not.toHaveBeenCalled();
+      expect(menuPlannerService.replanDay).not.toHaveBeenCalled();
+      expect(menuPlannerService.replanMeal).not.toHaveBeenCalled();
+    });
+
     it.each<[string, MenuTarget | null, MenuRequest]>([
       ['no target', null, threeDays],
-      ['a meal', { scope: MenuTargetScope.Meal, dayIndex: 1, mealType: MealType.Lunch }, threeDays],
       ['the menu', { scope: MenuTargetScope.Menu, dayIndex: null, mealType: null }, threeDays],
-      ['a day the menu does not have', { ...dayTarget, dayIndex: 5 }, threeDays],
+      [
+        'a meal on every day',
+        { scope: MenuTargetScope.Menu, dayIndex: null, mealType: MealType.Dinner },
+        threeDays,
+      ],
       ['a day with another number of days', dayTarget, { ...threeDays, days: 5 }],
+      ['a meal with another number of days', mealTarget, { ...threeDays, days: 5 }],
     ])('plans the whole menu again for %s', async (_case, target, menuRequest) => {
       reviseDay(target, menuRequest);
 
       await send('change it');
 
       expect(menuPlannerService.replanDay).not.toHaveBeenCalled();
+      expect(menuPlannerService.replanMeal).not.toHaveBeenCalled();
       expect(menuPlannerService.plan).toHaveBeenCalled();
     });
 

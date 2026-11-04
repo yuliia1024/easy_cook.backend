@@ -1,8 +1,8 @@
 {
   "suite": "clarification",
-  "createdAt": "2026-11-01T21:17:47.697Z",
+  "createdAt": "2026-11-02T20:50:31.855Z",
   "prompts": [
-    "intent@v1",
+    "intent@v2",
     "judge@v1"
   ],
   "models": [

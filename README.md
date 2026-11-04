@@ -240,13 +240,17 @@ candidates of that meal), `validation` (no problem the planner sends back to the
 recipe on two days in a row, none twice while the meal has unused candidates). The metric
 `repairs` is the mean of the calls after the first one; it is saved in the baseline, not compared.
 
-**menu-day** (EVAL-5) - redoing one day of a suggested menu ("redo Tuesday"; `menuDayModelCall`,
-`menuDayErrors`, `planWithRetries` as `MenuPlannerService.replanDay` runs them) on the same recipes
-and profiles: menus of 2 to 7 days given by recipe names, the first, a middle or the last day
-redone. The candidates leave out the recipes of the other days (`withoutRecipes`). Fields:
-`candidates`; `otherDays` (every other day byte for byte as in the previous menu); `exclusions` (no
-recipe of another day while the meal had another candidate); `validation` (no error in the whole
-menu with the new day); `calories` and `disliked` of the new day. Metric `repairs`.
+**menu-day** (EVAL-5) - redoing one day ("redo Tuesday"; `menuDayModelCall`, `menuDayErrors` as
+`MenuPlannerService.replanDay` runs them) or one meal ("another dinner on Wednesday";
+`menuMealModelCall`, `menuMealErrors` as `replanMeal` runs them) of a suggested menu, with
+`planWithRetries`, on the same recipes and profiles: menus of 2 to 7 days given by recipe names,
+the first, a middle or the last day, and every kind of meal. The candidates of a day leave out the
+recipes of the other days (`withoutRecipes`); those of a meal are the recipes of that meal the menu
+does not serve yet (`mealRecipes`) that keep the day within its calories (`fittingDayKcal`).
+Fields: `candidates`; `unchanged` (the rest of the menu byte for byte as in the previous one: the
+other days, and for a meal the other meals of its day); `exclusions` (no recipe the menu already
+serves while the meal had another candidate); `validation` (no error in the whole new menu);
+`calories` of the day and `disliked` of the new meals. Metric `repairs`.
 
 ## Tests
 

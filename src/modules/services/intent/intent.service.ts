@@ -56,8 +56,14 @@ export function intentModelCall(
   };
 }
 
-/** The scope of the most specific field the model set: it fills them more reliably. */
+/**
+ * The scope of the most specific field the model set: it fills them more reliably. A meal without
+ * a day stays a change to the whole menu when the model said so ("all dinners").
+ */
 function withScope(target: MenuTarget): MenuTarget {
+  if (target.scope === MenuTargetScope.Menu && target.dayIndex === null) {
+    return target;
+  }
   const scope =
     target.mealType !== null
       ? MenuTargetScope.Meal

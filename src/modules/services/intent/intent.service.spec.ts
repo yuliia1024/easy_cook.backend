@@ -192,6 +192,12 @@ describe('IntentService', () => {
       expect(resolveIntent({ ...revision, target }, history).target).toEqual({ ...target, scope });
     });
 
+    it('keeps a meal on every day a change to the whole menu', () => {
+      const target = { scope: MenuTargetScope.Menu, dayIndex: null, mealType: MealType.Dinner };
+
+      expect(resolveIntent({ ...revision, target }, history).target).toEqual(target);
+    });
+
     it('drops a target of another intent', () => {
       expect(resolveIntent({ ...revision, intent: Intent.GenerateMenu }, history)).toEqual({
         ...revision,

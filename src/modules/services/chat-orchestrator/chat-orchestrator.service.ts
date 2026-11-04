@@ -17,7 +17,13 @@ import {
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
 import { IntentResult, MenuTarget } from '../../../common/contracts';
-import { ChatResponse, ChatStreamEvent, ProfileContext, ResolvedDay } from '../../../common/types';
+import {
+  ChatProgressEvent,
+  ChatResponse,
+  ChatStreamEvent,
+  ProfileContext,
+  ResolvedDay,
+} from '../../../common/types';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
@@ -38,7 +44,14 @@ import {
   resolveMenuRequest,
   ResolvedMenuRequest,
 } from '../menu/menu-request';
+import { targetClarification, targetDayIndex } from '../menu/menu-target';
 import { ProfileContextService } from '../profile-context/profile-context.service';
+
+/** A change to one day or one meal of the latest menu the chat suggested. */
+interface Revision {
+  previous: ResolvedDay[];
+  target: MenuTarget;
+}
 
 /**
  * Handles a chat message: saves it, loads the profile once, classifies its intent within the
@@ -169,8 +182,8 @@ export class ChatOrchestratorService {
           yield { type: ChatStreamEventType.TextDelta, content: delta };
         }
         return;
-      // A change to one day plans only that day again; any other change plans the whole menu
-      // again from the restated request.
+      // A change to one day or one meal plans only that part again; any other change plans the
+      // whole menu again from the restated request.
       case Intent.GenerateMenu:
       case Intent.ReviseMenu:
         yield* this.planMenu(
@@ -198,7 +211,8 @@ export class ChatOrchestratorService {
   /**
    * A plan still invalid after every attempt of the planner ends with `MENU_PLAN_FAILED_REPLY`. A planned
    * menu is saved as a draft version before it is sent, so the client gets its ids. A revision of
-   * one day of the latest suggested menu (`dayToReplan`) plans only that day and keeps the others.
+   * one day or one meal of the latest suggested menu (`revisionOf`) changes only that part and
+   * keeps the rest; a target the menu cannot pin down is asked about instead (`targetClarification`).
    */
   private async *planMenu(
     conversation: ConversationWithMessages,
@@ -208,27 +222,16 @@ export class ChatOrchestratorService {
     abortSignal: AbortSignal | undefined,
     target: MenuTarget | null,
   ): AsyncGenerator<ChatStreamEvent> {
-    const day = await this.dayToReplan(conversation, target, menuRequest);
+    const revision = await this.revisionOf(conversation, target, menuRequest);
+    const clarification = revision && targetClarification(revision.target, revision.previous);
+    if (clarification) {
+      yield { type: ChatStreamEventType.Clarification, ...clarification };
+      return;
+    }
     let response: ChatResponse;
     try {
       response = yield* withProgress<ChatStreamEvent, ChatResponse>((onProgress) =>
-        day
-          ? this.menuPlannerService.replanDay(
-              request,
-              menuRequest.request,
-              profile,
-              day.previous,
-              day.dayIndex,
-              abortSignal,
-              onProgress,
-            )
-          : this.menuPlannerService.plan(
-              request,
-              menuRequest.request,
-              profile,
-              abortSignal,
-              onProgress,
-            ),
+        this.planned(request, menuRequest, profile, revision, abortSignal, onProgress),
       );
     } catch (error) {
       if (!(error instanceof AssistantInvalidOutputException)) {
@@ -255,17 +258,58 @@ export class ChatOrchestratorService {
     yield* this.toEvents(response);
   }
 
+  /** The day or the meal of the revision planned again, or else the whole menu. */
+  private planned(
+    request: string,
+    menuRequest: ResolvedMenuRequest,
+    profile: ProfileContext | null,
+    revision: Revision | null,
+    abortSignal: AbortSignal | undefined,
+    onProgress: (event: ChatProgressEvent) => void,
+  ): Promise<ChatResponse> {
+    if (revision?.target.scope === MenuTargetScope.Day) {
+      return this.menuPlannerService.replanDay(
+        request,
+        menuRequest.request,
+        profile,
+        revision.previous,
+        revision.target.dayIndex,
+        abortSignal,
+        onProgress,
+      );
+    }
+    if (revision?.target.scope === MenuTargetScope.Meal) {
+      return this.menuPlannerService.replanMeal(
+        request,
+        menuRequest.request,
+        profile,
+        revision.previous,
+        targetDayIndex(revision.target, revision.previous),
+        revision.target.mealType,
+        abortSignal,
+        onProgress,
+      );
+    }
+    return this.menuPlannerService.plan(
+      request,
+      menuRequest.request,
+      profile,
+      abortSignal,
+      onProgress,
+    );
+  }
+
   /**
-   * The latest menu the chat suggested and the day of it a revision targets, when the target is a
-   * day of that menu and the request keeps its number of days; null otherwise, and the whole menu
-   * is planned again.
+   * The latest menu the chat suggested and the day or the meal of it a revision targets, when the
+   * request keeps its number of days; null for a change to the whole menu, without a suggested
+   * menu or with another number of days, and the whole menu is planned again.
    */
-  private async dayToReplan(
+  private async revisionOf(
     conversation: ConversationWithMessages,
     target: MenuTarget | null,
     menuRequest: ResolvedMenuRequest,
-  ): Promise<{ previous: ResolvedDay[]; dayIndex: number } | null> {
-    if (target?.scope !== MenuTargetScope.Day || target.dayIndex === null) {
+  ): Promise<Revision | null> {
+    if (!target || target.scope === MenuTargetScope.Menu) {
       return null;
     }
     const versionId = [...conversation.messages]
@@ -278,10 +322,7 @@ export class ChatOrchestratorService {
     }
     const previous = await this.menuService.getVersionDays(versionId);
     const { days } = menuRequest.request;
-    const fits =
-      previous.some(({ dayIndex }) => dayIndex === target.dayIndex) &&
-      (days === null || days === previous.length);
-    return fits ? { previous, dayIndex: target.dayIndex } : null;
+    return days === null || days === previous.length ? { previous, target } : null;
   }
 
   /**

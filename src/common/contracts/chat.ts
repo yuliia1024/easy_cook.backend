@@ -29,9 +29,10 @@ export const MenuRequestSchema = z.object({
 export type MenuRequest = z.infer<typeof MenuRequestSchema>;
 
 /**
- * The part of the latest menu a `revise_menu` request changes: the whole menu, a day (`dayIndex`,
- * 0 for the first day) or a meal (`mealType`, on the day `dayIndex` or on every day when null).
- * A scope that does not match the fields is not invalid: `resolveIntent` takes it from them.
+ * The part of the latest menu a `revise_menu` request changes: the whole menu (a meal on every
+ * day too), a day (`dayIndex`, 0 for the first day) or a meal (`mealType` on the day `dayIndex`;
+ * a day not named is asked for on a menu of more days). A scope that does not match the fields is
+ * not invalid: `resolveIntent` takes it from them.
  */
 export const MenuTargetSchema = z.object({
   scope: z.enum(MenuTargetScope),
@@ -87,6 +88,17 @@ export const MenuDayPlanSchema = z.object({
 });
 
 export type MenuDayPlan = z.infer<typeof MenuDayPlanSchema>;
+
+/**
+ * What `MenuPlannerService.replanMeal` accepts from the model: the recipe id of the one meal it
+ * replaces, checked afterwards against the candidates (`menuMealErrors`).
+ */
+export const MenuMealPlanSchema = z.object({
+  message: z.string(),
+  recipe: z.string(),
+});
+
+export type MenuMealPlan = z.infer<typeof MenuMealPlanSchema>;
 
 /** What `ConversationSummaryService` accepts from the model: the summary of the older messages. */
 export const SummaryResultSchema = z.object({

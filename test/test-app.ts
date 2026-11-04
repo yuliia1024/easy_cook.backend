@@ -5,10 +5,11 @@ import { Prisma } from '../src/generated/prisma/client';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap';
-import { Intent } from '../src/common/constants';
+import { Intent, MealType } from '../src/common/constants';
 import {
   IntentResultSchema,
   MenuDayPlanSchema,
+  MenuMealPlanSchema,
   MenuPlan,
   MenuRequest,
   MenuTarget,
@@ -31,7 +32,8 @@ export const FAKE_SUMMARY = 'The user rejected the salmon soup.';
  * like a broken API or `'invalid'` like output that does not match the schema; it fails the menu
  * plan the same way; `request` is the menu request it restates, `menuRequest` its fields and `target` the part of the
  * menu a revision changes. `menuPlan` is the answer to any other structured call, made from the candidates the planner
- * sent (`fakeMenuPlan`), its first day for a day planned again; `summary` is
+ * sent (`fakeMenuPlan`), its first day for a day planned again and the meal of that day for a meal
+ * replaced; `summary` is
  * the summary of the older messages. `structuredInputs` records what each structured call was given. Set them in
  * a test; `resetFakeOpenAi()` restores `general_chat` and no plan.
  */
@@ -112,7 +114,18 @@ async function fakeStructured<T>(input: unknown, schema: unknown): Promise<T> {
       throw new AssistantInvalidOutputException();
     }
     const [sent] = input as Array<{ content: string }>;
-    const plan = fakeOpenAiState.menuPlan(JSON.parse(sent.content).recipes);
+    const { recipes, mealType } = JSON.parse(sent.content);
+    if (schema === MenuMealPlanSchema) {
+      const plan = fakeOpenAiState.menuPlan({
+        breakfast: [],
+        lunch: [],
+        snack: [],
+        dinner: [],
+        [mealType]: recipes,
+      });
+      return { message: plan.message, recipe: plan.days[0].meals[mealType as MealType] } as T;
+    }
+    const plan = fakeOpenAiState.menuPlan(recipes);
     return (
       schema === MenuDayPlanSchema ? { message: plan.message, meals: plan.days[0].meals } : plan
     ) as T;

@@ -18,6 +18,12 @@ export enum MenuTargetScope {
   Meal = 'meal',
 }
 
+/** What a question about an unclear revision target asks for. */
+export enum MenuTargetField {
+  DayIndex = 'dayIndex',
+  MealType = 'mealType',
+}
+
 export enum ChatResponseType {
   Text = 'text',
   MenuReady = 'menu_ready',
@@ -80,6 +86,15 @@ export const daysOutOfRangeReply = (requested: number, offered: number): string 
   requested > offered
     ? `I can plan a menu for up to ${offered} days, not ${requested}. Shall I make a ${offered}-day menu?`
     : `A menu needs at least ${offered} day. Shall I make a ${offered}-day menu?`;
+/** Asks which day a change to one meal is about, on a menu of more than one day. */
+export const menuTargetDayReply = (mealType: string, days: number): string =>
+  `Which day's ${mealType} should I replace? The menu has ${days} days.`;
+/** Asks again for a day the menu does not have. */
+export const menuTargetMissingDayReply = (days: number): string =>
+  `The menu has ${days} ${days === 1 ? 'day' : 'days'}. Which day should I change?`;
+/** Asks again for a meal the day does not have. */
+export const menuTargetMissingMealReply = (mealType: string, mealTypes: string[]): string =>
+  `The menu has no ${mealType}. Which meal should I replace: ${mealTypes.join(', ')}?`;
 /**
  * Ends the reply to too few recipes when no rule can be dropped and fewer days do not help. It
  * never asks the user to add recipes.

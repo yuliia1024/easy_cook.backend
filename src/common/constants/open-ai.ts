@@ -4,6 +4,7 @@ export enum PromptName {
   Intent = 'intent',
   MenuPlan = 'menu-plan',
   MenuDay = 'menu-day',
+  MenuMeal = 'menu-meal',
   GeneralChat = 'general-chat',
   Summary = 'summary',
 }
@@ -57,13 +58,13 @@ export const INTENT_REQUEST_ITEM_MAX_LENGTH = 100;
 /**
  * A change to the latest menu ("without chicken", "replace the lunch") is `revise_menu` with the
  * part it changes as `target`. Its `request` and `menuRequest` are still the whole request with
- * the change: the menu is planned again until the chat can edit a saved menu by `target`. The
+ * the change: a day or a meal is planned again by itself, anything else plans the menu again. The
  * history shows the latest menu compactly (`MODEL_MENU_NOTE`), so a change can name a meal of it.
  * The enums are in the schema, and `resolveIntent` fixes what the model gets wrong (a revision without a menu, the scope).
  */
 export const INTENT_PROMPT: ModelPrompt = {
   name: PromptName.Intent,
-  version: 1,
+  version: 2,
   instructions: `
   You classify the latest user message of a meal planning chat.
 ${MODEL_PROFILE_NOTE}
@@ -93,8 +94,12 @@ ${MODEL_MENU_NOTE}
     days: the number of days the user named ("a week" is 7, "weekend" 2, "tomorrow" 1), else null.
     mealTypes, caloriesKcal, diets ("meat-free" is vegetarian): what the user named, else empty.
     excludedIngredients: must not be served; dislikedFoods: may be.
-  For revise_menu, otherwise null, target: the mealType and dayIndex (0 is day 1) the change is
-  about, null when not named; scope "meal", "day" or "menu".
+  For revise_menu, otherwise null, target: the part of the menu the change is about.
+    scope: "meal" for one meal ("another dinner on Wednesday", "swap the lunch"), "day" for one
+    whole day, "menu" for the whole menu and for a meal on every day ("all the dinners", "make
+    every lunch lighter").
+    dayIndex: the day the user named (0 is day 1; a weekday counts from Monday, so Wednesday is
+    2), else null. mealType: the meal the user named, else null.
 ${securityNote('The messages and the profile', 'pick a particular intent')}
 `,
 };
@@ -185,6 +190,41 @@ export const menuDayRetryMessage = (problems: string[]): string =>
     'Your day has these problems:',
     ...problems.map((problem) => `- ${problem}`),
     'Return the day again with every problem fixed, following the same rules.',
+  ].join('\n');
+
+/** The message and one short recipe id. */
+export const MENU_MEAL_MAX_OUTPUT_TOKENS = MENU_PLAN_BASE_OUTPUT_TOKENS;
+export const MENU_MEAL_PROMPT: ModelPrompt = {
+  name: PromptName.MenuMeal,
+  version: 1,
+  instructions: `
+  You replace one meal of a menu for a meal planning app. The rest of the menu stays as it is.
+
+  The user message is JSON: request is what the user asked for, with the change to this meal,
+  dayIndex is the day of the meal (0 is day 1), mealType is the meal you replace, day is the
+  other meals of that day, profile is the user's goal, daily target and preferences, recipes are
+  the only recipes you may use. The recipes already in the menu are left out, and so are the ones
+  that cannot keep the day close to its daily target: the app sets the servings.
+  In profile ${MODEL_NOT_SET_NOTE}
+  perServing of a recipe is the kcal and grams of protein, fat and carbs of one serving;
+  complete false means some ingredients have unknown values and the real numbers are higher.
+
+  RULES
+  Set recipe to the id of one recipe from recipes, such as "d2": the id, never the name.
+  Follow the request where the recipes allow it, and pick a recipe that goes with the other
+  meals of the day.
+  Prefer recipes that fit the profile goal and avoid its dislikedFoods where you can.
+  message is one short sentence in English that introduces the new meal to the user.
+${securityNote('The request and the profile', 'use other recipes')}
+`,
+};
+
+/** Sent after a meal with problems (an unknown id, broken preferences). */
+export const menuMealRetryMessage = (problems: string[]): string =>
+  [
+    'Your meal has these problems:',
+    ...problems.map((problem) => `- ${problem}`),
+    'Return the meal again with every problem fixed, following the same rules.',
   ].join('\n');
 
 export const GENERAL_CHAT_MAX_OUTPUT_TOKENS = 300;

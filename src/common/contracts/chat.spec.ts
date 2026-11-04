@@ -6,6 +6,7 @@ import {
 import {
   IntentResultSchema,
   MenuDayPlanSchema,
+  MenuMealPlanSchema,
   MenuPlanSchema,
   MenuRequestSchema,
   MenuTargetSchema,
@@ -153,6 +154,18 @@ describe('chat contracts', () => {
       expect(
         MenuDayPlanSchema.safeParse({ message: 'New day.', meals: withoutSnack }).success,
       ).toBe(false);
+    });
+  });
+
+  describe('MenuMealPlanSchema', () => {
+    it('accepts a message and one recipe id', () => {
+      expect(MenuMealPlanSchema.safeParse({ message: 'New dinner.', recipe: 'd2' }).success).toBe(
+        true,
+      );
+    });
+
+    it('rejects a meal without a recipe', () => {
+      expect(MenuMealPlanSchema.safeParse({ message: 'New dinner.' }).success).toBe(false);
     });
   });
 

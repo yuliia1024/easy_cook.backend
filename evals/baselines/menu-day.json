@@ -1,13 +1,14 @@
 {
   "suite": "menu-day",
-  "createdAt": "2026-11-02T16:08:46.532Z",
+  "createdAt": "2026-11-02T20:47:34.853Z",
   "prompts": [
-    "menu-day@v1"
+    "menu-day@v1",
+    "menu-meal@v1"
   ],
   "models": [
     "gpt-4o-mini-2024-07-18"
   ],
-  "cases": 16,
+  "cases": 24,
   "repeat": 3,
   "passRate": 1,
   "fields": {
@@ -15,21 +16,26 @@
     "candidates": 1,
     "disliked": 1,
     "exclusions": 1,
-    "otherDays": 1,
+    "unchanged": 1,
     "validation": 1
   },
   "tags": {
     "allergy": 1,
     "basic": 1,
+    "breakfast": 1,
     "days-2": 1,
     "days-3": 1,
     "days-4": 1,
     "days-5": 1,
     "days-7": 1,
+    "dinner": 1,
     "first": 1,
     "last": 1,
     "low-kcal": 1,
+    "lunch": 1,
+    "meal": 1,
     "middle": 1,
+    "snack": 1,
     "vegan": 1,
     "vegetarian": 1
   },
@@ -37,21 +43,29 @@
     "repairs": 0
   },
   "passedCases": [
+    "days-2-dinner-vegan",
     "days-2-first-basic",
     "days-2-last-vegan",
+    "days-3-dinner-low-kcal",
     "days-3-first-vegetarian",
     "days-3-last-low-kcal",
+    "days-3-lunch-allergy",
     "days-3-middle-allergy",
     "days-3-middle-basic",
     "days-4-middle-low-kcal",
+    "days-4-snack-low-kcal",
+    "days-5-breakfast-basic",
     "days-5-first-allergy",
     "days-5-last-vegetarian",
     "days-5-middle-basic",
     "days-7-friday-allergy",
     "days-7-monday-basic",
+    "days-7-monday-breakfast-vegan",
     "days-7-sunday-low-kcal",
+    "days-7-sunday-lunch-vegetarian",
     "days-7-thursday-vegetarian",
     "days-7-tuesday-basic",
-    "days-7-tuesday-vegan"
+    "days-7-tuesday-vegan",
+    "days-7-wednesday-dinner-basic"
   ]
 }
