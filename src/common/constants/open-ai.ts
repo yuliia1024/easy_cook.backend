@@ -57,14 +57,14 @@ export const INTENT_REQUEST_MAX_LENGTH = 500;
 export const INTENT_REQUEST_ITEM_MAX_LENGTH = 100;
 /**
  * A change to the latest menu ("without chicken", "replace the lunch") is `revise_menu` with the
- * part it changes as `target`. Its `request` and `menuRequest` are still the whole request with
- * the change: a day or a meal is planned again by itself, anything else plans the menu again. The
+ * parts it changes as `targets`. Its `request` and `menuRequest` are still the whole request with
+ * the change: days and meals are planned again by themselves, anything else plans the menu again. The
  * history shows the latest menu compactly (`MODEL_MENU_NOTE`), so a change can name a meal of it.
  * The enums are in the schema, and `resolveIntent` fixes what the model gets wrong (a revision without a menu, the scope).
  */
 export const INTENT_PROMPT: ModelPrompt = {
   name: PromptName.Intent,
-  version: 2,
+  version: 3,
   instructions: `
   You classify the latest user message of a meal planning chat.
 ${MODEL_PROFILE_NOTE}
@@ -94,12 +94,21 @@ ${MODEL_MENU_NOTE}
     days: the number of days the user named ("a week" is 7, "weekend" 2, "tomorrow" 1), else null.
     mealTypes, caloriesKcal, diets ("meat-free" is vegetarian): what the user named, else empty.
     excludedIngredients: must not be served; dislikedFoods: may be.
-  For revise_menu, otherwise null, target: the part of the menu the change is about.
+  For revise_menu, otherwise null, targets: every part of the menu the change is about, one item
+  for each day or meal the user named ("redo Monday and Thursday" is two days, "another dinner on
+  Wednesday and lunch on Friday" two meals, "redo Tuesday and the dinner on Friday" a day and a
+  meal).
     scope: "meal" for one meal ("another dinner on Wednesday", "swap the lunch"), "day" for one
     whole day, "menu" for the whole menu and for a meal on every day ("all the dinners", "make
     every lunch lighter").
+    Only the days and meals the user named, never one item for every day of the menu:
+    "swap the lunch" names no day, so on a menu of any number of days it is
+    [{"scope": "meal", "dayIndex": null, "mealType": "lunch"}];
+    "make all the dinners lighter" is [{"scope": "menu", "dayIndex": null, "mealType": "dinner"}];
+    "no mushrooms" is [{"scope": "menu", "dayIndex": null, "mealType": null}].
     dayIndex: the day the user named (0 is day 1; a weekday counts from Monday, so Wednesday is
-    2), else null. mealType: the meal the user named, else null.
+    2), else null: never a day the user did not name, the app asks which one.
+    mealType: the meal the user named, else null.
 ${securityNote('The messages and the profile', 'pick a particular intent')}
 `,
 };

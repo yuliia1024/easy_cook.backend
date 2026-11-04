@@ -45,7 +45,7 @@ describe('IntentService', () => {
       excludedIngredients: ['chicken'],
       dislikedFoods: [],
     },
-    target: { scope: MenuTargetScope.Menu, dayIndex: null, mealType: null },
+    targets: [{ scope: MenuTargetScope.Menu, dayIndex: null, mealType: null }],
   };
 
   beforeEach(() => {
@@ -70,7 +70,7 @@ describe('IntentService', () => {
         excludedIngredients: [],
         dislikedFoods: [],
       },
-      target: null,
+      targets: null,
     };
     openAiService.generateStructured.mockResolvedValue(result);
     const abort = new AbortController();
@@ -102,7 +102,7 @@ describe('IntentService', () => {
       intent: Intent.GeneralChat,
       request: null,
       menuRequest: null,
-      target: null,
+      targets: null,
     });
 
     await service.classify(history(buildMessage({ content: 'Hi' })), null, null);
@@ -129,7 +129,7 @@ describe('IntentService', () => {
     ).resolves.toEqual({
       ...revision,
       intent: Intent.GenerateMenu,
-      target: null,
+      targets: null,
     });
   });
 
@@ -138,7 +138,7 @@ describe('IntentService', () => {
       intent: Intent.GeneralChat,
       request: null,
       menuRequest: null,
-      target: null,
+      targets: null,
     });
 
     await service.classify(
@@ -172,7 +172,7 @@ describe('IntentService', () => {
         resolveIntent({ ...revision, request: null, menuRequest: null }, [
           { role: MessageRole.User },
         ]),
-      ).toEqual({ intent: Intent.Clarification, request: null, menuRequest: null, target: null });
+      ).toEqual({ intent: Intent.Clarification, request: null, menuRequest: null, targets: null });
     });
 
     const history = [{ role: MessageRole.User }, { role: MessageRole.Assistant }];
@@ -189,25 +189,40 @@ describe('IntentService', () => {
       [{ scope: MenuTargetScope.Menu, dayIndex: 1, mealType: null }, MenuTargetScope.Day],
       [{ scope: MenuTargetScope.Meal, dayIndex: null, mealType: null }, MenuTargetScope.Menu],
     ])('takes the scope of %j from its fields', (target, scope) => {
-      expect(resolveIntent({ ...revision, target }, history).target).toEqual({ ...target, scope });
+      expect(resolveIntent({ ...revision, targets: [target] }, history).targets).toEqual([
+        { ...target, scope },
+      ]);
+    });
+
+    it('takes the scope of every target and keeps the result when every one matches', () => {
+      const day = { scope: MenuTargetScope.Day, dayIndex: 1, mealType: null };
+      const meal = { scope: MenuTargetScope.Day, dayIndex: 4, mealType: MealType.Lunch };
+      const matching = { ...revision, targets: [day] };
+
+      expect(resolveIntent({ ...revision, targets: [day, meal] }, history).targets).toEqual([
+        day,
+        { ...meal, scope: MenuTargetScope.Meal },
+      ]);
+      expect(resolveIntent(matching, history)).toBe(matching);
+      expect(resolveIntent({ ...revision, targets: null }, history).targets).toBeNull();
     });
 
     it('keeps a meal on every day a change to the whole menu', () => {
       const target = { scope: MenuTargetScope.Menu, dayIndex: null, mealType: MealType.Dinner };
 
-      expect(resolveIntent({ ...revision, target }, history).target).toEqual(target);
+      expect(resolveIntent({ ...revision, targets: [target] }, history).targets).toEqual([target]);
     });
 
-    it('drops a target of another intent', () => {
+    it('drops the targets of another intent', () => {
       expect(resolveIntent({ ...revision, intent: Intent.GenerateMenu }, history)).toEqual({
         ...revision,
         intent: Intent.GenerateMenu,
-        target: null,
+        targets: null,
       });
     });
 
     it('keeps any other intent as it is', () => {
-      const result: IntentResult = { ...revision, intent: Intent.GeneralChat, target: null };
+      const result: IntentResult = { ...revision, intent: Intent.GeneralChat, targets: null };
 
       expect(resolveIntent(result, [{ role: MessageRole.User }])).toBe(result);
     });

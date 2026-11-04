@@ -20,6 +20,7 @@ import {
   MENU_DAY_PROMPT,
   MENU_MEAL_PROMPT,
   menuTargetDayReply,
+  MENU_PLAN_MEAL_TYPES,
   MENU_PLAN_PROMPT,
   MenuTargetScope,
   OUT_OF_SCOPE_REPLY,
@@ -31,6 +32,7 @@ import {
   FAKE_MODEL_ID,
   FAKE_OPEN_AI_DELTAS,
   FAKE_SUMMARY,
+  FakeMenuPlan,
   fakeMenuPlan,
   fakeOpenAiState,
   resetDatabase,
@@ -487,7 +489,7 @@ describe('/api/conversations (e2e)', () => {
     fakeOpenAiState.intent = Intent.ReviseMenu;
     fakeOpenAiState.request = 'Plan a 3-day menu with day 2 planned again.';
     fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST };
-    fakeOpenAiState.target = { scope: MenuTargetScope.Day, dayIndex: 1, mealType: null };
+    fakeOpenAiState.targets = [{ scope: MenuTargetScope.Day, dayIndex: 1, mealType: null }];
     fakeOpenAiState.menuPlan = fakeMenuPlan('Here is a new Tuesday.', {
       breakfast: 'Rice breakfast 1',
       lunch: 'Rice lunch 1',
@@ -588,7 +590,7 @@ describe('/api/conversations (e2e)', () => {
       fakeOpenAiState.intent = Intent.ReviseMenu;
       fakeOpenAiState.request = 'Plan a 3-day menu with another dinner on day 3.';
       fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST };
-      fakeOpenAiState.target = target;
+      fakeOpenAiState.targets = [target];
       fakeOpenAiState.menuPlan = fakeMenuPlan('Here is a new dinner.', {
         breakfast: 'none',
         lunch: 'none',
@@ -646,6 +648,172 @@ describe('/api/conversations (e2e)', () => {
       );
       expect(fakeOpenAiState.structuredInputs).toHaveLength(1);
       expect(await versionsOf(first.menuId)).toHaveLength(1);
+    });
+  });
+
+  describe('replacing several days and meals', () => {
+    const threeDays = {
+      ...EMPTY_MENU_REQUEST,
+      days: 3,
+      mealTypes: [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner],
+    };
+    const menuOf = (chunks: Array<{ type: string; data?: any }>) =>
+      chunks.find((chunk) => chunk.type === 'data-menu')?.data;
+    /** Every meal of the version by the name of its recipe, day by day. */
+    const versionMeals = async (menuId: string) =>
+      (
+        await ctx.prisma.menuVersion.findMany({
+          where: { menuId },
+          orderBy: { versionNumber: 'asc' },
+          include: {
+            days: {
+              orderBy: { dayIndex: 'asc' },
+              include: { meals: { orderBy: { position: 'asc' } } },
+            },
+          },
+        })
+      ).map(({ notes, days }) => ({
+        notes,
+        days: days.map(({ meals }) =>
+          meals.map(({ mealType, position, recipeId, servings, recipeSnapshot }) =>
+            JSON.stringify({ mealType, position, recipeId, servings, recipeSnapshot }),
+          ),
+        ),
+        names: days.map(({ meals }) =>
+          meals.map(({ recipeSnapshot }) => (recipeSnapshot as { name: string }).name),
+        ),
+      }));
+    /** The first rice recipe of every meal the planner offers. */
+    const firstRice: FakeMenuPlan = (recipes) => ({
+      message: 'Here is something new.',
+      days: [
+        {
+          dayIndex: 0,
+          meals: Object.fromEntries(
+            MENU_PLAN_MEAL_TYPES.map((mealType) => [
+              mealType,
+              recipes[mealType].find(({ name }) => name.startsWith(`Rice ${mealType}`))?.id ??
+                'none',
+            ]),
+          ) as ReturnType<FakeMenuPlan>['days'][number]['meals'],
+        },
+      ],
+    });
+    /** A conversation with a suggested 3-day menu, then a revision of the targets. */
+    const planThenRevise = async (targets: MenuTarget[], plan: FakeMenuPlan = firstRice) => {
+      await createMenuWorld(ctx);
+      await addRiceRecipes(ctx, 2);
+      const id = await start();
+      fakeOpenAiState.intent = Intent.GenerateMenu;
+      fakeOpenAiState.menuRequest = threeDays;
+      fakeOpenAiState.menuPlan = fakeMenuPlan(
+        'Here are your days.',
+        { breakfast: 'Oatmeal', lunch: 'Chicken with rice', dinner: 'Rice bowl' },
+        3,
+      );
+      const first = menuOf((await say(id, 'Plan 3 days')).chunks);
+      fakeOpenAiState.structuredInputs = [];
+      fakeOpenAiState.intent = Intent.ReviseMenu;
+      fakeOpenAiState.request = 'Plan a 3-day menu with some parts planned again.';
+      fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST };
+      fakeOpenAiState.targets = targets;
+      fakeOpenAiState.menuPlan = plan;
+      const second = await say(id, 'Change some parts');
+      return { id, first, second, versions: await versionMeals(first.menuId) };
+    };
+    const day = (dayIndex: number): MenuTarget => ({
+      scope: MenuTargetScope.Day,
+      dayIndex,
+      mealType: null,
+    });
+    const meal = (dayIndex: number, mealType: MealType): MenuTarget => ({
+      scope: MenuTargetScope.Meal,
+      dayIndex,
+      mealType,
+    });
+
+    it('redoes a day and a meal of another day in one new version, repeating no recipe', async () => {
+      const { first, second, versions } = await planThenRevise([day(0), meal(2, MealType.Dinner)]);
+
+      expect(menuOf(second.chunks).menuId).toBe(first.menuId);
+      expect(versions).toHaveLength(2);
+      const [before, after] = versions;
+      expect(after.days[1]).toEqual(before.days[1]);
+      expect(after.days[2].slice(0, 3)).toEqual(before.days[2].slice(0, 3));
+      expect(after.names[0]).toEqual([
+        'Rice breakfast 1',
+        'Rice lunch 1',
+        'Rice snack 1',
+        'Rice dinner 1',
+      ]);
+      expect(after.names[2][3]).toBe('Rice dinner 2');
+      expect(after.notes).toBe(
+        `model: ${FAKE_MODEL_ID}; prompt: menu-day@v${MENU_DAY_PROMPT.version}, menu-meal@v${MENU_MEAL_PROMPT.version}`,
+      );
+      expect(textOf(second.chunks)).toBe('Here is something new. Here is something new.');
+    });
+
+    it('redoes every meal of a day as the whole day', async () => {
+      const { versions } = await planThenRevise(
+        MENU_PLAN_MEAL_TYPES.map((mealType) => meal(1, mealType)),
+      );
+
+      // The classifier, then one call for the day.
+      expect(fakeOpenAiState.structuredInputs).toHaveLength(2);
+      const [before, after] = versions;
+      expect(after.days[0]).toEqual(before.days[0]);
+      expect(after.days[2]).toEqual(before.days[2]);
+      expect(after.notes).toBe(
+        `model: ${FAKE_MODEL_ID}; prompt: menu-day@v${MENU_DAY_PROMPT.version}`,
+      );
+    });
+
+    it('leaves out the recipes the earlier versions dropped', async () => {
+      const { id, first } = await planThenRevise([meal(2, MealType.Dinner)]);
+      await say(id, 'Another dinner on Wednesday');
+      fakeOpenAiState.structuredInputs = [];
+      fakeOpenAiState.menuPlan = (recipes) => ({
+        message: 'Here is something new.',
+        days: [
+          {
+            dayIndex: 0,
+            meals: Object.fromEntries(
+              MENU_PLAN_MEAL_TYPES.map((mealType) => [mealType, recipes[mealType][0]?.id]),
+            ) as ReturnType<FakeMenuPlan>['days'][number]['meals'],
+          },
+        ],
+      });
+      await say(id, 'And another one');
+
+      const sent = (fakeOpenAiState.structuredInputs[1] as Array<{ content: string }>)[0].content;
+      const names = JSON.parse(sent).recipes.map(({ name }: { name: string }) => name);
+      // Rice dinner 1 of version 2, dropped by version 3, and Rice dinner 2 now in its place.
+      expect(names).not.toContain('Rice dinner 1');
+      expect(names).not.toContain('Rice dinner 2');
+      expect(names.length).toBeGreaterThan(0);
+      const versions = await versionMeals(first.menuId);
+      expect(versions.map(({ names: days }) => days[2][3])).toEqual([
+        'Rice bowl',
+        'Rice dinner 1',
+        'Rice dinner 2',
+        names[0],
+      ]);
+    });
+
+    it('plans the whole menu again when every day is named', async () => {
+      const { versions } = await planThenRevise(
+        [day(0), day(1), day(2)],
+        fakeMenuPlan(
+          'Here are new days.',
+          { breakfast: 'Oatmeal', lunch: 'Chicken with rice', dinner: 'Rice bowl' },
+          3,
+        ),
+      );
+
+      expect(versions).toHaveLength(2);
+      expect(versions[1].notes).toBe(
+        `model: ${FAKE_MODEL_ID}; prompt: menu-plan@v${MENU_PLAN_PROMPT.version}`,
+      );
     });
   });
 

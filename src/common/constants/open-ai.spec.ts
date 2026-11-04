@@ -25,8 +25,8 @@ const PROMPTS: ModelPrompt[] = [
  */
 const RELEASED: Record<PromptName, { version: number; sha256: string }> = {
   [PromptName.Intent]: {
-    version: 2,
-    sha256: '8454003dd1ba76997783037ddff1e6b9bdf712c696800784f2d732c2bf9df03c',
+    version: 3,
+    sha256: '1b8a37690fb7220c88c95cffd4de7711dd6093a2fde34ccb4b84fa384f384430',
   },
   [PromptName.MenuPlan]: {
     version: 1,

@@ -23,7 +23,14 @@ import { ProfileContextService } from '../profile-context/profile-context.servic
 import { UserProfileService } from '../user-profile/user-profile.service';
 import { MenuComposer } from './menu-composer';
 import { resolveVersion } from './menu-composition';
+import { menuRecipeIds } from './menu-meal';
 import { errorsOf } from './menu-rules';
+
+/** A saved version to revise and the recipes the versions before it dropped. */
+export interface RevisionBase {
+  days: ResolvedDay[];
+  rejectedRecipeIds: Set<string>;
+}
 
 export interface GeneratedMenu {
   menu: MenuComposition;
@@ -66,14 +73,23 @@ export class MenuService {
     return menu;
   }
 
-  /** The days of a version of a menu of the profile, as saved; 404 for an unknown one. */
-  public async getVersionDays(versionId: string): Promise<ResolvedDay[]> {
+  /**
+   * The days of a version of a menu of the profile, as saved, and the recipes the earlier versions
+   * of the menu had and it has not: the ones replaced or planned away before. 404 for an unknown one.
+   */
+  public async getRevisionBase(versionId: string): Promise<RevisionBase> {
     const profile = await this.userProfileService.getCurrent();
     const version = await this.menuRepository.findVersion(profile.id, versionId);
     if (!version) {
       throw new MenuVersionNotFoundException();
     }
-    return resolveVersion(version);
+    const days = resolveVersion(version);
+    const kept = menuRecipeIds(days);
+    const earlier = await this.menuRepository.findRecipeIdsBefore(
+      version.menuId,
+      version.versionNumber,
+    );
+    return { days, rejectedRecipeIds: new Set(earlier.filter((id) => !kept.has(id))) };
   }
 
   /**

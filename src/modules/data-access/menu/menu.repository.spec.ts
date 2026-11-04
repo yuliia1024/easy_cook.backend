@@ -165,6 +165,20 @@ describe('MenuRepository', () => {
     });
   });
 
+  it('lists the recipes of the versions of a menu before one, each once', async () => {
+    prisma.menuMeal.findMany.mockResolvedValue([{ recipeId: 'r1' }, { recipeId: 'r2' }]);
+
+    await expect(repository.findRecipeIdsBefore(MENU_ID, 3)).resolves.toEqual(['r1', 'r2']);
+    expect(prisma.menuMeal.findMany).toHaveBeenCalledWith({
+      where: {
+        recipeId: { not: null },
+        menuDay: { menuVersion: { menuId: MENU_ID, versionNumber: { lt: 3 } } },
+      },
+      select: { recipeId: true },
+      distinct: ['recipeId'],
+    });
+  });
+
   it('confirms a version with the time', async () => {
     await repository.confirm(MENU_ID, VERSION_ID);
 

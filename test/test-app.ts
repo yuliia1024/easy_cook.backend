@@ -30,10 +30,10 @@ export const FAKE_SUMMARY = 'The user rejected the salmon soup.';
 /**
  * What the fake model answers. `intent` is the classification: an intent, `'unavailable'` to fail
  * like a broken API or `'invalid'` like output that does not match the schema; it fails the menu
- * plan the same way; `request` is the menu request it restates, `menuRequest` its fields and `target` the part of the
- * menu a revision changes. `menuPlan` is the answer to any other structured call, made from the candidates the planner
- * sent (`fakeMenuPlan`), its first day for a day planned again and the meal of that day for a meal
- * replaced; `summary` is
+ * plan the same way; `request` is the menu request it restates, `menuRequest` its fields and `targets` the parts of
+ * the menu a revision changes. `menuPlan` is the answer to any other structured call, made from the candidates the planner
+ * sent (`fakeMenuPlan`), its first day for every day planned again and the meal of that day for every
+ * meal replaced; `summary` is
  * the summary of the older messages. `structuredInputs` records what each structured call was given. Set them in
  * a test; `resetFakeOpenAi()` restores `general_chat` and no plan.
  */
@@ -41,7 +41,7 @@ export const fakeOpenAiState: {
   intent: Intent | 'unavailable' | 'invalid';
   request: string | null;
   menuRequest: MenuRequest | null;
-  target: MenuTarget | null;
+  targets: MenuTarget[] | null;
   menuPlan: FakeMenuPlan | null;
   summary: string;
   streamTextCalls: number;
@@ -50,14 +50,14 @@ export const fakeOpenAiState: {
   intent: Intent.GeneralChat,
   request: null,
   menuRequest: null,
-  target: null,
+  targets: null,
   menuPlan: null,
   summary: FAKE_SUMMARY,
   streamTextCalls: 0,
   structuredInputs: [],
 };
 
-type FakeMenuPlan = (recipes: MenuPlanCandidates) => MenuPlan;
+export type FakeMenuPlan = (recipes: MenuPlanCandidates) => MenuPlan;
 type PlannedMeals = MenuPlan['days'][number]['meals'];
 
 /**
@@ -91,7 +91,7 @@ export function resetFakeOpenAi(): void {
   fakeOpenAiState.intent = Intent.GeneralChat;
   fakeOpenAiState.request = null;
   fakeOpenAiState.menuRequest = null;
-  fakeOpenAiState.target = null;
+  fakeOpenAiState.targets = null;
   fakeOpenAiState.menuPlan = null;
   fakeOpenAiState.summary = FAKE_SUMMARY;
   fakeOpenAiState.streamTextCalls = 0;
@@ -134,7 +134,7 @@ async function fakeStructured<T>(input: unknown, schema: unknown): Promise<T> {
     intent: fakeOpenAiState.intent,
     request: fakeOpenAiState.request,
     menuRequest: fakeOpenAiState.menuRequest,
-    target: fakeOpenAiState.target,
+    targets: fakeOpenAiState.targets,
   } as T;
 }
 

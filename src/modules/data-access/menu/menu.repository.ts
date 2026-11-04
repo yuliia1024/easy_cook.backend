@@ -92,6 +92,19 @@ export class MenuRepository {
     });
   }
 
+  /** The ids of the recipes of the versions of a menu before `versionNumber`, each once. */
+  public async findRecipeIdsBefore(menuId: string, versionNumber: number): Promise<string[]> {
+    const meals = await this.prisma.menuMeal.findMany({
+      where: {
+        recipeId: { not: null },
+        menuDay: { menuVersion: { menuId, versionNumber: { lt: versionNumber } } },
+      },
+      select: { recipeId: true },
+      distinct: ['recipeId'],
+    });
+    return meals.map(({ recipeId }) => recipeId as string);
+  }
+
   /**
    * A new unconfirmed menu with its version 1, linked to the conversation it was generated in, in
    * one transaction.

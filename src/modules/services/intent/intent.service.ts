@@ -75,7 +75,7 @@ function withScope(target: MenuTarget): MenuTarget {
 
 /**
  * Applies the rules the model does not follow reliably; the evals apply them too. Only
- * `revise_menu` keeps a target, its scope matching its fields. A revision needs a menu to revise:
+ * `revise_menu` keeps its targets, the scope of each matching its fields. A revision needs a menu to revise:
  * without an earlier assistant reply it is a new menu when the model restated a request ("a menu
  * for a week, no chicken"), otherwise a clarification ("change my menu somehow").
  */
@@ -84,15 +84,20 @@ export function resolveIntent(
   messages: Pick<Message, 'role'>[],
 ): IntentResult {
   if (result.intent !== Intent.ReviseMenu) {
-    return result.target ? { ...result, target: null } : result;
+    return result.targets ? { ...result, targets: null } : result;
   }
   if (!messages.some((message) => message.role === MessageRole.Assistant)) {
     return result.menuRequest
-      ? { ...result, intent: Intent.GenerateMenu, target: null }
-      : { intent: Intent.Clarification, request: null, menuRequest: null, target: null };
+      ? { ...result, intent: Intent.GenerateMenu, targets: null }
+      : { intent: Intent.Clarification, request: null, menuRequest: null, targets: null };
   }
-  const target = result.target && withScope(result.target);
-  return target === result.target ? result : { ...result, target };
+  if (!result.targets) {
+    return result;
+  }
+  const targets = result.targets.map(withScope);
+  return targets.every((target, i) => target === result.targets[i])
+    ? result
+    : { ...result, targets };
 }
 
 /**

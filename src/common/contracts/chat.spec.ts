@@ -28,7 +28,7 @@ describe('chat contracts', () => {
       intent: 'general_chat',
       request: null,
       menuRequest: null,
-      target: null,
+      targets: null,
       ...overrides,
     });
 
@@ -53,17 +53,28 @@ describe('chat contracts', () => {
       expect(IntentResultSchema.safeParse({}).success).toBe(false);
     });
 
-    it('accepts a menu revision with the request as fields and its target', () => {
+    it('accepts a menu revision with the request as fields and its targets', () => {
       expect(
         IntentResultSchema.safeParse(
           result({
             intent: 'revise_menu',
-            request: 'Plan a 3-day menu with another lunch',
+            request: 'Plan a 3-day menu with another lunch and Tuesday',
             menuRequest,
-            target: { scope: 'meal', dayIndex: null, mealType: 'lunch' },
+            targets: [
+              { scope: 'meal', dayIndex: null, mealType: 'lunch' },
+              { scope: 'day', dayIndex: 1, mealType: null },
+            ],
           }),
         ).success,
       ).toBe(true);
+    });
+
+    it('rejects targets that are not a list', () => {
+      expect(
+        IntentResultSchema.safeParse(
+          result({ targets: { scope: 'day', dayIndex: 1, mealType: null } }),
+        ).success,
+      ).toBe(false);
     });
   });
 

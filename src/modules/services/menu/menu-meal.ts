@@ -141,6 +141,20 @@ export function menuMealModelCall(
   };
 }
 
+/** The recipe of a replaced meal when it is not a candidate, as a sentence the model can act on. Pure. */
+export function mealCandidateProblems(
+  plan: MenuMealPlan,
+  candidates: MenuPlanCandidate[],
+  dayIndex: number,
+  mealType: MealType,
+): string[] {
+  return candidates.some(({ id }) => id === plan.recipe)
+    ? []
+    : [
+        `dayIndex ${dayIndex}, ${mealType}: "${plan.recipe}" is not an id from the ${mealType} recipes.`,
+      ];
+}
+
 /**
  * Everything wrong with a replaced meal, as sentences the model can act on: a recipe that is not
  * a candidate, then the errors of the whole menu `compose` makes with the meal in it that are on
@@ -155,10 +169,9 @@ export function menuMealErrors(
   position: number,
   compose: (recipe: string) => MenuComposition,
 ): string[] {
-  if (!candidates.some(({ id }) => id === plan.recipe)) {
-    return [
-      `dayIndex ${dayIndex}, ${mealType}: "${plan.recipe}" is not an id from the ${mealType} recipes.`,
-    ];
+  const unknown = mealCandidateProblems(plan, candidates, dayIndex, mealType);
+  if (unknown.length > 0) {
+    return unknown;
   }
   return errorsOf(compose(plan.recipe).issues)
     .filter(

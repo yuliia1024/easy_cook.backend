@@ -12,6 +12,7 @@ import { toModelProfile } from '../profile-context/model-profile';
 import {
   fitsDayKcal,
   fittingDayKcal,
+  mealCandidateProblems,
   mealRecipes,
   mealServings,
   menuMealErrors,
@@ -207,6 +208,17 @@ describe('menuMealModelCall', () => {
       maxOutputTokens: MENU_MEAL_MAX_OUTPUT_TOKENS,
       abortSignal,
     });
+  });
+});
+
+describe('mealCandidateProblems', () => {
+  it('names a recipe that is not a candidate, nothing for a candidate', () => {
+    expect(
+      mealCandidateProblems({ message: '', recipe: 'd9' }, candidates, 2, MealType.Dinner),
+    ).toEqual(['dayIndex 2, dinner: "d9" is not an id from the dinner recipes.']);
+    expect(
+      mealCandidateProblems({ message: '', recipe: 'd1' }, candidates, 2, MealType.Dinner),
+    ).toEqual([]);
   });
 });
 

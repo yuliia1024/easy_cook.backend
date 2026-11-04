@@ -247,7 +247,7 @@ describe('resolveClarification', () => {
     intent: Intent.Clarification,
     request: null,
     menuRequest: null,
-    target: null,
+    targets: null,
   };
   const gathered = { ...EMPTY_MENU_REQUEST, days: 3, mealTypes: [MealType.Dinner] };
 
@@ -256,7 +256,7 @@ describe('resolveClarification', () => {
       intent: Intent.GenerateMenu,
       request: 'Plan a 3-day menu with dinner.',
       menuRequest: gathered,
-      target: null,
+      targets: null,
     });
   });
 

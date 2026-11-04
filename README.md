@@ -223,8 +223,9 @@ npm run eval -- --repeat 1 --concurrency 3     # runs per case (3 by default), p
 **intent** - the classifier of chat messages (`IntentService`, with the rules of `resolveIntent`):
 58 messages in Ukrainian and English (direct, vague, more than 7 days, no days, surzhyk, out of
 scope, general chat, follow-ups, menu revisions). Fields: `intent`; `days` from `menuRequest`;
-`constraints` read from the restated request; `target` of a revision (its scope and the fields the
-case sets). A constraint lists alternatives: `"vegetarian"` must be named as wanted, `"!meat"` as
+`constraints` read from the restated request; `target`: the targets of a revision in any order,
+one for each (their scope and the fields the case sets), read as the app reads them on the menu of
+`menuDays` days (`readTargets`). A constraint lists alternatives: `"vegetarian"` must be named as wanted, `"!meat"` as
 excluded ("without meat", "meat-free"). The baseline was taken on the prompt before CHAT-1, which
 must not be worse.
 
@@ -240,17 +241,23 @@ candidates of that meal), `validation` (no problem the planner sends back to the
 recipe on two days in a row, none twice while the meal has unused candidates). The metric
 `repairs` is the mean of the calls after the first one; it is saved in the baseline, not compared.
 
-**menu-day** (EVAL-5) - redoing one day ("redo Tuesday"; `menuDayModelCall`, `menuDayErrors` as
-`MenuPlannerService.replanDay` runs them) or one meal ("another dinner on Wednesday";
-`menuMealModelCall`, `menuMealErrors` as `replanMeal` runs them) of a suggested menu, with
-`planWithRetries`, on the same recipes and profiles: menus of 2 to 7 days given by recipe names,
-the first, a middle or the last day, and every kind of meal. The candidates of a day leave out the
-recipes of the other days (`withoutRecipes`); those of a meal are the recipes of that meal the menu
-does not serve yet (`mealRecipes`) that keep the day within its calories (`fittingDayKcal`).
-Fields: `candidates`; `unchanged` (the rest of the menu byte for byte as in the previous one: the
-other days, and for a meal the other meals of its day); `exclusions` (no recipe the menu already
-serves while the meal had another candidate); `validation` (no error in the whole new menu);
-`calories` of the day and `disliked` of the new meals. Metric `repairs`.
+**menu-day** (EVAL-5) - replacing days and meals of a suggested menu as `MenuPlannerService.replan`
+does (`replaceParts` with `planWithRetries`), one or several in a request ("redo Tuesday",
+"another dinner on Wednesday", "redo Monday and Thursday", "redo Tuesday and the dinner on
+Friday"), on the same recipes and profiles: menus of 2 to 7 days given by recipe names, the
+first, a middle or the last day, every kind of meal, and targets the backend collapses (every
+meal of a day is the day, a day with a meal of it is the day; `resolveReplaceTarget`). Every part
+is planned on the menu the parts before it made: the candidates of a day leave out its own
+recipes, then those of the other days, then the rejected ones (`withoutRecipes`, a step given up
+for a meal it would leave empty), those of a meal are the recipes of that meal the menu does not
+serve yet (`mealRecipes`), then not rejected, that keep the day within its calories
+(`fittingDayKcal`). Rejected are the recipes earlier versions of the menu had and the current one
+has not (`MenuService.getRevisionBase`), and those of the parts replaced earlier in the request. Fields:
+`replacement` (the days and meals replaced, for the cases that expect them); `candidates`;
+`unchanged` (everything else of the menu byte for byte as in the previous one); `exclusions` (no
+recipe the menu already serves, or a replaced day had, while the meal had another one, not
+counting meals the request replaced); `validation` (no error in the whole new menu); `calories` of every day changed and
+`disliked` of the new meals. Metric `repairs`.
 
 ## Tests
 
