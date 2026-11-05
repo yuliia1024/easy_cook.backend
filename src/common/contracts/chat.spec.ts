@@ -5,6 +5,8 @@ import {
 } from '../constants';
 import {
   IntentResultSchema,
+  MenuDayPlanSchema,
+  MenuMealPlanSchema,
   MenuPlanSchema,
   MenuRequestSchema,
   MenuTargetSchema,
@@ -26,7 +28,7 @@ describe('chat contracts', () => {
       intent: 'general_chat',
       request: null,
       menuRequest: null,
-      target: null,
+      targets: null,
       ...overrides,
     });
 
@@ -51,17 +53,28 @@ describe('chat contracts', () => {
       expect(IntentResultSchema.safeParse({}).success).toBe(false);
     });
 
-    it('accepts a menu revision with the request as fields and its target', () => {
+    it('accepts a menu revision with the request as fields and its targets', () => {
       expect(
         IntentResultSchema.safeParse(
           result({
             intent: 'revise_menu',
-            request: 'Plan a 3-day menu with another lunch',
+            request: 'Plan a 3-day menu with another lunch and Tuesday',
             menuRequest,
-            target: { scope: 'meal', dayIndex: null, mealType: 'lunch' },
+            targets: [
+              { scope: 'meal', dayIndex: null, mealType: 'lunch' },
+              { scope: 'day', dayIndex: 1, mealType: null },
+            ],
           }),
         ).success,
       ).toBe(true);
+    });
+
+    it('rejects targets that are not a list', () => {
+      expect(
+        IntentResultSchema.safeParse(
+          result({ targets: { scope: 'day', dayIndex: 1, mealType: null } }),
+        ).success,
+      ).toBe(false);
     });
   });
 
@@ -136,6 +149,34 @@ describe('chat contracts', () => {
       { message: 'x', days: [{ dayIndex: 0, meals: { breakfast: 'b1', lunch: 'l1' } }] },
     ])('rejects %j', (plan) => {
       expect(MenuPlanSchema.safeParse(plan).success).toBe(false);
+    });
+  });
+
+  describe('MenuDayPlanSchema', () => {
+    const meals = { breakfast: 'b1', lunch: 'l1', snack: 's1', dinner: 'd1' };
+
+    it('accepts a message and a recipe id for every meal of the day', () => {
+      expect(MenuDayPlanSchema.safeParse({ message: 'New day.', meals }).success).toBe(true);
+    });
+
+    it('rejects a day without a meal', () => {
+      const { snack: _snack, ...withoutSnack } = meals;
+
+      expect(
+        MenuDayPlanSchema.safeParse({ message: 'New day.', meals: withoutSnack }).success,
+      ).toBe(false);
+    });
+  });
+
+  describe('MenuMealPlanSchema', () => {
+    it('accepts a message and one recipe id', () => {
+      expect(MenuMealPlanSchema.safeParse({ message: 'New dinner.', recipe: 'd2' }).success).toBe(
+        true,
+      );
+    });
+
+    it('rejects a meal without a recipe', () => {
+      expect(MenuMealPlanSchema.safeParse({ message: 'New dinner.' }).success).toBe(false);
     });
   });
 

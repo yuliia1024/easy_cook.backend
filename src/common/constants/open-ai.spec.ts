@@ -3,6 +3,8 @@ import { ModelPrompt } from '../types';
 import {
   GENERAL_CHAT_PROMPT,
   INTENT_PROMPT,
+  MENU_DAY_PROMPT,
+  MENU_MEAL_PROMPT,
   MENU_PLAN_PROMPT,
   PromptName,
   SUMMARY_PROMPT,
@@ -11,6 +13,8 @@ import {
 const PROMPTS: ModelPrompt[] = [
   INTENT_PROMPT,
   MENU_PLAN_PROMPT,
+  MENU_DAY_PROMPT,
+  MENU_MEAL_PROMPT,
   GENERAL_CHAT_PROMPT,
   SUMMARY_PROMPT,
 ];
@@ -21,12 +25,20 @@ const PROMPTS: ModelPrompt[] = [
  */
 const RELEASED: Record<PromptName, { version: number; sha256: string }> = {
   [PromptName.Intent]: {
-    version: 1,
-    sha256: '80d2d7c2a5a8bfdf2f725da17c717573765f26d18d933fc0c42439ec9e9d0e64',
+    version: 3,
+    sha256: '1b8a37690fb7220c88c95cffd4de7711dd6093a2fde34ccb4b84fa384f384430',
   },
   [PromptName.MenuPlan]: {
     version: 1,
     sha256: '0ff81dfc9db18ae2e166a8680f6eae237a9c877ea3a4a730a347fca70d50902d',
+  },
+  [PromptName.MenuDay]: {
+    version: 1,
+    sha256: 'ab50a49a6087ea3cdc82a921cccd06c2e6791357750a2317adc6c40113800344',
+  },
+  [PromptName.MenuMeal]: {
+    version: 1,
+    sha256: '4349556be8e70a1ff0315411993e69122e84c5a1372a6aaa969867e5cd735f3d',
   },
   [PromptName.GeneralChat]: {
     version: 1,

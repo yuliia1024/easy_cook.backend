@@ -12,17 +12,25 @@ import {
   INTERNAL_ERROR_REPLY,
   Intent,
   MENU_PLAN_FAILED_REPLY,
+  MenuTargetScope,
   MessageRole,
   OUT_OF_SCOPE_REPLY,
 } from '../../../common/constants';
-import { IntentResult } from '../../../common/contracts';
-import { ChatResponse, ChatStreamEvent, ProfileContext } from '../../../common/types';
+import { IntentResult, MenuTarget } from '../../../common/contracts';
+import {
+  ChatProgressEvent,
+  ChatResponse,
+  ChatStreamEvent,
+  ProfileContext,
+  ResolvedDay,
+} from '../../../common/types';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
 } from '../../../common/exceptions';
 import { withProgress } from '../../../common/utils';
 import { Conversation } from '../../../generated/prisma/client';
+import { ConversationWithMessages } from '../../data-access/conversation/conversation.repository';
 import { ConversationService } from '../conversation/conversation.service';
 import { ConversationSummaryService } from '../conversation-summary/conversation-summary.service';
 import { GeneralChatService } from '../general-chat/general-chat.service';
@@ -36,7 +44,16 @@ import {
   resolveMenuRequest,
   ResolvedMenuRequest,
 } from '../menu/menu-request';
+import { readTargets, replacementClarification, resolveReplaceTarget } from '../menu/menu-target';
 import { ProfileContextService } from '../profile-context/profile-context.service';
+
+/** A change to some days or meals of the latest menu the chat suggested. */
+interface Revision {
+  previous: ResolvedDay[];
+  /** The recipes earlier versions of the menu had and `previous` has not. */
+  rejectedRecipeIds: Set<string>;
+  targets: MenuTarget[];
+}
 
 /**
  * Handles a chat message: saves it, loads the profile once, classifies its intent within the
@@ -98,7 +115,7 @@ export class ChatOrchestratorService {
   }
 
   private async *reply(
-    conversation: Conversation,
+    conversation: ConversationWithMessages,
     content: string,
     abortSignal: AbortSignal | undefined,
   ): AsyncGenerator<ChatStreamEvent> {
@@ -136,7 +153,7 @@ export class ChatOrchestratorService {
   }
 
   private async *route(
-    conversation: Conversation,
+    conversation: ConversationWithMessages,
     content: string,
     abortSignal: AbortSignal | undefined,
   ): AsyncGenerator<ChatStreamEvent> {
@@ -150,7 +167,7 @@ export class ChatOrchestratorService {
       abortSignal,
     );
     const menuRequest = await this.mergeMenuRequest(conversation, profile, classified);
-    const { intent, request } = resolveClarification(classified, menuRequest);
+    const { intent, request, targets } = resolveClarification(classified, menuRequest);
     const clarification = menuClarification(intent, menuRequest);
     if (clarification) {
       yield { type: ChatStreamEventType.Clarification, ...clarification };
@@ -167,11 +184,18 @@ export class ChatOrchestratorService {
           yield { type: ChatStreamEventType.TextDelta, content: delta };
         }
         return;
-      // A change is planned again from the restated request until a saved menu can be edited by
-      // `target`.
+      // A change to some days or meals plans only those parts again; any other change plans the
+      // whole menu again from the restated request.
       case Intent.GenerateMenu:
       case Intent.ReviseMenu:
-        yield* this.planMenu(conversation, request ?? content, menuRequest, profile, abortSignal);
+        yield* this.planMenu(
+          conversation,
+          request ?? content,
+          menuRequest,
+          profile,
+          abortSignal,
+          intent === Intent.ReviseMenu ? targets : null,
+        );
         return;
       // Asked above (`menuClarification`).
       case Intent.Clarification:
@@ -188,25 +212,29 @@ export class ChatOrchestratorService {
 
   /**
    * A plan still invalid after every attempt of the planner ends with `MENU_PLAN_FAILED_REPLY`. A planned
-   * menu is saved as a draft version before it is sent, so the client gets its ids.
+   * menu is saved as a draft version before it is sent, so the client gets its ids. A revision of
+   * some days or meals of the latest suggested menu (`revisionOf`) changes only those parts and
+   * keeps the rest, in one new version; a target the menu cannot pin down is asked about instead
+   * (`replacementClarification`).
    */
   private async *planMenu(
-    conversation: Conversation,
+    conversation: ConversationWithMessages,
     request: string,
     menuRequest: ResolvedMenuRequest,
     profile: ProfileContext | null,
     abortSignal: AbortSignal | undefined,
+    targets: MenuTarget[] | null,
   ): AsyncGenerator<ChatStreamEvent> {
+    const revision = await this.revisionOf(conversation, targets, menuRequest);
+    const clarification = revision && replacementClarification(revision.targets, revision.previous);
+    if (clarification) {
+      yield { type: ChatStreamEventType.Clarification, ...clarification };
+      return;
+    }
     let response: ChatResponse;
     try {
       response = yield* withProgress<ChatStreamEvent, ChatResponse>((onProgress) =>
-        this.menuPlannerService.plan(
-          request,
-          menuRequest.request,
-          profile,
-          abortSignal,
-          onProgress,
-        ),
+        this.planned(request, menuRequest, profile, revision, abortSignal, onProgress),
       );
     } catch (error) {
       if (!(error instanceof AssistantInvalidOutputException)) {
@@ -231,6 +259,68 @@ export class ChatOrchestratorService {
       return;
     }
     yield* this.toEvents(response);
+  }
+
+  /**
+   * The days and the meals of the revision planned again (`resolveReplaceTarget`), or else the
+   * whole menu: also when the revision names every day.
+   */
+  private planned(
+    request: string,
+    menuRequest: ResolvedMenuRequest,
+    profile: ProfileContext | null,
+    revision: Revision | null,
+    abortSignal: AbortSignal | undefined,
+    onProgress: (event: ChatProgressEvent) => void,
+  ): Promise<ChatResponse> {
+    const replacement = revision && resolveReplaceTarget(revision.targets, revision.previous);
+    if (replacement) {
+      return this.menuPlannerService.replan(
+        request,
+        menuRequest.request,
+        profile,
+        revision.previous,
+        replacement,
+        abortSignal,
+        onProgress,
+        revision.rejectedRecipeIds,
+      );
+    }
+    return this.menuPlannerService.plan(
+      request,
+      menuRequest.request,
+      profile,
+      abortSignal,
+      onProgress,
+    );
+  }
+
+  /**
+   * The latest menu the chat suggested and the parts of it a revision targets as the app reads
+   * them (`readTargets`), when the request keeps its number of days; null for a change to the whole menu, without a suggested menu or
+   * with another number of days, and the whole menu is planned again.
+   */
+  private async revisionOf(
+    conversation: ConversationWithMessages,
+    targets: MenuTarget[] | null,
+    menuRequest: ResolvedMenuRequest,
+  ): Promise<Revision | null> {
+    if (!targets?.length || targets.some(({ scope }) => scope === MenuTargetScope.Menu)) {
+      return null;
+    }
+    const versionId = [...conversation.messages]
+      .reverse()
+      .find(
+        (message) => message.role === MessageRole.Assistant && message.menuVersionId,
+      )?.menuVersionId;
+    if (!versionId) {
+      return null;
+    }
+    const { days: previous, rejectedRecipeIds } = await this.menuService.getRevisionBase(versionId);
+    const { days } = menuRequest.request;
+    return days === null || days === previous.length
+      ? { previous, rejectedRecipeIds, targets: readTargets(targets, previous.length) }
+      : null;
   }
 
   /**

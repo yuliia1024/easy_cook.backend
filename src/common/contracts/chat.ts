@@ -29,9 +29,11 @@ export const MenuRequestSchema = z.object({
 export type MenuRequest = z.infer<typeof MenuRequestSchema>;
 
 /**
- * The part of the latest menu a `revise_menu` request changes: the whole menu, a day (`dayIndex`,
- * 0 for the first day) or a meal (`mealType`, on the day `dayIndex` or on every day when null).
- * A scope that does not match the fields is not invalid: `resolveIntent` takes it from them.
+ * A part of the latest menu a `revise_menu` request changes: the whole menu (a meal on every day
+ * too), a day (`dayIndex`, 0 for the first day) or a meal (`mealType` on the day `dayIndex`; a
+ * day not named is asked for on a menu of more days). A scope that does not match the fields is
+ * not invalid: `resolveIntent` takes it from them. The model only names the parts; the backend
+ * decides what is replaced (`resolveReplaceTarget`).
  */
 export const MenuTargetSchema = z.object({
   scope: z.enum(MenuTargetScope),
@@ -44,13 +46,14 @@ export type MenuTarget = z.infer<typeof MenuTargetSchema>;
 /**
  * What `IntentService` accepts from the model; anything else is invalid output. `request` is the
  * menu request restated from the conversation and `menuRequest` the same request as fields, both
- * set only for `generate_menu` and `revise_menu`; `target` is set only for `revise_menu`.
+ * set only for `generate_menu` and `revise_menu`; `targets`, every part of the menu the change
+ * names, only for `revise_menu`.
  */
 export const IntentResultSchema = z.object({
   intent: z.enum(Intent),
   request: z.string().max(INTENT_REQUEST_MAX_LENGTH).nullable(),
   menuRequest: MenuRequestSchema.nullable(),
-  target: MenuTargetSchema.nullable(),
+  targets: z.array(MenuTargetSchema).nullable(),
 });
 
 export type IntentResult = z.infer<typeof IntentResultSchema>;
@@ -76,6 +79,28 @@ export const MenuPlanSchema = z.object({
 });
 
 export type MenuPlan = z.infer<typeof MenuPlanSchema>;
+
+/**
+ * What `replaceParts` accepts from the model: a recipe id for each meal of the one
+ * day it plans again, checked afterwards against the candidates of that meal (`menuDayErrors`).
+ */
+export const MenuDayPlanSchema = z.object({
+  message: z.string(),
+  meals: MenuPlanSchema.shape.days.element.shape.meals,
+});
+
+export type MenuDayPlan = z.infer<typeof MenuDayPlanSchema>;
+
+/**
+ * What `replaceParts` accepts from the model: the recipe id of the one meal it
+ * replaces, checked afterwards against the candidates (`menuMealErrors`).
+ */
+export const MenuMealPlanSchema = z.object({
+  message: z.string(),
+  recipe: z.string(),
+});
+
+export type MenuMealPlan = z.infer<typeof MenuMealPlanSchema>;
 
 /** What `ConversationSummaryService` accepts from the model: the summary of the older messages. */
 export const SummaryResultSchema = z.object({

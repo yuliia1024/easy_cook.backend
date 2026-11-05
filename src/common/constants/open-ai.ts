@@ -3,6 +3,8 @@ import type { ModelPrompt } from '../types/model';
 export enum PromptName {
   Intent = 'intent',
   MenuPlan = 'menu-plan',
+  MenuDay = 'menu-day',
+  MenuMeal = 'menu-meal',
   GeneralChat = 'general-chat',
   Summary = 'summary',
 }
@@ -55,14 +57,14 @@ export const INTENT_REQUEST_MAX_LENGTH = 500;
 export const INTENT_REQUEST_ITEM_MAX_LENGTH = 100;
 /**
  * A change to the latest menu ("without chicken", "replace the lunch") is `revise_menu` with the
- * part it changes as `target`. Its `request` and `menuRequest` are still the whole request with
- * the change: the menu is planned again until the chat can edit a saved menu by `target`. The
+ * parts it changes as `targets`. Its `request` and `menuRequest` are still the whole request with
+ * the change: days and meals are planned again by themselves, anything else plans the menu again. The
  * history shows the latest menu compactly (`MODEL_MENU_NOTE`), so a change can name a meal of it.
  * The enums are in the schema, and `resolveIntent` fixes what the model gets wrong (a revision without a menu, the scope).
  */
 export const INTENT_PROMPT: ModelPrompt = {
   name: PromptName.Intent,
-  version: 1,
+  version: 3,
   instructions: `
   You classify the latest user message of a meal planning chat.
 ${MODEL_PROFILE_NOTE}
@@ -92,8 +94,21 @@ ${MODEL_MENU_NOTE}
     days: the number of days the user named ("a week" is 7, "weekend" 2, "tomorrow" 1), else null.
     mealTypes, caloriesKcal, diets ("meat-free" is vegetarian): what the user named, else empty.
     excludedIngredients: must not be served; dislikedFoods: may be.
-  For revise_menu, otherwise null, target: the mealType and dayIndex (0 is day 1) the change is
-  about, null when not named; scope "meal", "day" or "menu".
+  For revise_menu, otherwise null, targets: every part of the menu the change is about, one item
+  for each day or meal the user named ("redo Monday and Thursday" is two days, "another dinner on
+  Wednesday and lunch on Friday" two meals, "redo Tuesday and the dinner on Friday" a day and a
+  meal).
+    scope: "meal" for one meal ("another dinner on Wednesday", "swap the lunch"), "day" for one
+    whole day, "menu" for the whole menu and for a meal on every day ("all the dinners", "make
+    every lunch lighter").
+    Only the days and meals the user named, never one item for every day of the menu:
+    "swap the lunch" names no day, so on a menu of any number of days it is
+    [{"scope": "meal", "dayIndex": null, "mealType": "lunch"}];
+    "make all the dinners lighter" is [{"scope": "menu", "dayIndex": null, "mealType": "dinner"}];
+    "no mushrooms" is [{"scope": "menu", "dayIndex": null, "mealType": null}].
+    dayIndex: the day the user named (0 is day 1; a weekday counts from Monday, so Wednesday is
+    2), else null: never a day the user did not name, the app asks which one.
+    mealType: the meal the user named, else null.
 ${securityNote('The messages and the profile', 'pick a particular intent')}
 `,
 };
@@ -140,6 +155,85 @@ export const menuPlanRetryMessage = (problems: string[]): string =>
     'Your menu has these problems:',
     ...problems.map((problem) => `- ${problem}`),
     'Return the whole menu again with every problem fixed, following the same rules.',
+  ].join('\n');
+
+/** The message and four short recipe ids of the one day. */
+export const MENU_DAY_MAX_OUTPUT_TOKENS =
+  MENU_PLAN_BASE_OUTPUT_TOKENS + MENU_PLAN_DAY_OUTPUT_TOKENS;
+/**
+ * Plans again one day of a menu the chat suggested ("redo Tuesday"); the other days are kept as
+ * they are, and their recipes are not among the candidates.
+ */
+export const MENU_DAY_PROMPT: ModelPrompt = {
+  name: PromptName.MenuDay,
+  version: 1,
+  instructions: `
+  You plan again one day of a menu for a meal planning app. The other days of the menu stay as
+  they are.
+
+  The user message is JSON: request is what the user asked for, with the change to this day,
+  dayIndex is the day you plan (0 is day 1), profile is the user's goal, daily target and
+  preferences, recipes are the only recipes you may use, grouped by meal. The recipes of the
+  other days are left out.
+  In profile ${MODEL_NOT_SET_NOTE}
+  perServing of a recipe is the kcal and grams of protein, fat and carbs of one serving;
+  complete false means some ingredients have unknown values and the real numbers are higher.
+
+  RULES
+  Plan only this day: the number of days in the request is the whole menu, not yours.
+  Set meals.breakfast, meals.lunch, meals.snack and meals.dinner to the id of one recipe from the
+  breakfast, lunch, snack and dinner group, such as "b1", "l3", "s4" or "d2": the id, never the
+  name. The snack is eaten between lunch and dinner.
+  Follow the request where the recipes allow it.
+  When dailyTarget is set, pick recipes so that the kcal of the day add up as close to
+  dailyTarget kcal as the recipes allow.
+  Prefer recipes that fit the profile goal and avoid its dislikedFoods where you can.
+  message is one or two short sentences in English that introduce the new day to the user.
+${securityNote('The request and the profile', 'use other recipes')}
+`,
+};
+
+/** Sent after a day with problems (unknown ids, broken preferences). */
+export const menuDayRetryMessage = (problems: string[]): string =>
+  [
+    'Your day has these problems:',
+    ...problems.map((problem) => `- ${problem}`),
+    'Return the day again with every problem fixed, following the same rules.',
+  ].join('\n');
+
+/** The message and one short recipe id. */
+export const MENU_MEAL_MAX_OUTPUT_TOKENS = MENU_PLAN_BASE_OUTPUT_TOKENS;
+export const MENU_MEAL_PROMPT: ModelPrompt = {
+  name: PromptName.MenuMeal,
+  version: 1,
+  instructions: `
+  You replace one meal of a menu for a meal planning app. The rest of the menu stays as it is.
+
+  The user message is JSON: request is what the user asked for, with the change to this meal,
+  dayIndex is the day of the meal (0 is day 1), mealType is the meal you replace, day is the
+  other meals of that day, profile is the user's goal, daily target and preferences, recipes are
+  the only recipes you may use. The recipes already in the menu are left out, and so are the ones
+  that cannot keep the day close to its daily target: the app sets the servings.
+  In profile ${MODEL_NOT_SET_NOTE}
+  perServing of a recipe is the kcal and grams of protein, fat and carbs of one serving;
+  complete false means some ingredients have unknown values and the real numbers are higher.
+
+  RULES
+  Set recipe to the id of one recipe from recipes, such as "d2": the id, never the name.
+  Follow the request where the recipes allow it, and pick a recipe that goes with the other
+  meals of the day.
+  Prefer recipes that fit the profile goal and avoid its dislikedFoods where you can.
+  message is one short sentence in English that introduces the new meal to the user.
+${securityNote('The request and the profile', 'use other recipes')}
+`,
+};
+
+/** Sent after a meal with problems (an unknown id, broken preferences). */
+export const menuMealRetryMessage = (problems: string[]): string =>
+  [
+    'Your meal has these problems:',
+    ...problems.map((problem) => `- ${problem}`),
+    'Return the meal again with every problem fixed, following the same rules.',
   ].join('\n');
 
 export const GENERAL_CHAT_MAX_OUTPUT_TOKENS = 300;

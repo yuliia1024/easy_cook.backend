@@ -10,13 +10,14 @@ import {
   MESSAGE_MAX_LENGTH,
   MessageRole,
 } from '../../../src/common/constants';
-import { IntentResult } from '../../../src/common/contracts';
+import { IntentResult, MenuTarget } from '../../../src/common/contracts';
 import { ProfileContext } from '../../../src/common/types';
 import {
   intentModelCall,
   resolveIntent,
 } from '../../../src/modules/services/intent/intent.service';
 import { ModelResult, OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { readTargets } from '../../../src/modules/services/menu/menu-target';
 import { EvalCaseSchema, EvalSuite, FieldScore } from '../../lib/types';
 
 /** Profiles a case can run with; `basic` when the case names none. */
@@ -60,9 +61,11 @@ export const INTENT_PROFILES: Record<string, ProfileContext | null> = {
 /**
  * A message history, the latest user message last, and what the classifier must return.
  * `days` (`menuRequest.days`; null: the user gave none, so the model must not add one),
- * `constraints` and `target` are scored only when set. Each constraint is a list of alternatives,
+ * `constraints` and `targets` are scored only when set. Each constraint is a list of alternatives,
  * one of which the restated request must name: `"vegetarian"` named as wanted, `"!meat"` named as
- * excluded ("without meat", "meat-free"). `target` scores its scope and the fields it sets.
+ * excluded ("without meat", "meat-free"). `targets` scores every target, in any order, by its
+ * scope and the fields it sets (`sameTargets`), as the app reads them on the menu of `menuDays`
+ * days in the history (`readTargets`) when the case gives it.
  */
 export const IntentCaseSchema = EvalCaseSchema.extend({
   profile: z.enum(Object.keys(INTENT_PROFILES) as [string, ...string[]]).default('basic'),
@@ -77,6 +80,7 @@ export const IntentCaseSchema = EvalCaseSchema.extend({
     .refine((messages) => messages.at(-1)?.role === MessageRole.User, {
       message: 'the latest message must be from the user',
     }),
+  menuDays: z.number().int().positive().optional(),
   expected: z.object({
     intent: z.enum(Intent),
     days: z.number().int().positive().nullable().optional(),
@@ -84,12 +88,15 @@ export const IntentCaseSchema = EvalCaseSchema.extend({
       .array(z.array(z.string().regex(/^!?[^!\s]/)).min(1))
       .min(1)
       .optional(),
-    target: z
-      .object({
-        scope: z.enum(MenuTargetScope),
-        dayIndex: z.number().int().nonnegative().nullable().optional(),
-        mealType: z.enum(MealType).nullable().optional(),
-      })
+    targets: z
+      .array(
+        z.object({
+          scope: z.enum(MenuTargetScope),
+          dayIndex: z.number().int().nonnegative().nullable().optional(),
+          mealType: z.enum(MealType).nullable().optional(),
+        }),
+      )
+      .min(1)
       .optional(),
   }),
 });
@@ -118,6 +125,26 @@ export function mentions(text: string, term: string, excluded: boolean): boolean
     }
   }
   return false;
+}
+
+/**
+ * Whether the targets are the expected ones in any order, one for each: the scope and the fields
+ * each expected target sets.
+ */
+export function sameTargets(
+  expected: NonNullable<IntentCase['expected']['targets']>,
+  actual: MenuTarget[],
+): boolean {
+  const left = [...actual];
+  return (
+    expected.length === actual.length &&
+    expected.every((wanted) => {
+      const i = left.findIndex((target) =>
+        Object.entries(wanted).every(([key, value]) => target[key as keyof MenuTarget] === value),
+      );
+      return i >= 0 && left.splice(i, 1).length === 1;
+    })
+  );
 }
 
 /** Output that did not match the schema (`null`) fails every field the case scores. */
@@ -158,23 +185,20 @@ export function scoreIntent(testCase: IntentCase, output: IntentResult | null): 
       actual: request,
     });
   }
-  if (expected.target) {
-    const target = output?.target ?? null;
+  if (expected.targets) {
+    const given = output?.targets ?? null;
+    const targets = given && testCase.menuDays ? readTargets(given, testCase.menuDays) : given;
     scores.push({
       field: 'target',
-      pass:
-        target !== null &&
-        Object.entries(expected.target).every(
-          ([key, value]) => target[key as keyof typeof target] === value,
-        ),
-      expected: expected.target,
-      actual: target,
+      pass: targets !== null && sameTargets(expected.targets, targets),
+      expected: expected.targets,
+      actual: targets,
     });
   }
   return scores;
 }
 
-/** The intent classifier (`IntentService`): intent, days, constraints and target of a menu request. */
+/** The intent classifier (`IntentService`): intent, days, constraints and targets of a menu request. */
 export const intentSuite: EvalSuite<IntentCase, IntentResult> = {
   name: 'intent',
   casesFile: join(__dirname, 'cases.jsonl'),

@@ -98,7 +98,7 @@ export const MENU_PLAN_RECIPES: RecipeSnapshot[] = (
   }
 ).recipes;
 
-const RECIPES_BY_ID = new Map(MENU_PLAN_RECIPES.map((recipe) => [recipe.id, recipe]));
+export const RECIPES_BY_ID = new Map(MENU_PLAN_RECIPES.map((recipe) => [recipe.id, recipe]));
 
 /**
  * The restated request (`describeMenuRequest`) with the number of days the planner gets.
@@ -115,11 +115,11 @@ export type MenuPlanCase = z.infer<typeof MenuPlanCaseSchema>;
 
 /**
  * The recipes the app offers the profile (`RecipeService.getAllowed`: the diets, no allergen or
- * excluded ingredient), then `selectCandidates` of every meal, labelled by short ids.
+ * excluded ingredient).
  */
-function labelledCandidates(testCase: MenuPlanCase): LabelledCandidates {
-  const { rules, nutritionGoal } = MENU_PLAN_PROFILES[testCase.profile];
-  const allowed = MENU_PLAN_RECIPES.filter(
+export function allowedRecipes(profile: ProfileContext): RecipeSnapshot[] {
+  const { rules } = profile;
+  return MENU_PLAN_RECIPES.filter(
     (recipe) =>
       rules.diets.every((diet) =>
         dietTagsSatisfying(diet).some((tag) => recipe.dietType.includes(tag)),
@@ -128,21 +128,39 @@ function labelledCandidates(testCase: MenuPlanCase): LabelledCandidates {
         isForbiddenFood(foodName, foodNameEn, rules),
       ),
   );
+}
+
+/**
+ * `selectCandidates` of every meal among the recipes, for `days` planned days, labelled by short
+ * ids, as `MenuPlannerService` offers them.
+ */
+export function labelRecipes(
+  recipes: RecipeSnapshot[],
+  profile: ProfileContext,
+  days: number,
+  rotation: number,
+): LabelledCandidates {
   const selected = Object.fromEntries(
     MENU_PLAN_MEAL_TYPES.map((mealType) => [
       mealType,
       selectCandidates(
-        allowed
+        recipes
           .filter((recipe) => recipe.mealType === mealType)
           .map(({ id, name, perServing, complete }) => ({ id, name, perServing, complete })),
         mealType,
-        nutritionGoal?.caloriesKcal ?? null,
-        candidatesPerMeal(testCase.days),
-        testCase.rotation,
+        profile.nutritionGoal?.caloriesKcal ?? null,
+        candidatesPerMeal(days),
+        rotation,
       ),
     ]),
   ) as MenuPlanCandidates;
   return labelCandidates(selected);
+}
+
+/** The allowed recipes of the case's profile (`allowedRecipes`), labelled (`labelRecipes`). */
+function labelledCandidates(testCase: MenuPlanCase): LabelledCandidates {
+  const profile = MENU_PLAN_PROFILES[testCase.profile];
+  return labelRecipes(allowedRecipes(profile), profile, testCase.days, testCase.rotation);
 }
 
 /** The candidates the app offers for the case, by short ids. */
@@ -252,7 +270,7 @@ export function scoreMenuPlan(testCase: MenuPlanCase, output: MenuPlan | null): 
   ];
 }
 
-const addUsage = (a: ModelUsage, b: ModelUsage): ModelUsage => ({
+export const addUsage = (a: ModelUsage, b: ModelUsage): ModelUsage => ({
   inputTokens: a.inputTokens + b.inputTokens,
   cachedInputTokens: a.cachedInputTokens + b.cachedInputTokens,
   outputTokens: a.outputTokens + b.outputTokens,

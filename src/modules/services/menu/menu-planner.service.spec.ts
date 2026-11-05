@@ -9,19 +9,44 @@ import {
   MealType,
   MenuIssueCode,
   MenuIssueSeverity,
+  MENU_DAY_MAX_OUTPUT_TOKENS,
+  MENU_DAY_PROMPT,
+  MENU_MEAL_MAX_OUTPUT_TOKENS,
+  MENU_MEAL_PROMPT,
   MENU_PLAN_PROMPT,
   MENU_PLAN_MAX_ATTEMPTS,
+  menuDayRetryMessage,
+  menuMealRetryMessage,
   menuPlanMaxOutputTokens,
   menuPlanRetryMessage,
   NO_PROFILE_REPLY,
 } from '../../../common/constants';
-import { MenuPlan, MenuPlanSchema, MenuRequest } from '../../../common/contracts';
+import {
+  MenuDayPlan,
+  MenuDayPlanSchema,
+  MenuMealPlan,
+  MenuMealPlanSchema,
+  MenuPlan,
+  MenuPlanSchema,
+  MenuRequest,
+} from '../../../common/contracts';
 import { AssistantInvalidOutputException } from '../../../common/exceptions';
-import { ChatProgressEvent, ProfileContext } from '../../../common/types';
+import {
+  ChatProgressEvent,
+  ChatResponse,
+  ProfileContext,
+  ResolvedDay,
+} from '../../../common/types';
 import { ModelResult, OpenAiService } from '../../../providers/open-ai/open-ai.service';
 import { Prisma } from '../../../generated/prisma/client';
 import { createMock } from '../../../test/create-mock';
-import { buildFoodItem, buildIngredient, buildRecipe, PROFILE_ID } from '../../../test/fixtures';
+import {
+  buildFoodItem,
+  buildIngredient,
+  buildRecipe,
+  buildRecipeSnapshot,
+  PROFILE_ID,
+} from '../../../test/fixtures';
 import { NutritionService } from '../nutrition/nutrition.service';
 import { toModelProfile } from '../profile-context/model-profile';
 import { RecipeService } from '../recipe/recipe.service';
@@ -543,6 +568,696 @@ describe('MenuPlannerService', () => {
       expect(warn).toHaveBeenLastCalledWith(
         `Menu plan failed after ${MENU_PLAN_MAX_ATTEMPTS} attempts`,
       );
+    });
+  });
+  describe('replan of a day', () => {
+    const MEAL_TYPES = [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner];
+    /** A saved day of the recipes, one per meal in `MEAL_TYPES` order, 1.5 servings each. */
+    const savedDay = (
+      dayIndex: number,
+      recipeIds: string[],
+      date: Date | null = null,
+    ): ResolvedDay => ({
+      dayIndex,
+      date,
+      meals: recipeIds.map((recipeId, i) => ({
+        mealType: MEAL_TYPES[i],
+        servings: 1.5,
+        recipeId,
+        recipe: buildRecipeSnapshot({ id: recipeId, name: recipeId, mealType: MEAL_TYPES[i] }),
+      })),
+    });
+    const previous = (): ResolvedDay[] => [
+      savedDay(0, ['rec-b', 'rec-l', 'rec-s', 'rec-d']),
+      savedDay(1, ['rec-b2', 'rec-l', 'rec-s', 'rec-d'], new Date('2026-11-03')),
+      savedDay(2, ['rec-b3', 'rec-l', 'rec-s', 'rec-d']),
+    ];
+    const dayPlan: MenuDayPlan = { message: 'A new Tuesday.', meals };
+    const dayResult = (output: MenuDayPlan): ModelResult<MenuDayPlan> => ({
+      ...result(plan),
+      output,
+    });
+    const threeDays: MenuRequest = { ...EMPTY_MENU_REQUEST, days: 3 };
+
+    beforeEach(() => {
+      recipeService.getAllowed.mockResolvedValue([
+        breakfast,
+        buildRecipe({ id: 'rec-b2', name: 'B2', mealType: MealType.Breakfast }),
+        buildRecipe({ id: 'rec-b3', name: 'B3', mealType: MealType.Breakfast }),
+        buildRecipe({ id: 'rec-b4', name: 'B4', mealType: MealType.Breakfast }),
+        buildRecipe({ id: 'rec-b5', name: 'B5', mealType: MealType.Breakfast }),
+        lunch,
+        snack,
+        dinner,
+      ]);
+      openAiService.generateStructuredResult.mockResolvedValue(dayResult(dayPlan));
+    });
+
+    it('asks the model for the one day, among candidates without its own recipes and those of the other days', async () => {
+      const abort = new AbortController();
+
+      await service.replan(
+        'Redo day 2',
+        threeDays,
+        profile,
+        previous(),
+        { days: [1], meals: [] },
+        abort.signal,
+      );
+
+      const [messages, schema, options] = openAiService.generateStructuredResult.mock.calls[0];
+      const sent = JSON.parse((messages as Array<{ content: string }>)[0].content);
+      expect(sent).toMatchObject({ request: 'Redo day 2', dayIndex: 1 });
+      expect(sent.profile).toEqual(toModelProfile(profile));
+      // rec-b and rec-b3 are on the other days, rec-b2 is the day's own.
+      expect(sent.recipes.breakfast.map(({ name }: { name: string }) => name)).toEqual([
+        'B4',
+        'B5',
+      ]);
+      // The other days use the only lunch, snack and dinner: they stay rather than none.
+      expect(sent.recipes.lunch.map(({ name }: { name: string }) => name)).toEqual(['Rice bowl']);
+      expect(schema).toBe(MenuDayPlanSchema);
+      expect(options).toEqual({
+        prompt: MENU_DAY_PROMPT,
+        maxOutputTokens: MENU_DAY_MAX_OUTPUT_TOKENS,
+        abortSignal: abort.signal,
+      });
+    });
+
+    it('leaves out the recipes earlier versions dropped while the meal has another', async () => {
+      await service.replan(
+        'Redo day 2',
+        threeDays,
+        profile,
+        previous(),
+        { days: [1], meals: [] },
+        undefined,
+        undefined,
+        new Set(['rec-b4', 'rec-l']),
+      );
+
+      const [messages] = openAiService.generateStructuredResult.mock.calls[0];
+      const sent = JSON.parse((messages as Array<{ content: string }>)[0].content);
+      expect(sent.recipes.breakfast.map(({ name }: { name: string }) => name)).toEqual(['B5']);
+      // The only lunch stays rather than none.
+      expect(sent.recipes.lunch.map(({ name }: { name: string }) => name)).toEqual(['Rice bowl']);
+    });
+
+    it('replaces only the day and copies the other days from the previous version as they are', async () => {
+      const before = previous();
+      const response = await service.replan('Redo day 2', threeDays, profile, before, {
+        days: [1],
+        meals: [],
+      });
+
+      expect(response.type).toBe(ChatResponseType.MenuReady);
+      if (response.type !== ChatResponseType.MenuReady) {
+        return;
+      }
+      expect(JSON.stringify(response.days[0])).toBe(JSON.stringify(previous()[0]));
+      expect(JSON.stringify(response.days[2])).toBe(JSON.stringify(previous()[2]));
+      expect(response.days[1]).toMatchObject({
+        dayIndex: 1,
+        date: new Date('2026-11-03'),
+        meals: [
+          { mealType: MealType.Breakfast, servings: 1, recipeId: 'rec-b4' },
+          { mealType: MealType.Lunch, servings: 1, recipeId: 'rec-l' },
+          { mealType: MealType.Snack, servings: 1, recipeId: 'rec-s' },
+          { mealType: MealType.Dinner, servings: 1, recipeId: 'rec-d' },
+        ],
+      });
+      expect(response).toMatchObject({
+        message: 'A new Tuesday.',
+        menu: {
+          days: [
+            { dayIndex: 0, meals: [{ recipeId: 'rec-b', servings: 1.5 }, {}, {}, {}] },
+            {
+              dayIndex: 1,
+              date: '2026-11-03',
+              meals: [{ recipeId: 'rec-b4', servings: 1 }, {}, {}, {}],
+            },
+            { dayIndex: 2, meals: [{ recipeId: 'rec-b3', servings: 1.5 }, {}, {}, {}] },
+          ],
+        },
+        generatedWith: { modelId, prompt: 'menu-day@v1' },
+      });
+      expect(log).toHaveBeenCalledWith(
+        '1 day(s) and 0 meal(s) of 3 days replaced in 1 attempt(s) by gpt-test with menu-day@v1',
+      );
+    });
+
+    it('fits the servings of the new day only to the calories of the request', async () => {
+      const response = await service.replan(
+        'Redo day 2',
+        { ...threeDays, caloriesKcal: 1040 },
+        profile,
+        previous(),
+        { days: [1], meals: [] },
+      );
+
+      expect(response).toMatchObject({
+        days: [
+          { meals: [{ servings: 1.5 }, {}, {}, {}] },
+          { meals: [{ servings: 2 }, { servings: 2 }, { servings: 2 }, { servings: 2 }] },
+          { meals: [{ servings: 1.5 }, {}, {}, {}] },
+        ],
+      });
+    });
+
+    it('tells the stream the shape of the whole menu', async () => {
+      const onProgress = jest.fn();
+
+      await service.replan(
+        'Redo day 2',
+        threeDays,
+        profile,
+        previous(),
+        { days: [1], meals: [] },
+        undefined,
+        onProgress,
+      );
+
+      expect(onProgress).toHaveBeenCalledWith({
+        type: ChatStreamEventType.MenuPending,
+        days: 3,
+        mealTypes: MEAL_TYPES,
+      });
+    });
+
+    it('validates the whole menu and sends the errors on the new day back to the model', async () => {
+      recipeService.getAllowed.mockResolvedValue([
+        buildRecipe({
+          id: 'rec-b4',
+          name: 'Not vegan',
+          mealType: MealType.Breakfast,
+          dietType: [],
+        }),
+        buildRecipe({ id: 'rec-b5', name: 'B5', mealType: MealType.Breakfast }),
+        lunch,
+        snack,
+        dinner,
+      ]);
+      openAiService.generateStructuredResult
+        .mockResolvedValueOnce(dayResult(dayPlan))
+        .mockResolvedValueOnce(dayResult({ ...dayPlan, meals: { ...meals, breakfast: 'b2' } }));
+
+      const response = await service.replan('Redo day 2', threeDays, profile, previous(), {
+        days: [1],
+        meals: [],
+      });
+
+      expect(sentMessages(1).at(-1)?.content).toBe(
+        menuDayRetryMessage(['Day 2, breakfast: Not vegan is not vegan.']),
+      );
+      expect(response).toMatchObject({
+        days: [{}, { meals: [{ recipeId: 'rec-b5' }, {}, {}, {}] }, {}],
+        menu: { issues: [] },
+      });
+    });
+
+    it('keeps the errors of the other days in the issues without sending them back', async () => {
+      const before = previous();
+      before[0].meals[0].recipe = buildRecipeSnapshot({ id: 'rec-b', name: 'Bacon', dietType: [] });
+
+      const response = await service.replan('Redo day 2', threeDays, profile, before, {
+        days: [1],
+        meals: [],
+      });
+
+      expect(openAiService.generateStructuredResult).toHaveBeenCalledTimes(1);
+      expect(response).toMatchObject({
+        menu: {
+          issues: [
+            {
+              severity: MenuIssueSeverity.Error,
+              code: MenuIssueCode.DietViolation,
+              dayIndex: 0,
+            },
+          ],
+        },
+      });
+    });
+
+    it('fails with invalid output after the last attempt', async () => {
+      openAiService.generateStructuredResult.mockResolvedValue(
+        dayResult({ ...dayPlan, meals: { ...meals, lunch: 'l9' } }),
+      );
+
+      await expect(
+        service.replan('Redo day 2', threeDays, profile, previous(), { days: [1], meals: [] }),
+      ).rejects.toBeInstanceOf(AssistantInvalidOutputException);
+      expect(openAiService.generateStructuredResult).toHaveBeenCalledTimes(MENU_PLAN_MAX_ATTEMPTS);
+    });
+
+    it('asks to fill in the profile when there is none', async () => {
+      await expect(
+        service.replan('Redo day 2', threeDays, null, previous(), { days: [1], meals: [] }),
+      ).resolves.toEqual({ type: ChatResponseType.Text, message: NO_PROFILE_REPLY });
+      expect(openAiService.generateStructuredResult).not.toHaveBeenCalled();
+    });
+
+    it('rejects a day the menu does not have', async () => {
+      await expect(
+        service.replan('Redo day 5', threeDays, profile, previous(), { days: [4], meals: [] }),
+      ).rejects.toThrow('The menu has no day 4');
+    });
+  });
+
+  describe('replan of a meal', () => {
+    const MEAL_TYPES = [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner];
+    /** A saved day of the recipes, one per meal in `MEAL_TYPES` order, 1.5 servings (195 kcal) each. */
+    const savedDay = (dayIndex: number, recipeIds: string[]): ResolvedDay => ({
+      dayIndex,
+      date: null,
+      meals: recipeIds.map((recipeId, i) => ({
+        mealType: MEAL_TYPES[i],
+        servings: 1.5,
+        recipeId,
+        recipe: buildRecipeSnapshot({ id: recipeId, name: recipeId, mealType: MEAL_TYPES[i] }),
+      })),
+    });
+    const previous = (): ResolvedDay[] => [
+      savedDay(0, ['rec-b', 'rec-l', 'rec-s', 'rec-d']),
+      savedDay(1, ['rec-b', 'rec-l', 'rec-s', 'rec-d2']),
+      savedDay(2, ['rec-b', 'rec-l', 'rec-s', 'rec-d3']),
+    ];
+    const mealPlan: MenuMealPlan = { message: 'A new dinner.', recipe: 'd1' };
+    const mealResult = (output: MenuMealPlan): ModelResult<MenuMealPlan> => ({
+      ...result(plan),
+      output,
+    });
+    const threeDays: MenuRequest = { ...EMPTY_MENU_REQUEST, days: 3 };
+    /** 1300 kcal a serving: too much for any day of 800 kcal. */
+    const huge = buildRecipe({
+      id: 'rec-huge',
+      name: 'Huge',
+      mealType: MealType.Dinner,
+      ingredients: [buildIngredient({ quantityG: new Prisma.Decimal(2000) })],
+    });
+    const replan = (
+      request: MenuRequest = threeDays,
+      before: ResolvedDay[] = previous(),
+    ): Promise<ChatResponse> =>
+      service.replan('Another dinner', request, profile, before, {
+        days: [],
+        meals: [{ dayIndex: 1, mealType: MealType.Dinner }],
+      });
+
+    beforeEach(() => {
+      recipeService.getAllowed.mockResolvedValue([
+        breakfast,
+        lunch,
+        snack,
+        dinner,
+        buildRecipe({ id: 'rec-d2', name: 'D2', mealType: MealType.Dinner }),
+        buildRecipe({ id: 'rec-d3', name: 'D3', mealType: MealType.Dinner }),
+        buildRecipe({ id: 'rec-d4', name: 'D4', mealType: MealType.Dinner }),
+        huge,
+      ]);
+      openAiService.generateStructuredResult.mockResolvedValue(mealResult(mealPlan));
+    });
+
+    it('asks the model for the one meal, among the recipes of that meal not in the menu yet', async () => {
+      const abort = new AbortController();
+
+      await service.replan(
+        'Another dinner',
+        threeDays,
+        profile,
+        previous(),
+        { days: [], meals: [{ dayIndex: 1, mealType: MealType.Dinner }] },
+        abort.signal,
+      );
+
+      const [messages, schema, options] = openAiService.generateStructuredResult.mock.calls[0];
+      const sent = JSON.parse((messages as Array<{ content: string }>)[0].content);
+      expect(sent).toMatchObject({
+        request: 'Another dinner',
+        dayIndex: 1,
+        mealType: MealType.Dinner,
+        day: [
+          { mealType: MealType.Breakfast, name: 'rec-b' },
+          { mealType: MealType.Lunch, name: 'rec-l' },
+          { mealType: MealType.Snack, name: 'rec-s' },
+        ],
+      });
+      expect(sent.profile).toEqual(toModelProfile(profile));
+      expect(sent.recipes.map(({ name }: { name: string }) => name)).toEqual(['D4', 'Huge']);
+      expect(schema).toBe(MenuMealPlanSchema);
+      expect(options).toEqual({
+        prompt: MENU_MEAL_PROMPT,
+        maxOutputTokens: MENU_MEAL_MAX_OUTPUT_TOKENS,
+        abortSignal: abort.signal,
+      });
+    });
+
+    it('leaves out the recipes that cannot keep the day within its calories', async () => {
+      await replan({ ...threeDays, caloriesKcal: 800 });
+
+      const sent = JSON.parse(sentMessages()[0].content);
+      expect(sent.recipes.map(({ name }: { name: string }) => name)).toEqual(['D4']);
+    });
+
+    it('keeps every recipe when none keeps the day within its calories', async () => {
+      await replan({ ...threeDays, caloriesKcal: 100 });
+
+      const sent = JSON.parse(sentMessages()[0].content);
+      expect(sent.recipes.map(({ name }: { name: string }) => name)).toEqual(['D4', 'Huge']);
+    });
+
+    it('offers a recipe of another day rather than none, but never the old one while there is another', async () => {
+      recipeService.getAllowed.mockResolvedValue([
+        breakfast,
+        lunch,
+        snack,
+        buildRecipe({ id: 'rec-d', name: 'D1', mealType: MealType.Dinner }),
+        buildRecipe({ id: 'rec-d2', name: 'D2', mealType: MealType.Dinner }),
+      ]);
+
+      await replan();
+
+      const sent = JSON.parse(sentMessages()[0].content);
+      expect(sent.recipes.map(({ name }: { name: string }) => name)).toEqual(['D1']);
+    });
+
+    it('replaces only the meal and copies every other meal of the menu as it is', async () => {
+      const response = await replan();
+
+      expect(response.type).toBe(ChatResponseType.MenuReady);
+      if (response.type !== ChatResponseType.MenuReady) {
+        return;
+      }
+      expect(JSON.stringify(response.days[0])).toBe(JSON.stringify(previous()[0]));
+      expect(JSON.stringify(response.days[2])).toBe(JSON.stringify(previous()[2]));
+      expect(JSON.stringify(response.days[1].meals.slice(0, 3))).toBe(
+        JSON.stringify(previous()[1].meals.slice(0, 3)),
+      );
+      expect(response.days[1].meals[3]).toMatchObject({
+        mealType: MealType.Dinner,
+        servings: 1,
+        recipeId: 'rec-d4',
+        recipe: { name: 'D4' },
+      });
+      expect(response).toMatchObject({
+        message: 'A new dinner.',
+        menu: { days: [{}, { meals: [{}, {}, {}, { recipeId: 'rec-d4' }] }, {}] },
+        generatedWith: { modelId, prompt: 'menu-meal@v1' },
+      });
+      expect(log).toHaveBeenCalledWith(
+        '0 day(s) and 1 meal(s) of 3 days replaced in 1 attempt(s) by gpt-test with menu-meal@v1',
+      );
+    });
+
+    it('sets the servings of the new meal so that the day is closest to its calories', async () => {
+      // The other meals have 585 kcal; 1.75 servings of 130 kcal bring the day to 812.5 kcal.
+      const response = await replan({ ...threeDays, caloriesKcal: 800 });
+
+      expect(response).toMatchObject({
+        days: [
+          {},
+          { meals: [{ servings: 1.5 }, { servings: 1.5 }, { servings: 1.5 }, { servings: 1.75 }] },
+          {},
+        ],
+      });
+    });
+
+    it('tells the stream the shape of the whole menu', async () => {
+      const onProgress = jest.fn();
+
+      await service.replan(
+        'Another dinner',
+        threeDays,
+        profile,
+        previous(),
+        { days: [], meals: [{ dayIndex: 1, mealType: MealType.Dinner }] },
+        undefined,
+        onProgress,
+      );
+
+      expect(onProgress).toHaveBeenCalledWith({
+        type: ChatStreamEventType.MenuPending,
+        days: 3,
+        mealTypes: MEAL_TYPES,
+      });
+    });
+
+    it('validates the whole menu and sends the errors on the new meal back to the model', async () => {
+      recipeService.getAllowed.mockResolvedValue([
+        breakfast,
+        lunch,
+        snack,
+        buildRecipe({ id: 'rec-d5', name: 'Not vegan', mealType: MealType.Dinner, dietType: [] }),
+        buildRecipe({ id: 'rec-d6', name: 'D6', mealType: MealType.Dinner }),
+      ]);
+      openAiService.generateStructuredResult
+        .mockResolvedValueOnce(mealResult(mealPlan))
+        .mockResolvedValueOnce(mealResult({ ...mealPlan, recipe: 'd2' }));
+
+      const response = await replan();
+
+      expect(sentMessages(1).at(-1)?.content).toBe(
+        menuMealRetryMessage(['Day 2, dinner: Not vegan is not vegan.']),
+      );
+      expect(response).toMatchObject({
+        days: [{}, { meals: [{}, {}, {}, { recipeId: 'rec-d6' }] }, {}],
+        menu: { issues: [] },
+      });
+    });
+
+    it('keeps the errors of the other meals in the issues without sending them back', async () => {
+      const before = previous();
+      before[1].meals[0].recipe = buildRecipeSnapshot({ id: 'rec-b', name: 'Bacon', dietType: [] });
+
+      const response = await replan(threeDays, before);
+
+      expect(openAiService.generateStructuredResult).toHaveBeenCalledTimes(1);
+      expect(response).toMatchObject({
+        menu: {
+          issues: [
+            {
+              severity: MenuIssueSeverity.Error,
+              code: MenuIssueCode.DietViolation,
+              dayIndex: 1,
+              position: 0,
+            },
+          ],
+        },
+      });
+    });
+
+    it('fails with invalid output after the last attempt', async () => {
+      openAiService.generateStructuredResult.mockResolvedValue(
+        mealResult({ ...mealPlan, recipe: 'd9' }),
+      );
+
+      await expect(replan()).rejects.toBeInstanceOf(AssistantInvalidOutputException);
+      expect(openAiService.generateStructuredResult).toHaveBeenCalledTimes(MENU_PLAN_MAX_ATTEMPTS);
+      expect(sentMessages(1).at(-1)?.content).toBe(
+        menuMealRetryMessage(['dayIndex 1, dinner: "d9" is not an id from the dinner recipes.']),
+      );
+    });
+
+    it('asks to fill in the profile when there is none', async () => {
+      await expect(
+        service.replan('Another dinner', threeDays, null, previous(), {
+          days: [],
+          meals: [{ dayIndex: 1, mealType: MealType.Dinner }],
+        }),
+      ).resolves.toEqual({ type: ChatResponseType.Text, message: NO_PROFILE_REPLY });
+      expect(openAiService.generateStructuredResult).not.toHaveBeenCalled();
+    });
+
+    it('rejects a day the menu does not have', async () => {
+      await expect(
+        service.replan('Another', threeDays, profile, previous(), {
+          days: [],
+          meals: [{ dayIndex: 4, mealType: MealType.Dinner }],
+        }),
+      ).rejects.toThrow('The menu has no dinner on day 4');
+    });
+
+    it('rejects a meal the day does not have', async () => {
+      const before = previous();
+      before[1].meals = before[1].meals.filter(({ mealType }) => mealType !== MealType.Snack);
+
+      await expect(
+        service.replan('Another', threeDays, profile, before, {
+          days: [],
+          meals: [{ dayIndex: 1, mealType: MealType.Snack }],
+        }),
+      ).rejects.toThrow('The menu has no snack on day 1');
+    });
+  });
+
+  describe('replan of several parts', () => {
+    const MEAL_TYPES = [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner];
+    const PREFIXES = ['b', 'l', 's', 'd'];
+    /** Five recipes of every meal, `rec-b1` ("B1") to `rec-d5`, 130 kcal a serving each. */
+    const allowed = MEAL_TYPES.flatMap((mealType, i) =>
+      [1, 2, 3, 4, 5].map((n) =>
+        buildRecipe({
+          id: `rec-${PREFIXES[i]}${n}`,
+          name: `${PREFIXES[i].toUpperCase()}${n}`,
+          mealType,
+        }),
+      ),
+    );
+    /** A saved day of the `n`th recipe of every meal, 1.5 servings (195 kcal) each. */
+    const savedDay = (dayIndex: number, n: number): ResolvedDay => ({
+      dayIndex,
+      date: null,
+      meals: MEAL_TYPES.map((mealType, i) => ({
+        mealType,
+        servings: 1.5,
+        recipeId: `rec-${PREFIXES[i]}${n}`,
+        recipe: buildRecipeSnapshot({ id: `rec-${PREFIXES[i]}${n}`, name: `R${n}`, mealType }),
+      })),
+    });
+    const previous = (): ResolvedDay[] => [savedDay(0, 1), savedDay(1, 2), savedDay(2, 3)];
+    const threeDays: MenuRequest = { ...EMPTY_MENU_REQUEST, days: 3 };
+    const answer = <T>(output: T): ModelResult<T> =>
+      ({ ...result(plan), output }) as unknown as ModelResult<T>;
+    const dayOf = (label: string, message: string): ModelResult<MenuDayPlan> =>
+      answer({
+        message,
+        meals: {
+          breakfast: `b${label}`,
+          lunch: `l${label}`,
+          snack: `s${label}`,
+          dinner: `d${label}`,
+        },
+      });
+    const sentNames = (call: number, mealType: MealType): string[] =>
+      JSON.parse(sentMessages(call)[0].content).recipes[mealType].map(
+        ({ name }: { name: string }) => name,
+      );
+
+    beforeEach(() => {
+      recipeService.getAllowed.mockResolvedValue(allowed);
+    });
+
+    it('plans the days in order in one menu, none with a recipe of another day or its own', async () => {
+      openAiService.generateStructuredResult
+        .mockResolvedValueOnce(dayOf('1', 'A new Monday.'))
+        .mockResolvedValueOnce(dayOf('1', 'A new Wednesday.'));
+
+      const response = await service.replan(
+        'Redo Monday and Wednesday',
+        threeDays,
+        profile,
+        previous(),
+        {
+          days: [0, 2],
+          meals: [],
+        },
+      );
+
+      // Monday: without its 1, Tuesday's 2 and Wednesday's 3.
+      expect(sentNames(0, MealType.Breakfast)).toEqual(['B4', 'B5']);
+      // Wednesday: without its 3, Tuesday's 2, the new Monday's 4 and the old Monday's 1.
+      expect(sentNames(1, MealType.Breakfast)).toEqual(['B5']);
+      expect(response.type).toBe(ChatResponseType.MenuReady);
+      if (response.type !== ChatResponseType.MenuReady) {
+        return;
+      }
+      expect(response.days.map(({ meals: [first] }) => first.recipeId)).toEqual([
+        'rec-b4',
+        'rec-b2',
+        'rec-b5',
+      ]);
+      expect(JSON.stringify(response.days[1])).toBe(JSON.stringify(previous()[1]));
+      expect(response).toMatchObject({
+        message: 'A new Monday. A new Wednesday.',
+        generatedWith: { modelId, prompt: 'menu-day@v1' },
+      });
+      expect(log).toHaveBeenCalledWith(
+        '2 day(s) and 0 meal(s) of 3 days replaced in 2 attempt(s) by gpt-test with menu-day@v1',
+      );
+    });
+
+    it('replaces the meals after the days, among the recipes not in the new menu', async () => {
+      openAiService.generateStructuredResult
+        .mockResolvedValueOnce(dayOf('1', 'A new Monday.'))
+        .mockResolvedValueOnce(answer<MenuMealPlan>({ message: 'A new dinner.', recipe: 'd1' }));
+
+      const response = await service.replan(
+        'Redo Monday and the dinner on Tuesday',
+        threeDays,
+        profile,
+        previous(),
+        {
+          days: [0],
+          meals: [{ dayIndex: 1, mealType: MealType.Dinner }],
+        },
+      );
+
+      expect(openAiService.generateStructuredResult.mock.calls[1][1]).toBe(MenuMealPlanSchema);
+      // Not the old D2, nor D3 of Wednesday, nor D4 of the new Monday, nor D1 of the old one.
+      expect(
+        JSON.parse(sentMessages(1)[0].content).recipes.map(({ name }: { name: string }) => name),
+      ).toEqual(['D5']);
+      expect(response.type).toBe(ChatResponseType.MenuReady);
+      if (response.type !== ChatResponseType.MenuReady) {
+        return;
+      }
+      expect(response.days[0].meals.map(({ recipeId }) => recipeId)).toEqual([
+        'rec-b4',
+        'rec-l4',
+        'rec-s4',
+        'rec-d4',
+      ]);
+      expect(JSON.stringify(response.days[1].meals.slice(0, 3))).toBe(
+        JSON.stringify(previous()[1].meals.slice(0, 3)),
+      );
+      expect(response.days[1].meals[3].recipeId).toBe('rec-d5');
+      expect(JSON.stringify(response.days[2])).toBe(JSON.stringify(previous()[2]));
+      expect(response).toMatchObject({
+        message: 'A new Monday. A new dinner.',
+        generatedWith: { prompt: 'menu-day@v1, menu-meal@v1' },
+      });
+    });
+
+    it('fits every meal of a day to the meals replaced before it', async () => {
+      openAiService.generateStructuredResult
+        .mockResolvedValueOnce(answer<MenuMealPlan>({ message: 'A new lunch.', recipe: 'l1' }))
+        .mockResolvedValueOnce(answer<MenuMealPlan>({ message: 'A new dinner.', recipe: 'd1' }));
+
+      const response = await service.replan(
+        'Another lunch and dinner on Tuesday',
+        { ...threeDays, caloriesKcal: 800 },
+        profile,
+        previous(),
+        {
+          days: [],
+          meals: [
+            { dayIndex: 1, mealType: MealType.Lunch },
+            { dayIndex: 1, mealType: MealType.Dinner },
+          ],
+        },
+      );
+
+      // Lunch: 585 kcal of the others, 1.75 servings make 812.5 kcal. Dinner: 617.5 kcal of the
+      // others with the new lunch, 1.5 servings make 812.5 kcal again.
+      expect(response).toMatchObject({
+        days: [
+          {},
+          { meals: [{ servings: 1.5 }, { servings: 1.75 }, { servings: 1.5 }, { servings: 1.5 }] },
+          {},
+        ],
+        menu: { issues: [] },
+      });
+    });
+
+    it('asks for no other part once one fails', async () => {
+      openAiService.generateStructuredResult.mockResolvedValue(dayOf('9', 'Unknown.'));
+
+      await expect(
+        service.replan('Redo Monday and Wednesday', threeDays, profile, previous(), {
+          days: [0, 2],
+          meals: [],
+        }),
+      ).rejects.toBeInstanceOf(AssistantInvalidOutputException);
+      expect(openAiService.generateStructuredResult).toHaveBeenCalledTimes(MENU_PLAN_MAX_ATTEMPTS);
     });
   });
 });

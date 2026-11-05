@@ -44,7 +44,7 @@ describe('clarification suite', () => {
     intent: Intent.Clarification,
     request: null,
     menuRequest: null,
-    target: null,
+    targets: null,
     ...overrides,
   });
 

@@ -5,11 +5,14 @@ import { Prisma } from '../src/generated/prisma/client';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap';
-import { Intent } from '../src/common/constants';
+import { Intent, MealType } from '../src/common/constants';
 import {
   IntentResultSchema,
+  MenuDayPlanSchema,
+  MenuMealPlanSchema,
   MenuPlan,
   MenuRequest,
+  MenuTarget,
   SummaryResultSchema,
 } from '../src/common/contracts';
 import {
@@ -27,8 +30,10 @@ export const FAKE_SUMMARY = 'The user rejected the salmon soup.';
 /**
  * What the fake model answers. `intent` is the classification: an intent, `'unavailable'` to fail
  * like a broken API or `'invalid'` like output that does not match the schema; it fails the menu
- * plan the same way; `request` is the menu request it restates and `menuRequest` its fields. `menuPlan` is the answer to any
- * other structured call, made from the candidates the planner sent (`fakeMenuPlan`); `summary` is
+ * plan the same way; `request` is the menu request it restates, `menuRequest` its fields and `targets` the parts of
+ * the menu a revision changes. `menuPlan` is the answer to any other structured call, made from the candidates the planner
+ * sent (`fakeMenuPlan`), its first day for every day planned again and the meal of that day for every
+ * meal replaced; `summary` is
  * the summary of the older messages. `structuredInputs` records what each structured call was given. Set them in
  * a test; `resetFakeOpenAi()` restores `general_chat` and no plan.
  */
@@ -36,6 +41,7 @@ export const fakeOpenAiState: {
   intent: Intent | 'unavailable' | 'invalid';
   request: string | null;
   menuRequest: MenuRequest | null;
+  targets: MenuTarget[] | null;
   menuPlan: FakeMenuPlan | null;
   summary: string;
   streamTextCalls: number;
@@ -44,13 +50,14 @@ export const fakeOpenAiState: {
   intent: Intent.GeneralChat,
   request: null,
   menuRequest: null,
+  targets: null,
   menuPlan: null,
   summary: FAKE_SUMMARY,
   streamTextCalls: 0,
   structuredInputs: [],
 };
 
-type FakeMenuPlan = (recipes: MenuPlanCandidates) => MenuPlan;
+export type FakeMenuPlan = (recipes: MenuPlanCandidates) => MenuPlan;
 type PlannedMeals = MenuPlan['days'][number]['meals'];
 
 /**
@@ -84,6 +91,7 @@ export function resetFakeOpenAi(): void {
   fakeOpenAiState.intent = Intent.GeneralChat;
   fakeOpenAiState.request = null;
   fakeOpenAiState.menuRequest = null;
+  fakeOpenAiState.targets = null;
   fakeOpenAiState.menuPlan = null;
   fakeOpenAiState.summary = FAKE_SUMMARY;
   fakeOpenAiState.streamTextCalls = 0;
@@ -106,13 +114,27 @@ async function fakeStructured<T>(input: unknown, schema: unknown): Promise<T> {
       throw new AssistantInvalidOutputException();
     }
     const [sent] = input as Array<{ content: string }>;
-    return fakeOpenAiState.menuPlan(JSON.parse(sent.content).recipes) as T;
+    const { recipes, mealType } = JSON.parse(sent.content);
+    if (schema === MenuMealPlanSchema) {
+      const plan = fakeOpenAiState.menuPlan({
+        breakfast: [],
+        lunch: [],
+        snack: [],
+        dinner: [],
+        [mealType]: recipes,
+      });
+      return { message: plan.message, recipe: plan.days[0].meals[mealType as MealType] } as T;
+    }
+    const plan = fakeOpenAiState.menuPlan(recipes);
+    return (
+      schema === MenuDayPlanSchema ? { message: plan.message, meals: plan.days[0].meals } : plan
+    ) as T;
   }
   return {
     intent: fakeOpenAiState.intent,
     request: fakeOpenAiState.request,
     menuRequest: fakeOpenAiState.menuRequest,
-    target: null,
+    targets: fakeOpenAiState.targets,
   } as T;
 }
 

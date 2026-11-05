@@ -1,5 +1,5 @@
 import { Intent, MealType, MenuTargetScope, MessageRole } from '../../../src/common/constants';
-import { IntentResult, IntentResultSchema } from '../../../src/common/contracts';
+import { IntentResult, IntentResultSchema, MenuTarget } from '../../../src/common/contracts';
 import { OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
 import { createMock } from '../../../src/test/create-mock';
 import { loadCases } from '../../lib/cases';
@@ -25,7 +25,7 @@ describe('intent suite', () => {
     intent: Intent,
     request: string | null,
     overrides: Partial<IntentResult> = {},
-  ): IntentResult => ({ intent, request, menuRequest: null, target: null, ...overrides });
+  ): IntentResult => ({ intent, request, menuRequest: null, targets: null, ...overrides });
 
   describe('scoreIntent', () => {
     it('scores only the intent when the case expects nothing else', () => {
@@ -94,41 +94,85 @@ describe('intent suite', () => {
       ]);
     });
 
-    it('scores the scope of the target and the fields the case sets', () => {
-      const revision = (target: IntentResult['target']): IntentResult =>
-        output(Intent.ReviseMenu, 'Plan a 3-day menu with another lunch', { target });
+    it('scores the scope of the targets and the fields the case sets', () => {
+      const revision = (targets: IntentResult['targets']): IntentResult =>
+        output(Intent.ReviseMenu, 'Plan a 3-day menu with another lunch', { targets });
       const meal = testCase({
         intent: Intent.ReviseMenu,
-        target: { scope: MenuTargetScope.Meal, mealType: MealType.Lunch },
+        targets: [{ scope: MenuTargetScope.Meal, mealType: MealType.Lunch }],
       });
 
       expect(
         scoreIntent(
           meal,
-          revision({ scope: MenuTargetScope.Meal, dayIndex: 2, mealType: MealType.Lunch }),
+          revision([{ scope: MenuTargetScope.Meal, dayIndex: 2, mealType: MealType.Lunch }]),
         )[1],
       ).toEqual({
         field: 'target',
         pass: true,
-        expected: { scope: 'meal', mealType: 'lunch' },
-        actual: { scope: 'meal', dayIndex: 2, mealType: 'lunch' },
+        expected: [{ scope: 'meal', mealType: 'lunch' }],
+        actual: [{ scope: 'meal', dayIndex: 2, mealType: 'lunch' }],
       });
       expect(
         scoreIntent(
           meal,
-          revision({ scope: MenuTargetScope.Meal, dayIndex: null, mealType: MealType.Dinner }),
+          revision([{ scope: MenuTargetScope.Meal, dayIndex: null, mealType: MealType.Dinner }]),
         )[1].pass,
       ).toBe(false);
       expect(
         scoreIntent(
           testCase({
             intent: Intent.ReviseMenu,
-            target: { scope: MenuTargetScope.Day, dayIndex: 1 },
+            targets: [{ scope: MenuTargetScope.Day, dayIndex: 1 }],
           }),
-          revision({ scope: MenuTargetScope.Day, dayIndex: 0, mealType: null }),
+          revision([{ scope: MenuTargetScope.Day, dayIndex: 0, mealType: null }]),
         )[1].pass,
       ).toBe(false);
-      expect(scoreIntent(meal, revision(null))[1]).toMatchObject({ pass: false, actual: null });
+      expect(scoreIntent(meal, revision(null))[1].pass).toBe(false);
+    });
+
+    it('scores the targets as the app reads them on the menu of the case', () => {
+      const lunch = (dayIndex: number | null): MenuTarget => ({
+        scope: MenuTargetScope.Meal,
+        dayIndex,
+        mealType: MealType.Lunch,
+      });
+      const anyLunch = testCase({
+        intent: Intent.ReviseMenu,
+        targets: [{ scope: MenuTargetScope.Meal, dayIndex: null, mealType: MealType.Lunch }],
+      });
+      const everyLunch = output(Intent.ReviseMenu, 'Another lunch', {
+        targets: [lunch(0), lunch(1), lunch(2)],
+      });
+
+      expect(scoreIntent({ ...anyLunch, menuDays: 3 }, everyLunch)[1]).toMatchObject({
+        pass: true,
+        actual: [lunch(null)],
+      });
+      expect(scoreIntent(anyLunch, everyLunch)[1].pass).toBe(false);
+      expect(scoreIntent({ ...anyLunch, menuDays: 4 }, everyLunch)[1].pass).toBe(false);
+    });
+
+    it('scores every target in any order, one for each', () => {
+      const day = (dayIndex: number): MenuTarget => ({
+        scope: MenuTargetScope.Day,
+        dayIndex,
+        mealType: null,
+      });
+      const twoDays = testCase({
+        intent: Intent.ReviseMenu,
+        targets: [
+          { scope: MenuTargetScope.Day, dayIndex: 0 },
+          { scope: MenuTargetScope.Day, dayIndex: 3 },
+        ],
+      });
+      const scored = (targets: MenuTarget[]): boolean =>
+        scoreIntent(twoDays, output(Intent.ReviseMenu, 'Redo', { targets }))[1].pass;
+
+      expect(scored([day(3), day(0)])).toBe(true);
+      expect(scored([day(0)])).toBe(false);
+      expect(scored([day(0), day(0)])).toBe(false);
+      expect(scored([day(0), day(3), day(4)])).toBe(false);
     });
 
     it('fails a request that names the opposite of a constraint', () => {
@@ -210,7 +254,7 @@ describe('intent suite', () => {
     openAi.generateStructuredResult.mockResolvedValue({
       output: output(Intent.ReviseMenu, 'Plan a weekly menu', {
         menuRequest: menuRequest(7),
-        target: { scope: MenuTargetScope.Menu, dayIndex: null, mealType: null },
+        targets: [{ scope: MenuTargetScope.Menu, dayIndex: null, mealType: null }],
       }),
       modelId: 'm',
       latencyMs: 1,
@@ -222,7 +266,7 @@ describe('intent suite', () => {
       openAi,
     );
 
-    expect(result).toMatchObject({ intent: Intent.GenerateMenu, target: null });
+    expect(result).toMatchObject({ intent: Intent.GenerateMenu, targets: null });
   });
 
   it('rejects a case whose latest message is not from the user', () => {

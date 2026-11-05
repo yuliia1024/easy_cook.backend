@@ -179,25 +179,26 @@ export function menuPlanErrors(
 }
 
 /** A plan the model returned and what was wrong with it. */
-export interface MenuPlanAttempt {
-  plan: MenuPlan;
+export interface MenuPlanAttempt<T = MenuPlan> {
+  plan: T;
   problems: string[];
 }
 
 /**
  * Asks the model for a plan until one has no `problemsOf`, up to `maxAttempts` calls: a plan with
- * problems goes back to the model with them (`menuPlanRetryMessage`). Returns every attempt, the
- * last one without problems unless all of them had some. `MenuPlannerService` and the menu plan
- * evals run the same loop.
+ * problems goes back to the model with them (`retryMessage`). Returns every attempt, the last one
+ * without problems unless all of them had some. `MenuPlannerService` and the menu plan and menu
+ * day evals run the same loop, for a whole menu and for one day.
  */
-export async function planWithRetries(
+export async function planWithRetries<T = MenuPlan>(
   input: ModelMessage[],
-  generate: (messages: ModelMessage[]) => Promise<MenuPlan>,
-  problemsOf: (plan: MenuPlan) => string[],
+  generate: (messages: ModelMessage[]) => Promise<T>,
+  problemsOf: (plan: T) => string[],
   maxAttempts = MENU_PLAN_MAX_ATTEMPTS,
-): Promise<MenuPlanAttempt[]> {
+  retryMessage: (problems: string[]) => string = menuPlanRetryMessage,
+): Promise<MenuPlanAttempt<T>[]> {
   const messages = [...input];
-  const attempts: MenuPlanAttempt[] = [];
+  const attempts: MenuPlanAttempt<T>[] = [];
   while (attempts.length < maxAttempts) {
     const plan = await generate([...messages]);
     const problems = problemsOf(plan);
@@ -207,7 +208,7 @@ export async function planWithRetries(
     }
     messages.push(
       { role: 'assistant', content: JSON.stringify(plan) },
-      { role: 'user', content: menuPlanRetryMessage(problems) },
+      { role: 'user', content: retryMessage(problems) },
     );
   }
   return attempts;
