@@ -8,6 +8,9 @@ import {
   CONVERSATION_MAX_USER_MESSAGES,
   ChatResponseType,
   ChatStatusStep,
+  ChatToolName,
+  ChatTraceOutcome,
+  ChatTraceStep,
   DietTag,
   Goal,
   ChatStreamEventType,
@@ -15,6 +18,7 @@ import {
   INTERNAL_ERROR_REPLY,
   Intent,
   MealType,
+  MENU_MAX_DAYS,
   MENU_PLAN_FAILED_REPLY,
   MenuTargetField,
   MenuTargetScope,
@@ -26,7 +30,10 @@ import {
 } from '../../../common/constants';
 import { MenuRequest, MenuTarget } from '../../../common/contracts';
 import {
+  ChatProgressEvent,
+  ChatServiceCall,
   ChatStreamEvent,
+  Environments,
   MenuComposition,
   ProfileContext,
   ResolvedDay,
@@ -53,6 +60,9 @@ import { MenuPlannerService } from '../menu/menu-planner.service';
 import { MenuService } from '../menu/menu.service';
 import { EMPTY_MENU_REQUEST } from '../menu/menu-request';
 import { ProfileContextService } from '../profile-context/profile-context.service';
+import { ApiConfigService } from '../../../configs/api-config/api-config.service';
+import { ChatTraceRecord } from '../chat-trace/chat-trace';
+import { ChatTraceService } from '../chat-trace/chat-trace.service';
 import { ChatOrchestratorService } from './chat-orchestrator.service';
 
 const generatedWith = { modelId: 'gpt-test', prompt: 'menu-plan@v1' };
@@ -66,6 +76,8 @@ describe('ChatOrchestratorService', () => {
   let profileContextService: jest.Mocked<ProfileContextService>;
   let conversationSummaryService: jest.Mocked<ConversationSummaryService>;
   let service: ChatOrchestratorService;
+  let chatTraceService: ChatTraceService;
+  let traces: ChatTraceRecord[];
   const conversation = buildConversation();
   const history: ModelHistory = { summary: 'Rejected the salmon.', messages: [buildMessage()] };
   const profile: ProfileContext = {
@@ -113,6 +125,7 @@ describe('ChatOrchestratorService', () => {
     generalChatService.reply.mockImplementation(async function* () {
       yield 'A ';
       yield 'reply';
+      return null;
     });
     menuPlannerService = createMock<MenuPlannerService>();
     menuPlannerService.plan.mockResolvedValue({
@@ -128,6 +141,11 @@ describe('ChatOrchestratorService', () => {
     profileContextService.find.mockResolvedValue(profile);
     conversationSummaryService = createMock<ConversationSummaryService>();
     conversationSummaryService.summarizeIfNeeded.mockResolvedValue(false);
+    traces = [];
+    chatTraceService = new ChatTraceService({ env: Environments.LOCAL } as ApiConfigService);
+    jest
+      .spyOn(chatTraceService, 'finish')
+      .mockImplementation((trace, outcome) => traces.push(trace.toRecord(outcome)));
     service = new ChatOrchestratorService(
       conversationService,
       intentService,
@@ -136,6 +154,7 @@ describe('ChatOrchestratorService', () => {
       menuService,
       profileContextService,
       conversationSummaryService,
+      chatTraceService,
     );
   });
 
@@ -171,6 +190,7 @@ describe('ChatOrchestratorService', () => {
       EMPTY_MENU_REQUEST,
       profile,
       abort.signal,
+      expect.any(Function),
     );
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
@@ -887,6 +907,255 @@ describe('ChatOrchestratorService', () => {
     expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
   });
 
+  describe('menu tools of the chat model', () => {
+    const menuRequest: MenuRequest = {
+      ...EMPTY_MENU_REQUEST,
+      days: 2,
+      mealTypes: [MealType.Lunch],
+    };
+    const callsTool = (call: ChatServiceCall): void => {
+      classifyAs(Intent.GeneralChat);
+      generalChatService.reply.mockImplementation(async function* () {
+        yield 'Sure. ';
+        return call;
+      });
+    };
+
+    it('plans the menu plan_menu asks for on the path of a classified request and saves it', async () => {
+      callsTool({
+        name: ChatToolName.PlanMenu,
+        input: { request: 'Plan a 2-day menu of lunches.', menuRequest },
+      });
+
+      await expect(send('Ok, go ahead')).resolves.toEqual([
+        { type: ChatStreamEventType.TextDelta, content: 'Sure. ' },
+        { type: ChatStreamEventType.TextDelta, content: 'Your day' },
+        { type: ChatStreamEventType.MenuReady, ...saved, menu },
+        { type: ChatStreamEventType.Done },
+      ]);
+      expect(conversationService.saveMenuRequest).toHaveBeenCalledWith(
+        CONVERSATION_ID,
+        menuRequest,
+      );
+      expect(menuPlannerService.plan).toHaveBeenCalledWith(
+        'Plan a 2-day menu of lunches.',
+        menuRequest,
+        profile,
+        undefined,
+        expect.any(Function),
+      );
+      expect(menuService.saveGenerated).toHaveBeenCalledWith(
+        conversation,
+        expect.objectContaining({ menu, generatedWith }),
+      );
+      expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+        CONVERSATION_ID,
+        'Sure. Your day',
+        MENU_VERSION_ID,
+      );
+    });
+
+    it('asks about the days the request cannot have instead of planning, as without tools', async () => {
+      callsTool({
+        name: ChatToolName.PlanMenu,
+        input: { request: 'Plan a 30-day menu.', menuRequest: { ...menuRequest, days: 30 } },
+      });
+
+      const events = await send();
+
+      expect(events).toContainEqual({
+        type: ChatStreamEventType.Clarification,
+        message: daysOutOfRangeReply(30, MENU_MAX_DAYS),
+        missingFields: ['days'],
+      });
+      expect(menuPlannerService.plan).not.toHaveBeenCalled();
+      expect(menuService.saveGenerated).not.toHaveBeenCalled();
+    });
+
+    it('plans a new menu for revise_menu when the chat suggested none yet (resolveIntent)', async () => {
+      callsTool({
+        name: ChatToolName.ReviseMenu,
+        input: {
+          request: 'Plan a 2-day menu of lunches without fish.',
+          menuRequest,
+          targets: [{ scope: MenuTargetScope.Menu, dayIndex: null, mealType: null }],
+        },
+      });
+
+      await send();
+
+      expect(menuPlannerService.plan).toHaveBeenCalledWith(
+        'Plan a 2-day menu of lunches without fish.',
+        menuRequest,
+        profile,
+        undefined,
+        expect.any(Function),
+      );
+      expect(menuPlannerService.replan).not.toHaveBeenCalled();
+    });
+
+    it('answers with the chat text alone when the model called no menu tool', async () => {
+      classifyAs(Intent.GeneralChat);
+
+      await send();
+
+      expect(menuPlannerService.plan).not.toHaveBeenCalled();
+      expect(conversationService.saveMenuRequest).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('tool steps and trace', () => {
+    const toolCall = {
+      name: ChatToolName.SearchRecipes,
+      input: { query: 'soup' },
+      output: { recipes: [] },
+      error: null,
+      durationMs: 3,
+    };
+    const searching = { type: ChatStreamEventType.Status, step: ChatStatusStep.SearchingRecipes };
+    const planCall: ChatServiceCall = {
+      name: ChatToolName.PlanMenu,
+      input: { request: 'Plan a 1-day menu.', menuRequest: { ...EMPTY_MENU_REQUEST, days: 1 } },
+    };
+
+    it('streams the status of a chat tool as a transient step, outside the saved reply', async () => {
+      classifyAs(Intent.GeneralChat);
+      generalChatService.reply.mockImplementation(async function* () {
+        yield searching as ChatProgressEvent;
+        yield 'Found it.';
+        return null;
+      });
+
+      await expect(sendAll()).resolves.toEqual([
+        { type: ChatStreamEventType.Status, step: ChatStatusStep.Thinking },
+        searching,
+        { type: ChatStreamEventType.TextDelta, content: 'Found it.' },
+        { type: ChatStreamEventType.Done },
+      ]);
+      expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+        CONVERSATION_ID,
+        'Found it.',
+        undefined,
+      );
+    });
+
+    it('traces the whole chain of a message once it is answered', async () => {
+      classifyAs(Intent.GeneralChat);
+      generalChatService.reply.mockImplementation(
+        async function* (_history, _request, _profile, _signal, onToolCall) {
+          yield searching as ChatProgressEvent;
+          onToolCall!(toolCall);
+          return planCall;
+        },
+      );
+
+      await send('Plan me a day');
+
+      expect(traces).toHaveLength(1);
+      const [record] = traces;
+      expect(record).toMatchObject({
+        conversationId: CONVERSATION_ID,
+        request: { content: 'Plan me a day' },
+        outcome: ChatTraceOutcome.Replied,
+        durationMs: expect.any(Number),
+      });
+      expect(record.steps.map(({ step }) => step)).toEqual([
+        ChatTraceStep.Event,
+        ChatTraceStep.Context,
+        ChatTraceStep.Intent,
+        ChatTraceStep.MenuRequest,
+        ChatTraceStep.Route,
+        ChatTraceStep.Event,
+        ChatTraceStep.ToolCall,
+        ChatTraceStep.ServiceCall,
+        ChatTraceStep.MenuRequest,
+        ChatTraceStep.Route,
+        ChatTraceStep.MenuPlan,
+        ChatTraceStep.Event,
+        ChatTraceStep.Saved,
+      ]);
+      const data = (step: ChatTraceStep): unknown[] =>
+        record.steps.filter((entry) => entry.step === step).map((entry) => entry.data);
+      expect(data(ChatTraceStep.Context)[0]).toMatchObject({
+        profile,
+        menuRequest: null,
+        summary: 'Rejected the salmon.',
+        messages: [expect.objectContaining({ role: MessageRole.User })],
+      });
+      expect(data(ChatTraceStep.Intent)).toEqual([
+        { intent: Intent.GeneralChat, request: null, menuRequest: null, targets: null },
+      ]);
+      expect(data(ChatTraceStep.ToolCall)).toEqual([toolCall]);
+      expect(data(ChatTraceStep.ServiceCall)).toEqual([
+        { call: planCall, intent: expect.objectContaining({ intent: Intent.GenerateMenu }) },
+      ]);
+      expect(data(ChatTraceStep.MenuPlan)).toEqual([
+        {
+          request: 'Plan a 1-day menu.',
+          revision: null,
+          response: expect.objectContaining({ type: ChatResponseType.MenuReady, generatedWith }),
+        },
+      ]);
+      // The menu itself is left out of the event: the plan step has it.
+      expect(data(ChatTraceStep.Event).at(-1)).toEqual({
+        type: ChatStreamEventType.MenuReady,
+        ...saved,
+      });
+      expect(data(ChatTraceStep.Saved)).toEqual([
+        { content: 'Your day', menuVersionId: MENU_VERSION_ID },
+      ]);
+    });
+
+    it('traces a failure with its error and the event the client got', async () => {
+      jest.spyOn(service['logger'], 'error').mockImplementation();
+      classifyAs(Intent.GeneralChat);
+      generalChatService.reply.mockImplementation(async function* () {
+        yield* [];
+        throw new Error('db down');
+      });
+
+      await send();
+
+      expect(traces[0].outcome).toBe(ChatTraceOutcome.Failed);
+      expect(traces[0].steps.slice(-2)).toEqual([
+        expect.objectContaining({
+          step: ChatTraceStep.Error,
+          data: expect.objectContaining({ name: 'Error', message: 'db down' }),
+        }),
+        expect.objectContaining({
+          step: ChatTraceStep.Event,
+          data: expect.objectContaining({ code: ChatErrorCode.InternalError }),
+        }),
+      ]);
+    });
+
+    it('ends the trace of a reply the client left as aborted', async () => {
+      classifyAs(Intent.GeneralChat);
+      const abort = new AbortController();
+      generalChatService.reply.mockImplementation(async function* () {
+        yield 'A ';
+        abort.abort();
+        throw new Error('aborted');
+      });
+
+      await send('Hi', abort.signal);
+
+      expect(traces.map(({ outcome }) => outcome)).toEqual([ChatTraceOutcome.Aborted]);
+    });
+
+    it('traces a full conversation as limit reached', async () => {
+      conversationService.getById.mockResolvedValue(
+        buildConversation({
+          messages: Array.from({ length: CONVERSATION_MAX_USER_MESSAGES }, () => buildMessage()),
+        }),
+      );
+
+      await send();
+
+      expect(traces.map(({ outcome }) => outcome)).toEqual([ChatTraceOutcome.LimitReached]);
+    });
+  });
+
   describe('context budget', () => {
     it('gives the classifier the menu request the chat gathered', async () => {
       const stored = { ...EMPTY_MENU_REQUEST, days: 3, excludedIngredients: ['mushrooms'] };
@@ -896,7 +1165,13 @@ describe('ChatOrchestratorService', () => {
       await send();
 
       expect(intentService.classify).toHaveBeenCalledWith(history, stored, profile, undefined);
-      expect(generalChatService.reply).toHaveBeenCalledWith(history, stored, profile, undefined);
+      expect(generalChatService.reply).toHaveBeenCalledWith(
+        history,
+        stored,
+        profile,
+        undefined,
+        expect.any(Function),
+      );
     });
 
     it('brings the summary up to date after a saved reply', async () => {

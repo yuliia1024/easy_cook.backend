@@ -7,6 +7,7 @@ export interface StreamChunk {
   delta?: string;
   data?: any;
   errorText?: string;
+  transient?: boolean;
 }
 
 /** Sends a streamed request and returns its chunks; `[DONE]` and keep-alives are dropped. */

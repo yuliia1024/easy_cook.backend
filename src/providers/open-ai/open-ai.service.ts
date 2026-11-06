@@ -4,12 +4,14 @@ import {
   APICallError,
   FinishReason,
   generateText,
+  isStepCount,
   LanguageModelUsage,
   ModelMessage,
   NoObjectGeneratedError,
   Output,
   RetryError,
   streamText,
+  ToolSet,
   TypeValidationError,
 } from 'ai';
 import { z } from 'zod';
@@ -33,6 +35,20 @@ export interface ModelCallOptions {
   /** `OPEN_AI_MODEL` unless set; only the evals judge sets another one. */
   model?: string;
 }
+
+/** A call that may run tools in a loop: one model call per step, the tool results fed back. */
+export interface ToolLoopOptions extends ModelCallOptions {
+  tools: ToolSet;
+  /** Model calls at most; the last one may not call a tool, so the loop ends with text. */
+  maxSteps: number;
+  /** Checked after every step: true ends the loop, e.g. once a tool handed the request over. */
+  isDone?: () => boolean;
+}
+
+type ToolLoopSettings = Pick<
+  Parameters<typeof streamText>[0] & Parameters<typeof generateText>[0],
+  'tools' | 'stopWhen' | 'prepareStep'
+>;
 
 /** A structured output with what it cost: the model that answered, time and tokens. */
 export interface ModelResult<T> extends ModelCallInfo {
@@ -70,11 +86,79 @@ export class OpenAiService {
 
   /** Streams text generation; yields the model's text deltas. A failed call throws from the generator. */
   public async *streamText(input: ModelInput, options: ModelCallOptions): AsyncGenerator<string> {
+    yield* this.stream(input, options, {});
+  }
+
+  /**
+   * `streamText` with tools: the model calls tools, reads their results and goes on, up to
+   * `maxSteps` model calls or until `isDone`; yields the text of every step. The tools handle their
+   * own errors (the chat tool registry), so only a failed model call throws.
+   */
+  public async *streamWithTools(
+    input: ModelInput,
+    { tools, maxSteps, isDone, ...options }: ToolLoopOptions,
+  ): AsyncGenerator<string> {
+    yield* this.stream(input, options, this.toolLoopSettings({ tools, maxSteps, isDone }));
+  }
+
+  /**
+   * `streamWithTools` without streaming, with the model id, latency and the tokens of every step
+   * (evals): the same loop, so the evals measure what the chat runs.
+   */
+  public async generateWithToolsResult(
+    input: ModelInput,
+    { tools, maxSteps, isDone, ...options }: ToolLoopOptions,
+  ): Promise<ModelResult<string>> {
+    const startedAt = Date.now();
+    try {
+      const result = await generateText({
+        ...this.callSettings(input, options),
+        ...this.toolLoopSettings({ tools, maxSteps, isDone }),
+      });
+      const step: StepSummary = {
+        modelId: result.finalStep.response.modelId,
+        responseId: result.finalStep.response.id,
+        finishReason: result.finishReason,
+        rawFinishReason: result.rawFinishReason,
+        usage: result.totalUsage,
+      };
+      this.logSummary(options.prompt, step, startedAt);
+      return {
+        output: result.text,
+        modelId: step.modelId,
+        usage: toModelUsage(result.totalUsage),
+        latencyMs: Date.now() - startedAt,
+      };
+    } catch (error) {
+      throw this.toAssistantError(error, options.abortSignal);
+    }
+  }
+
+  /** Up to `maxSteps` model calls, the last one without tools, or until `isDone`. */
+  private toolLoopSettings({
+    tools,
+    maxSteps,
+    isDone = () => false,
+  }: Pick<ToolLoopOptions, 'tools' | 'maxSteps' | 'isDone'>): ToolLoopSettings {
+    return {
+      tools,
+      stopWhen: [isStepCount(maxSteps), () => isDone()],
+      prepareStep: ({ stepNumber }) =>
+        stepNumber >= maxSteps - 1 ? { toolChoice: 'none' } : undefined,
+    };
+  }
+
+  private async *stream(
+    input: ModelInput,
+    options: ModelCallOptions,
+    toolSettings: ToolLoopSettings | Record<string, never>,
+  ): AsyncGenerator<string> {
     const startedAt = Date.now();
     let firstDeltaAt: number | null = null;
     try {
       const result = streamText({
         ...this.callSettings(input, options),
+        ...toolSettings,
         // Errors arrive as `error` parts and are rethrown below; skip the default console log.
         onError: () => undefined,
       });
@@ -83,6 +167,8 @@ export class OpenAiService {
         if (part.type === 'text-delta') {
           firstDeltaAt ??= Date.now();
           yield part.text;
+        } else if (part.type === 'tool-call') {
+          this.logger.log(`${promptLabel(options.prompt)} called ${part.toolName}`);
         } else if (part.type === 'finish-step') {
           this.logSummary(
             options.prompt,
@@ -208,7 +294,7 @@ export class OpenAiService {
       `${step.modelId} ${promptLabel(prompt)} ${step.responseId} ${step.finishReason} in ${Date.now() - startedAt}ms` +
       `${firstDelta}, ${tokens}`;
 
-    if (step.finishReason === 'stop') {
+    if (step.finishReason === 'stop' || step.finishReason === 'tool-calls') {
       this.logger.log(summary);
     } else {
       this.logger.warn(`${summary}; reason: ${step.rawFinishReason ?? step.finishReason}`);

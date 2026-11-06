@@ -47,6 +47,10 @@ export enum ChatStatusStep {
   SearchingBreakfasts = 'searching_breakfasts',
   PickingLunches = 'picking_lunches',
   CheckingConstraints = 'checking_constraints',
+  SearchingRecipes = 'searching_recipes',
+  ReadingRecipe = 'reading_recipe',
+  CheckingNutrition = 'checking_nutrition',
+  CalculatingNutrition = 'calculating_nutrition',
 }
 
 export const CHAT_STATUS_MESSAGES: Record<ChatStatusStep, string> = {
@@ -54,6 +58,10 @@ export const CHAT_STATUS_MESSAGES: Record<ChatStatusStep, string> = {
   [ChatStatusStep.SearchingBreakfasts]: 'Looking for breakfasts',
   [ChatStatusStep.PickingLunches]: 'Picking lunches',
   [ChatStatusStep.CheckingConstraints]: 'Checking the constraints',
+  [ChatStatusStep.SearchingRecipes]: 'Searching recipes',
+  [ChatStatusStep.ReadingRecipe]: 'Reading the recipe',
+  [ChatStatusStep.CheckingNutrition]: 'Looking up nutrition values',
+  [ChatStatusStep.CalculatingNutrition]: 'Calculating calories',
 };
 
 export enum ChatErrorCode {

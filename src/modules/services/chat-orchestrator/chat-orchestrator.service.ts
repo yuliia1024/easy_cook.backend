@@ -6,6 +6,8 @@ import {
   CONVERSATION_LIMIT_REPLY,
   CONVERSATION_MAX_USER_MESSAGES,
   ChatErrorCode,
+  ChatTraceOutcome,
+  ChatTraceStep,
   ChatResponseType,
   ChatStatusStep,
   ChatStreamEventType,
@@ -20,6 +22,7 @@ import { IntentResult, MenuTarget } from '../../../common/contracts';
 import {
   ChatProgressEvent,
   ChatResponse,
+  ChatServiceCall,
   ChatStreamEvent,
   ProfileContext,
   ResolvedDay,
@@ -29,12 +32,15 @@ import {
   AssistantUnavailableException,
 } from '../../../common/exceptions';
 import { withProgress } from '../../../common/utils';
+import { ChatTrace } from '../chat-trace/chat-trace';
+import { ChatTraceService } from '../chat-trace/chat-trace.service';
 import { Conversation } from '../../../generated/prisma/client';
 import { ConversationWithMessages } from '../../data-access/conversation/conversation.repository';
-import { ConversationService } from '../conversation/conversation.service';
+import { toIntentResult } from '../chat-tools/chat-service-call';
+import { ConversationService, ModelHistory } from '../conversation/conversation.service';
 import { ConversationSummaryService } from '../conversation-summary/conversation-summary.service';
 import { GeneralChatService } from '../general-chat/general-chat.service';
-import { IntentService } from '../intent/intent.service';
+import { IntentService, resolveIntent } from '../intent/intent.service';
 import { MenuPlannerService } from '../menu/menu-planner.service';
 import { MenuService } from '../menu/menu.service';
 import {
@@ -53,6 +59,37 @@ interface Revision {
   /** The recipes earlier versions of the menu had and `previous` has not. */
   rejectedRecipeIds: Set<string>;
   targets: MenuTarget[];
+}
+
+/** An event as the trace keeps it: a menu by its ids, the rest as it was sent. */
+function traceEvent(event: ChatStreamEvent): unknown {
+  if (event.type === ChatStreamEventType.MenuReady) {
+    const { menu: _menu, ...ids } = event;
+    return ids;
+  }
+  return event;
+}
+
+/** A planned menu as the trace keeps it: one line per meal, the totals and the issues. */
+function traceResponse(response: ChatResponse): unknown {
+  if (response.type !== ChatResponseType.MenuReady) {
+    return response;
+  }
+  const { menu, message, generatedWith } = response;
+  return {
+    type: response.type,
+    message,
+    generatedWith,
+    dailyAverage: menu.dailyAverage,
+    issues: menu.issues,
+    days: menu.days.map((day) => ({
+      dayIndex: day.dayIndex,
+      totals: day.totals,
+      meals: day.meals.map(
+        (meal) => `${meal.mealType}: ${meal.recipeName} (${meal.recipeId}) x${meal.servings}`,
+      ),
+    })),
+  };
 }
 
 /**
@@ -84,6 +121,7 @@ export class ChatOrchestratorService {
     private readonly menuService: MenuService,
     private readonly profileContextService: ProfileContextService,
     private readonly conversationSummaryService: ConversationSummaryService,
+    private readonly chatTraceService: ChatTraceService,
   ) {}
 
   /**
@@ -96,12 +134,14 @@ export class ChatOrchestratorService {
     abortSignal?: AbortSignal,
   ): Promise<AsyncGenerator<ChatStreamEvent>> {
     const conversation = await this.conversationService.getById(conversationId);
+    const trace = this.chatTraceService.start(conversationId, content);
     const userMessages = conversation.messages.filter(({ role }) => role === MessageRole.User);
     if (userMessages.length >= CONVERSATION_MAX_USER_MESSAGES) {
+      this.chatTraceService.finish(trace, ChatTraceOutcome.LimitReached);
       return this.limitReached();
     }
     await this.conversationService.addUserMessage(conversation, content);
-    return this.reply(conversation, content, abortSignal);
+    return this.reply(conversation, content, abortSignal, trace);
   }
 
   private async *limitReached(): AsyncGenerator<ChatStreamEvent> {
@@ -114,25 +154,31 @@ export class ChatOrchestratorService {
     yield { type: ChatStreamEventType.Done };
   }
 
+  /** The trace ends with the reply, also when the client goes away (`finally`). */
   private async *reply(
     conversation: ConversationWithMessages,
     content: string,
     abortSignal: AbortSignal | undefined,
+    trace: ChatTrace,
   ): AsyncGenerator<ChatStreamEvent> {
     const conversationId = conversation.id;
     let reply = '';
     let menu: Extract<ChatStreamEvent, { type: ChatStreamEventType.MenuReady }> | undefined;
     let failed = false;
+    let outcome = ChatTraceOutcome.Aborted;
     try {
-      for await (const event of this.route(conversation, content, abortSignal)) {
+      for await (const event of this.route(conversation, content, abortSignal, trace)) {
         if (event.type === ChatStreamEventType.TextDelta) {
           reply += event.content;
-        } else if (event.type === ChatStreamEventType.Clarification) {
-          reply += event.message;
-        } else if (event.type === ChatStreamEventType.MenuReady) {
-          menu = event;
-        } else if (event.type === ChatStreamEventType.Error) {
-          failed = true;
+        } else {
+          trace.add(ChatTraceStep.Event, traceEvent(event));
+          if (event.type === ChatStreamEventType.Clarification) {
+            reply += event.message;
+          } else if (event.type === ChatStreamEventType.MenuReady) {
+            menu = event;
+          } else if (event.type === ChatStreamEventType.Error) {
+            failed = true;
+          }
         }
         yield event;
       }
@@ -141,13 +187,21 @@ export class ChatOrchestratorService {
       }
       if (!failed && reply) {
         await this.conversationService.addAssistantMessage(conversationId, reply, menu?.versionId);
+        trace.add(ChatTraceStep.Saved, { content: reply, menuVersionId: menu?.versionId ?? null });
         await this.summarize(conversation, abortSignal);
       }
+      outcome = failed ? ChatTraceOutcome.Failed : ChatTraceOutcome.Replied;
     } catch (error) {
       if (abortSignal?.aborted) {
         return;
       }
-      yield this.errorEvent(error);
+      trace.addError(error);
+      outcome = ChatTraceOutcome.Failed;
+      const event = this.errorEvent(error);
+      trace.add(ChatTraceStep.Event, traceEvent(event));
+      yield event;
+    } finally {
+      this.chatTraceService.finish(trace, outcome);
     }
     yield { type: ChatStreamEventType.Done };
   }
@@ -156,34 +210,67 @@ export class ChatOrchestratorService {
     conversation: ConversationWithMessages,
     content: string,
     abortSignal: AbortSignal | undefined,
+    trace: ChatTrace,
   ): AsyncGenerator<ChatStreamEvent> {
     yield { type: ChatStreamEventType.Status, step: ChatStatusStep.Thinking };
     const profile = await this.profileContextService.find();
     const history = await this.conversationService.getModelHistory(conversation);
+    const storedMenuRequest = this.conversationService.getMenuRequest(conversation);
+    trace.add(ChatTraceStep.Context, {
+      profile,
+      menuRequest: storedMenuRequest,
+      summary: history.summary,
+      messages: history.messages.map(({ role, content: text, menuVersionId }) => ({
+        role,
+        content: text,
+        menuVersionId: menuVersionId ?? null,
+      })),
+    });
     const classified = await this.intentService.classify(
       history,
-      this.conversationService.getMenuRequest(conversation),
+      storedMenuRequest,
       profile,
       abortSignal,
     );
+    trace.add(ChatTraceStep.Intent, classified);
+    yield* this.answer(conversation, content, profile, history, classified, abortSignal, trace);
+  }
+
+  /**
+   * Answers the classified message. A menu tool the chat model called (`plan_menu`,
+   * `revise_menu`) comes back here as the classification of a menu request (`toIntentResult`,
+   * `resolveIntent`), so it is merged, clarified, planned, checked and saved exactly as one the
+   * classifier found.
+   */
+  private async *answer(
+    conversation: ConversationWithMessages,
+    content: string,
+    profile: ProfileContext | null,
+    history: ModelHistory,
+    classified: IntentResult,
+    abortSignal: AbortSignal | undefined,
+    trace: ChatTrace,
+  ): AsyncGenerator<ChatStreamEvent> {
     const menuRequest = await this.mergeMenuRequest(conversation, profile, classified);
+    trace.add(ChatTraceStep.MenuRequest, menuRequest);
     const { intent, request, targets } = resolveClarification(classified, menuRequest);
     const clarification = menuClarification(intent, menuRequest);
+    trace.add(ChatTraceStep.Route, { intent, request, targets, clarification });
     if (clarification) {
       yield { type: ChatStreamEventType.Clarification, ...clarification };
       return;
     }
     switch (intent) {
-      case Intent.GeneralChat:
-        for await (const delta of this.generalChatService.reply(
-          history,
-          menuRequest.chat,
-          profile,
-          abortSignal,
-        )) {
-          yield { type: ChatStreamEventType.TextDelta, content: delta };
+      case Intent.GeneralChat: {
+        const serviceCall = yield* this.chat(history, menuRequest, profile, abortSignal, trace);
+        if (serviceCall) {
+          this.logger.log(`The chat model called ${serviceCall.name}`);
+          const asked = resolveIntent(toIntentResult(serviceCall), history.messages);
+          trace.add(ChatTraceStep.ServiceCall, { call: serviceCall, intent: asked });
+          yield* this.answer(conversation, content, profile, history, asked, abortSignal, trace);
         }
         return;
+      }
       // A change to some days or meals plans only those parts again; any other change plans the
       // whole menu again from the restated request.
       case Intent.GenerateMenu:
@@ -195,6 +282,7 @@ export class ChatOrchestratorService {
           profile,
           abortSignal,
           intent === Intent.ReviseMenu ? targets : null,
+          trace,
         );
         return;
       // Asked above (`menuClarification`).
@@ -207,6 +295,35 @@ export class ChatOrchestratorService {
         const unknown: never = intent;
         throw new Error(`Unhandled intent "${unknown}"`);
       }
+    }
+  }
+
+  /**
+   * Streams the chat model's reply with the steps of its tools; every tool call goes to the trace.
+   * Returns the menu tool it called, if any.
+   */
+  private async *chat(
+    history: ModelHistory,
+    menuRequest: ResolvedMenuRequest,
+    profile: ProfileContext | null,
+    abortSignal: AbortSignal | undefined,
+    trace: ChatTrace,
+  ): AsyncGenerator<ChatStreamEvent, ChatServiceCall | null> {
+    const reply = this.generalChatService.reply(
+      history,
+      menuRequest.chat,
+      profile,
+      abortSignal,
+      (call) => trace.add(ChatTraceStep.ToolCall, call),
+    );
+    for (;;) {
+      const next = await reply.next();
+      if (next.done === true) {
+        return next.value;
+      }
+      yield typeof next.value === 'string'
+        ? { type: ChatStreamEventType.TextDelta, content: next.value }
+        : next.value;
     }
   }
 
@@ -224,6 +341,7 @@ export class ChatOrchestratorService {
     profile: ProfileContext | null,
     abortSignal: AbortSignal | undefined,
     targets: MenuTarget[] | null,
+    trace: ChatTrace,
   ): AsyncGenerator<ChatStreamEvent> {
     const revision = await this.revisionOf(conversation, targets, menuRequest);
     const clarification = revision && replacementClarification(revision.targets, revision.previous);
@@ -247,6 +365,15 @@ export class ChatOrchestratorService {
         retryable: true,
       };
     }
+    trace.add(ChatTraceStep.MenuPlan, {
+      request,
+      revision: revision && {
+        targets: revision.targets,
+        previousDays: revision.previous.length,
+        rejectedRecipeIds: [...revision.rejectedRecipeIds],
+      },
+      response: traceResponse(response),
+    });
     if (response.type === ChatResponseType.MenuReady) {
       const saved = await this.menuService.saveGenerated(conversation, {
         menu: response.menu,
