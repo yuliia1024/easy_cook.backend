@@ -33,7 +33,8 @@ import { MenuComposer } from './menu-composer';
 import { findMenuShortage, hasEnoughRecipes, menuShortageReply } from './menu-shortage';
 import { requestRules } from './menu-request';
 import { fitServings, snapshotRecipe } from './menu-composition';
-import { replaceParts, ReplacementModelCall } from './menu-replacement';
+import { changedSlots, outsideScope, violatingSlots, widenReplacement } from './menu-diff';
+import { replaceParts, replacedSlots, ReplacementModelCall } from './menu-replacement';
 import { MenuReplacement } from './menu-target';
 import {
   candidatesPerMeal,
@@ -156,8 +157,11 @@ export class MenuPlannerService {
    * Replaces the days and the meals of `replacement` in the menu `previous` ("redo Monday and
    * Thursday", "another dinner on Wednesday and lunch on Friday") by `replaceParts`: one model
    * call with its retries for every part, among the allowed recipes without those already in the
-   * menu, those replaced and `rejectedRecipeIds` (dropped by earlier versions), and everything else copied from `previous` as it is, servings and recipe snapshots
-   * included. The whole request ends in one menu with the messages of every part; its provenance
+   * menu, those replaced and `rejectedRecipeIds` (dropped by earlier versions), and everything
+   * else copied from `previous` as it is, servings and recipe snapshots included. The meals of
+   * `previous` that break the rules of the request (a constraint it adds, preferences changed since)
+   * are replaced too (`widenReplacement`); when that is every day, the whole menu is planned again
+   * (`plan`). A change outside the parts replaced (`changedSlots`) is a bug and throws. The whole request ends in one menu with the messages of every part; its provenance
    * is the model of the last call and every prompt version used. Nothing is saved.
    */
   public async replan(
@@ -172,6 +176,26 @@ export class MenuPlannerService {
   ): Promise<ChatResponse> {
     if (!profile) {
       return { type: ChatResponseType.Text, message: NO_PROFILE_REPLY };
+    }
+    const breaking = violatingSlots(
+      this.menuComposer.compose(previous, {
+        ...profile,
+        rules: requestRules(profile.rules, request),
+      }).issues,
+      previous,
+    );
+    const parts = widenReplacement(replacement, breaking, previous);
+    if (!parts) {
+      this.logger.log(
+        `${breaking.length} meal(s) of ${previous.length} days break the rules: the whole menu is planned again`,
+      );
+      return this.plan(
+        message,
+        { ...request, days: previous.length },
+        profile,
+        abortSignal,
+        onProgress,
+      );
     }
     const { context, recipes } = await this.allowedRecipes(request, profile, onProgress);
     const shortage = await this.shortageReply(recipes, context, profile, MENU_MIN_DAYS);
@@ -207,7 +231,7 @@ export class MenuPlannerService {
       return generated.plan;
     };
     const replaced = await replaceParts(
-      replacement,
+      parts,
       {
         request: message,
         profile: context,
@@ -226,9 +250,16 @@ export class MenuPlannerService {
     if (replaced.days === null) {
       throw new AssistantInvalidOutputException();
     }
+    const outside = outsideScope(
+      changedSlots(previous, replaced.days),
+      replacedSlots(parts, previous),
+    );
+    if (outside.length > 0) {
+      throw new Error(`The menu changed outside the parts replaced: ${JSON.stringify(outside)}`);
+    }
     const generatedWith = { modelId, prompt: [...prompts].join(', ') };
     this.logger.log(
-      `${replacement.days.length} day(s) and ${replacement.meals.length} meal(s) of ${previous.length} days replaced in ${attempts} attempt(s) by ${generatedWith.modelId} with ${generatedWith.prompt}`,
+      `${parts.days.length} day(s) and ${parts.meals.length} meal(s) of ${previous.length} days replaced${breaking.length > 0 ? ` (${breaking.length} meal(s) breaking the rules)` : ''} in ${attempts} attempt(s) by ${generatedWith.modelId} with ${generatedWith.prompt}`,
     );
     return {
       type: ChatResponseType.MenuReady,

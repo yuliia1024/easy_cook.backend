@@ -241,12 +241,15 @@ candidates of that meal), `validation` (no problem the planner sends back to the
 recipe on two days in a row, none twice while the meal has unused candidates). The metric
 `repairs` is the mean of the calls after the first one; it is saved in the baseline, not compared.
 
-**menu-day** (EVAL-5) - replacing days and meals of a suggested menu as `MenuPlannerService.replan`
-does (`replaceParts` with `planWithRetries`), one or several in a request ("redo Tuesday",
-"another dinner on Wednesday", "redo Monday and Thursday", "redo Tuesday and the dinner on
-Friday"), on the same recipes and profiles: menus of 2 to 7 days given by recipe names, the
-first, a middle or the last day, every kind of meal, and targets the backend collapses (every
-meal of a day is the day, a day with a meal of it is the day; `resolveReplaceTarget`). Every part
+**menu-day** (EVAL-5) - revising a suggested menu as `MenuPlannerService.replan` does
+(`replaceParts` with `planWithRetries`): a day, a meal, several parts in a request ("redo
+Tuesday", "another dinner on Wednesday", "redo Monday and Thursday", "redo Tuesday and the dinner
+on Friday"), a constraint the request adds (`rules`: "redo Tuesday without beef" also replaces the
+meals of other days that break it, `violatingSlots` and `widenReplacement`) and the whole menu
+(every day named or widened to: `MENU_PLAN_PROMPT`), on the same recipes and profiles: menus of 2
+to 7 days given by recipe names, the first, a middle or the last day, every kind of meal, and
+targets the backend collapses (every meal of a day is the day, a day with a meal of it is the day;
+`resolveReplaceTarget`). Every part
 is planned on the menu the parts before it made: the candidates of a day leave out its own
 recipes, then those of the other days, then the rejected ones (`withoutRecipes`, a step given up
 for a meal it would leave empty), those of a meal are the recipes of that meal the menu does not
@@ -254,9 +257,11 @@ serve yet (`mealRecipes`), then not rejected, that keep the day within its calor
 (`fittingDayKcal`). Rejected are the recipes earlier versions of the menu had and the current one
 has not (`MenuService.getRevisionBase`), and those of the parts replaced earlier in the request. Fields:
 `replacement` (the days and meals replaced, for the cases that expect them); `candidates`;
-`unchanged` (everything else of the menu byte for byte as in the previous one); `exclusions` (no
-recipe the menu already serves, or a replaced day had, while the meal had another one, not
-counting meals the request replaced); `validation` (no error in the whole new menu); `calories` of every day changed and
+`unchanged` (the diff of the versions, `changedSlots`, within the parts replaced: everything else
+byte for byte as in the previous one; `replan` checks the same diff and throws on a change
+outside them); `exclusions`, but for the whole menu (no recipe the menu already serves, or a
+replaced day had, while the meal had another one, not counting meals the request replaced);
+`validation` (no error in the whole new menu, the rules the request adds included); `calories` of every day changed and
 `disliked` of the new meals. Metric `repairs`.
 
 ## Tests

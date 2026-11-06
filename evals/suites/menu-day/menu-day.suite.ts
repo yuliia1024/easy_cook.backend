@@ -7,16 +7,38 @@ import {
   MENU_MEAL_PROMPT,
   MENU_PLAN_MAX_ATTEMPTS,
   MENU_PLAN_MEAL_TYPES,
+  MENU_PLAN_PROMPT,
   MealType,
   MenuIssueCode,
   MenuTargetScope,
+  menuPlanRetryMessage,
 } from '../../../src/common/constants';
 import { MenuTarget } from '../../../src/common/contracts';
 import { AssistantInvalidOutputException } from '../../../src/common/exceptions';
-import { MenuComposition, ModelUsage, ResolvedDay } from '../../../src/common/types';
+import {
+  MenuComposition,
+  ModelUsage,
+  PreferenceRules,
+  ProfileContext,
+  ResolvedDay,
+} from '../../../src/common/types';
 import { MenuComposer } from '../../../src/modules/services/menu/menu-composer';
 import { fitServings } from '../../../src/modules/services/menu/menu-composition';
-import { planWithRetries } from '../../../src/modules/services/menu/menu-plan';
+import {
+  changedSlots,
+  outsideScope,
+  violatingSlots,
+  widenReplacement,
+} from '../../../src/modules/services/menu/menu-diff';
+import {
+  candidateProblems,
+  daysProblem,
+  menuPlanErrors,
+  menuPlanModelCall,
+  planDays,
+  PlannedDay,
+  planWithRetries,
+} from '../../../src/modules/services/menu/menu-plan';
 import {
   ReplacementInput,
   ReplacementModelCall,
@@ -37,6 +59,7 @@ import {
   labelRecipes,
   MENU_PLAN_PROFILES,
   MENU_PLAN_RECIPES,
+  RECIPES_BY_ID,
 } from '../menu-plan/menu-plan.suite';
 
 const RECIPES_BY_NAME = new Map(MENU_PLAN_RECIPES.map((recipe) => [recipe.name, recipe]));
@@ -58,13 +81,25 @@ const CaseTargetSchema = z.object({
 
 /**
  * A menu the chat suggested (`previous`, at least two days) and the request that changes the
- * parts `targets` names, as the classifier restates it. The backend decides what is replaced
- * (`resolveReplaceTarget`): `expected`, when set, is how many days and meals that must be.
+ * parts `targets` names, as the classifier restates it, with the `rules` it adds to those of the
+ * profile ("redo Tuesday without beef"). The backend decides what is replaced
+ * (`resolveReplaceTarget`, then `widenReplacement` with the meals breaking the rules): `expected`,
+ * when set, is how many days and meals that must be; every day named or widened to plans the whole
+ * menu again.
  * `rotation` picks the candidates like the random offset of the app does.
  */
 export const MenuDayCaseSchema = EvalCaseSchema.extend({
   profile: z.enum(Object.keys(MENU_PLAN_PROFILES) as [string, ...string[]]).default('basic'),
   request: z.string().min(1),
+  rules: z
+    .object({
+      diets: z.array(z.string()),
+      allergies: z.array(z.string()),
+      excludedIngredients: z.array(z.string()),
+      dislikedFoods: z.array(z.string()),
+    })
+    .partial()
+    .optional(),
   previous: z.array(DaySchema).min(2).max(MENU_MAX_DAYS),
   targets: z.array(CaseTargetSchema).min(1),
   expected: z
@@ -86,6 +121,19 @@ export interface MenuDayOutput {
   message: string;
   days: ResolvedDay[] | null;
   unknown: string[];
+}
+
+/** The profile of the case with the rules the request adds, as `requestRules` merges them. */
+export function caseProfile(testCase: MenuDayCase): ProfileContext {
+  const profile = MENU_PLAN_PROFILES[testCase.profile];
+  const added = testCase.rules ?? {};
+  const rules = Object.fromEntries(
+    (Object.keys(profile.rules) as Array<keyof PreferenceRules>).map((key) => [
+      key,
+      [...new Set([...profile.rules[key], ...(added[key] ?? [])])],
+    ]),
+  ) as unknown as PreferenceRules;
+  return { ...profile, rules };
 }
 
 const dailyKcalOf = (testCase: MenuDayCase): number | null =>
@@ -113,17 +161,37 @@ const targetsOf = (testCase: MenuDayCase): MenuTarget[] =>
     mealType,
   }));
 
-/** What the app replaces for the case (`resolveReplaceTarget`); null plans the whole menu. */
-export const caseReplacement = (testCase: MenuDayCase): MenuReplacement | null =>
-  resolveReplaceTarget(targetsOf(testCase), previousDays(testCase));
-
-/** The menu with its issues against the profile of the case. */
+/** The menu with its issues against the profile of the case, the rules of the request included. */
 export const composeMenu = (testCase: MenuDayCase, days: ResolvedDay[]): MenuComposition =>
-  new MenuComposer().compose(days, MENU_PLAN_PROFILES[testCase.profile]);
+  new MenuComposer().compose(days, caseProfile(testCase));
+
+/**
+ * What the app replaces for the case: the targets (`resolveReplaceTarget`) and the meals of the
+ * previous menu that break the rules (`violatingSlots`, `widenReplacement`), as
+ * `MenuPlannerService.replan` does; null plans the whole menu.
+ */
+export function caseReplacement(testCase: MenuDayCase): MenuReplacement | null {
+  const previous = previousDays(testCase);
+  const replacement = resolveReplaceTarget(targetsOf(testCase), previous);
+  return (
+    replacement &&
+    widenReplacement(
+      replacement,
+      violatingSlots(composeMenu(testCase, previous).issues, previous),
+      previous,
+    )
+  );
+}
+
+/** Every day of the previous menu, the scope of a case that plans the whole menu again. */
+const wholeMenu = (testCase: MenuDayCase): MenuReplacement => ({
+  days: testCase.previous.map((_, dayIndex) => dayIndex),
+  meals: [],
+});
 
 /** What `replaceParts` gets for the case, as `MenuPlannerService.replan` gives it. */
 export function replacementInput(testCase: MenuDayCase): ReplacementInput {
-  const profile = MENU_PLAN_PROFILES[testCase.profile];
+  const profile = caseProfile(testCase);
   return {
     request: testCase.request,
     profile,
@@ -153,7 +221,7 @@ function repeatedRecipes(
   days: ResolvedDay[],
 ): string[] {
   const previous = previousDays(testCase);
-  const allowed = allowedRecipes(MENU_PLAN_PROFILES[testCase.profile]);
+  const allowed = allowedRecipes(caseProfile(testCase));
   const served = days.flatMap(({ dayIndex, meals }) =>
     meals.map(({ mealType, recipeId }) => ({ dayIndex, mealType, recipeId })),
   );
@@ -193,15 +261,18 @@ function repeatedRecipes(
 
 /**
  * The menu after the retries. `replacement`, for a case that expects it: the days and the meals
- * the app replaces; `candidates`: every new meal a candidate of its meal; `unchanged`: everything
- * else of the menu byte for byte as in the previous one; `exclusions`: no new recipe the menu
- * serves elsewhere while its meal had another (`repeatedRecipes`); `validation`: no error in the
- * whole new menu; `calories`: every day with a new meal within `MENU_DAY_KCAL_TOLERANCE` of the
- * goal; `disliked`: no disliked food in the new meals. The last five are scored only when the
- * meals are candidates. Output that did not match the schema (`null`) fails every field.
+ * the app replaces, every day for the whole menu; `candidates`: every new meal a candidate of its
+ * meal; `unchanged`: the diff of the versions (`changedSlots`) within the parts replaced, the rest
+ * byte for byte as in the previous one; `exclusions`, but for the whole menu: no new recipe the
+ * menu serves elsewhere while its meal had another (`repeatedRecipes`); `validation`: no error in
+ * the whole new menu, the rules the request adds included; `calories`: every day with a new meal
+ * within `MENU_DAY_KCAL_TOLERANCE` of the goal; `disliked`: no disliked food in the new meals. The
+ * fields after `candidates` are scored only when the meals are candidates. Output that did not
+ * match the schema (`null`) fails every field.
  */
 export function scoreMenuDay(testCase: MenuDayCase, output: MenuDayOutput | null): FieldScore[] {
-  const replacement = caseReplacement(testCase) ?? { days: [], meals: [] };
+  const partial = caseReplacement(testCase);
+  const replacement = partial ?? wholeMenu(testCase);
   const previous = previousDays(testCase);
   const days = output?.unknown.length === 0 ? output.days : null;
   const menu = days ? composeMenu(testCase, days) : null;
@@ -209,19 +280,11 @@ export function scoreMenuDay(testCase: MenuDayCase, output: MenuDayOutput | null
   const isReplaced = (dayIndex: number, mealType: MealType): boolean =>
     slots.some((slot) => sameSlot(slot, { dayIndex, mealType }));
   const touched = new Set(slots.map(({ dayIndex }) => dayIndex));
-  const changed =
-    days?.flatMap((day, i) => [
-      ...(day.dayIndex === previous[i].dayIndex && day.date === previous[i].date
-        ? []
-        : [`day ${i + 1}`]),
-      ...day.meals
-        .filter(
-          (meal, j) =>
-            !isReplaced(i, meal.mealType) &&
-            JSON.stringify(meal) !== JSON.stringify(previous[i].meals[j]),
-        )
-        .map(({ mealType }) => `day ${i + 1} ${mealType}`),
-    ]) ?? null;
+  const changed = days
+    ? outsideScope(changedSlots(previous, days), slots).map(
+        ({ dayIndex, mealType }) => `day ${dayIndex + 1} ${mealType}`,
+      )
+    : null;
   const repeated = days ? repeatedRecipes(testCase, replacement, days) : null;
   const onReplaced = (code: MenuIssueCode): string[] | null =>
     menu?.issues
@@ -235,7 +298,7 @@ export function scoreMenuDay(testCase: MenuDayCase, output: MenuDayOutput | null
   const errors = menu ? errorsOf(menu.issues).map(({ message }) => message) : null;
   const offTarget = onReplaced(MenuIssueCode.CaloriesOffTarget);
   const disliked = onReplaced(MenuIssueCode.DislikedFood);
-  const profile = MENU_PLAN_PROFILES[testCase.profile];
+  const profile = caseProfile(testCase);
   const counts = { days: replacement.days.length, meals: replacement.meals.length };
   return [
     ...(testCase.expected
@@ -263,12 +326,16 @@ export function scoreMenuDay(testCase: MenuDayCase, output: MenuDayOutput | null
       expected: 'the rest of the previous menu, unchanged',
       actual: changed,
     },
-    {
-      field: 'exclusions',
-      pass: repeated !== null && repeated.length === 0,
-      expected: 'no recipe the menu already serves',
-      actual: repeated,
-    },
+    ...(partial
+      ? [
+          {
+            field: 'exclusions',
+            pass: repeated !== null && repeated.length === 0,
+            expected: 'no recipe the menu already serves',
+            actual: repeated,
+          },
+        ]
+      : []),
     {
       field: 'validation',
       pass: errors !== null && errors.length === 0,
@@ -294,6 +361,57 @@ export function scoreMenuDay(testCase: MenuDayCase, output: MenuDayOutput | null
 }
 
 /**
+ * Plans the whole menu of the case again like `MenuPlannerService.plan` does for a revision of
+ * every day (`MENU_PLAN_PROMPT`): as many days as the previous menu, with its dates, the servings
+ * fitted to the goal. Without `days` when the last plan has other days or ids that are not
+ * candidates (`unknown`).
+ */
+export async function planWholeMenu(
+  testCase: MenuDayCase,
+  ask: <T>(
+    call: ReplacementModelCall<T>,
+    problemsOf: (plan: T) => string[],
+    retryMessage: (problems: string[]) => string,
+  ) => Promise<T>,
+): Promise<MenuDayOutput> {
+  const profile = caseProfile(testCase);
+  const previous = previousDays(testCase);
+  const dailyKcal = dailyKcalOf(testCase);
+  const { candidates, recipeIds } = labelRecipes(
+    allowedRecipes(profile),
+    profile,
+    previous.length,
+    testCase.rotation,
+  );
+  const resolve = (planned: PlannedDay[]): ResolvedDay[] => {
+    const days = planned.map((meals, dayIndex): ResolvedDay => ({
+      dayIndex,
+      date: previous[dayIndex]?.date ?? null,
+      meals: MENU_PLAN_MEAL_TYPES.map((mealType) => {
+        const recipe = RECIPES_BY_ID.get(recipeIds.get(meals[mealType]) as string)!;
+        return { mealType, servings: 1, recipeId: recipe.id, recipe };
+      }),
+    }));
+    return dailyKcal === null ? days : fitServings(days, dailyKcal);
+  };
+  const plan = await ask(
+    menuPlanModelCall(testCase.request, previous.length, profile, candidates),
+    (planned) =>
+      menuPlanErrors(planned, candidates, previous.length, (days) =>
+        composeMenu(testCase, resolve(days)),
+      ),
+    menuPlanRetryMessage,
+  );
+  const wrongDays = daysProblem(plan, previous.length);
+  const unknown = [...(wrongDays ? [wrongDays] : []), ...candidateProblems(plan, candidates)];
+  return {
+    message: plan.message,
+    days: unknown.length === 0 ? resolve(planDays(plan)) : null,
+    unknown,
+  };
+}
+
+/**
  * Replaces the parts of the case like `MenuPlannerService.replan`: `replaceParts` with a model
  * that sends every part's problems back until it has none (`planWithRetries`) and returns the last
  * answer to score it. The usage and latency are of every call; `repairs` is how many calls
@@ -305,9 +423,6 @@ export async function runMenuDay(
   openAi: OpenAiService,
 ): Promise<SuiteRun<MenuDayOutput>> {
   const replacement = caseReplacement(testCase);
-  if (!replacement) {
-    throw new Error(`Case ${testCase.id} plans the whole menu again`);
-  }
   const calls: ModelResult<unknown>[] = [];
   let repairs = 0;
   const usage = (): ModelUsage =>
@@ -336,13 +451,19 @@ export async function runMenuDay(
     return attempts[attempts.length - 1].plan;
   };
   try {
-    const replaced = await replaceParts(replacement, replacementInput(testCase), ask);
-    return {
-      output: {
+    let output: MenuDayOutput;
+    if (replacement) {
+      const replaced = await replaceParts(replacement, replacementInput(testCase), ask);
+      output = {
         message: replaced.messages.join(' '),
         days: replaced.days,
         unknown: replaced.unknown,
-      },
+      };
+    } else {
+      output = await planWholeMenu(testCase, ask);
+    }
+    return {
+      output,
       modelId: calls[0].modelId,
       latencyMs: calls.reduce((total, call) => total + call.latencyMs, 0),
       usage: usage(),
@@ -360,16 +481,17 @@ export async function runMenuDay(
 }
 
 /**
- * EVAL-5: replacing days and meals of a suggested menu (`MenuPlannerService.replan`) with their
- * retries, one or several in a request: what the backend makes of the targets, candidate ids, the
- * rest of the menu unchanged, no recipe the menu already serves, validation of the whole menu, the
- * calories of every day changed and disliked foods of the new meals, and the repairs it took.
+ * EVAL-5: revising a suggested menu (`MenuPlannerService.replan`) with the retries: a day, a meal,
+ * several parts, a constraint the request adds and the whole menu. What the backend makes of the
+ * targets and the meals breaking the rules, candidate ids, the diff of the versions within the
+ * scope, no recipe the menu already serves, validation of the whole menu, the calories of every day
+ * changed and disliked foods of the new meals, and the repairs it took.
  */
 export const menuDaySuite: EvalSuite<MenuDayCase, MenuDayOutput> = {
   name: 'menu-day',
   casesFile: join(__dirname, 'cases.jsonl'),
   caseSchema: MenuDayCaseSchema,
-  prompts: [MENU_DAY_PROMPT, MENU_MEAL_PROMPT],
+  prompts: [MENU_DAY_PROMPT, MENU_MEAL_PROMPT, MENU_PLAN_PROMPT],
   run: runMenuDay,
   score: scoreMenuDay,
 };

@@ -4,10 +4,15 @@ import {
   MENU_MEAL_MAX_OUTPUT_TOKENS,
   MENU_PLAN_MAX_ATTEMPTS,
   MENU_PLAN_MEAL_TYPES,
+  MENU_PLAN_PROMPT,
   MealType,
   menuDayRetryMessage,
 } from '../../../src/common/constants';
-import { MenuDayPlanSchema, MenuMealPlanSchema } from '../../../src/common/contracts';
+import {
+  MenuDayPlanSchema,
+  MenuMealPlanSchema,
+  MenuPlanSchema,
+} from '../../../src/common/contracts';
 import { AssistantInvalidOutputException } from '../../../src/common/exceptions';
 import { ModelUsage } from '../../../src/common/types';
 import { MenuPlanCandidates } from '../../../src/modules/services/menu/menu-plan';
@@ -24,11 +29,13 @@ import {
   MENU_PLAN_RECIPES,
 } from '../menu-plan/menu-plan.suite';
 import {
+  caseProfile,
   caseReplacement,
   MenuDayCase,
   MenuDayCaseSchema,
   MenuDayOutput,
   menuDaySuite,
+  planWholeMenu,
   previousDays,
   replacementInput,
   scoreMenuDay,
@@ -61,6 +68,31 @@ const hasFood = (name: string, foods: string[]): boolean => {
 };
 
 /**
+ * A whole menu of `days` days that has no problems, by the candidates of every meal in turn from
+ * the first offset that has none, or the first one.
+ */
+function wholeMenuOracle<T>(
+  days: number,
+  candidates: MenuPlanCandidates,
+  problemsOf: (plan: T) => string[],
+): unknown {
+  const planAt = (offset: number): unknown => ({
+    message: 'New.',
+    days: Array.from({ length: days }, (_, dayIndex) => ({
+      dayIndex,
+      meals: Object.fromEntries(
+        MENU_PLAN_MEAL_TYPES.map((mealType) => {
+          const options = candidates[mealType];
+          return [mealType, options[(dayIndex + offset) % options.length].id];
+        }),
+      ),
+    })),
+  });
+  const plans = Array.from({ length: 8 }, (_, offset) => planAt(offset));
+  return plans.find((plan) => problemsOf(plan as T).length === 0) ?? plans[0];
+}
+
+/**
  * A model that answers every part with the first candidates that have no problems and no
  * `disliked` food where it can, as a model that follows the rules would: what a case can pass at
  * best.
@@ -69,6 +101,9 @@ const oracleOf =
   (disliked: string[]) =>
   async <T>({ input }: ReplacementModelCall<T>, problemsOf: (plan: T) => string[]): Promise<T> => {
     const sent = JSON.parse(input[0].content as string);
+    if (typeof sent.days === 'number') {
+      return wholeMenuOracle(sent.days, sent.recipes, problemsOf) as T;
+    }
     const named = (ids: string[], recipes: Array<{ id: string; name: string }>): string[] =>
       ids.map((id) => recipes.find((recipe) => recipe.id === id)!.name);
     const plans: Array<{ plan: unknown; names: string[] }> = Array.isArray(sent.recipes)
@@ -107,11 +142,12 @@ const oracle = oracleOf([]);
 
 /** The output of the case with every part answered by the oracle. */
 const bestOutput = async (testCase: MenuDayCase): Promise<MenuDayOutput> => {
-  const replaced = await replaceParts(
-    caseReplacement(testCase)!,
-    replacementInput(testCase),
-    oracleOf(MENU_PLAN_PROFILES[testCase.profile].rules.dislikedFoods),
-  );
+  const ask = oracleOf(caseProfile(testCase).rules.dislikedFoods);
+  const replacement = caseReplacement(testCase);
+  if (!replacement) {
+    return planWholeMenu(testCase, ask);
+  }
+  const replaced = await replaceParts(replacement, replacementInput(testCase), ask);
   return { message: replaced.messages.join(' '), days: replaced.days, unknown: replaced.unknown };
 };
 
@@ -368,13 +404,39 @@ describe('menu-day suite', () => {
       });
     });
 
-    it('rejects a case that plans the whole menu again', async () => {
-      await expect(
-        menuDaySuite.run(
-          { ...theCase, targets: [0, 1, 2].map((dayIndex) => ({ dayIndex, mealType: null })) },
-          openAi,
-        ),
-      ).rejects.toThrow('Case c plans the whole menu again');
+    it('plans a case of every day as the whole menu, with the dates of the previous one', async () => {
+      const whole = {
+        ...theCase,
+        targets: [0, 1, 2].map((dayIndex) => ({ dayIndex, mealType: null })),
+        expected: { days: 3, meals: 0 },
+      };
+      const best = await bestOutput(whole);
+      openAi.generateStructuredResult.mockImplementation(async (messages, schema, options) => {
+        expect(schema).toBe(MenuPlanSchema);
+        expect(options).toMatchObject({ prompt: MENU_PLAN_PROMPT });
+        expect(JSON.parse((messages as Array<{ content: string }>)[0].content).days).toBe(3);
+        return result(
+          wholeMenuOracle(
+            3,
+            JSON.parse((messages as Array<{ content: string }>)[0].content).recipes,
+            () => [],
+          ),
+        );
+      });
+
+      const run = await menuDaySuite.run(whole, openAi);
+
+      expect(openAi.generateStructuredResult).toHaveBeenCalledTimes(1);
+      expect(run.output.days).toHaveLength(3);
+      expect(run.output.unknown).toEqual([]);
+      expect(passed(whole, best)).toEqual({
+        replacement: true,
+        candidates: true,
+        unchanged: true,
+        validation: true,
+        calories: true,
+        disliked: true,
+      });
     });
   });
 
@@ -420,16 +482,25 @@ describe('menu-day suite', () => {
       }
     });
 
-    it('replaces only some parts in every case, as many as it expects', () => {
+    it('replaces only some parts in every case but the whole menu ones, as many as it expects', () => {
       cases.forEach((c, i) => {
-        expect(replacements[i]).not.toBeNull();
+        expect([c.id, replacements[i] === null]).toEqual([c.id, c.tags.includes('full')]);
         if (c.expected) {
           expect({
-            days: replacements[i]!.days.length,
-            meals: replacements[i]!.meals.length,
+            days: replacements[i]?.days.length ?? c.previous.length,
+            meals: replacements[i]?.meals.length ?? 0,
           }).toEqual(c.expected);
         }
       });
+    });
+
+    it('has a constraint the request adds to a part, to a whole menu, and one that widens to it', () => {
+      const constrained = cases.filter(({ rules }) => rules);
+      expect(constrained.some((c) => caseReplacement(c) !== null)).toBe(true);
+      expect(constrained.some((c) => c.tags.includes('full'))).toBe(true);
+      expect(
+        constrained.some((c) => c.tags.includes('full') && c.targets.length < c.previous.length),
+      ).toBe(true);
     });
 
     it('can pass every case', async () => {

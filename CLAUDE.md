@@ -16,9 +16,10 @@ repository. Layout:
 - `src/modules/services/<name>/` - business services. `NutritionService`, `energy-requirements.ts`
   and the menu `menu-composition.ts` / `menu-rules.ts` are pure and deterministic - keep the
   database and any LLM out of them.
-- `src/modules/services/assistant/` - the `Assistant` port to the LLM; `StubAssistant` is bound until
-  the LLM stage. Its output is untrusted: menus go through `MenuPlanner` / `MenuComposer`, and it
-  never writes to the database.
+- Chat flow: `ChatOrchestratorService` routes a message by `IntentService` to `GeneralChatService` or
+  `MenuPlannerService` (plan / revise a menu via `OpenAiService`) and streams the events. Model
+  output is untrusted: menus go through `MenuComposer` and the menu rules, and only `MenuService`
+  writes them; `menu-diff.ts` checks a revision changes nothing outside its scope.
 - `src/entrypoints/api/<name>-controller/` - controller, controller service (orchestrates the flow,
   maps to response DTOs with `static from()`), DTOs.
 - `prisma/schema/*.prisma` (one file per domain) + `prisma/migrations/` - create migrations with `NAME=... npm run migration:create`

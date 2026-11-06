@@ -700,7 +700,11 @@ describe('/api/conversations (e2e)', () => {
       ],
     });
     /** A conversation with a suggested 3-day menu, then a revision of the targets. */
-    const planThenRevise = async (targets: MenuTarget[], plan: FakeMenuPlan = firstRice) => {
+    const planThenRevise = async (
+      targets: MenuTarget[],
+      plan: FakeMenuPlan = firstRice,
+      revisionRequest = { ...EMPTY_MENU_REQUEST },
+    ) => {
       await createMenuWorld(ctx);
       await addRiceRecipes(ctx, 2);
       const id = await start();
@@ -715,7 +719,7 @@ describe('/api/conversations (e2e)', () => {
       fakeOpenAiState.structuredInputs = [];
       fakeOpenAiState.intent = Intent.ReviseMenu;
       fakeOpenAiState.request = 'Plan a 3-day menu with some parts planned again.';
-      fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST };
+      fakeOpenAiState.menuRequest = revisionRequest;
       fakeOpenAiState.targets = targets;
       fakeOpenAiState.menuPlan = plan;
       const second = await say(id, 'Change some parts');
@@ -765,6 +769,30 @@ describe('/api/conversations (e2e)', () => {
       expect(after.days[2]).toEqual(before.days[2]);
       expect(after.notes).toBe(
         `model: ${FAKE_MODEL_ID}; prompt: menu-day@v${MENU_DAY_PROMPT.version}`,
+      );
+    });
+
+    it('replaces the meals of the other days that break a constraint the request adds', async () => {
+      const { versions } = await planThenRevise([day(0)], firstRice, {
+        ...EMPTY_MENU_REQUEST,
+        excludedIngredients: ['chicken'],
+      });
+
+      const [before, after] = versions;
+      expect(before.names.map((meals) => meals[1])).toEqual([
+        'Chicken with rice',
+        'Chicken with rice',
+        'Chicken with rice',
+      ]);
+      expect(after.names.flat().some((name) => name.includes('Chicken'))).toBe(false);
+      // Day 1 whole, then the lunch of days 2 and 3 only.
+      [1, 2].forEach((dayIndex) => {
+        expect(after.days[dayIndex].filter((_, i) => i !== 1)).toEqual(
+          before.days[dayIndex].filter((_, i) => i !== 1),
+        );
+      });
+      expect(after.notes).toBe(
+        `model: ${FAKE_MODEL_ID}; prompt: menu-day@v${MENU_DAY_PROMPT.version}, menu-meal@v${MENU_MEAL_PROMPT.version}`,
       );
     });
 
