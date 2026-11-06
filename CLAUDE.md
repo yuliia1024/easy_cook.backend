@@ -20,6 +20,16 @@ repository. Layout:
   `MenuPlannerService` (plan / revise a menu via `OpenAiService`) and streams the events. Model
   output is untrusted: menus go through `MenuComposer` and the menu rules, and only `MenuService`
   writes them; `menu-diff.ts` checks a revision changes nothing outside its scope.
+- Chat tools (`modules/services/chat-tools/`): `GeneralChatService` runs the model with tools via
+  `OpenAiService.streamWithTools` (`CHAT_TOOL_MAX_STEPS`). Every tool is declared in the registry
+  with a zod input schema (`contracts/chat-tools.ts`) and an operation: `read` (returns data
+  through a service) or `service_call` (`plan_menu` / `revise_menu`: only recorded, then the
+  orchestrator runs it on the classified-request path). Tool errors go back to the model, never 500.
+  A running read tool streams a `status` step (`CHAT_TOOL_STATUS`).
+- Chat trace (`modules/services/chat-trace/`): with `ENV=local` every chat message is logged once,
+  when the reply ends, as one JSON (`ChatTraceRecord`): request, context, intent, menu request,
+  route, tool calls with input/output, menu plan, events, saved reply or error. Elsewhere it is off
+  (user messages stay out of shared logs). New steps of the chain go into `ChatTraceStep`.
 - `src/entrypoints/api/<name>-controller/` - controller, controller service (orchestrates the flow,
   maps to response DTOs with `static from()`), DTOs.
 - `prisma/schema/*.prisma` (one file per domain) + `prisma/migrations/` - create migrations with `NAME=... npm run migration:create`

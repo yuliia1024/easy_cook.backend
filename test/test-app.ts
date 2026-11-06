@@ -20,7 +20,11 @@ import {
   AssistantUnavailableException,
 } from '../src/common/exceptions';
 import { MenuPlanCandidates } from '../src/modules/services/menu/menu-plan';
-import { ModelResult, OpenAiService } from '../src/providers/open-ai/open-ai.service';
+import {
+  ModelResult,
+  OpenAiService,
+  ToolLoopOptions,
+} from '../src/providers/open-ai/open-ai.service';
 import { PrismaService } from '../src/providers/prisma/prisma.service';
 
 /** Text the fake OpenAI streams instead of calling the API. */
@@ -46,6 +50,8 @@ export const fakeOpenAiState: {
   summary: string;
   streamTextCalls: number;
   structuredInputs: unknown[];
+  toolCalls: FakeToolCall[];
+  toolResults: unknown[];
 } = {
   intent: Intent.GeneralChat,
   request: null,
@@ -55,7 +61,18 @@ export const fakeOpenAiState: {
   summary: FAKE_SUMMARY,
   streamTextCalls: 0,
   structuredInputs: [],
+  toolCalls: [],
+  toolResults: [],
 };
+
+/**
+ * A tool the fake chat model calls, one per step; `input` can read the results of the calls before
+ * it (`fakeOpenAiState.toolResults`), as the model reads them.
+ */
+export interface FakeToolCall {
+  toolName: string;
+  input: unknown | ((results: unknown[]) => unknown);
+}
 
 export type FakeMenuPlan = (recipes: MenuPlanCandidates) => MenuPlan;
 type PlannedMeals = MenuPlan['days'][number]['meals'];
@@ -96,6 +113,8 @@ export function resetFakeOpenAi(): void {
   fakeOpenAiState.summary = FAKE_SUMMARY;
   fakeOpenAiState.streamTextCalls = 0;
   fakeOpenAiState.structuredInputs = [];
+  fakeOpenAiState.toolCalls = [];
+  fakeOpenAiState.toolResults = [];
 }
 
 async function fakeStructured<T>(input: unknown, schema: unknown): Promise<T> {
@@ -143,11 +162,40 @@ export const FAKE_MODEL_ID = 'gpt-fake';
 
 const fakeOpenAi: Pick<
   OpenAiService,
-  'streamText' | 'generateStructured' | 'generateStructuredResult'
+  'streamText' | 'streamWithTools' | 'generateStructured' | 'generateStructuredResult'
 > = {
   async *streamText(): AsyncGenerator<string> {
     fakeOpenAiState.streamTextCalls += 1;
     yield* FAKE_OPEN_AI_DELTAS;
+  },
+  /**
+   * Runs the real tools of `fakeOpenAiState.toolCalls`, one per step, as the AI SDK loop does: up to
+   * `maxSteps - 1` of them, the last step answering with `FAKE_OPEN_AI_DELTAS`, and none once
+   * `isDone`; an unknown tool is an error result, as the SDK gives the model.
+   */
+  async *streamWithTools(_input: unknown, options: ToolLoopOptions): AsyncGenerator<string> {
+    fakeOpenAiState.streamTextCalls += 1;
+    const results = fakeOpenAiState.toolResults;
+    for (const [step, call] of fakeOpenAiState.toolCalls.entries()) {
+      if (step >= options.maxSteps - 1 || options.isDone?.()) {
+        break;
+      }
+      const args = typeof call.input === 'function' ? call.input(results) : call.input;
+      const tool = options.tools[call.toolName];
+      results.push(
+        tool
+          ? await tool.execute!(args, {
+              toolCallId: `call_${step}`,
+              messages: [],
+              context: undefined,
+              abortSignal: options.abortSignal,
+            })
+          : { error: `Model tried to call unavailable tool '${call.toolName}'.` },
+      );
+    }
+    if (!options.isDone?.()) {
+      yield* FAKE_OPEN_AI_DELTAS;
+    }
   },
   generateStructured: fakeStructured,
   async generateStructuredResult<T>(input: unknown, schema: unknown): Promise<ModelResult<T>> {

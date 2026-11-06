@@ -1,0 +1,66 @@
+{
+  "suite": "chat-tools",
+  "createdAt": "2026-11-06T13:38:04.002Z",
+  "prompts": [
+    "general-chat@v2"
+  ],
+  "models": [
+    "gpt-4o-mini-2024-07-18"
+  ],
+  "cases": 23,
+  "repeat": 3,
+  "passRate": 0.8260869565217391,
+  "fields": {
+    "days": 0.8333333333333334,
+    "excludes": 1,
+    "mentions": 0.7692307692307693,
+    "noTools": 1,
+    "serviceCall": 1,
+    "tools": 0.8055555555555556
+  },
+  "tags": {
+    "allergy": 0,
+    "calc": 0.8333333333333334,
+    "chat": 1,
+    "details": 1,
+    "en": 0.7894736842105263,
+    "follow-up": 1,
+    "food": 0.5,
+    "menu-question": 1,
+    "missing": 1,
+    "no-days": 0.3333333333333333,
+    "no-plan": 1,
+    "no-tools": 1,
+    "numbers": 0.6666666666666666,
+    "out-of-scope": 1,
+    "plan": 0.8333333333333334,
+    "recipe": 0.7142857142857143,
+    "revise": 1,
+    "search": 0.5,
+    "uk": 1
+  },
+  "metrics": {
+    "invalidArguments": 0.01,
+    "toolCalls": 1.23
+  },
+  "passedCases": [
+    "calc-en-02",
+    "chat-en-01",
+    "chat-en-02",
+    "chat-uk-01",
+    "food-kcal-uk-01",
+    "menu-question-en-01",
+    "menu-question-en-02",
+    "plan-en-01",
+    "plan-en-02",
+    "plan-uk-01",
+    "recipe-details-en-01",
+    "recipe-kcal-en-01",
+    "recipe-missing-en-01",
+    "recipe-protein-uk-01",
+    "recipe-search-en-01",
+    "revise-en-01",
+    "revise-en-02",
+    "scope-en-01"
+  ]
+}

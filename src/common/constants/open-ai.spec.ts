@@ -41,8 +41,8 @@ const RELEASED: Record<PromptName, { version: number; sha256: string }> = {
     sha256: '4349556be8e70a1ff0315411993e69122e84c5a1372a6aaa969867e5cd735f3d',
   },
   [PromptName.GeneralChat]: {
-    version: 1,
-    sha256: '8bba4e7bfd01395549c7cebc4ca01f4d7fb1b33a37c77f12f3c9243b2b16f90b',
+    version: 2,
+    sha256: '9d9d5ddc440b5da0e7168672cbc737768e243786b76a02a74cea034698a272fc',
   },
   [PromptName.Summary]: {
     version: 1,

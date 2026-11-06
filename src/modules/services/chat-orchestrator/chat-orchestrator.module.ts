@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ChatTraceModule } from '../chat-trace/chat-trace.module';
 import { ConversationModule } from '../conversation/conversation.module';
 import { ConversationSummaryModule } from '../conversation-summary/conversation-summary.module';
 import { GeneralChatModule } from '../general-chat/general-chat.module';
@@ -15,6 +16,7 @@ import { ChatOrchestratorService } from './chat-orchestrator.service';
     IntentModule,
     GeneralChatModule,
     MenuModule,
+    ChatTraceModule,
   ],
   providers: [ChatOrchestratorService],
   exports: [ChatOrchestratorService],
