@@ -23,3 +23,9 @@ export class FoodStateInUseConflictException extends ConflictError {
     super('The food is used in recipes; create a new food for another state');
   }
 }
+
+export class PreferenceChangeOutdatedConflictException extends ConflictError {
+  constructor() {
+    super('This is not the preference change waiting for confirmation; confirm the latest one.');
+  }
+}

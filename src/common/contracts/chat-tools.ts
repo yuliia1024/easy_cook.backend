@@ -7,6 +7,9 @@ import {
   DietTag,
   INTENT_REQUEST_MAX_LENGTH,
   MealType,
+  PREFERENCE_VALUE_MAX_LENGTH,
+  PreferenceChangeAction,
+  PreferenceType,
   SEARCH_RECIPES_MAX_RESULTS,
 } from '../constants';
 import { MenuRequestSchema, MenuTargetSchema } from './chat';
@@ -81,3 +84,33 @@ export const ReviseMenuInputSchema = PlanMenuInputSchema.extend({
 });
 
 export type ReviseMenuInput = z.infer<typeof ReviseMenuInputSchema>;
+
+/**
+ * `save_menu` takes no arguments: the backend finds the menu to save in the conversation, so the
+ * model never passes or makes up an id. Anything it sends anyway is dropped.
+ */
+export const SaveMenuInputSchema = z.object({});
+
+export type SaveMenuInput = z.infer<typeof SaveMenuInputSchema>;
+
+/**
+ * One change of the saved dietary preferences: what `propose_preference_change` takes from the
+ * model, and what an assistant message keeps until the user confirms it (`messages.preference_change`).
+ */
+export const PreferenceChangeSchema = z.object({
+  action: z.enum(PreferenceChangeAction),
+  preferenceType: z.enum(PreferenceType),
+  value: z
+    .string()
+    .trim()
+    .min(1)
+    .max(PREFERENCE_VALUE_MAX_LENGTH)
+    .describe('In English; a diet tag for "diet", e.g. "vegetarian"; else e.g. "peanut".'),
+});
+
+export type PreferenceChange = z.infer<typeof PreferenceChangeSchema>;
+
+/** Applies the change the latest reply proposed: the backend reads it, never the model. */
+export const ApplyPreferenceChangeInputSchema = z.object({});
+
+export type ApplyPreferenceChangeInput = z.infer<typeof ApplyPreferenceChangeInputSchema>;

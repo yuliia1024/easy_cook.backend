@@ -4,8 +4,11 @@ import {
   CONFLICTING_DIETS,
   DietTag,
   MAX_PREFERENCES,
+  PreferenceChangeAction,
+  PreferenceChangeStatus,
   PreferenceType,
 } from '../../../common/constants';
+import { PreferenceChange } from '../../../common/contracts';
 import {
   ConflictingDietsBadRequestException,
   DietaryPreferenceExistsConflictException,
@@ -37,19 +40,79 @@ export class DietaryPreferenceService {
    */
   public async add(data: DietaryPreferenceData): Promise<DietaryPreference> {
     const profile = await this.userProfileService.getCurrent();
-    const normalized = { ...data, value: data.value.trim().toLowerCase() };
+    const { preferenceType, value } = this.normalize(data);
+    const normalized = { preferenceType, value };
+    if (await this.dietaryPreferenceRepository.findOne(profile.id, normalized)) {
+      throw new DietaryPreferenceExistsConflictException();
+    }
+    await this.assertCanAdd(profile.id, normalized);
+    return this.dietaryPreferenceRepository.create(profile.id, normalized);
+  }
 
+  /**
+   * The change as it would be saved (`normalize`) and whether it is in effect already: the
+   * preference exists for `add`, is absent for `remove`. Writes nothing; an `add` that `add` would
+   * refuse is refused the same way (unknown or conflicting diet, too many preferences).
+   */
+  public async checkChange(
+    change: PreferenceChange,
+  ): Promise<{ change: PreferenceChange; inEffect: boolean }> {
+    const profile = await this.userProfileService.getCurrent();
+    const normalized = this.normalize(change);
+    const existing = await this.dietaryPreferenceRepository.findOne(profile.id, normalized);
+    if (normalized.action === PreferenceChangeAction.Remove) {
+      return { change: normalized, inEffect: existing === null };
+    }
+    if (!existing) {
+      await this.assertCanAdd(profile.id, normalized);
+    }
+    return { change: normalized, inEffect: existing !== null };
+  }
+
+  /**
+   * Applies a change through `add` and `remove`, the same rules as the API. A change in effect
+   * already is left as it is (`already_applied`), so applying twice writes once.
+   */
+  public async applyChange(change: PreferenceChange): Promise<PreferenceChangeStatus> {
+    const profile = await this.userProfileService.getCurrent();
+    const normalized = this.normalize(change);
+    const existing = await this.dietaryPreferenceRepository.findOne(profile.id, normalized);
+    if (normalized.action === PreferenceChangeAction.Add) {
+      if (existing) {
+        return PreferenceChangeStatus.AlreadyApplied;
+      }
+      await this.add(normalized);
+      return PreferenceChangeStatus.Applied;
+    }
+    if (!existing) {
+      return PreferenceChangeStatus.AlreadyApplied;
+    }
+    await this.dietaryPreferenceRepository.delete(existing.id);
+    return PreferenceChangeStatus.Applied;
+  }
+
+  public async remove(id: string): Promise<void> {
+    const profile = await this.userProfileService.getCurrent();
+    if (!(await this.dietaryPreferenceRepository.findById(profile.id, id))) {
+      throw new DietaryPreferenceNotFoundException();
+    }
+    await this.dietaryPreferenceRepository.delete(id);
+  }
+
+  /** Values are stored trimmed and lower-cased. */
+  private normalize<T extends DietaryPreferenceData>(data: T): T {
+    return { ...data, value: data.value.trim().toLowerCase() };
+  }
+
+  /** 400 for an unknown diet, too many preferences or a diet that conflicts with a saved one. */
+  private async assertCanAdd(profileId: string, normalized: DietaryPreferenceData): Promise<void> {
     if (
       normalized.preferenceType === PreferenceType.Diet &&
       !Object.values<string>(DietTag).includes(normalized.value)
     ) {
       throw new UnknownDietBadRequestException(normalized.value);
     }
-    if (await this.dietaryPreferenceRepository.findOne(profile.id, normalized)) {
-      throw new DietaryPreferenceExistsConflictException();
-    }
-
-    const saved = await this.dietaryPreferenceRepository.findAll(profile.id);
+    const saved = await this.dietaryPreferenceRepository.findAll(profileId);
     if (saved.length >= MAX_PREFERENCES) {
       throw new TooManyPreferencesBadRequestException(MAX_PREFERENCES);
     }
@@ -62,16 +125,6 @@ export class DietaryPreferenceService {
         throw new ConflictingDietsBadRequestException(normalized.value, conflict);
       }
     }
-
-    return this.dietaryPreferenceRepository.create(profile.id, normalized);
-  }
-
-  public async remove(id: string): Promise<void> {
-    const profile = await this.userProfileService.getCurrent();
-    if (!(await this.dietaryPreferenceRepository.findById(profile.id, id))) {
-      throw new DietaryPreferenceNotFoundException();
-    }
-    await this.dietaryPreferenceRepository.delete(id);
   }
 
   private conflictingDiet(diet: string, saved: string[]): string | undefined {

@@ -94,6 +94,23 @@ describe('chat-tools suite', () => {
       ).toBe(false);
     });
 
+    it('fails forbiddenTools on a call of one of them, whatever it returned', () => {
+      const notSaving = testCase({ serviceCall: null, forbiddenTools: [ChatToolName.SaveMenu] });
+
+      expect(
+        scoreChatTools(
+          notSaving,
+          output({ calls: [toolCall(ChatToolName.SearchRecipes, null)] }),
+        )[1],
+      ).toMatchObject({ field: 'forbiddenTools', pass: true });
+      expect(
+        scoreChatTools(
+          notSaving,
+          output({ calls: [toolCall(ChatToolName.SaveMenu, ChatToolErrorCode.NotFound)] }),
+        )[1].pass,
+      ).toBe(false);
+    });
+
     it('scores the days of the menu tool, null when the user named none', () => {
       const [, days] = scoreChatTools(
         testCase({ serviceCall: ChatToolName.PlanMenu, days: 3 }),
@@ -137,6 +154,7 @@ describe('chat-tools suite', () => {
           serviceCall: null,
           tools: [ChatToolName.SearchRecipes],
           noTools: true,
+          forbiddenTools: [ChatToolName.SaveMenu],
           days: null,
           mentions: [['a']],
           excludes: ['b'],
@@ -147,6 +165,7 @@ describe('chat-tools suite', () => {
         'serviceCall',
         'tools',
         'noTools',
+        'forbiddenTools',
         'days',
         'mentions',
         'excludes',

@@ -14,11 +14,15 @@ import {
   INTERNAL_ERROR_REPLY,
   Intent,
   MENU_PLAN_FAILED_REPLY,
+  MENU_SAVE_QUESTION,
   MenuTargetScope,
   MessageRole,
   OUT_OF_SCOPE_REPLY,
+  CHAT_REPLY_TIMEOUT_MS,
+  TEXT_PART_BREAKS,
+  TEXT_PART_SEPARATOR,
 } from '../../../common/constants';
-import { IntentResult, MenuTarget } from '../../../common/contracts';
+import { IntentResult, MenuTarget, PreferenceChange } from '../../../common/contracts';
 import {
   ChatProgressEvent,
   ChatResponse,
@@ -37,6 +41,7 @@ import { ChatTraceService } from '../chat-trace/chat-trace.service';
 import { Conversation } from '../../../generated/prisma/client';
 import { ConversationWithMessages } from '../../data-access/conversation/conversation.repository';
 import { toIntentResult } from '../chat-tools/chat-service-call';
+import { ChatToolCall } from '../chat-tools/chat-tool-registry';
 import { ConversationService, ModelHistory } from '../conversation/conversation.service';
 import { ConversationSummaryService } from '../conversation-summary/conversation-summary.service';
 import { GeneralChatService } from '../general-chat/general-chat.service';
@@ -52,6 +57,12 @@ import {
 } from '../menu/menu-request';
 import { readTargets, replacementClarification, resolveReplaceTarget } from '../menu/menu-target';
 import { ProfileContextService } from '../profile-context/profile-context.service';
+
+/** How the chat model's reply ended: the menu tool it called, and whether it changed the preferences. */
+interface ChatReplyOutcome {
+  serviceCall: ChatServiceCall | null;
+  preferencesUpdated: boolean;
+}
 
 /** A change to some days or meals of the latest menu the chat suggested. */
 interface Revision {
@@ -102,7 +113,8 @@ function traceResponse(response: ChatResponse): unknown {
  * (`resolveClarification`), and too many days are offered as the most a menu can have instead of
  * being cut. Every planned menu is saved as a draft: the first one of the conversation as a new
  * menu linked to it, the next ones as new versions of that menu. The reply is saved once it is
- * complete, with the menu version it created; a failure becomes an `error` event and is not saved.
+ * complete, with the menu version it created and the preference change it proposed (applied only
+ * after the user's yes); a failure becomes an `error` event and is not saved.
  * Progress (`status`, `menu_pending`) is streamed as it happens and is never part of the reply.
  * The model reads the latest messages within a token budget, the summary of the older ones and the
  * gathered menu request; the summary is brought up to date after a saved reply. A conversation that
@@ -154,7 +166,12 @@ export class ChatOrchestratorService {
     yield { type: ChatStreamEventType.Done };
   }
 
-  /** The trace ends with the reply, also when the client goes away (`finally`). */
+  /**
+   * The trace ends with the reply, also when the client goes away (`finally`). The whole reply has
+   * `CHAT_REPLY_TIMEOUT_MS`: past it every model call is aborted and the reply ends with a
+   * retryable `assistant_unavailable`, while a client that went away (`abortSignal`) ends it
+   * silently.
+   */
   private async *reply(
     conversation: ConversationWithMessages,
     content: string,
@@ -162,20 +179,29 @@ export class ChatOrchestratorService {
     trace: ChatTrace,
   ): AsyncGenerator<ChatStreamEvent> {
     const conversationId = conversation.id;
+    const deadline = AbortSignal.timeout(CHAT_REPLY_TIMEOUT_MS);
+    const signal = abortSignal ? AbortSignal.any([abortSignal, deadline]) : deadline;
     let reply = '';
     let menu: Extract<ChatStreamEvent, { type: ChatStreamEventType.MenuReady }> | undefined;
     let failed = false;
     let outcome = ChatTraceOutcome.Aborted;
+    let textEnded = false;
+    let preferenceChange: PreferenceChange | undefined;
+    const toolCalls: ChatToolCall[] = [];
     try {
-      for await (const event of this.route(conversation, content, abortSignal, trace)) {
+      for await (const event of this.route(conversation, content, signal, trace, toolCalls)) {
         if (event.type === ChatStreamEventType.TextDelta) {
-          reply += event.content;
+          reply += textEnded && reply ? `${TEXT_PART_SEPARATOR}${event.content}` : event.content;
+          textEnded = false;
         } else {
+          textEnded = TEXT_PART_BREAKS.has(event.type);
           trace.add(ChatTraceStep.Event, traceEvent(event));
           if (event.type === ChatStreamEventType.Clarification) {
             reply += event.message;
           } else if (event.type === ChatStreamEventType.MenuReady) {
             menu = event;
+          } else if (event.type === ChatStreamEventType.PreferenceChangeProposed) {
+            preferenceChange = event.change;
           } else if (event.type === ChatStreamEventType.Error) {
             failed = true;
           }
@@ -186,9 +212,17 @@ export class ChatOrchestratorService {
         return;
       }
       if (!failed && reply) {
-        await this.conversationService.addAssistantMessage(conversationId, reply, menu?.versionId);
-        trace.add(ChatTraceStep.Saved, { content: reply, menuVersionId: menu?.versionId ?? null });
-        await this.summarize(conversation, abortSignal);
+        await this.conversationService.addAssistantMessage(conversationId, reply, {
+          menuVersionId: menu?.versionId,
+          preferenceChange,
+          toolCalls,
+        });
+        trace.add(ChatTraceStep.Saved, {
+          content: reply,
+          menuVersionId: menu?.versionId ?? null,
+          preferenceChange: preferenceChange ?? null,
+        });
+        await this.summarize(conversation, signal);
       }
       outcome = failed ? ChatTraceOutcome.Failed : ChatTraceOutcome.Replied;
     } catch (error) {
@@ -197,7 +231,7 @@ export class ChatOrchestratorService {
       }
       trace.addError(error);
       outcome = ChatTraceOutcome.Failed;
-      const event = this.errorEvent(error);
+      const event = deadline.aborted ? this.timedOut() : this.errorEvent(error);
       trace.add(ChatTraceStep.Event, traceEvent(event));
       yield event;
     } finally {
@@ -211,6 +245,7 @@ export class ChatOrchestratorService {
     content: string,
     abortSignal: AbortSignal | undefined,
     trace: ChatTrace,
+    toolCalls: ChatToolCall[],
   ): AsyncGenerator<ChatStreamEvent> {
     yield { type: ChatStreamEventType.Status, step: ChatStatusStep.Thinking };
     const profile = await this.profileContextService.find();
@@ -233,7 +268,16 @@ export class ChatOrchestratorService {
       abortSignal,
     );
     trace.add(ChatTraceStep.Intent, classified);
-    yield* this.answer(conversation, content, profile, history, classified, abortSignal, trace);
+    yield* this.answer(
+      conversation,
+      content,
+      profile,
+      history,
+      classified,
+      abortSignal,
+      trace,
+      toolCalls,
+    );
   }
 
   /**
@@ -250,6 +294,7 @@ export class ChatOrchestratorService {
     classified: IntentResult,
     abortSignal: AbortSignal | undefined,
     trace: ChatTrace,
+    toolCalls: ChatToolCall[],
   ): AsyncGenerator<ChatStreamEvent> {
     const menuRequest = await this.mergeMenuRequest(conversation, profile, classified);
     trace.add(ChatTraceStep.MenuRequest, menuRequest);
@@ -262,12 +307,31 @@ export class ChatOrchestratorService {
     }
     switch (intent) {
       case Intent.GeneralChat: {
-        const serviceCall = yield* this.chat(history, menuRequest, profile, abortSignal, trace);
+        const { serviceCall, preferencesUpdated } = yield* this.chat(
+          conversation.id,
+          history,
+          menuRequest,
+          profile,
+          abortSignal,
+          trace,
+          toolCalls,
+        );
         if (serviceCall) {
           this.logger.log(`The chat model called ${serviceCall.name}`);
           const asked = resolveIntent(toIntentResult(serviceCall), history.messages);
           trace.add(ChatTraceStep.ServiceCall, { call: serviceCall, intent: asked });
-          yield* this.answer(conversation, content, profile, history, asked, abortSignal, trace);
+          // A menu asked for after a change of the preferences in this reply follows the change.
+          const current = preferencesUpdated ? await this.profileContextService.find() : profile;
+          yield* this.answer(
+            conversation,
+            content,
+            current,
+            history,
+            asked,
+            abortSignal,
+            trace,
+            toolCalls,
+          );
         }
         return;
       }
@@ -299,31 +363,43 @@ export class ChatOrchestratorService {
   }
 
   /**
-   * Streams the chat model's reply with the steps of its tools; every tool call goes to the trace.
-   * Returns the menu tool it called, if any.
+   * Streams the chat model's reply with the steps of its tools; every tool call goes to the trace
+   * and to `toolCalls`.
+   * Returns the menu tool it called, if any, and whether a tool changed the preferences.
    */
   private async *chat(
+    conversationId: string,
     history: ModelHistory,
     menuRequest: ResolvedMenuRequest,
     profile: ProfileContext | null,
     abortSignal: AbortSignal | undefined,
     trace: ChatTrace,
-  ): AsyncGenerator<ChatStreamEvent, ChatServiceCall | null> {
+    /** Every tool call goes here too, to be saved with the reply. */
+    toolCalls: ChatToolCall[],
+  ): AsyncGenerator<ChatStreamEvent, ChatReplyOutcome> {
+    let preferencesUpdated = false;
     const reply = this.generalChatService.reply(
       history,
       menuRequest.chat,
       profile,
+      conversationId,
       abortSignal,
-      (call) => trace.add(ChatTraceStep.ToolCall, call),
+      (call) => {
+        toolCalls.push(call);
+        trace.add(ChatTraceStep.ToolCall, call);
+      },
     );
     for (;;) {
       const next = await reply.next();
       if (next.done === true) {
-        return next.value;
+        return { serviceCall: next.value, preferencesUpdated };
       }
-      yield typeof next.value === 'string'
-        ? { type: ChatStreamEventType.TextDelta, content: next.value }
-        : next.value;
+      if (typeof next.value === 'string') {
+        yield { type: ChatStreamEventType.TextDelta, content: next.value };
+      } else {
+        preferencesUpdated ||= next.value.type === ChatStreamEventType.PreferencesUpdated;
+        yield next.value;
+      }
     }
   }
 
@@ -383,6 +459,7 @@ export class ChatOrchestratorService {
       });
       yield { type: ChatStreamEventType.TextDelta, content: response.message };
       yield { type: ChatStreamEventType.MenuReady, ...saved, menu: response.menu };
+      yield { type: ChatStreamEventType.TextDelta, content: MENU_SAVE_QUESTION };
       return;
     }
     yield* this.toEvents(response);
@@ -541,6 +618,11 @@ export class ChatOrchestratorService {
       message: INTERNAL_ERROR_REPLY,
       retryable: false,
     };
+  }
+
+  private timedOut(): ChatStreamEvent {
+    this.logger.warn(`Chat reply took longer than ${CHAT_REPLY_TIMEOUT_MS} ms and was stopped`);
+    return this.assistantUnavailable(true);
   }
 
   private assistantUnavailable(retryable: boolean): ChatStreamEvent {

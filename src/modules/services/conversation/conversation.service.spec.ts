@@ -3,6 +3,9 @@ import {
   MESSAGE_MAX_LENGTH,
   MessageRole,
   MODEL_HISTORY_MAX_TOKENS,
+  PreferenceChangeAction,
+  PreferenceType,
+  ChatToolErrorCode,
 } from '../../../common/constants';
 import { ConversationNotFoundException, MenuNotFoundException } from '../../../common/exceptions';
 import { createMock } from '../../../test/create-mock';
@@ -197,12 +200,75 @@ describe('ConversationService', () => {
   });
 
   it('saves an assistant message with the menu version it suggests', async () => {
-    await service.addAssistantMessage(CONVERSATION_ID, 'Hello', MENU_VERSION_ID);
+    await service.addAssistantMessage(CONVERSATION_ID, 'Hello', { menuVersionId: MENU_VERSION_ID });
 
     expect(repository.addMessage).toHaveBeenCalledWith(CONVERSATION_ID, {
       role: MessageRole.Assistant,
       content: 'Hello',
       menuVersionId: MENU_VERSION_ID,
+      toolCalls: [],
+    });
+  });
+
+  it('saves the tool calls the model made for a reply, in order', async () => {
+    const toolCalls = [
+      {
+        name: 'search_recipes',
+        input: { query: 'soup' },
+        output: { recipes: [] },
+        error: null,
+        durationMs: 12,
+      },
+      {
+        name: 'save_menu',
+        input: {},
+        output: { error: 'not_found', message: 'No menu' },
+        error: ChatToolErrorCode.NotFound,
+        durationMs: 3,
+      },
+    ];
+
+    await service.addAssistantMessage(CONVERSATION_ID, 'Done', { toolCalls });
+
+    expect(repository.addMessage).toHaveBeenCalledWith(CONVERSATION_ID, {
+      role: MessageRole.Assistant,
+      content: 'Done',
+      menuVersionId: undefined,
+      preferenceChange: undefined,
+      toolCalls: [
+        {
+          toolName: 'search_recipes',
+          input: { query: 'soup' },
+          output: { recipes: [] },
+          error: null,
+          durationMs: 12,
+        },
+        {
+          toolName: 'save_menu',
+          input: {},
+          output: { error: 'not_found', message: 'No menu' },
+          error: ChatToolErrorCode.NotFound,
+          durationMs: 3,
+        },
+      ],
+    });
+  });
+
+  it('saves the preference change a reply proposes with it', async () => {
+    const change = {
+      action: PreferenceChangeAction.Add,
+      preferenceType: PreferenceType.Allergy,
+      value: 'peanut',
+    };
+
+    await service.addAssistantMessage(CONVERSATION_ID, 'Add it?', { preferenceChange: change });
+
+    expect(repository.addMessage).toHaveBeenCalledWith(CONVERSATION_ID, {
+      role: MessageRole.Assistant,
+      content: 'Add it?',
+      menuVersionId: undefined,
+      preferenceChange: change,
+      toolCalls: [],
     });
   });
 

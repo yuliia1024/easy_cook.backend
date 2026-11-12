@@ -47,7 +47,7 @@ export interface ToolLoopOptions extends ModelCallOptions {
 
 type ToolLoopSettings = Pick<
   Parameters<typeof streamText>[0] & Parameters<typeof generateText>[0],
-  'tools' | 'stopWhen' | 'prepareStep'
+  'tools' | 'stopWhen' | 'prepareStep' | 'providerOptions'
 >;
 
 /** A structured output with what it cost: the model that answered, time and tokens. */
@@ -134,7 +134,11 @@ export class OpenAiService {
     }
   }
 
-  /** Up to `maxSteps` model calls, the last one without tools, or until `isDone`. */
+  /**
+   * Up to `maxSteps` model calls, the last one without tools, or until `isDone`. One tool call per
+   * step: the tools run in the order the model chose, each one seeing what the one before saved,
+   * and `isDone` ends the loop right after the call that handed the request over.
+   */
   private toolLoopSettings({
     tools,
     maxSteps,
@@ -145,6 +149,7 @@ export class OpenAiService {
       stopWhen: [isStepCount(maxSteps), () => isDone()],
       prepareStep: ({ stepNumber }) =>
         stepNumber >= maxSteps - 1 ? { toolChoice: 'none' } : undefined,
+      providerOptions: { openai: { parallelToolCalls: false } },
     };
   }
 

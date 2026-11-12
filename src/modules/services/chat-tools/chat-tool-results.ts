@@ -1,3 +1,4 @@
+import { CHAT_TOOL_TEXT_MAX_LENGTH } from '../../../common/constants';
 import {
   CalculateNutritionResult,
   FoodNutritionResult,
@@ -16,6 +17,12 @@ import { Macros, NutritionService, RecipeNutrition } from '../nutrition/nutritio
  * The results of the read tools, as the model reads them (`chat-tools` types). Pure: the services
  * load the data and `NutritionService` does the maths.
  */
+
+/** `text` cut to `CHAT_TOOL_TEXT_MAX_LENGTH`, marked with `…` where it was cut. */
+const clip = (text: string): string =>
+  text.length > CHAT_TOOL_TEXT_MAX_LENGTH
+    ? `${text.slice(0, CHAT_TOOL_TEXT_MAX_LENGTH - 1)}…`
+    : text;
 
 const roundOrNull = (value: number | null): number | null => (value === null ? null : round(value));
 
@@ -44,8 +51,8 @@ export function toRecipeDetails(
 ): RecipeDetailsResult {
   return {
     ...toRecipeSummary(recipe, nutrition, rules),
-    description: recipe.description,
-    instructions: recipe.instructions,
+    description: recipe.description === null ? null : clip(recipe.description),
+    instructions: clip(recipe.instructions),
     allergens: recipe.allergens,
     ingredients: recipe.ingredients.map((ingredient) => ({
       foodId: ingredient.foodItem.id,

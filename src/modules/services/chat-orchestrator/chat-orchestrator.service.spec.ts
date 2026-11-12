@@ -1,6 +1,7 @@
 import {
   ASSISTANT_INVALID_OUTPUT_REPLY,
   ASSISTANT_UNAVAILABLE_REPLY,
+  CHAT_REPLY_TIMEOUT_MS,
   CalculationMode,
   ChatErrorCode,
   CLARIFICATION_REPLY,
@@ -19,6 +20,9 @@ import {
   Intent,
   MealType,
   MENU_MAX_DAYS,
+  MENU_SAVE_QUESTION,
+  PreferenceChangeAction,
+  PreferenceType,
   MENU_PLAN_FAILED_REPLY,
   MenuTargetField,
   MenuTargetScope,
@@ -31,6 +35,7 @@ import {
 import { MenuRequest, MenuTarget } from '../../../common/contracts';
 import {
   ChatProgressEvent,
+  ChatToolEvent,
   ChatServiceCall,
   ChatStreamEvent,
   Environments,
@@ -100,6 +105,12 @@ describe('ChatOrchestratorService', () => {
     issues: [],
   };
   const saved = { menuId: MENU_ID, versionId: MENU_VERSION_ID };
+  /** Follows every menu; in the saved reply after a blank line. */
+  const saveQuestion: ChatStreamEvent = {
+    type: ChatStreamEventType.TextDelta,
+    content: MENU_SAVE_QUESTION,
+  };
+  const withQuestion = (text: string): string => `${text}\n\n${MENU_SAVE_QUESTION}`;
   const isProgress = ({ type }: ChatStreamEvent): boolean =>
     type === ChatStreamEventType.Status || type === ChatStreamEventType.MenuPending;
   /** The events of the reply, progress left out; `sendAll` keeps it. */
@@ -184,18 +195,24 @@ describe('ChatOrchestratorService', () => {
     ]);
     expect(profileContextService.find).toHaveBeenCalledTimes(1);
     expect(conversationService.getModelHistory).toHaveBeenCalledWith(conversation);
-    expect(intentService.classify).toHaveBeenCalledWith(history, null, profile, abort.signal);
+    expect(intentService.classify).toHaveBeenCalledWith(
+      history,
+      null,
+      profile,
+      expect.any(AbortSignal),
+    );
     expect(generalChatService.reply).toHaveBeenCalledWith(
       history,
       EMPTY_MENU_REQUEST,
       profile,
-      abort.signal,
+      CONVERSATION_ID,
+      expect.any(AbortSignal),
       expect.any(Function),
     );
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       'A reply',
-      undefined,
+      { toolCalls: [] },
     );
     expect(menuPlannerService.plan).not.toHaveBeenCalled();
   });
@@ -212,7 +229,7 @@ describe('ChatOrchestratorService', () => {
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       'A reply',
-      undefined,
+      { toolCalls: [] },
     );
   });
 
@@ -247,12 +264,13 @@ describe('ChatOrchestratorService', () => {
       pending,
       { type: ChatStreamEventType.TextDelta, content: 'Your day' },
       { type: ChatStreamEventType.MenuReady, ...saved, menu },
+      saveQuestion,
       { type: ChatStreamEventType.Done },
     ]);
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
-      'Your day',
-      MENU_VERSION_ID,
+      withQuestion('Your day'),
+      { menuVersionId: MENU_VERSION_ID, toolCalls: [] },
     );
   });
 
@@ -263,15 +281,21 @@ describe('ChatOrchestratorService', () => {
     await expect(send('done do it again', abort.signal)).resolves.toEqual([
       { type: ChatStreamEventType.TextDelta, content: 'Your day' },
       { type: ChatStreamEventType.MenuReady, ...saved, menu },
+      saveQuestion,
       { type: ChatStreamEventType.Done },
     ]);
     expect(profileContextService.find).toHaveBeenCalledTimes(1);
-    expect(intentService.classify).toHaveBeenCalledWith(history, null, profile, abort.signal);
+    expect(intentService.classify).toHaveBeenCalledWith(
+      history,
+      null,
+      profile,
+      expect.any(AbortSignal),
+    );
     expect(menuPlannerService.plan).toHaveBeenCalledWith(
       'Plan a one-day menu.',
       EMPTY_MENU_REQUEST,
       profile,
-      abort.signal,
+      expect.any(AbortSignal),
       expect.any(Function),
     );
     expect(menuService.saveGenerated).toHaveBeenCalledWith(conversation, {
@@ -282,8 +306,8 @@ describe('ChatOrchestratorService', () => {
     });
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
-      'Your day',
-      MENU_VERSION_ID,
+      withQuestion('Your day'),
+      { menuVersionId: MENU_VERSION_ID, toolCalls: [] },
     );
     expect(generalChatService.reply).not.toHaveBeenCalled();
   });
@@ -294,13 +318,14 @@ describe('ChatOrchestratorService', () => {
     await expect(send('replace the lunch')).resolves.toEqual([
       { type: ChatStreamEventType.TextDelta, content: 'Your day' },
       { type: ChatStreamEventType.MenuReady, ...saved, menu },
+      saveQuestion,
       { type: ChatStreamEventType.Done },
     ]);
     expect(menuPlannerService.plan).toHaveBeenCalledWith(
       'Plan a one-day menu with another lunch.',
       EMPTY_MENU_REQUEST,
       profile,
-      undefined,
+      expect.any(AbortSignal),
       expect.any(Function),
     );
   });
@@ -363,6 +388,7 @@ describe('ChatOrchestratorService', () => {
       await expect(send('redo Tuesday and the dinner on Wednesday')).resolves.toEqual([
         { type: ChatStreamEventType.TextDelta, content: 'A new Tuesday' },
         { type: ChatStreamEventType.MenuReady, ...saved, menu },
+        saveQuestion,
         { type: ChatStreamEventType.Done },
       ]);
       expect(menuService.getRevisionBase).toHaveBeenCalledWith(OLD_VERSION_ID);
@@ -372,7 +398,7 @@ describe('ChatOrchestratorService', () => {
         profile,
         previous,
         { days: [1], meals: [{ dayIndex: 2, mealType: MealType.Dinner }] },
-        undefined,
+        expect.any(AbortSignal),
         expect.any(Function),
         new Set(['rejected-recipe']),
       );
@@ -464,7 +490,7 @@ describe('ChatOrchestratorService', () => {
       expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
         CONVERSATION_ID,
         message,
-        undefined,
+        { toolCalls: [] },
       );
       expect(menuPlannerService.plan).not.toHaveBeenCalled();
       expect(menuPlannerService.replan).not.toHaveBeenCalled();
@@ -532,7 +558,7 @@ describe('ChatOrchestratorService', () => {
       'Plan a day',
       EMPTY_MENU_REQUEST,
       profile,
-      undefined,
+      expect.any(AbortSignal),
       expect.any(Function),
     );
   });
@@ -543,12 +569,17 @@ describe('ChatOrchestratorService', () => {
 
     await send('Plan a day');
 
-    expect(intentService.classify).toHaveBeenCalledWith(history, null, null, undefined);
+    expect(intentService.classify).toHaveBeenCalledWith(
+      history,
+      null,
+      null,
+      expect.any(AbortSignal),
+    );
     expect(menuPlannerService.plan).toHaveBeenCalledWith(
       'Plan a day',
       EMPTY_MENU_REQUEST,
       null,
-      undefined,
+      expect.any(AbortSignal),
       expect.any(Function),
     );
   });
@@ -639,7 +670,7 @@ describe('ChatOrchestratorService', () => {
       'Plan a 5-day menu.',
       { ...EMPTY_MENU_REQUEST, days: 5, caloriesKcal: 1800 },
       withGoal,
-      undefined,
+      expect.any(AbortSignal),
       expect.any(Function),
     );
   });
@@ -690,7 +721,7 @@ describe('ChatOrchestratorService', () => {
     expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       CLARIFICATION_REPLY,
-      undefined,
+      { toolCalls: [] },
     );
     expect(conversationService.saveMenuRequest).not.toHaveBeenCalled();
   });
@@ -716,13 +747,14 @@ describe('ChatOrchestratorService', () => {
     await expect(send('and another one')).resolves.toEqual([
       { type: ChatStreamEventType.TextDelta, content: 'Your day' },
       { type: ChatStreamEventType.MenuReady, ...saved, menu },
+      saveQuestion,
       { type: ChatStreamEventType.Done },
     ]);
     expect(menuPlannerService.plan).toHaveBeenCalledWith(
       'Plan a 3-day menu with dinner.',
       { ...EMPTY_MENU_REQUEST, days: 3, mealTypes: [MealType.Dinner] },
       profile,
-      undefined,
+      expect.any(AbortSignal),
       expect.any(Function),
     );
     expect(conversationService.saveMenuRequest).not.toHaveBeenCalled();
@@ -775,7 +807,7 @@ describe('ChatOrchestratorService', () => {
       'Plan a 3-day menu without chicken.',
       expect.objectContaining({ excludedIngredients: ['mushrooms', 'chicken'] }),
       profile,
-      undefined,
+      expect.any(AbortSignal),
       expect.any(Function),
     );
   });
@@ -823,11 +855,9 @@ describe('ChatOrchestratorService', () => {
       days: offered,
       mealTypes: [MealType.Lunch],
     });
-    expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
-      CONVERSATION_ID,
-      message,
-      undefined,
-    );
+    expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(CONVERSATION_ID, message, {
+      toolCalls: [],
+    });
   });
 
   it('answers an unrelated request with the fixed reply', async () => {
@@ -931,6 +961,7 @@ describe('ChatOrchestratorService', () => {
         { type: ChatStreamEventType.TextDelta, content: 'Sure. ' },
         { type: ChatStreamEventType.TextDelta, content: 'Your day' },
         { type: ChatStreamEventType.MenuReady, ...saved, menu },
+        saveQuestion,
         { type: ChatStreamEventType.Done },
       ]);
       expect(conversationService.saveMenuRequest).toHaveBeenCalledWith(
@@ -941,7 +972,7 @@ describe('ChatOrchestratorService', () => {
         'Plan a 2-day menu of lunches.',
         menuRequest,
         profile,
-        undefined,
+        expect.any(AbortSignal),
         expect.any(Function),
       );
       expect(menuService.saveGenerated).toHaveBeenCalledWith(
@@ -950,8 +981,81 @@ describe('ChatOrchestratorService', () => {
       );
       expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
         CONVERSATION_ID,
-        'Sure. Your day',
-        MENU_VERSION_ID,
+        withQuestion('Sure. Your day'),
+        { menuVersionId: MENU_VERSION_ID, toolCalls: [] },
+      );
+    });
+
+    it('plans with the preferences the same reply changed', async () => {
+      const change = {
+        action: PreferenceChangeAction.Add,
+        preferenceType: PreferenceType.Allergy,
+        value: 'peanut',
+      };
+      const updated: ProfileContext = {
+        ...profile,
+        rules: { ...profile.rules, allergies: ['peanut'] },
+      };
+      profileContextService.find.mockResolvedValueOnce(profile).mockResolvedValueOnce(updated);
+      classifyAs(Intent.GeneralChat);
+      generalChatService.reply.mockImplementation(async function* () {
+        yield { type: ChatStreamEventType.PreferencesUpdated, change };
+        return {
+          name: ChatToolName.PlanMenu,
+          input: { request: 'Plan a 2-day menu of lunches.', menuRequest },
+        };
+      });
+
+      await send('Yes, and plan me 2 days of lunches');
+
+      expect(profileContextService.find).toHaveBeenCalledTimes(2);
+      expect(menuPlannerService.plan).toHaveBeenCalledWith(
+        'Plan a 2-day menu of lunches.',
+        menuRequest,
+        updated,
+        expect.any(AbortSignal),
+        expect.any(Function),
+      );
+    });
+
+    it('does not read the profile again when the reply changed no preferences', async () => {
+      callsTool({
+        name: ChatToolName.PlanMenu,
+        input: { request: 'Plan a 2-day menu of lunches.', menuRequest },
+      });
+
+      await send('Ok, go ahead');
+
+      expect(profileContextService.find).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      [{ type: ChatStreamEventType.MenuSaved, menuId: MENU_ID, versionId: MENU_VERSION_ID }],
+      [
+        {
+          type: ChatStreamEventType.PreferencesUpdated,
+          change: {
+            action: PreferenceChangeAction.Add,
+            preferenceType: PreferenceType.Allergy,
+            value: 'peanut',
+          },
+        },
+      ],
+    ])('saves the text around a %j event as two parts, as the stream shows it', async (event) => {
+      classifyAs(Intent.GeneralChat);
+      generalChatService.reply.mockImplementation(async function* () {
+        yield 'Sure.';
+        yield event as ChatToolEvent;
+        yield 'Done!';
+        return null;
+      });
+
+      await send('Save it');
+
+      expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+        CONVERSATION_ID,
+        'Sure.\n\nDone!',
+        { toolCalls: [] },
       );
     });
 
@@ -988,10 +1092,74 @@ describe('ChatOrchestratorService', () => {
         'Plan a 2-day menu of lunches without fish.',
         menuRequest,
         profile,
-        undefined,
+        expect.any(AbortSignal),
         expect.any(Function),
       );
       expect(menuPlannerService.replan).not.toHaveBeenCalled();
+    });
+
+    it('streams the menu_saved event of save_menu, keeps it out of the saved reply and plans nothing', async () => {
+      classifyAs(Intent.GeneralChat);
+      const menuSaved: ChatStreamEvent = { type: ChatStreamEventType.MenuSaved, ...saved };
+      generalChatService.reply.mockImplementation(async function* () {
+        yield menuSaved as ChatToolEvent;
+        yield 'Saved your menu.';
+        return null;
+      });
+
+      await expect(send('Yes, save it')).resolves.toEqual([
+        menuSaved,
+        { type: ChatStreamEventType.TextDelta, content: 'Saved your menu.' },
+        { type: ChatStreamEventType.Done },
+      ]);
+      expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+        CONVERSATION_ID,
+        'Saved your menu.',
+        { toolCalls: [] },
+      );
+      expect(menuPlannerService.plan).not.toHaveBeenCalled();
+      expect(traces[0].steps).toContainEqual(
+        expect.objectContaining({ step: ChatTraceStep.Event, data: menuSaved }),
+      );
+    });
+
+    it('saves the preference change the chat proposed with the reply, writing nothing else', async () => {
+      classifyAs(Intent.GeneralChat);
+      const change = {
+        action: PreferenceChangeAction.Add,
+        preferenceType: PreferenceType.Allergy,
+        value: 'peanut',
+      };
+      const proposed: ChatStreamEvent = {
+        type: ChatStreamEventType.PreferenceChangeProposed,
+        change,
+      };
+      generalChatService.reply.mockImplementation(async function* () {
+        yield proposed as ChatToolEvent;
+        yield 'Add a peanut allergy to your profile?';
+        return null;
+      });
+
+      await expect(send("I'm allergic to peanuts")).resolves.toEqual([
+        proposed,
+        { type: ChatStreamEventType.TextDelta, content: 'Add a peanut allergy to your profile?' },
+        { type: ChatStreamEventType.Done },
+      ]);
+      expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+        CONVERSATION_ID,
+        'Add a peanut allergy to your profile?',
+        { preferenceChange: change, toolCalls: [] },
+      );
+      expect(traces[0].steps).toContainEqual(
+        expect.objectContaining({
+          step: ChatTraceStep.Saved,
+          data: {
+            content: 'Add a peanut allergy to your profile?',
+            menuVersionId: null,
+            preferenceChange: change,
+          },
+        }),
+      );
     });
 
     it('answers with the chat text alone when the model called no menu tool', async () => {
@@ -1035,14 +1203,35 @@ describe('ChatOrchestratorService', () => {
       expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
         CONVERSATION_ID,
         'Found it.',
-        undefined,
+        { toolCalls: [] },
+      );
+    });
+
+    it('saves the tool calls of the chat model with the reply, in order', async () => {
+      classifyAs(Intent.GeneralChat);
+      const saveCall = { ...toolCall, name: ChatToolName.SaveMenu, input: {}, durationMs: 5 };
+      generalChatService.reply.mockImplementation(
+        async function* (_history, _request, _profile, _conversationId, _signal, onToolCall) {
+          onToolCall!(toolCall);
+          onToolCall!(saveCall);
+          yield 'Saved.';
+          return null;
+        },
+      );
+
+      await send();
+
+      expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+        CONVERSATION_ID,
+        'Saved.',
+        { toolCalls: [toolCall, saveCall] },
       );
     });
 
     it('traces the whole chain of a message once it is answered', async () => {
       classifyAs(Intent.GeneralChat);
       generalChatService.reply.mockImplementation(
-        async function* (_history, _request, _profile, _signal, onToolCall) {
+        async function* (_history, _request, _profile, _conversationId, _signal, onToolCall) {
           yield searching as ChatProgressEvent;
           onToolCall!(toolCall);
           return planCall;
@@ -1102,7 +1291,11 @@ describe('ChatOrchestratorService', () => {
         ...saved,
       });
       expect(data(ChatTraceStep.Saved)).toEqual([
-        { content: 'Your day', menuVersionId: MENU_VERSION_ID },
+        {
+          content: withQuestion('Your day'),
+          menuVersionId: MENU_VERSION_ID,
+          preferenceChange: null,
+        },
       ]);
     });
 
@@ -1156,6 +1349,63 @@ describe('ChatOrchestratorService', () => {
     });
   });
 
+  describe('reply deadline', () => {
+    let deadline: AbortController;
+
+    beforeEach(() => {
+      deadline = new AbortController();
+      jest.spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal);
+      classifyAs(Intent.GeneralChat);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('gives the whole reply CHAT_REPLY_TIMEOUT_MS', async () => {
+      await send();
+
+      expect(AbortSignal.timeout).toHaveBeenCalledWith(CHAT_REPLY_TIMEOUT_MS);
+    });
+
+    it('ends a reply past the deadline with a retryable assistant_unavailable, saving nothing', async () => {
+      generalChatService.reply.mockImplementation(async function* (...args) {
+        yield 'Half';
+        deadline.abort();
+        (args[4] as AbortSignal).throwIfAborted();
+        return null;
+      });
+
+      const events = await send();
+
+      expect(events.slice(-2)).toEqual([
+        {
+          type: ChatStreamEventType.Error,
+          code: ChatErrorCode.AssistantUnavailable,
+          message: ASSISTANT_UNAVAILABLE_REPLY,
+          retryable: true,
+        },
+        { type: ChatStreamEventType.Done },
+      ]);
+      expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
+    });
+
+    it('aborts the model calls when the client goes away', async () => {
+      const client = new AbortController();
+      let seen: AbortSignal | undefined;
+      generalChatService.reply.mockImplementation(async function* (...args) {
+        seen = args[4] as AbortSignal;
+        yield 'Hi';
+        return null;
+      });
+
+      await send('Hi', client.signal);
+      client.abort();
+
+      expect(seen?.aborted).toBe(true);
+    });
+  });
+
   describe('context budget', () => {
     it('gives the classifier the menu request the chat gathered', async () => {
       const stored = { ...EMPTY_MENU_REQUEST, days: 3, excludedIngredients: ['mushrooms'] };
@@ -1164,12 +1414,18 @@ describe('ChatOrchestratorService', () => {
 
       await send();
 
-      expect(intentService.classify).toHaveBeenCalledWith(history, stored, profile, undefined);
+      expect(intentService.classify).toHaveBeenCalledWith(
+        history,
+        stored,
+        profile,
+        expect.any(AbortSignal),
+      );
       expect(generalChatService.reply).toHaveBeenCalledWith(
         history,
         stored,
         profile,
-        undefined,
+        CONVERSATION_ID,
+        expect.any(AbortSignal),
         expect.any(Function),
       );
     });
@@ -1182,7 +1438,7 @@ describe('ChatOrchestratorService', () => {
 
       expect(conversationSummaryService.summarizeIfNeeded).toHaveBeenCalledWith(
         conversation,
-        abort.signal,
+        expect.any(AbortSignal),
       );
       expect(conversationService.addAssistantMessage.mock.invocationCallOrder[0]).toBeLessThan(
         conversationSummaryService.summarizeIfNeeded.mock.invocationCallOrder[0],

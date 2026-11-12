@@ -36,10 +36,32 @@ export enum ChatStreamEventType {
   Status = 'status',
   MenuPending = 'menu_pending',
   MenuReady = 'menu_ready',
+  MenuSaved = 'menu_saved',
+  PreferenceChangeProposed = 'preference_change_proposed',
+  PreferencesUpdated = 'preferences_updated',
   Clarification = 'clarification',
   Error = 'error',
   Done = 'done',
 }
+
+/**
+ * The events that end the text part before them: text after one starts a new part of the stream,
+ * and the saved reply puts `TEXT_PART_SEPARATOR` there, so a reloaded reply reads as it streamed.
+ */
+export const TEXT_PART_BREAKS: ReadonlySet<ChatStreamEventType> = new Set([
+  ChatStreamEventType.Clarification,
+  ChatStreamEventType.MenuReady,
+  ChatStreamEventType.MenuSaved,
+  ChatStreamEventType.PreferenceChangeProposed,
+  ChatStreamEventType.PreferencesUpdated,
+]);
+/**
+ * The most a reply may take, every model call, retry and tool of it included (a revision runs one
+ * planner call per day or meal); past it the reply ends with `assistant_unavailable`.
+ */
+export const CHAT_REPLY_TIMEOUT_MS = 180_000;
+/** Between two text parts of the saved reply (`TEXT_PART_BREAKS`). */
+export const TEXT_PART_SEPARATOR = '\n\n';
 
 /** The step of a reply the client shows while it waits; never saved. */
 export enum ChatStatusStep {
@@ -51,6 +73,8 @@ export enum ChatStatusStep {
   ReadingRecipe = 'reading_recipe',
   CheckingNutrition = 'checking_nutrition',
   CalculatingNutrition = 'calculating_nutrition',
+  SavingMenu = 'saving_menu',
+  UpdatingPreferences = 'updating_preferences',
 }
 
 export const CHAT_STATUS_MESSAGES: Record<ChatStatusStep, string> = {
@@ -62,6 +86,8 @@ export const CHAT_STATUS_MESSAGES: Record<ChatStatusStep, string> = {
   [ChatStatusStep.ReadingRecipe]: 'Reading the recipe',
   [ChatStatusStep.CheckingNutrition]: 'Looking up nutrition values',
   [ChatStatusStep.CalculatingNutrition]: 'Calculating calories',
+  [ChatStatusStep.SavingMenu]: 'Saving the menu',
+  [ChatStatusStep.UpdatingPreferences]: 'Updating your preferences',
 };
 
 export enum ChatErrorCode {
@@ -108,6 +134,11 @@ export const menuTargetMissingMealReply = (mealType: string, mealTypes: string[]
  * never asks the user to add recipes.
  */
 export const MENU_SHORTAGE_NO_OPTIONS_REPLY = 'Please try a different request.';
+/**
+ * Follows every menu the chat suggests: an answer that agrees is a command to save it, and the chat
+ * model calls `save_menu`.
+ */
+export const MENU_SAVE_QUESTION = 'If everything suits you, shall I save this menu?';
 /** Sent when every attempt of the planner gave a menu that breaks the rules. */
 export const MENU_PLAN_FAILED_REPLY =
   'Sorry, I could not put together a menu that fits your request and preferences. Please try again or change the request.';

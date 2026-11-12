@@ -1,5 +1,10 @@
-import { ChatToolErrorCode, ChatToolName } from '../constants';
-import type { PlanMenuInput, ReviseMenuInput } from '../contracts';
+import {
+  ChatToolErrorCode,
+  ChatToolName,
+  PreferenceChangeStatus,
+  SaveMenuStatus,
+} from '../constants';
+import type { PlanMenuInput, PreferenceChange, ReviseMenuInput } from '../contracts';
 import { MacroValues } from './menu';
 
 /*
@@ -86,6 +91,22 @@ export interface CalculateNutritionResult {
     /** The nutrients the food has no value for, counted as 0 in `macros`. */
     missing: string[];
   }>;
+}
+
+/** The menu `save_menu` confirmed, as the model reads it: no ids, only what to tell the user. */
+export interface SaveMenuResult {
+  status: SaveMenuStatus;
+  title: string;
+}
+
+/**
+ * A change of the preferences, normalized as it would be saved: `proposed` by the chat model
+ * (nothing is written until the user confirms), `applied` by the chat or the confirm button, or
+ * `already_applied` when it is in effect already.
+ */
+export interface PreferenceChangeResult {
+  status: PreferenceChangeStatus;
+  change: PreferenceChange;
 }
 
 /** A `service_call` tool the model called with valid arguments; the backend runs it. */

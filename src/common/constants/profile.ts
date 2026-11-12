@@ -39,3 +39,19 @@ export const UNDERWEIGHT_BMI = 18.5;
 
 export const PREFERENCE_VALUE_MAX_LENGTH = 120;
 export const MAX_PREFERENCES = 50;
+
+/** What a change of the dietary preferences the chat proposes does with its preference. */
+export enum PreferenceChangeAction {
+  Add = 'add',
+  Remove = 'remove',
+}
+
+/**
+ * What became of a change of the preferences: proposed to the user, applied, or found in effect
+ * already, so nothing was proposed or written.
+ */
+export enum PreferenceChangeStatus {
+  Proposed = 'proposed',
+  Applied = 'applied',
+  AlreadyApplied = 'already_applied',
+}

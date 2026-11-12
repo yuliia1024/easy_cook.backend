@@ -1,4 +1,5 @@
 import { ChatResponseType, ChatStatusStep, ChatStreamEventType, MealType } from '../constants';
+import type { PreferenceChange } from '../contracts';
 import { MenuComposition, ResolvedDay } from './menu';
 import { ModelProvenance } from './model';
 
@@ -21,7 +22,11 @@ export type ChatResponse =
  * The reply to a chat message, event by event. `status` and `menu_pending` are progress only: they
  * are not part of the saved reply. `menu_pending` gives the shape of the menu being planned (for
  * placeholders); a reply without `menu_ready` after it planned no menu. `menu_ready` carries a menu only after the server
- * composed and validated it (`MenuPlannerService`) and saved it as a draft version.
+ * composed and validated it (`MenuPlannerService`) and saved it as a draft version. `menu_saved`
+ * follows a `save_menu` tool call that confirmed the version (or found it confirmed already), so
+ * the client can show the menu as saved. `preference_change_proposed` is a change of the dietary
+ * preferences waiting for the user's yes (saved with the reply, nothing else is written);
+ * `preferences_updated` follows the change applied.
  */
 export type ChatStreamEvent =
   | { type: ChatStreamEventType.TextDelta; content: string }
@@ -33,6 +38,9 @@ export type ChatStreamEvent =
       versionId: string;
       menu: MenuComposition;
     }
+  | { type: ChatStreamEventType.MenuSaved; menuId: string; versionId: string }
+  | { type: ChatStreamEventType.PreferenceChangeProposed; change: PreferenceChange }
+  | { type: ChatStreamEventType.PreferencesUpdated; change: PreferenceChange }
   | { type: ChatStreamEventType.Clarification; message: string; missingFields: string[] }
   | { type: ChatStreamEventType.Error; code: string; message: string; retryable: boolean }
   | { type: ChatStreamEventType.Done };
@@ -42,3 +50,16 @@ export type ChatProgressEvent = Extract<
   ChatStreamEvent,
   { type: ChatStreamEventType.Status | ChatStreamEventType.MenuPending }
 >;
+
+/** What a chat tool streams to the client while the model answers: progress and its effects. */
+export type ChatToolEvent =
+  | ChatProgressEvent
+  | Extract<
+      ChatStreamEvent,
+      {
+        type:
+          | ChatStreamEventType.MenuSaved
+          | ChatStreamEventType.PreferenceChangeProposed
+          | ChatStreamEventType.PreferencesUpdated;
+      }
+    >;

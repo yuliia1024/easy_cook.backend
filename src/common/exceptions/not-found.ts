@@ -53,3 +53,15 @@ export class ConversationNotFoundException extends NotFoundError {
     super('Conversation not found');
   }
 }
+
+export class MenuDraftNotFoundException extends NotFoundError {
+  constructor() {
+    super('This conversation has no menu to save yet: plan one first.');
+  }
+}
+
+export class PreferenceChangeNotFoundException extends NotFoundError {
+  constructor() {
+    super('No preference change is waiting for confirmation in this conversation.');
+  }
+}

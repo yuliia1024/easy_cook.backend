@@ -77,6 +77,63 @@ describe('toChatStream', () => {
     ]);
   });
 
+  it('opens a new text part for the text after a menu', async () => {
+    const menu = {
+      days: [],
+      dailyAverage: { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 },
+      issues: [],
+    };
+    await expect(
+      read([
+        { type: ChatStreamEventType.TextDelta, content: 'Your menu' },
+        { type: ChatStreamEventType.MenuReady, menuId: 'm1', versionId: 'v1', menu },
+        { type: ChatStreamEventType.TextDelta, content: 'Shall I save it?' },
+        { type: ChatStreamEventType.Done },
+      ]),
+    ).resolves.toEqual([
+      expect.objectContaining({ type: 'start' }),
+      { type: 'text-start', id: 'text' },
+      { type: 'text-delta', id: 'text', delta: 'Your menu' },
+      { type: 'text-end', id: 'text' },
+      { type: 'data-menu', data: { menuId: 'm1', versionId: 'v1', composition: menu } },
+      { type: 'text-start', id: 'text-2' },
+      { type: 'text-delta', id: 'text-2', delta: 'Shall I save it?' },
+      { type: 'text-end', id: 'text-2' },
+      expect.objectContaining({ type: 'finish' }),
+    ]);
+  });
+
+  it('sends the menu the chat saved as data-menu-saved with its ids', async () => {
+    await expect(
+      read([
+        { type: ChatStreamEventType.MenuSaved, menuId: 'm1', versionId: 'v1' },
+        { type: ChatStreamEventType.TextDelta, content: 'Saved.' },
+        { type: ChatStreamEventType.Done },
+      ]),
+    ).resolves.toEqual([
+      expect.objectContaining({ type: 'start' }),
+      { type: 'data-menu-saved', data: { menuId: 'm1', versionId: 'v1' } },
+      { type: 'text-start', id: 'text' },
+      { type: 'text-delta', id: 'text', delta: 'Saved.' },
+      { type: 'text-end', id: 'text' },
+      expect.objectContaining({ type: 'finish' }),
+    ]);
+  });
+
+  it('sends a proposed and an applied preference change with the change', async () => {
+    const change = { action: 'add', preferenceType: 'allergy', value: 'peanut' } as const;
+    const chunks = await read([
+      { type: ChatStreamEventType.PreferenceChangeProposed, change } as ChatStreamEvent,
+      { type: ChatStreamEventType.PreferencesUpdated, change } as ChatStreamEvent,
+      { type: ChatStreamEventType.Done },
+    ]);
+
+    expect(chunks.slice(1, 3)).toEqual([
+      { type: 'data-preference-change', data: { change } },
+      { type: 'data-preferences-updated', data: { change } },
+    ]);
+  });
+
   it('sends a clarification as text plus the missing fields', async () => {
     const chunks = await read([
       {

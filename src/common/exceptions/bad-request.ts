@@ -98,3 +98,9 @@ export class MenuViolatesRulesBadRequestException extends BadRequestError {
     super(`The menu breaks the profile rules: ${problems.join('; ')}`);
   }
 }
+
+export class AllergyRemovalInChatBadRequestException extends BadRequestError {
+  constructor() {
+    super('Removing an allergy is applied only with the confirm button of the proposal.');
+  }
+}

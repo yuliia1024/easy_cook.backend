@@ -2,8 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { UIMessageChunk } from 'ai';
 import { ChatOrchestratorService } from '../../../modules/services/chat-orchestrator/chat-orchestrator.service';
 import { ConversationService } from '../../../modules/services/conversation/conversation.service';
+import { PreferenceChangeService } from '../../../modules/services/preference-change/preference-change.service';
 import { toChatStream } from '../chat-stream';
 import {
+  ConfirmPreferenceChangeDto,
   CreateConversationDto,
   SendMessageDto,
   UpdateConversationDto,
@@ -11,6 +13,7 @@ import {
 import {
   ConversationResponseDto,
   ConversationSummaryResponseDto,
+  PreferenceChangeResultResponseDto,
 } from './dto/conversation.response.dto';
 
 @Injectable()
@@ -18,6 +21,7 @@ export class ConversationControllerService {
   constructor(
     private readonly conversationService: ConversationService,
     private readonly chatOrchestratorService: ChatOrchestratorService,
+    private readonly preferenceChangeService: PreferenceChangeService,
   ) {}
 
   public async getAll(): Promise<ConversationSummaryResponseDto[]> {
@@ -39,6 +43,15 @@ export class ConversationControllerService {
 
   public async delete(id: string): Promise<void> {
     await this.conversationService.delete(id);
+  }
+
+  public async confirmPreferenceChange(
+    id: string,
+    { action, preferenceType, value }: ConfirmPreferenceChangeDto,
+  ): Promise<PreferenceChangeResultResponseDto> {
+    return PreferenceChangeResultResponseDto.from(
+      await this.preferenceChangeService.confirm(id, { action, preferenceType, value }),
+    );
   }
 
   public async sendMessage(

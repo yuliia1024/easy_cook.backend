@@ -1,3 +1,4 @@
+import { CHAT_TOOL_TEXT_MAX_LENGTH } from '../../../common/constants';
 import { buildFoodItem, buildRecipe, FOOD_ID } from '../../../test/fixtures';
 import { NutritionService } from '../nutrition/nutrition.service';
 import {
@@ -37,6 +38,30 @@ describe('chat tool results', () => {
         isOptional: false,
       },
     ]);
+  });
+
+  it('cuts a long description or instructions to CHAT_TOOL_TEXT_MAX_LENGTH', () => {
+    const long = 'x'.repeat(CHAT_TOOL_TEXT_MAX_LENGTH + 10);
+    const details = toRecipeDetails(
+      { ...recipe, description: long, instructions: long },
+      nutrition,
+      null,
+    );
+
+    expect(details.description).toHaveLength(CHAT_TOOL_TEXT_MAX_LENGTH);
+    expect(details.description?.endsWith('…')).toBe(true);
+    expect(details.instructions).toHaveLength(CHAT_TOOL_TEXT_MAX_LENGTH);
+  });
+
+  it('keeps a short text and a missing description as they are', () => {
+    const details = toRecipeDetails(
+      { ...recipe, description: null, instructions: 'Boil.' },
+      nutrition,
+      null,
+    );
+
+    expect(details.description).toBeNull();
+    expect(details.instructions).toBe('Boil.');
   });
 
   it('keeps unknown food values null for 100 g and for the quantity', () => {

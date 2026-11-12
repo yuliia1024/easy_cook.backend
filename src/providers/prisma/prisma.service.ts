@@ -13,14 +13,18 @@ export class PrismaService
   constructor(databaseConfig: DatabaseConfigService) {
     super(databaseConfig.config());
     // SQL is debug-level: visible with `LOG_LEVEL=debug`, tagged with the request that ran it.
-    this.$on('query', (event) => this.logger.debug(PrismaService.describeQuery(event)));
+    const withParams = databaseConfig.logsQueryParams;
+    this.$on('query', (event) => this.logger.debug(PrismaService.describeQuery(event, withParams)));
     this.$on('warn', (event) => this.logger.warn(event.message));
     this.$on('error', (event) => this.logger.error(event.message));
   }
 
-  /** `SELECT ... WHERE "id" = $1 [42] 3ms` */
-  private static describeQuery({ query, params, duration }: Prisma.QueryEvent): string {
-    const values = params && params !== '[]' ? ` ${params}` : '';
+  /** `SELECT ... WHERE "id" = $1 [42] 3ms`; without `[42]` unless `withParams`. */
+  private static describeQuery(
+    { query, params, duration }: Prisma.QueryEvent,
+    withParams: boolean,
+  ): string {
+    const values = withParams && params && params !== '[]' ? ` ${params}` : '';
     return `${query}${values} ${Math.round(duration)}ms`;
   }
 

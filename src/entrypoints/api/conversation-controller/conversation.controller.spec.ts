@@ -1,11 +1,18 @@
 import { pipeUIMessageStreamToResponse } from 'ai';
 import { Response } from 'express';
+import { PreferenceChangeAction, PreferenceType } from '../../../common/constants';
 import { createMock } from '../../../test/create-mock';
 import { CONVERSATION_ID } from '../../../test/fixtures';
 import { ConversationControllerService } from './conversation-controller.service';
 import { ConversationController } from './conversation.controller';
 
 jest.mock('ai', () => ({ pipeUIMessageStreamToResponse: jest.fn() }));
+
+const CHANGE = {
+  action: PreferenceChangeAction.Add,
+  preferenceType: PreferenceType.Allergy,
+  value: 'peanut',
+};
 
 describe('ConversationController', () => {
   it('delegates to the service', async () => {
@@ -17,6 +24,7 @@ describe('ConversationController', () => {
     await controller.create({ title: 'T' });
     await controller.update(CONVERSATION_ID, { menuId: null });
     await controller.delete(CONVERSATION_ID);
+    await controller.confirmPreferenceChange(CONVERSATION_ID, CHANGE);
     await controller.sendMessage(CONVERSATION_ID, { content: 'Hi' }, createMock<Response>());
 
     expect(service.getAll).toHaveBeenCalled();
@@ -24,6 +32,7 @@ describe('ConversationController', () => {
     expect(service.create).toHaveBeenCalledWith({ title: 'T' });
     expect(service.update).toHaveBeenCalledWith(CONVERSATION_ID, { menuId: null });
     expect(service.delete).toHaveBeenCalledWith(CONVERSATION_ID);
+    expect(service.confirmPreferenceChange).toHaveBeenCalledWith(CONVERSATION_ID, CHANGE);
     expect(service.sendMessage).toHaveBeenCalledWith(
       CONVERSATION_ID,
       { content: 'Hi' },

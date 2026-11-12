@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Message, Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
 import { SortOrder } from '../../../common/constants';
-import { MenuRequest } from '../../../common/contracts';
+import { MenuRequest, PreferenceChange } from '../../../common/contracts';
 
 /** Oldest first; the id only makes ties deterministic. */
 const MESSAGE_ORDER = [
@@ -37,10 +37,22 @@ export interface NewConversationData extends ConversationData {
   menuRequest?: MenuRequest | null;
 }
 
+/** A tool call of the chat model for an assistant reply (`message_tool_calls`). */
+export interface ToolCallData {
+  toolName: string;
+  input: unknown;
+  output: object;
+  error: string | null;
+  durationMs: number;
+}
+
 export interface MessageData {
   role: string;
   content: string;
   menuVersionId?: string | null;
+  preferenceChange?: PreferenceChange;
+  /** In the order the model called them; saved with the message. */
+  toolCalls?: ToolCallData[];
 }
 
 @Injectable()
@@ -122,10 +134,28 @@ export class ConversationRepository {
   }
 
   /** Also marks the conversation as active, so it moves to the top of the list. */
-  public async addMessage(conversationId: string, data: MessageData): Promise<Message> {
+  public async addMessage(
+    conversationId: string,
+    { toolCalls = [], ...data }: MessageData,
+  ): Promise<Message> {
     const [message] = await this.prisma.$transaction([
       this.prisma.message.create({
-        data: { conversationId, ...data },
+        data: {
+          conversationId,
+          ...data,
+          ...(toolCalls.length > 0 && {
+            toolCalls: {
+              create: toolCalls.map((call, position) => ({
+                position,
+                toolName: call.toolName,
+                input: (call.input ?? {}) as Prisma.InputJsonValue,
+                output: call.output as Prisma.InputJsonValue,
+                error: call.error,
+                durationMs: call.durationMs,
+              })),
+            },
+          }),
+        },
       }),
       this.prisma.conversation.update({
         where: { id: conversationId },

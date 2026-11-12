@@ -1,7 +1,13 @@
 import { UIMessageChunk } from 'ai';
-import { ChatStreamEventType } from '../../../common/constants';
+import {
+  ChatStreamEventType,
+  PreferenceChangeAction,
+  PreferenceChangeStatus,
+  PreferenceType,
+} from '../../../common/constants';
 import { ChatOrchestratorService } from '../../../modules/services/chat-orchestrator/chat-orchestrator.service';
 import { ConversationService } from '../../../modules/services/conversation/conversation.service';
+import { PreferenceChangeService } from '../../../modules/services/preference-change/preference-change.service';
 import { createMock } from '../../../test/create-mock';
 import { buildConversation, CONVERSATION_ID, MENU_ID } from '../../../test/fixtures';
 import { ConversationControllerService } from './conversation-controller.service';
@@ -9,6 +15,7 @@ import { ConversationControllerService } from './conversation-controller.service
 describe('ConversationControllerService', () => {
   let conversationService: jest.Mocked<ConversationService>;
   let chatOrchestratorService: jest.Mocked<ChatOrchestratorService>;
+  let preferenceChangeService: jest.Mocked<PreferenceChangeService>;
   let service: ConversationControllerService;
   const conversation = buildConversation();
 
@@ -18,7 +25,12 @@ describe('ConversationControllerService', () => {
       conversationService[method].mockResolvedValue(conversation);
     }
     chatOrchestratorService = createMock<ChatOrchestratorService>();
-    service = new ConversationControllerService(conversationService, chatOrchestratorService);
+    preferenceChangeService = createMock<PreferenceChangeService>();
+    service = new ConversationControllerService(
+      conversationService,
+      chatOrchestratorService,
+      preferenceChangeService,
+    );
   });
 
   it('maps the list', async () => {
@@ -73,5 +85,23 @@ describe('ConversationControllerService', () => {
     await service.delete(CONVERSATION_ID);
 
     expect(conversationService.delete).toHaveBeenCalledWith(CONVERSATION_ID);
+  });
+
+  it('confirms the pending preference change the client shows and maps the result', async () => {
+    const change = {
+      action: PreferenceChangeAction.Add,
+      preferenceType: PreferenceType.Allergy,
+      value: 'peanut',
+    };
+    preferenceChangeService.confirm.mockResolvedValue({
+      status: PreferenceChangeStatus.Applied,
+      change,
+    });
+
+    await expect(service.confirmPreferenceChange(CONVERSATION_ID, change)).resolves.toEqual({
+      status: PreferenceChangeStatus.Applied,
+      change,
+    });
+    expect(preferenceChangeService.confirm).toHaveBeenCalledWith(CONVERSATION_ID, change);
   });
 });

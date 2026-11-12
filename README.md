@@ -18,7 +18,7 @@ Tool calling and RAG are the next stage.
 ## Ports
 
 | Service  | Host port |
-|----------|-----------|
+| -------- | --------- |
 | API      | 3100      |
 | Postgres | 5442      |
 
@@ -69,16 +69,16 @@ npm run migration:status
 npm run db:reset                              # drop everything, re-apply migrations, seed
 ```
 
-| Table | |
-|---|---|
-| `user_profiles` | age, height, weight, sex, activity level, goal |
-| `nutrition_goals` | daily kcal / protein / fat / carbs; append-only, `manual` or `rule_based` + `rule_version` |
-| `dietary_preferences` | diet, allergy, disliked food, excluded ingredient |
-| `food_items` | values per 100 g **in a given state** (raw, dried, boiled...); null = unknown; unique `source + source_id` |
-| `recipes` | meal type, diet tags (`varchar[]`), servings; unique `source + source_id` |
-| `recipe_ingredients` | grams for the whole recipe, optional flag, notes, display order |
+| Table                                               |                                                                                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `user_profiles`                                     | age, height, weight, sex, activity level, goal                                                                                        |
+| `nutrition_goals`                                   | daily kcal / protein / fat / carbs; append-only, `manual` or `rule_based` + `rule_version`                                            |
+| `dietary_preferences`                               | diet, allergy, disliked food, excluded ingredient                                                                                     |
+| `food_items`                                        | values per 100 g **in a given state** (raw, dried, boiled...); null = unknown; unique `source + source_id`                            |
+| `recipes`                                           | meal type, diet tags (`varchar[]`), servings; unique `source + source_id`                                                             |
+| `recipe_ingredients`                                | grams for the whole recipe, optional flag, notes, display order                                                                       |
 | `menus`, `menu_versions`, `menu_days`, `menu_meals` | immutable versions with snapshots of the goal, recipes and nutrition; `menus.confirmed_version_id` is set only by an explicit confirm |
-| `conversations`, `messages` | chat with the assistant; a message may link a `menu_version_id` |
+| `conversations`, `messages`                         | chat with the assistant; a message may link a `menu_version_id`                                                                       |
 
 Enum-like columns are `VARCHAR`; allowed values are in `src/common/constants` and are validated by
 the API (`GET /api/profile/options` lists them).
@@ -108,32 +108,32 @@ These are reference values for meal planning, not medical advice.
 
 Everything is under `/api`; Swagger UI on `/docs`.
 
-| Method | Path | |
-|---|---|---|
-| GET | `/health` | 503 when the database is down |
-| GET / PUT / PATCH | `/profile` | the single profile; `GET` is 404 until `PUT` |
-| GET | `/profile/options` | allowed values of every enum-like field |
-| GET | `/nutrition/goals`, `/nutrition/goals/current`, `/nutrition/goals/preview` | history (newest first), goal in effect, rule based targets without saving |
-| POST | `/nutrition/goals` | manual goal (optional future `effectiveFrom`) |
-| POST | `/nutrition/goals/calculate` | rule based goal from the profile |
-| GET / POST | `/preferences` | values are trimmed and lower-cased; `diet` must be a diet tag |
-| DELETE | `/preferences/:id` | |
-| GET | `/foods?search=&state=&source=&page=&limit=` | search matches `name` and `nameEn` |
-| GET / PATCH | `/foods/:id` | `null` clears a value |
-| POST | `/foods` | macros cannot exceed 100 g per 100 g |
-| GET | `/recipes?search=&mealType=&dietType=&page=&limit=` | `dietType` repeated or comma separated: the recipe has every tag |
-| GET / PATCH / DELETE | `/recipes/:id` | `PATCH` with `ingredients` replaces the list |
-| POST | `/recipes` | every ingredient must point to an existing food (400 otherwise) |
-| GET | `/recipes/:id/nutrition?includeOptional=` | per ingredient, total, per serving |
-| POST | `/recipes/:id/ingredients` | |
-| PATCH / DELETE | `/recipes/:id/ingredients/:ingredientId` | |
-| GET | `/menus?status=` | confirmed menus by default; `status=draft` the ones without a confirmed version, `all` both |
-| GET | `/menus/:id` | every version, newest first, nutrition per meal and day, issues |
-| PATCH / DELETE | `/menus/:id` | rename / delete |
-| POST | `/menus/:id/versions/:versionId/confirm` | for a chat menu, the ids of the reply (`data-menu` `menuId` / `versionId`, or the message's `menuId` / `menuVersionId`); rechecked against the current preferences first, 400 when it breaks diets / allergies / excluded foods (the confirmed version stays); another version replaces the confirmed one; returns the menu. Contract in Swagger (`/docs`) |
-| GET / POST | `/conversations` | |
-| GET / PATCH / DELETE | `/conversations/:id` | |
-| POST | `/conversations/:id/messages` | at most 300 characters; saves the message and streams the reply (AI SDK UI message stream): text, `data-menu` (`menuId`, `versionId`, `composition`), `data-clarification` with the missing fields, or `data-error` (`code`, `message`, `retryable`) + `error`; the reply is saved once complete. Every generated menu is saved as an unconfirmed version (`generatedBy: llm`): the first one of the conversation as a new menu linked to it, the next ones as versions of that menu |
+| Method               | Path                                                                       |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET                  | `/health`                                                                  | 503 when the database is down                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| GET / PUT / PATCH    | `/profile`                                                                 | the single profile; `GET` is 404 until `PUT`                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| GET                  | `/profile/options`                                                         | allowed values of every enum-like field                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| GET                  | `/nutrition/goals`, `/nutrition/goals/current`, `/nutrition/goals/preview` | history (newest first), goal in effect, rule based targets without saving                                                                                                                                                                                                                                                                                                                                                                                                            |
+| POST                 | `/nutrition/goals`                                                         | manual goal (optional future `effectiveFrom`)                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| POST                 | `/nutrition/goals/calculate`                                               | rule based goal from the profile                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| GET / POST           | `/preferences`                                                             | values are trimmed and lower-cased; `diet` must be a diet tag                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| DELETE               | `/preferences/:id`                                                         |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| GET                  | `/foods?search=&state=&source=&page=&limit=`                               | search matches `name` and `nameEn`                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| GET / PATCH          | `/foods/:id`                                                               | `null` clears a value                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| POST                 | `/foods`                                                                   | macros cannot exceed 100 g per 100 g                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| GET                  | `/recipes?search=&mealType=&dietType=&page=&limit=`                        | `dietType` repeated or comma separated: the recipe has every tag                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| GET / PATCH / DELETE | `/recipes/:id`                                                             | `PATCH` with `ingredients` replaces the list                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| POST                 | `/recipes`                                                                 | every ingredient must point to an existing food (400 otherwise)                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| GET                  | `/recipes/:id/nutrition?includeOptional=`                                  | per ingredient, total, per serving                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| POST                 | `/recipes/:id/ingredients`                                                 |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| PATCH / DELETE       | `/recipes/:id/ingredients/:ingredientId`                                   |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| GET                  | `/menus?status=`                                                           | confirmed menus by default; `status=draft` the ones without a confirmed version, `all` both                                                                                                                                                                                                                                                                                                                                                                                          |
+| GET                  | `/menus/:id`                                                               | every version, newest first, nutrition per meal and day, issues                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| PATCH / DELETE       | `/menus/:id`                                                               | rename / delete                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| POST                 | `/menus/:id/versions/:versionId/confirm`                                   | for a chat menu, the ids of the reply (`data-menu` `menuId` / `versionId`, or the message's `menuId` / `menuVersionId`); rechecked against the current preferences first, 400 when it breaks diets / allergies / excluded foods (the confirmed version stays); another version replaces the confirmed one; returns the menu. Contract in Swagger (`/docs`)                                                                                                                           |
+| GET / POST           | `/conversations`                                                           |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| GET / PATCH / DELETE | `/conversations/:id`                                                       |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| POST                 | `/conversations/:id/messages`                                              | at most 300 characters; saves the message and streams the reply (AI SDK UI message stream): text, `data-menu` (`menuId`, `versionId`, `composition`), `data-clarification` with the missing fields, or `data-error` (`code`, `message`, `retryable`) + `error`; the reply is saved once complete. Every generated menu is saved as an unconfirmed version (`generatedBy: llm`): the first one of the conversation as a new menu linked to it, the next ones as versions of that menu |
 
 Errors always look like `{ statusCode, message, error, path, timestamp }`.
 
@@ -143,17 +143,17 @@ Large datasets are **not** committed: `data/raw/` and `data/processed/` are git-
 Sources, licences (USDA FDC: public domain, CC0 1.0) and the update procedure:
 [docs/data-sources.md](docs/data-sources.md).
 
-| Path | |
-|---|---|
-| `data/seed/foods.json` | ~45 base foods, values per 100 g (rounded USDA values), committed |
-| `data/seed/usda-foods.json` | 478 USDA foods (Foundation + SR Legacy) with full macros, committed |
-| `data/seed/recipes.json` | 12 recipes using those foods (`food` = slug, or `usda_fdc:<fdc_id>`), committed |
-| `data/seed/menu-recipes.json` | 288 more recipes in the same format, committed |
+| Path                             |                                                                                         |
+| -------------------------------- | --------------------------------------------------------------------------------------- |
+| `data/seed/foods.json`           | ~45 base foods, values per 100 g (rounded USDA values), committed                       |
+| `data/seed/usda-foods.json`      | 478 USDA foods (Foundation + SR Legacy) with full macros, committed                     |
+| `data/seed/recipes.json`         | 12 recipes using those foods (`food` = slug, or `usda_fdc:<fdc_id>`), committed         |
+| `data/seed/menu-recipes.json`    | 288 more recipes in the same format, committed                                          |
 | `data/seed/food-categories.json` | categories of the foods the recipes use (`meat`, `dairy`, `gluten_grain`...), committed |
-| `data/seed/food-aliases.json` | ingredient name aliases (`scallion` -> `usda_fdc:170005`), not loaded |
-| `data/seed/control-recipes.json` | hand-computed nutrition of 3 seed recipes (arithmetic included), committed |
-| `data/raw/` | downloaded datasets |
-| `data/processed/` | normalized output of the import |
+| `data/seed/food-aliases.json`    | ingredient name aliases (`scallion` -> `usda_fdc:170005`), not loaded                   |
+| `data/seed/control-recipes.json` | hand-computed nutrition of 3 seed recipes (arithmetic included), committed              |
+| `data/raw/`                      | downloaded datasets                                                                     |
+| `data/processed/`                | normalized output of the import                                                         |
 
 ```bash
 npm run data:validate        # checks data/seed without a database (ranges, references, 4/9/4 kcal, control recipes)

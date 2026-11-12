@@ -1,4 +1,9 @@
 import { plainToInstance } from 'class-transformer';
+import {
+  PreferenceChangeAction,
+  PreferenceChangeStatus,
+  PreferenceType,
+} from '../../../../common/constants';
 import { validate } from 'class-validator';
 import {
   buildConversation,
@@ -6,10 +11,16 @@ import {
   CONVERSATION_ID,
   MENU_ID,
 } from '../../../../test/fixtures';
-import { CreateConversationDto, SendMessageDto, UpdateConversationDto } from './conversation.dto';
+import {
+  ConfirmPreferenceChangeDto,
+  CreateConversationDto,
+  SendMessageDto,
+  UpdateConversationDto,
+} from './conversation.dto';
 import {
   ConversationResponseDto,
   ConversationSummaryResponseDto,
+  PreferenceChangeResultResponseDto,
 } from './conversation.response.dto';
 
 async function errorsOf<T extends object>(cls: new () => T, plain: object): Promise<string[]> {
@@ -51,6 +62,22 @@ describe('conversation DTOs', () => {
     expect(await errorsOf(SendMessageDto, {})).toEqual(['content']);
   });
 
+  it('accepts a confirmed preference change and trims its value', async () => {
+    const plain = { action: 'add', preferenceType: 'allergy', value: ' peanut ' };
+
+    expect(await errorsOf(ConfirmPreferenceChangeDto, plain)).toEqual([]);
+    expect(plainToInstance(ConfirmPreferenceChangeDto, plain).value).toBe('peanut');
+  });
+
+  it.each([
+    [{ action: 'replace', preferenceType: 'allergy', value: 'peanut' }, 'action'],
+    [{ action: 'add', preferenceType: 'mood', value: 'peanut' }, 'preferenceType'],
+    [{ action: 'add', preferenceType: 'allergy', value: ' ' }, 'value'],
+    [{ action: 'add', preferenceType: 'allergy', value: 'x'.repeat(121) }, 'value'],
+  ])('rejects the preference change %j', async (plain, field) => {
+    expect(await errorsOf(ConfirmPreferenceChangeDto, plain)).toEqual([field]);
+  });
+
   it('maps a summary with the message count', () => {
     const { messages: _messages, ...conversation } = buildConversation({ menuId: MENU_ID });
 
@@ -83,6 +110,7 @@ describe('conversation DTOs', () => {
           content: 'Plan a menu for 3 days',
           menuVersionId: null,
           menuId: null,
+          preferenceChange: null,
           createdAt: message.createdAt,
         },
       ],
@@ -100,6 +128,32 @@ describe('conversation DTOs', () => {
     ).toMatchObject({
       menuVersionId: 'v1',
       menuId: MENU_ID,
+    });
+  });
+
+  describe('preference changes', () => {
+    const change = {
+      action: PreferenceChangeAction.Remove,
+      preferenceType: PreferenceType.Diet,
+      value: 'vegetarian',
+    };
+
+    it('shows the change a reply proposed, and none for a stored value that does not match', () => {
+      const of = (preferenceChange: unknown) =>
+        ConversationResponseDto.from(
+          buildConversation({
+            messages: [buildMessage({ preferenceChange: preferenceChange as never })],
+          }),
+        ).messages[0].preferenceChange;
+
+      expect(of(change)).toEqual(change);
+      expect(of({ ...change, action: 'replace' })).toBeNull();
+    });
+
+    it('maps the result of a confirmed change', () => {
+      expect(
+        PreferenceChangeResultResponseDto.from({ status: PreferenceChangeStatus.Applied, change }),
+      ).toEqual({ status: PreferenceChangeStatus.Applied, change });
     });
   });
 });

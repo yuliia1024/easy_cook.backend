@@ -24,6 +24,7 @@ import {
   MENU_PLAN_PROMPT,
   MenuTargetScope,
   OUT_OF_SCOPE_REPLY,
+  MENU_SAVE_QUESTION,
 } from '../src/common/constants';
 import { MenuTarget } from '../src/common/contracts';
 import { estimateTokens } from '../src/common/utils';
@@ -155,7 +156,7 @@ describe('/api/conversations (e2e)', () => {
     expect(types.lastIndexOf('data-status')).toBeLessThan(types.indexOf('data-menu'));
     expect(await savedMessages(id)).toEqual([
       { role: 'user', content: 'Plan my day' },
-      { role: 'assistant', content: 'Here is your day.' },
+      { role: 'assistant', content: `Here is your day.\n\n${MENU_SAVE_QUESTION}` },
     ]);
   });
 
@@ -171,7 +172,7 @@ describe('/api/conversations (e2e)', () => {
 
     const { chunks } = await say(id, 'Plan my day');
 
-    expect(textOf(chunks)).toBe('Here is your day.');
+    expect(textOf(chunks)).toBe(`Here is your day.${MENU_SAVE_QUESTION}`);
     const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data.composition;
     expect(menu.days).toHaveLength(1);
     expect(
@@ -190,7 +191,7 @@ describe('/api/conversations (e2e)', () => {
     expect(fakeOpenAiState.streamTextCalls).toBe(0);
     expect(await savedMessages(id)).toEqual([
       { role: 'user', content: 'Plan my day' },
-      { role: 'assistant', content: 'Here is your day.' },
+      { role: 'assistant', content: `Here is your day.\n\n${MENU_SAVE_QUESTION}` },
     ]);
     const { body } = await http().get(`/api/conversations/${id}`).expect(200);
     const { menuId, versionId } = chunks.find((chunk) => chunk.type === 'data-menu')?.data ?? {};
@@ -754,7 +755,9 @@ describe('/api/conversations (e2e)', () => {
       expect(after.notes).toBe(
         `model: ${FAKE_MODEL_ID}; prompt: menu-day@v${MENU_DAY_PROMPT.version}, menu-meal@v${MENU_MEAL_PROMPT.version}`,
       );
-      expect(textOf(second.chunks)).toBe('Here is something new. Here is something new.');
+      expect(textOf(second.chunks)).toBe(
+        `Here is something new. Here is something new.${MENU_SAVE_QUESTION}`,
+      );
     });
 
     it('redoes every meal of a day as the whole day', async () => {
