@@ -1,17 +1,31 @@
-import { DietTag, FoodState, MealType } from '../../../src/common/constants';
+import {
+  DietTag,
+  FoodState,
+  MealType,
+  MessageRole,
+  PreferenceChangeAction,
+  PreferenceChangeStatus,
+  PreferenceType,
+} from '../../../src/common/constants';
+import { PreferenceChange } from '../../../src/common/contracts';
 import {
   FoodItemsNotFoundBadRequestException,
   RecipeNotFoundException,
 } from '../../../src/common/exceptions';
-import { Page, PageQuery } from '../../../src/common/types';
+import { Page, PageQuery, PreferenceChangeResult } from '../../../src/common/types';
 import { FoodItem } from '../../../src/generated/prisma/client';
 import { FoodItemFilter } from '../../../src/modules/data-access/food-item/food-item.repository';
 import {
   RecipeFilter,
   RecipeWithIngredients,
 } from '../../../src/modules/data-access/recipe/recipe.repository';
+import { ConversationWithMessages } from '../../../src/modules/data-access/conversation/conversation.repository';
+import { MenuWithVersions } from '../../../src/modules/data-access/menu/menu.repository';
 import { ChatToolsService } from '../../../src/modules/services/chat-tools/chat-tools.service';
+import { ConversationService } from '../../../src/modules/services/conversation/conversation.service';
 import { FoodItemService } from '../../../src/modules/services/food-item/food-item.service';
+import { MenuService } from '../../../src/modules/services/menu/menu.service';
+import { PreferenceChangeService } from '../../../src/modules/services/preference-change/preference-change.service';
 import { NutritionService } from '../../../src/modules/services/nutrition/nutrition.service';
 import { RecipeService } from '../../../src/modules/services/recipe/recipe.service';
 
@@ -218,10 +232,68 @@ export const catalogFoodItemService = {
   },
 };
 
+export const CATALOG_CONVERSATION_ID = 'c0000000-0000-4000-8000-000000000001';
+export const CATALOG_MENU_ID = 'c0000000-0000-4000-8000-000000000002';
+export const CATALOG_MENU_VERSION_ID = 'c0000000-0000-4000-8000-000000000003';
+
+/**
+ * The conversation `save_menu` reads: one reply that suggested the catalog menu, not saved yet. A
+ * case decides whether there is a menu by its messages; the eval scores whether the model saves.
+ */
+export const catalogConversationService = {
+  getById: async (): Promise<ConversationWithMessages> =>
+    ({
+      id: CATALOG_CONVERSATION_ID,
+      messages: [
+        {
+          role: MessageRole.Assistant,
+          menuVersionId: CATALOG_MENU_VERSION_ID,
+          menuVersion: { menuId: CATALOG_MENU_ID, compositionSnapshot: {} },
+        },
+      ],
+    }) as unknown as ConversationWithMessages,
+};
+
+const catalogMenu = (confirmedVersionId: string | null): MenuWithVersions =>
+  ({
+    id: CATALOG_MENU_ID,
+    title: '2-day menu',
+    confirmedVersionId,
+    versions: [],
+  }) as unknown as MenuWithVersions;
+
+/** The menu of `catalogConversationService`: a draft until `save_menu` confirms it. */
+export const catalogMenuService = {
+  getById: async (): Promise<MenuWithVersions> => catalogMenu(null),
+  confirm: async (): Promise<MenuWithVersions> => catalogMenu(CATALOG_MENU_VERSION_ID),
+};
+
+/** The change the latest reply of the catalog conversation proposed, for `apply_preference_change`. */
+export const CATALOG_PENDING_CHANGE: PreferenceChange = {
+  action: PreferenceChangeAction.Add,
+  preferenceType: PreferenceType.Allergy,
+  value: 'peanut',
+};
+
+/** Proposes any change, normalized, and applies the pending one; nothing is stored. */
+export const catalogPreferenceChangeService = {
+  propose: async (change: PreferenceChange): Promise<PreferenceChangeResult> => ({
+    status: PreferenceChangeStatus.Proposed,
+    change: { ...change, value: change.value.trim().toLowerCase() },
+  }),
+  applyInChat: async (): Promise<PreferenceChangeResult> => ({
+    status: PreferenceChangeStatus.Applied,
+    change: CATALOG_PENDING_CHANGE,
+  }),
+};
+
 /** The chat tools of the app on the catalog. */
 export const catalogChatTools = (): ChatToolsService =>
   new ChatToolsService(
     catalogRecipeService as unknown as RecipeService,
     catalogFoodItemService as unknown as FoodItemService,
     new NutritionService(),
+    catalogConversationService as unknown as ConversationService,
+    catalogMenuService as unknown as MenuService,
+    catalogPreferenceChangeService as unknown as PreferenceChangeService,
   );

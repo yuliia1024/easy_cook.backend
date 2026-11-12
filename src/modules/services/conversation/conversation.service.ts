@@ -6,7 +6,7 @@ import {
   MODEL_HISTORY_MAX_TOKENS,
 } from '../../../common/constants';
 import { ConversationNotFoundException } from '../../../common/exceptions';
-import { MenuRequest, MenuRequestSchema } from '../../../common/contracts';
+import { MenuRequest, MenuRequestSchema, PreferenceChange } from '../../../common/contracts';
 import {
   ConversationRepository,
   ConversationSummary,
@@ -16,6 +16,7 @@ import {
 import { Conversation } from '../../../generated/prisma/client';
 import { MenuService } from '../menu/menu.service';
 import { UserProfileService } from '../user-profile/user-profile.service';
+import { ChatToolCall } from '../chat-tools/chat-tool-registry';
 import { fitHistory } from './model-messages';
 
 export interface ConversationInput {
@@ -26,6 +27,16 @@ export interface ConversationInput {
 export interface NewConversationInput extends ConversationInput {
   /** The conversation to carry the menu request and, unless `menuId` is given, the menu from. */
   fromConversationId?: string | null;
+}
+
+/** What an assistant reply carries besides its text. */
+export interface AssistantMessageExtras {
+  /** The draft version the reply suggests. */
+  menuVersionId?: string;
+  /** The change of the preferences it proposes, waiting for the user's yes. */
+  preferenceChange?: PreferenceChange;
+  /** The steps the chat model took for it, in order. */
+  toolCalls?: ChatToolCall[];
 }
 
 /** The part of a conversation that tells which of its messages the summary covers. */
@@ -113,16 +124,24 @@ export class ConversationService {
     }
   }
 
-  /** `menuVersionId` is the draft version the reply suggests. */
+  /** Saves the reply with what it suggested and the tool calls the model made for it. */
   public async addAssistantMessage(
     conversationId: string,
     content: string,
-    menuVersionId?: string,
+    { menuVersionId, preferenceChange, toolCalls = [] }: AssistantMessageExtras = {},
   ): Promise<void> {
     await this.conversationRepository.addMessage(conversationId, {
       role: MessageRole.Assistant,
       content,
       menuVersionId,
+      preferenceChange,
+      toolCalls: toolCalls.map(({ name, input, output, error, durationMs }) => ({
+        toolName: name,
+        input,
+        output,
+        error,
+        durationMs,
+      })),
     });
   }
 

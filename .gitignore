@@ -5,7 +5,7 @@ coverage
 *.tsbuildinfo
 .DS_Store
 .idea
-notes.md
+docs/notes/notes.md
 # Datasets are downloaded locally, see README -> "Datasets"
 data/raw/*
 data/processed/*
@@ -19,4 +19,4 @@ evals/reports/*
 # Prisma client, generated on `npm install`
 src/generated
 .vscode/launch.json
-/docs/features.md
+/docs/notes

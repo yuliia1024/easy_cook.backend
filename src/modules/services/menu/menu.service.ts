@@ -108,12 +108,14 @@ export class MenuService {
   /**
    * Saves a menu generated in the conversation as an unconfirmed version: a new menu, linked to the
    * conversation, when it has none, otherwise the next version of its menu. Its notes name the model
-   * and the prompt version that planned it.
+   * and the prompt version that planned it. A menu with errors is never saved (400): the planner
+   * checks it already, and this keeps any other caller from saving model output that breaks a rule.
    */
   public async saveGenerated(
     conversation: { id: string; menuId: string | null },
     { menu, days, nutritionGoal, generatedWith }: GeneratedMenu,
   ): Promise<SavedMenuVersion> {
+    this.assertNoErrors(menu.issues);
     const version = {
       generatedBy: MenuGeneratedBy.Llm,
       nutritionGoal,

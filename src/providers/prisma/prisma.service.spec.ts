@@ -40,7 +40,9 @@ describe('PrismaService', () => {
           captured.set(event, callback);
         });
       service = new PrismaService(
-        new DatabaseConfigService(fakeConfig({ DATABASE_URL: 'postgresql://u:p@localhost:1/d' })),
+        new DatabaseConfigService(
+          fakeConfig({ DATABASE_URL: 'postgresql://u:p@localhost:1/d', ENV: 'local' }),
+        ),
       );
     });
 
@@ -48,6 +50,18 @@ describe('PrismaService', () => {
       emit('query', { query: 'SELECT 1 WHERE "id" = $1', params: '[42]', duration: 3.47 });
 
       expect(Logger.prototype.debug).toHaveBeenCalledWith('SELECT 1 WHERE "id" = $1 [42] 3ms');
+    });
+
+    it('leaves out the params outside ENV=local: they hold what the user wrote', () => {
+      service = new PrismaService(
+        new DatabaseConfigService(
+          fakeConfig({ DATABASE_URL: 'postgresql://u:p@localhost:1/d', ENV: 'production' }),
+        ),
+      );
+
+      emit('query', { query: 'SELECT 1 WHERE "id" = $1', params: '["hi"]', duration: 1 });
+
+      expect(Logger.prototype.debug).toHaveBeenCalledWith('SELECT 1 WHERE "id" = $1 1ms');
     });
 
     it('leaves out empty params', () => {

@@ -9,12 +9,12 @@ import {
   Goal,
   MessageRole,
 } from '../../../common/constants';
-import { PlanMenuInputSchema } from '../../../common/contracts';
+import { PlanMenuInputSchema, SaveMenuInputSchema } from '../../../common/contracts';
 import { ProfileContext } from '../../../common/types';
 import { OpenAiService, ToolLoopOptions } from '../../../providers/open-ai/open-ai.service';
 import { createMock } from '../../../test/create-mock';
-import { buildMessage, PROFILE_ID } from '../../../test/fixtures';
-import { readTool, serviceCallTool } from '../chat-tools/chat-tool-registry';
+import { buildMessage, CONVERSATION_ID, PROFILE_ID } from '../../../test/fixtures';
+import { readTool, serviceCallTool, writeTool } from '../chat-tools/chat-tool-registry';
 import { ChatToolsService } from '../chat-tools/chat-tools.service';
 import { EMPTY_MENU_REQUEST } from '../menu/menu-request';
 import { GeneralChatService } from './general-chat.service';
@@ -65,13 +65,14 @@ describe('GeneralChatService', () => {
         history,
         null,
         context,
+        CONVERSATION_ID,
         abort.signal,
       )) {
         deltas.push(delta);
       }
 
       expect(deltas).toEqual(['Fine', '!']);
-      expect(chatToolsService.tools).toHaveBeenCalledWith(context);
+      expect(chatToolsService.tools).toHaveBeenCalledWith(context, CONVERSATION_ID);
       expect(openAiService.streamWithTools).toHaveBeenCalledWith(
         [
           { role: 'user', content: profileJson },
@@ -110,6 +111,7 @@ describe('GeneralChatService', () => {
       history,
       menuRequest,
       null,
+      CONVERSATION_ID,
     )) {
       // drain
     }
@@ -156,6 +158,7 @@ describe('GeneralChatService', () => {
       { summary: null, messages: [buildMessage()] },
       null,
       null,
+      CONVERSATION_ID,
     );
     const deltas: unknown[] = [];
     let next = await reply.next();
@@ -178,6 +181,7 @@ describe('GeneralChatService', () => {
       { summary: null, messages: [buildMessage()] },
       null,
       null,
+      CONVERSATION_ID,
     );
     await reply.next();
 
@@ -226,6 +230,7 @@ describe('GeneralChatService', () => {
       { summary: null, messages: [buildMessage()] },
       null,
       null,
+      CONVERSATION_ID,
       undefined,
       onToolCall,
     );
@@ -258,5 +263,49 @@ describe('GeneralChatService', () => {
       output: { recipes: [] },
       durationMs: expect.any(Number),
     });
+  });
+
+  it('streams the status of save_menu and its menu_saved event, then the text', async () => {
+    const openAiService = createMock<OpenAiService>();
+    const tools = createMock<ChatToolsService>();
+    const saved = {
+      type: ChatStreamEventType.MenuSaved,
+      menuId: 'menu-1',
+      versionId: 'version-1',
+    } as const;
+    tools.tools.mockReturnValue([
+      writeTool({
+        name: ChatToolName.SaveMenu,
+        description: 'Saves the menu.',
+        inputSchema: SaveMenuInputSchema,
+        execute: async () => ({ output: { status: 'saved' }, event: saved }),
+      }),
+    ]);
+    openAiService.streamWithTools.mockImplementation(async function* (_input, options) {
+      await options.tools[ChatToolName.SaveMenu].execute!(
+        {},
+        { toolCallId: '1', messages: [], context: undefined },
+      );
+      yield 'Saved.';
+    });
+
+    const events: unknown[] = [];
+    const reply = new GeneralChatService(openAiService, tools).reply(
+      { summary: null, messages: [buildMessage({ content: 'Save it' })] },
+      null,
+      null,
+      CONVERSATION_ID,
+    );
+    let next = await reply.next();
+    for (; next.done !== true; next = await reply.next()) {
+      events.push(next.value);
+    }
+
+    expect(events).toEqual([
+      { type: ChatStreamEventType.Status, step: ChatStatusStep.SavingMenu },
+      saved,
+      'Saved.',
+    ]);
+    expect(next.value).toBeNull();
   });
 });

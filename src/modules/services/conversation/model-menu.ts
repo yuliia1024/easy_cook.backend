@@ -30,9 +30,7 @@ function macroText(macros: MacroValues, complete: boolean): string {
 
 function dayLine(day: DayComposition): string {
   const meals = [...day.meals].sort((a, b) => a.position - b.position).map(mealPart);
-  return [`Day ${day.dayIndex + 1} (${macroText(day.totals, day.complete)})`, ...meals].join(
-    ' | ',
-  );
+  return [`Day ${day.dayIndex + 1} (${macroText(day.totals, day.complete)})`, ...meals].join(' | ');
 }
 
 function headerLine(menu: MenuComposition, versionId: string | null): string {

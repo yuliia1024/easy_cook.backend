@@ -15,8 +15,8 @@ import {
   ResolvedMeal,
 } from '../../../common/types';
 import { parseEnum, round, toNumber } from '../../../common/utils';
-import { MenuVersionWithDays } from '../../data-access/menu/menu.repository';
-import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repository';
+import type { MenuVersionWithDays } from '../../data-access/menu/menu.repository';
+import type { RecipeWithIngredients } from '../../data-access/recipe/recipe.repository';
 import { MACROS, RecipeNutrition } from '../nutrition/nutrition.service';
 
 const emptyMacros = (): MacroValues => ({ kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 });

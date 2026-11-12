@@ -37,12 +37,39 @@ model Message {
   content        String
   /// The menu version an assistant action created with this message; the menu it suggested.
   menuVersionId  String?  @map("menu_version_id") @db.Uuid
+  /// The change of the dietary preferences the assistant proposed with this reply
+  /// (`PreferenceChange`); applied only once the user confirms it, while it is the latest reply.
+  preferenceChange Json? @map("preference_change")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   menuVersion  MenuVersion? @relation(fields: [menuVersionId], references: [id], onDelete: SetNull)
+  toolCalls    MessageToolCall[]
 
   @@index([conversationId, createdAt])
   @@index([menuVersionId])
   @@map("messages")
+}
+
+/// A step the chat model took for an assistant reply: a tool it called, with the arguments as it
+/// sent them and what it got back. Saved with the reply; never updated.
+model MessageToolCall {
+  id         String   @id @default(uuid()) @db.Uuid
+  messageId  String   @map("message_id") @db.Uuid
+  /// The order of the call in the reply, from 0.
+  position   Int
+  /// `ChatToolName`
+  toolName   String   @map("tool_name") @db.VarChar(64)
+  input      Json
+  /// The result, or the `ChatToolError` the model got.
+  output     Json
+  /// `ChatToolErrorCode`; null when the tool succeeded.
+  error      String?  @db.VarChar(32)
+  durationMs Int      @map("duration_ms")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, position])
+  @@map("message_tool_calls")
 }

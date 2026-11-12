@@ -23,7 +23,3 @@ export class ConflictError extends AppError {
 export class ServiceUnavailableError extends AppError {
   public readonly status = HttpStatus.SERVICE_UNAVAILABLE;
 }
-
-export class UnprocessableEntityError extends AppError {
-  public readonly status = HttpStatus.UNPROCESSABLE_ENTITY;
-}

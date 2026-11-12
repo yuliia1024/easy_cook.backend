@@ -146,6 +146,57 @@ describe('ConversationRepository', () => {
     });
   });
 
+  it('saves the tool calls of a reply with it, numbered in order', async () => {
+    await repository.addMessage(CONVERSATION_ID, {
+      role: MessageRole.Assistant,
+      content: 'Done',
+      toolCalls: [
+        {
+          toolName: 'search_recipes',
+          input: { query: 'soup' },
+          output: { recipes: [] },
+          error: null,
+          durationMs: 12,
+        },
+        {
+          toolName: 'save_menu',
+          input: undefined,
+          output: { error: 'not_found' },
+          error: 'not_found',
+          durationMs: 3,
+        },
+      ],
+    });
+
+    expect(prisma.message.create).toHaveBeenCalledWith({
+      data: {
+        conversationId: CONVERSATION_ID,
+        role: MessageRole.Assistant,
+        content: 'Done',
+        toolCalls: {
+          create: [
+            {
+              position: 0,
+              toolName: 'search_recipes',
+              input: { query: 'soup' },
+              output: { recipes: [] },
+              error: null,
+              durationMs: 12,
+            },
+            {
+              position: 1,
+              toolName: 'save_menu',
+              input: {},
+              output: { error: 'not_found' },
+              error: 'not_found',
+              durationMs: 3,
+            },
+          ],
+        },
+      },
+    });
+  });
+
   it('stores the menu request of a conversation as JSON', async () => {
     const menuRequest = {
       days: 3,

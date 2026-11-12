@@ -64,7 +64,7 @@ export const INTENT_REQUEST_ITEM_MAX_LENGTH = 100;
  */
 export const INTENT_PROMPT: ModelPrompt = {
   name: PromptName.Intent,
-  version: 3,
+  version: 4,
   instructions: `
   You classify the latest user message of a meal planning chat.
 ${MODEL_PROFILE_NOTE}
@@ -75,7 +75,10 @@ ${MODEL_MENU_NOTE}
   intent:
   - general_chat: greetings, thanks, small talk, simple questions about food or nutrition, and
     questions about a menu already suggested that do not ask to change it ("how many calories
-    are in this menu", "how much protein on day 2", "what is in the lunch").
+    are in this menu", "how much protein on day 2", "what is in the lunch"); also a request to
+    save the suggested menu ("save it", "I confirm the menu"), a request to change the saved
+    preferences ("I'm allergic to peanuts, remember it", "I'm not vegetarian anymore"), and a yes
+    or no to a question whether to save the menu or apply a change of the preferences.
   - generate_menu: a request to plan a new menu that names days, meals, a diet, calories or
     ingredients, or relies on the profile ("for my diet", "fit my calories"); also "try again"
     after an earlier request. Mentioning calories or a menu in a question is not a request.
@@ -238,12 +241,15 @@ export const menuMealRetryMessage = (problems: string[]): string =>
 
 export const GENERAL_CHAT_MAX_OUTPUT_TOKENS = 300;
 /**
- * The chat with tools (`ChatToolsService`): it reads recipes and nutrition, and hands a menu request
- * over to the backend (`plan_menu`, `revise_menu`) with the same fields the intent prompt restates.
+ * The chat with tools (`ChatToolsService`): it reads recipes and nutrition, hands a menu request
+ * over to the backend (`plan_menu`, `revise_menu`) with the same fields the intent prompt restates,
+ * saves the suggested menu (`save_menu`) when the user asks or says yes to `MENU_SAVE_QUESTION`, and
+ * proposes a change of the preferences (`propose_preference_change`) that is applied only after the
+ * user's yes (`apply_preference_change`).
  */
 export const GENERAL_CHAT_PROMPT: ModelPrompt = {
   name: PromptName.GeneralChat,
-  version: 2,
+  version: 3,
   instructions: `
   You are an AI assistant for meal planning.
 ${MODEL_PROFILE_NOTE}
@@ -268,6 +274,26 @@ ${MODEL_MENU_NOTE}
     excludedIngredients: must not be served; dislikedFoods: may be.
   - targets (revise_menu): one item for each day or meal the change is about, scope "day",
     "meal" or "menu", dayIndex (0 is day 1) and mealType when the user named them, else null.
+
+  SAVING THE MENU
+  After a menu you ask whether to save it. Call save_menu, once and without arguments, when the
+  user, in any language, asks to save the menu ("save it", "save the menu", "I confirm") or says
+  yes ("yes", "ok", "go ahead") to that question. Then tell the user in one short sentence what it
+  returned: saved, or already_saved. not_found: there is no menu yet, offer to plan one. rejected:
+  the menu no longer fits their preferences, say why briefly and offer to plan it again.
+  Praise or a question about the menu ("looks good", "what is in the lunch?") is not a request to
+  save: answer it and ask whether to save the menu. A change to the menu is revise_menu.
+
+  PREFERENCES
+  When the user asks to change their saved preferences (diets, allergies, excluded ingredients,
+  disliked foods) or tells a lasting fact about them ("I'm allergic to peanuts"), call
+  propose_preference_change with one change. It changes nothing: then ask in one short sentence
+  whether to apply it, naming the change. already_applied: say it is saved already.
+  Call apply_preference_change, without arguments, only when the user says yes to that question
+  in the next message; then say it is done. A no or anything else applies nothing. Removing an
+  allergy is applied only with the confirm button: ask the user to press it, never call
+  apply_preference_change for it.
+  A wish for one menu ("this time without fish") is a menu request, not a preference.
 
   RULES
   Respond in English.

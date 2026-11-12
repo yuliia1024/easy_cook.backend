@@ -124,6 +124,29 @@ describe('MenuService', () => {
       expect(repository.addVersion).toHaveBeenCalledWith(MENU_ID, version);
       expect(repository.createDraft).not.toHaveBeenCalled();
     });
+
+    it('saves a menu with warnings', async () => {
+      const warned = {
+        ...generated,
+        menu: { ...composition, issues: [issue({ severity: MenuIssueSeverity.Warning })] },
+      };
+
+      await expect(
+        service.saveGenerated({ id: CONVERSATION_ID, menuId: MENU_ID }, warned),
+      ).resolves.toEqual({ menuId: MENU_ID, versionId: MENU_VERSION_ID });
+    });
+
+    it('never saves a menu with errors', async () => {
+      const broken = { ...generated, menu: { ...composition, issues: [issue()] } };
+
+      await expect(
+        service.saveGenerated({ id: CONVERSATION_ID, menuId: null }, broken),
+      ).rejects.toEqual(
+        new MenuViolatesRulesBadRequestException(['Day 1, lunch: contains peanut']),
+      );
+      expect(repository.createDraft).not.toHaveBeenCalled();
+      expect(repository.addVersion).not.toHaveBeenCalled();
+    });
   });
 
   describe('getRevisionBase', () => {

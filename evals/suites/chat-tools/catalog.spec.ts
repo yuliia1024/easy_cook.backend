@@ -1,10 +1,14 @@
-import { DietTag, MealType, SortOrder } from '../../../src/common/constants';
+import { DietTag, MealType, SaveMenuStatus, SortOrder } from '../../../src/common/constants';
 import {
   FoodItemsNotFoundBadRequestException,
   RecipeNotFoundException,
 } from '../../../src/common/exceptions';
 import {
+  CATALOG_CONVERSATION_ID,
   CATALOG_FOODS,
+  CATALOG_MENU_ID,
+  CATALOG_MENU_VERSION_ID,
+  CATALOG_PENDING_CHANGE,
   CATALOG_RECIPES,
   catalogChatTools,
   catalogFoodItemService,
@@ -84,5 +88,22 @@ describe('chat-tools eval catalog', () => {
         servings: null,
       }),
     ).resolves.toMatchObject({ total: { proteinG: 66.1 } });
+  });
+
+  it('proposes a change and applies the pending one', async () => {
+    const tools = catalogChatTools();
+    await expect(
+      tools.proposePreferenceChange({ ...CATALOG_PENDING_CHANGE, value: ' Peanut ' }),
+    ).resolves.toMatchObject({ output: { change: CATALOG_PENDING_CHANGE } });
+    await expect(tools.applyPreferenceChange(CATALOG_CONVERSATION_ID)).resolves.toMatchObject({
+      output: { change: CATALOG_PENDING_CHANGE },
+    });
+  });
+
+  it('saves the menu of the catalog conversation', async () => {
+    await expect(catalogChatTools().saveMenu(CATALOG_CONVERSATION_ID)).resolves.toMatchObject({
+      output: { status: SaveMenuStatus.Saved, title: '2-day menu' },
+      event: { menuId: CATALOG_MENU_ID, versionId: CATALOG_MENU_VERSION_ID },
+    });
   });
 });

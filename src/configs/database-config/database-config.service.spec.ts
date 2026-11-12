@@ -9,6 +9,12 @@ describe('DatabaseConfigService', () => {
     expect(new DatabaseConfigService(fakeConfig({ DATABASE_URL: url })).url).toBe(url);
   });
 
+  it('logs the values of queries only with ENV=local', () => {
+    expect(new DatabaseConfigService(fakeConfig({ ENV: 'local' })).logsQueryParams).toBe(true);
+    expect(new DatabaseConfigService(fakeConfig({ ENV: 'staging' })).logsQueryParams).toBe(false);
+    expect(new DatabaseConfigService(fakeConfig({})).logsQueryParams).toBe(false);
+  });
+
   it('connects through the pg driver adapter', () => {
     const { adapter } = new DatabaseConfigService(fakeConfig({ DATABASE_URL: url })).config();
 

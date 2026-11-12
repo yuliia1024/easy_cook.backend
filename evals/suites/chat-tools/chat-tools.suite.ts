@@ -18,7 +18,7 @@ import {
 import { generalChatModelCall } from '../../../src/modules/services/general-chat/general-chat.service';
 import { OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
 import { EvalCaseSchema, EvalSuite, FieldScore, SuiteRun } from '../../lib/types';
-import { catalogChatTools } from './catalog';
+import { CATALOG_CONVERSATION_ID, catalogChatTools } from './catalog';
 
 const NO_RULES: ProfileContext['rules'] = {
   diets: [],
@@ -56,7 +56,7 @@ const SERVICE_CALLS = [ChatToolName.PlanMenu, ChatToolName.ReviseMenu] as const;
  * A conversation that reaches the chat model, the latest user message last, and what the model
  * must do with its tools. `serviceCall` is the menu tool it must call, or null for none. The rest
  * is scored only when set: `tools`, each called at least once with valid arguments and a result;
- * `noTools`, no tool at all; `days`, `menuRequest.days` of the menu tool (null: the user named
+ * `noTools`, no tool at all; `forbiddenTools`, none of these, e.g. no `save_menu` for praise of a menu; `days`, `menuRequest.days` of the menu tool (null: the user named
  * none); `mentions`, the reply names one of each list (case-insensitive); `excludes`, it names none
  * of them, e.g. a recipe the profile does not allow.
  */
@@ -80,6 +80,7 @@ export const ChatToolsCaseSchema = EvalCaseSchema.extend({
     serviceCall: z.enum(SERVICE_CALLS).nullable(),
     tools: z.array(z.enum(ChatToolName)).min(1).optional(),
     noTools: z.literal(true).optional(),
+    forbiddenTools: z.array(z.enum(ChatToolName)).min(1).optional(),
     days: z.number().int().positive().nullable().optional(),
     mentions: z
       .array(z.array(z.string().min(1)).min(1))
@@ -135,6 +136,15 @@ export function scoreChatTools(
       actual: called,
     });
   }
+  if (expected.forbiddenTools) {
+    const forbidden = expected.forbiddenTools;
+    scores.push({
+      field: 'forbiddenTools',
+      pass: output !== null && !calls.some(({ name }) => forbidden.includes(name as ChatToolName)),
+      expected: forbidden,
+      actual: called,
+    });
+  }
   if (expected.days !== undefined) {
     const days = output?.serviceCall?.input.menuRequest.days ?? null;
     scores.push({
@@ -177,7 +187,7 @@ export async function runChatTools(
     profile,
     { summary: null, messages: testCase.messages },
     null,
-    catalogChatTools().tools(profile),
+    catalogChatTools().tools(profile, CATALOG_CONVERSATION_ID),
     run,
     new Logger('chat-tools-eval'),
   );
@@ -196,7 +206,9 @@ export async function runChatTools(
 
 /**
  * The chat model with tools (`GeneralChatService`): whether it reads the recipes and the nutrition
- * through the tools, answers with their numbers, and calls a menu tool exactly when it should.
+ * through the tools, answers with their numbers, calls a menu tool exactly when it should, and
+ * saves the menu (`save_menu`) for a command or a yes to the save question, never for praise or a
+ * question about it.
  */
 export const chatToolsSuite: EvalSuite<ChatToolsCase, ChatToolsOutput> = {
   name: 'chat-tools',

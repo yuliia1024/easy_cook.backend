@@ -7,14 +7,21 @@ export enum ChatToolName {
   CalculateNutrition = 'calculate_nutrition',
   PlanMenu = 'plan_menu',
   ReviseMenu = 'revise_menu',
+  SaveMenu = 'save_menu',
+  ProposePreferenceChange = 'propose_preference_change',
+  ApplyPreferenceChange = 'apply_preference_change',
 }
 
 /**
- * What a chat tool may do. `read` runs inside the model's loop and returns data to it;
- * `service_call` only records the call: the loop ends and the backend runs it on its own path.
+ * What a chat tool may do. `read` runs inside the model's loop and returns data to it; `write`
+ * runs there too but has an effect besides its result (it changes data through a service, or
+ * proposes a change the reply carries), at most once per reply, and may stream an event to the
+ * client; `service_call` only records the call: the loop ends and the backend runs it
+ * on its own path.
  */
 export enum ChatToolOperation {
   Read = 'read',
+  Write = 'write',
   ServiceCall = 'service_call',
 }
 
@@ -27,6 +34,8 @@ export const CHAT_TOOL_STATUS: Readonly<Partial<Record<ChatToolName, ChatStatusS
   [ChatToolName.GetRecipeDetails]: ChatStatusStep.ReadingRecipe,
   [ChatToolName.GetFoodNutrition]: ChatStatusStep.CheckingNutrition,
   [ChatToolName.CalculateNutrition]: ChatStatusStep.CalculatingNutrition,
+  [ChatToolName.SaveMenu]: ChatStatusStep.SavingMenu,
+  [ChatToolName.ApplyPreferenceChange]: ChatStatusStep.UpdatingPreferences,
 };
 
 /** What the model learns about a tool call that failed; it may call the tool again. */
@@ -42,6 +51,16 @@ export enum ChatToolErrorCode {
  * ends with text, unless a `service_call` tool ended it earlier.
  */
 export const CHAT_TOOL_MAX_STEPS = 5;
+/**
+ * The most of a recipe's description or instructions a tool result carries (about 1000 tokens):
+ * enough to answer about the recipe, without a long text filling the model's context.
+ */
+export const CHAT_TOOL_TEXT_MAX_LENGTH = 4000;
+/** What `save_menu` tells the model; the menu is the latest one the chat suggested. */
+export enum SaveMenuStatus {
+  Saved = 'saved',
+  AlreadySaved = 'already_saved',
+}
 export const CHAT_TOOL_FAILED_MESSAGE = 'The tool failed. Answer without it.';
 export const CHAT_TOOL_SERVICE_CALL_MESSAGE =
   'Accepted: the app runs it and shows the user the result.';

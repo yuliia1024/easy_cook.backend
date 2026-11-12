@@ -325,6 +325,22 @@ describe('OpenAiService', () => {
       expect(doStream.mock.calls[1][0].toolChoice).toEqual({ type: 'none' });
     });
 
+    it('asks for one tool call per step', async () => {
+      doStream.mockImplementationOnce(async () => answer('Hi.'));
+
+      await collect(
+        new OpenAiService(openAiConfig).streamWithTools('Hi', {
+          ...OPTIONS,
+          tools: toToolSet([searchTool], new ChatToolRun(), new Logger('test')),
+          maxSteps: 2,
+        }),
+      );
+
+      expect(doStream.mock.calls[0][0].providerOptions).toEqual({
+        openai: { parallelToolCalls: false },
+      });
+    });
+
     it('never calls the model more than maxSteps times', async () => {
       doStream.mockImplementation(async () =>
         streamOf(toolCallParts(ChatToolName.SearchRecipes, { query: 'soup' })),

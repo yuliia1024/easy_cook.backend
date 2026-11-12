@@ -1,37 +1,60 @@
 import { Prisma } from '../../../generated/prisma/client';
 import {
+  ChatStreamEventType,
   ChatToolName,
   ChatToolOperation,
   DietTag,
   FOOD_NUTRITION_MAX_RESULTS,
   Goal,
   MealType,
+  MessageRole,
+  PreferenceChangeAction,
+  PreferenceChangeStatus,
+  PreferenceType,
+  SaveMenuStatus,
   SEARCH_RECIPES_DEFAULT_RESULTS,
   SEARCH_RECIPES_SCAN_LIMIT,
   SortOrder,
 } from '../../../common/constants';
 import {
+  ConversationNotFoundException,
   FoodItemsNotFoundBadRequestException,
+  MenuDraftNotFoundException,
+  MenuViolatesRulesBadRequestException,
   RecipeNotFoundException,
 } from '../../../common/exceptions';
 import { PreferenceRules, ProfileContext } from '../../../common/types';
 import { createMock } from '../../../test/create-mock';
 import {
+  buildConversation,
   buildFoodItem,
   buildIngredient,
+  buildMenu,
+  buildMessage,
   buildRecipe,
+  CONVERSATION_ID,
   FOOD_ID,
+  MENU_ID,
+  MENU_VERSION_ID,
   PROFILE_ID,
   RECIPE_ID,
 } from '../../../test/fixtures';
+import { ConversationService } from '../conversation/conversation.service';
 import { FoodItemService } from '../food-item/food-item.service';
+import { MenuService } from '../menu/menu.service';
+import { PreferenceChangeService } from '../preference-change/preference-change.service';
 import { NutritionService } from '../nutrition/nutrition.service';
 import { RecipeService } from '../recipe/recipe.service';
 import { ChatToolsService } from './chat-tools.service';
 
+type Executable = { execute: (input: object) => Promise<object> };
+
 describe('ChatToolsService', () => {
   let recipeService: jest.Mocked<RecipeService>;
   let foodItemService: jest.Mocked<FoodItemService>;
+  let conversationService: jest.Mocked<ConversationService>;
+  let menuService: jest.Mocked<MenuService>;
+  let preferenceChangeService: jest.Mocked<PreferenceChangeService>;
   let service: ChatToolsService;
   const noRules: PreferenceRules = {
     diets: [],
@@ -52,11 +75,21 @@ describe('ChatToolsService', () => {
   beforeEach(() => {
     recipeService = createMock<RecipeService>();
     foodItemService = createMock<FoodItemService>();
-    service = new ChatToolsService(recipeService, foodItemService, new NutritionService());
+    conversationService = createMock<ConversationService>();
+    menuService = createMock<MenuService>();
+    preferenceChangeService = createMock<PreferenceChangeService>();
+    service = new ChatToolsService(
+      recipeService,
+      foodItemService,
+      new NutritionService(),
+      conversationService,
+      menuService,
+      preferenceChangeService,
+    );
   });
 
   describe('tools', () => {
-    it('has the read tools and the menu service calls, with their schemas', () => {
+    it('has the read tools, the menu service calls and save_menu, with their schemas', () => {
       const profile: ProfileContext = {
         profileId: PROFILE_ID,
         goal: Goal.Maintain,
@@ -64,7 +97,7 @@ describe('ChatToolsService', () => {
         rules: noRules,
       };
 
-      const tools = service.tools(profile);
+      const tools = service.tools(profile, CONVERSATION_ID);
 
       expect(tools.map(({ name, operation }) => [name, operation])).toEqual([
         [ChatToolName.SearchRecipes, ChatToolOperation.Read],
@@ -73,24 +106,195 @@ describe('ChatToolsService', () => {
         [ChatToolName.CalculateNutrition, ChatToolOperation.Read],
         [ChatToolName.PlanMenu, ChatToolOperation.ServiceCall],
         [ChatToolName.ReviseMenu, ChatToolOperation.ServiceCall],
+        [ChatToolName.SaveMenu, ChatToolOperation.Write],
+        [ChatToolName.ProposePreferenceChange, ChatToolOperation.Write],
+        [ChatToolName.ApplyPreferenceChange, ChatToolOperation.Write],
       ]);
       expect(tools.every(({ description }) => description.length > 0)).toBe(true);
     });
 
     it('marks the recipes against the rules of the profile', async () => {
       recipeService.getPage.mockResolvedValue({ items: [buildRecipe()], total: 1 });
-      const [searchTool] = service.tools({
-        profileId: PROFILE_ID,
-        goal: Goal.Maintain,
-        nutritionGoal: null,
-        rules: { ...noRules, excludedIngredients: ['rice'] },
-      });
-
-      const result = await (searchTool as { execute: (input: object) => Promise<object> }).execute(
-        search,
+      const [searchTool] = service.tools(
+        {
+          profileId: PROFILE_ID,
+          goal: Goal.Maintain,
+          nutritionGoal: null,
+          rules: { ...noRules, excludedIngredients: ['rice'] },
+        },
+        CONVERSATION_ID,
       );
 
+      const result = await (searchTool as unknown as Executable).execute(search);
+
       expect(result).toMatchObject({ recipes: [{ id: RECIPE_ID, fitsProfile: false }] });
+    });
+
+    it('has save_menu save the menu of the conversation, whatever the model passes', async () => {
+      conversationService.getById.mockResolvedValue(buildConversation());
+      const saveTool = service
+        .tools(null, CONVERSATION_ID)
+        .find(({ name }) => name === ChatToolName.SaveMenu)!;
+
+      expect(saveTool.inputSchema.parse({ menuId: 'made-up' })).toEqual({});
+      await expect((saveTool as unknown as Executable).execute({})).rejects.toThrow(
+        MenuDraftNotFoundException,
+      );
+      expect(conversationService.getById).toHaveBeenCalledWith(CONVERSATION_ID);
+    });
+  });
+
+  describe('preference changes', () => {
+    const change = {
+      action: PreferenceChangeAction.Add,
+      preferenceType: PreferenceType.Allergy,
+      value: 'peanut',
+    };
+
+    it('proposes a change for the client to confirm, writing nothing', async () => {
+      preferenceChangeService.propose.mockResolvedValue({
+        status: PreferenceChangeStatus.Proposed,
+        change,
+      });
+
+      await expect(service.proposePreferenceChange(change)).resolves.toEqual({
+        output: { status: PreferenceChangeStatus.Proposed, change },
+        event: { type: ChatStreamEventType.PreferenceChangeProposed, change },
+      });
+      expect(preferenceChangeService.applyInChat).not.toHaveBeenCalled();
+    });
+
+    it('streams no proposal for a change in effect already', async () => {
+      preferenceChangeService.propose.mockResolvedValue({
+        status: PreferenceChangeStatus.AlreadyApplied,
+        change,
+      });
+
+      await expect(service.proposePreferenceChange(change)).resolves.toMatchObject({
+        event: null,
+      });
+    });
+
+    it('applies the pending change of the conversation, without arguments from the model', async () => {
+      preferenceChangeService.applyInChat.mockResolvedValue({
+        status: PreferenceChangeStatus.Applied,
+        change,
+      });
+      const applyTool = service
+        .tools(null, CONVERSATION_ID)
+        .find(({ name }) => name === ChatToolName.ApplyPreferenceChange)!;
+
+      expect(applyTool.inputSchema.parse(change)).toEqual({});
+      await expect((applyTool as unknown as Executable).execute({})).resolves.toEqual({
+        output: { status: PreferenceChangeStatus.Applied, change },
+        event: { type: ChatStreamEventType.PreferencesUpdated, change },
+      });
+      expect(preferenceChangeService.applyInChat).toHaveBeenCalledWith(CONVERSATION_ID);
+    });
+
+    it('does not apply a change proposed earlier in the same reply', () => {
+      const applyTool = service
+        .tools(null, CONVERSATION_ID)
+        .find(({ name }) => name === ChatToolName.ApplyPreferenceChange)!;
+
+      expect(applyTool).toMatchObject({ notAfter: [ChatToolName.ProposePreferenceChange] });
+    });
+  });
+
+  describe('saveMenu', () => {
+    const OLDER_VERSION_ID = '88888888-8888-4888-8888-888888888888';
+    const suggested = (versionId: string) =>
+      buildMessage({
+        role: MessageRole.Assistant,
+        content: 'Here is your menu.',
+        menuVersionId: versionId,
+        menuVersion: { menuId: MENU_ID, compositionSnapshot: {} },
+      });
+    const savedEvent = {
+      type: ChatStreamEventType.MenuSaved,
+      menuId: MENU_ID,
+      versionId: MENU_VERSION_ID,
+    };
+
+    it('confirms the latest version the conversation suggested, as the confirm button does', async () => {
+      conversationService.getById.mockResolvedValue(
+        buildConversation({
+          messages: [suggested(OLDER_VERSION_ID), buildMessage(), suggested(MENU_VERSION_ID)],
+        }),
+      );
+      menuService.getById.mockResolvedValue(buildMenu());
+      menuService.confirm.mockResolvedValue(
+        buildMenu({ confirmedVersionId: MENU_VERSION_ID, title: '3-day menu' }),
+      );
+
+      const result = await service.saveMenu(CONVERSATION_ID);
+
+      expect(conversationService.getById).toHaveBeenCalledWith(CONVERSATION_ID);
+      expect(menuService.confirm).toHaveBeenCalledWith(MENU_ID, MENU_VERSION_ID);
+      expect(result).toEqual({
+        output: { status: SaveMenuStatus.Saved, title: '3-day menu' },
+        event: savedEvent,
+      });
+    });
+
+    it('does not confirm a version that is confirmed already, and says so', async () => {
+      conversationService.getById.mockResolvedValue(
+        buildConversation({ messages: [suggested(MENU_VERSION_ID)] }),
+      );
+      menuService.getById.mockResolvedValue(buildMenu({ confirmedVersionId: MENU_VERSION_ID }));
+
+      const result = await service.saveMenu(CONVERSATION_ID);
+
+      expect(menuService.confirm).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        output: { status: SaveMenuStatus.AlreadySaved, title: 'Week 1' },
+        event: savedEvent,
+      });
+    });
+
+    it('confirms a newer draft when an older version of the menu is confirmed', async () => {
+      conversationService.getById.mockResolvedValue(
+        buildConversation({ messages: [suggested(OLDER_VERSION_ID), suggested(MENU_VERSION_ID)] }),
+      );
+      menuService.getById.mockResolvedValue(buildMenu({ confirmedVersionId: OLDER_VERSION_ID }));
+      menuService.confirm.mockResolvedValue(buildMenu({ confirmedVersionId: MENU_VERSION_ID }));
+
+      const result = await service.saveMenu(CONVERSATION_ID);
+
+      expect(menuService.confirm).toHaveBeenCalledWith(MENU_ID, MENU_VERSION_ID);
+      expect(result.output).toEqual({ status: SaveMenuStatus.Saved, title: 'Week 1' });
+    });
+
+    it('rejects a conversation without a suggested menu', async () => {
+      conversationService.getById.mockResolvedValue(
+        buildConversation({ messages: [buildMessage()] }),
+      );
+
+      await expect(service.saveMenu(CONVERSATION_ID)).rejects.toThrow(MenuDraftNotFoundException);
+      expect(menuService.confirm).not.toHaveBeenCalled();
+    });
+
+    it('rejects a conversation of another profile', async () => {
+      conversationService.getById.mockRejectedValue(new ConversationNotFoundException());
+
+      await expect(service.saveMenu(CONVERSATION_ID)).rejects.toThrow(
+        ConversationNotFoundException,
+      );
+      expect(menuService.getById).not.toHaveBeenCalled();
+    });
+
+    it('passes on a version that no longer fits the preferences', async () => {
+      conversationService.getById.mockResolvedValue(
+        buildConversation({ messages: [suggested(MENU_VERSION_ID)] }),
+      );
+      menuService.getById.mockResolvedValue(buildMenu());
+      menuService.confirm.mockRejectedValue(
+        new MenuViolatesRulesBadRequestException(['day 1: contains peanut']),
+      );
+
+      await expect(service.saveMenu(CONVERSATION_ID)).rejects.toThrow(
+        MenuViolatesRulesBadRequestException,
+      );
     });
   });
 

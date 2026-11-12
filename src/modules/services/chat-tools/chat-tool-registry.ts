@@ -9,7 +9,7 @@ import {
   ChatToolOperation,
 } from '../../../common/constants';
 import { AppError, NotFoundError } from '../../../common/exceptions';
-import { ChatServiceCall, ChatToolError } from '../../../common/types';
+import { ChatServiceCall, ChatToolError, ChatToolEvent } from '../../../common/types';
 
 /** The tools that hand a request over to a backend service instead of returning data. */
 type ServiceCallToolName = ChatServiceCall['name'];
@@ -28,6 +28,25 @@ export interface ReadChatTool<I> extends ChatToolBase<I> {
   execute: (input: I, abortSignal?: AbortSignal) => Promise<object>;
 }
 
+/** What a write tool returns: the result the model reads and the event the client gets, if any. */
+export interface ChatToolWriteResult {
+  output: object;
+  event: ChatToolEvent | null;
+}
+
+/**
+ * Changes data through a service, in the model's loop: the model reads the result and tells the
+ * user. Called at most once per reply (`ChatToolRun.writes`), so one message never writes twice,
+ * and never after a service call: the backend has not run it yet, so the write would act on the
+ * state before it.
+ */
+export interface WriteChatTool<I> extends ChatToolBase<I> {
+  operation: ChatToolOperation.Write;
+  /** Write tools it may not follow in one reply: it would act on what they did not save yet. */
+  notAfter?: ChatToolName[];
+  execute: (input: I, abortSignal?: AbortSignal) => Promise<ChatToolWriteResult>;
+}
+
 /**
  * Only records the call (`ChatToolRun.serviceCall`) and ends the loop: the backend runs it on the
  * same path as without tools, its checks and writes included.
@@ -39,12 +58,16 @@ export interface ServiceCallChatTool<I> extends ChatToolBase<I> {
 
 // The input type is checked where a tool is defined (`readTool`, `serviceCallTool`).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ChatTool = ReadChatTool<any> | ServiceCallChatTool<any>;
+export type ChatTool = ReadChatTool<any> | WriteChatTool<any> | ServiceCallChatTool<any>;
 
 export const readTool = <I>(definition: Omit<ReadChatTool<I>, 'operation'>): ReadChatTool<I> => ({
   ...definition,
   operation: ChatToolOperation.Read,
 });
+
+export const writeTool = <I>(
+  definition: Omit<WriteChatTool<I>, 'operation'>,
+): WriteChatTool<I> => ({ ...definition, operation: ChatToolOperation.Write });
 
 export const serviceCallTool = <I>(
   definition: Omit<ServiceCallChatTool<I>, 'operation'>,
@@ -67,12 +90,16 @@ export interface ChatToolRunListener {
   /** Before the tool runs, invalid arguments included. */
   onToolStart?: (name: ChatToolName) => void;
   onToolEnd?: (call: ChatToolCall) => void;
+  /** The event of a write tool, once it wrote; before `onToolEnd`. */
+  onToolEvent?: (event: ChatToolEvent) => void;
 }
 
 /** The tool calls of one reply: the steps the model took and the service call that ended them. */
 export class ChatToolRun {
   public serviceCall: ChatServiceCall | null = null;
   public readonly calls: ChatToolCall[] = [];
+  /** The write tools called with valid arguments; a second call of one is rejected. */
+  public readonly writes = new Set<ChatToolName>();
 
   constructor(public readonly listener: ChatToolRunListener = {}) {}
 
@@ -110,11 +137,27 @@ export function toChatToolError(error: unknown, logger: Logger): ChatToolError {
   return { error: ChatToolErrorCode.Failed, message: CHAT_TOOL_FAILED_MESSAGE };
 }
 
+/** Why a write tool may not run now, or null: once per reply, not after a service call or `notAfter`. */
+function writeRejection(chatTool: WriteChatTool<unknown>, run: ChatToolRun): string | null {
+  if (run.writes.has(chatTool.name)) {
+    return `${chatTool.name} was already called in this reply.`;
+  }
+  if (run.serviceCall) {
+    return `${chatTool.name} cannot follow ${run.serviceCall.name} in one reply. Call it in the next one.`;
+  }
+  const earlier = chatTool.notAfter?.find((name) => run.writes.has(name));
+  return earlier
+    ? `${chatTool.name} cannot follow ${earlier} in one reply: wait for the user's answer.`
+    : null;
+}
+
 /**
  * The tools for the AI SDK. The SDK gets the JSON schema only and passes the raw arguments on: the
  * registry parses them with the zod schema itself, so invalid arguments, an unknown recipe or a
  * failed service are a result the model reads (`ChatToolError`), never an exception of the reply.
- * An aborted reply rethrows. A second service call in one reply is rejected: one reply plans once.
+ * An aborted reply rethrows. A second service call in one reply is rejected: one reply plans once;
+ * so is a second call of a write tool, whatever the first one returned, and a write after a
+ * service call or after a tool of its `notAfter`.
  */
 export function toToolSet(tools: ChatTool[], run: ChatToolRun, logger: Logger): ToolSet {
   const call = async (
@@ -136,8 +179,22 @@ export function toToolSet(tools: ChatTool[], run: ChatToolRun, logger: Logger): 
       run.serviceCall = { name: chatTool.name, input: parsed.data } as ChatServiceCall;
       return { status: 'accepted', message: CHAT_TOOL_SERVICE_CALL_MESSAGE };
     }
+    if (chatTool.operation === ChatToolOperation.Write) {
+      const rejection = writeRejection(chatTool, run);
+      if (rejection) {
+        return { error: ChatToolErrorCode.Rejected, message: rejection };
+      }
+      run.writes.add(chatTool.name);
+    }
     try {
-      return await chatTool.execute(parsed.data, abortSignal);
+      if (chatTool.operation === ChatToolOperation.Read) {
+        return await chatTool.execute(parsed.data, abortSignal);
+      }
+      const { output, event } = await chatTool.execute(parsed.data, abortSignal);
+      if (event) {
+        run.listener.onToolEvent?.(event);
+      }
+      return output;
     } catch (error) {
       if (abortSignal?.aborted) {
         throw error;

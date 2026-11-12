@@ -8,6 +8,7 @@ import {
   daysOutOfRangeReply,
   Intent,
   MENU_MAX_DAYS,
+  MENU_SAVE_QUESTION,
 } from '../src/common/constants';
 import { ChatTrace } from '../src/modules/services/chat-trace/chat-trace';
 import { ChatTraceService } from '../src/modules/services/chat-trace/chat-trace.service';
@@ -241,7 +242,7 @@ describe('chat tools (e2e)', () => {
         }),
       ]);
       expect(steps(ChatTraceStep.Saved)).toEqual([
-        { content: FAKE_OPEN_AI_DELTAS.join(''), menuVersionId: null },
+        { content: FAKE_OPEN_AI_DELTAS.join(''), menuVersionId: null, preferenceChange: null },
       ]);
       expect(() => JSON.stringify(record)).not.toThrow();
     } finally {
@@ -271,14 +272,14 @@ describe('chat tools (e2e)', () => {
       expect(fakeOpenAiState.toolResults).toEqual([
         expect.objectContaining({ status: 'accepted' }),
       ]);
-      expect(textOf(chunks)).toBe('Here is your day.');
+      expect(textOf(chunks)).toBe(`Here is your day.${MENU_SAVE_QUESTION}`);
       const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data;
       expect(
         menu.composition.days[0].meals.map(({ recipeId }: { recipeId: string }) => recipeId),
       ).toEqual([recipe.oats, recipe.chicken, recipe.snack, recipe.bowl]);
       const { body } = await http().get(`/api/conversations/${id}`).expect(200);
       expect(body.messages[1]).toMatchObject({
-        content: 'Here is your day.',
+        content: `Here is your day.\n\n${MENU_SAVE_QUESTION}`,
         menuVersionId: menu.versionId,
       });
       const version = await ctx.prisma.menuVersion.findUniqueOrThrow({

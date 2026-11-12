@@ -7,7 +7,7 @@ import {
   GENERAL_CHAT_PROMPT,
 } from '../../../common/constants';
 import { MenuRequest } from '../../../common/contracts';
-import { ChatProgressEvent, ChatServiceCall, ProfileContext } from '../../../common/types';
+import { ChatServiceCall, ChatToolEvent, ProfileContext } from '../../../common/types';
 import { withEvents } from '../../../common/utils';
 import {
   ModelInput,
@@ -67,7 +67,7 @@ export function generalChatModelCall(
  * older one, the menu request gathered so far and the profile. The model can read recipes and
  * nutrition through the chat tools (`ChatToolsService`), up to `CHAT_TOOL_MAX_STEPS` model calls,
  * and can ask for a menu (`plan_menu`, `revise_menu`): that ends the reply with the service call,
- * which the caller runs.
+ * which the caller runs. It saves the menu the conversation suggested itself (`save_menu`).
  */
 @Injectable()
 export class GeneralChatService {
@@ -79,26 +79,28 @@ export class GeneralChatService {
   ) {}
 
   /**
-   * Streams the reply to the conversation: the text, and a `status` while a tool runs
-   * (`CHAT_TOOL_STATUS`), as soon as it starts. The latest message of `history` is the one to
-   * answer. `onToolCall` hears every finished tool call (the trace). Returns the service call the
-   * model made, or null.
+   * Streams the reply to the conversation `conversationId`: the text, a `status` while a tool runs
+   * (`CHAT_TOOL_STATUS`), as soon as it starts, and the event of a write tool (`menu_saved`) once
+   * it wrote. The latest message of `history` is the one to answer. `onToolCall` hears every
+   * finished tool call (the trace). Returns the service call the model made, or null.
    */
   public async *reply(
     history: ModelHistory,
     menuRequest: MenuRequest | null,
     profile: ProfileContext | null,
+    conversationId: string,
     abortSignal?: AbortSignal,
     onToolCall: (call: ChatToolCall) => void = () => undefined,
-  ): AsyncGenerator<string | ChatProgressEvent, ChatServiceCall | null> {
-    const replies = withEvents<string, ChatProgressEvent, ChatServiceCall | null>((emit) =>
-      this.stream(history, menuRequest, profile, abortSignal, {
+  ): AsyncGenerator<string | ChatToolEvent, ChatServiceCall | null> {
+    const replies = withEvents<string, ChatToolEvent, ChatServiceCall | null>((emit) =>
+      this.stream(history, menuRequest, profile, conversationId, abortSignal, {
         onToolStart: (name) => {
           const step = CHAT_TOOL_STATUS[name];
           if (step) {
             emit({ type: ChatStreamEventType.Status, step });
           }
         },
+        onToolEvent: emit,
         onToolEnd: onToolCall,
       }),
     );
@@ -115,6 +117,7 @@ export class GeneralChatService {
     history: ModelHistory,
     menuRequest: MenuRequest | null,
     profile: ProfileContext | null,
+    conversationId: string,
     abortSignal: AbortSignal | undefined,
     listener: ChatToolRunListener,
   ): AsyncGenerator<string, ChatServiceCall | null> {
@@ -123,7 +126,7 @@ export class GeneralChatService {
       profile,
       history,
       menuRequest,
-      this.chatToolsService.tools(profile),
+      this.chatToolsService.tools(profile, conversationId),
       run,
       this.logger,
       abortSignal,

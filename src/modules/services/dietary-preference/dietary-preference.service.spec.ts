@@ -1,4 +1,9 @@
-import { DietTag, PreferenceType } from '../../../common/constants';
+import {
+  DietTag,
+  PreferenceChangeAction,
+  PreferenceChangeStatus,
+  PreferenceType,
+} from '../../../common/constants';
 import {
   ConflictingDietsBadRequestException,
   DietaryPreferenceExistsConflictException,
@@ -120,6 +125,65 @@ describe('DietaryPreferenceService', () => {
       await expect(service.remove('nope')).rejects.toBeInstanceOf(
         DietaryPreferenceNotFoundException,
       );
+      expect(repository.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('preference changes', () => {
+    const add = {
+      action: PreferenceChangeAction.Add,
+      preferenceType: PreferenceType.Allergy,
+      value: ' Peanut ',
+    };
+    const remove = { ...add, action: PreferenceChangeAction.Remove };
+    const saved = buildPreference({ preferenceType: PreferenceType.Allergy, value: 'peanut' });
+
+    it('checks a change without writing it, normalized, and whether it is in effect', async () => {
+      await expect(service.checkChange(add)).resolves.toEqual({
+        change: { ...add, value: 'peanut' },
+        inEffect: false,
+      });
+      await expect(service.checkChange(remove)).resolves.toMatchObject({ inEffect: true });
+      repository.findOne.mockResolvedValue(saved);
+      await expect(service.checkChange(add)).resolves.toMatchObject({ inEffect: true });
+      await expect(service.checkChange(remove)).resolves.toMatchObject({ inEffect: false });
+
+      expect(repository.create).not.toHaveBeenCalled();
+      expect(repository.delete).not.toHaveBeenCalled();
+    });
+
+    it('refuses to propose an addition add would refuse', async () => {
+      await expect(
+        service.checkChange({ ...add, preferenceType: PreferenceType.Diet, value: 'carnivore' }),
+      ).rejects.toBeInstanceOf(UnknownDietBadRequestException);
+      repository.findAll.mockResolvedValue([
+        buildPreference({ preferenceType: PreferenceType.Diet, value: DietTag.Vegan }),
+      ]);
+      await expect(
+        service.checkChange({ ...add, preferenceType: PreferenceType.Diet, value: 'pescatarian' }),
+      ).rejects.toBeInstanceOf(ConflictingDietsBadRequestException);
+    });
+
+    it('applies an addition through add and a removal by deleting the saved preference', async () => {
+      await expect(service.applyChange(add)).resolves.toBe(PreferenceChangeStatus.Applied);
+      expect(repository.create).toHaveBeenCalledWith(PROFILE_ID, {
+        preferenceType: PreferenceType.Allergy,
+        value: 'peanut',
+      });
+
+      repository.findOne.mockResolvedValue(saved);
+      await expect(service.applyChange(remove)).resolves.toBe(PreferenceChangeStatus.Applied);
+      expect(repository.delete).toHaveBeenCalledWith(saved.id);
+    });
+
+    it('writes nothing for a change in effect already', async () => {
+      await expect(service.applyChange(remove)).resolves.toBe(
+        PreferenceChangeStatus.AlreadyApplied,
+      );
+      repository.findOne.mockResolvedValue(saved);
+      await expect(service.applyChange(add)).resolves.toBe(PreferenceChangeStatus.AlreadyApplied);
+
+      expect(repository.create).not.toHaveBeenCalled();
       expect(repository.delete).not.toHaveBeenCalled();
     });
   });
