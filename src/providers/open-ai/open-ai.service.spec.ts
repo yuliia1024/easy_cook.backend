@@ -14,6 +14,7 @@ import {
   OPEN_AI_MODEL,
 } from '../../common/constants';
 import { PlanMenuInputSchema } from '../../common/contracts';
+import { getModelCalls, runWithRequestId } from '../../common/logger';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
@@ -128,6 +129,7 @@ describe('OpenAiService', () => {
     jest.restoreAllMocks();
     jest.clearAllMocks();
     jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation();
   });
 
   it('is provided by OpenAiModule', async () => {
@@ -193,7 +195,7 @@ describe('OpenAiService', () => {
 
     expect(log).toHaveBeenCalledWith(
       expect.stringMatching(
-        /^openai gpt-test brief@v2 resp_1 stop in \d+ms \(first text after none\), tokens: 12 in \(2 cached\) \+ 30 out \(5 reasoning\) = 42$/,
+        /^openai gpt-test brief@v2 step 1 resp_1 stop in \d+ms \(at \d+ms; model \d+ms(, first output after \d+ms)?\), tokens: 12 in \(2 cached\) \+ 30 out \(5 reasoning\) = 42$/,
       ),
     );
   });
@@ -223,7 +225,7 @@ describe('OpenAiService', () => {
 
     expect(warn).toHaveBeenCalledWith(
       expect.stringMatching(
-        /length in \d+ms \(first text after \d+ms\), tokens: unknown; reason: max_output_tokens$/,
+        /step 1 resp_1 length in \d+ms \(at \d+ms; model \d+ms, first output after \d+ms\), tokens: unknown; reason: max_output_tokens$/,
       ),
     );
   });
@@ -235,6 +237,94 @@ describe('OpenAiService', () => {
 
     await expect(collect(new OpenAiService(openAiConfig).streamText('x', OPTIONS))).rejects.toEqual(
       new AssistantUnavailableException(true),
+    );
+  });
+
+  it('records every response for the request', async () => {
+    jest.spyOn(Logger.prototype, 'log').mockImplementation();
+    doStream.mockResolvedValue(
+      streamOf([
+        ...textParts('Hi'),
+        { type: 'finish', usage, finishReason: { unified: 'stop', raw: 'completed' } },
+      ]),
+    );
+
+    const calls = await runWithRequestId('req-1', async () => {
+      await collect(new OpenAiService(openAiConfig).streamText('x', OPTIONS));
+      return getModelCalls();
+    });
+
+    expect(calls).toEqual([
+      {
+        prompt: 'brief@v2',
+        provider: ModelProviderName.OpenAi,
+        modelId: 'gpt-test',
+        step: 1,
+        durationMs: expect.any(Number),
+        usage: { inputTokens: 12, cachedInputTokens: 2, outputTokens: 30 },
+        finishReason: 'stop',
+      },
+    ]);
+  });
+
+  it('logs and records a stream that failed before its response, tokens unknown', async () => {
+    doStream.mockResolvedValue(
+      streamOf([...textParts('Once'), { type: 'error', error: new Error('server error') }]),
+    );
+
+    const calls = await runWithRequestId('req-1', async () => {
+      await collect(new OpenAiService(openAiConfig).streamText('x', OPTIONS)).catch(() => null);
+      return getModelCalls();
+    });
+
+    expect(Logger.prototype.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/^openai brief@v2 step 1 failed after \d+ms, tokens: unknown$/),
+    );
+    expect(calls).toEqual([
+      expect.objectContaining({ step: 1, usage: null, finishReason: 'failed' }),
+    ]);
+  });
+
+  it('logs a stream the caller stopped reading as aborted', async () => {
+    doStream.mockResolvedValue({
+      stream: new ReadableStream({
+        start(controller): void {
+          textParts('Once', ' upon').forEach((part) => controller.enqueue(part));
+        },
+      }),
+    });
+
+    await runWithRequestId('req-1', async () => {
+      for await (const _delta of new OpenAiService(openAiConfig).streamText('x', OPTIONS)) {
+        break;
+      }
+    });
+
+    expect(Logger.prototype.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/^openai brief@v2 step 1 aborted after \d+ms, tokens: unknown$/),
+    );
+  });
+
+  it('logs a stream aborted through the signal as aborted', async () => {
+    const abort = new AbortController();
+    doStream.mockResolvedValue({
+      stream: new ReadableStream({
+        start(controller): void {
+          textParts('Once').forEach((part) => controller.enqueue(part));
+        },
+      }),
+    });
+
+    const stream = new OpenAiService(openAiConfig).streamText('x', {
+      ...OPTIONS,
+      abortSignal: abort.signal,
+    });
+    await stream.next();
+    abort.abort();
+    await collect(stream).catch(() => null);
+
+    expect(Logger.prototype.warn).toHaveBeenCalledWith(
+      expect.stringMatching(/brief@v2 step 1 aborted after \d+ms, tokens: unknown$/),
     );
   });
 
@@ -435,6 +525,44 @@ describe('OpenAiService', () => {
       jest.spyOn(Logger.prototype, 'log').mockImplementation();
       jest.spyOn(Logger.prototype, 'warn').mockImplementation();
       searchExecute.mockResolvedValue({ recipes: [{ name: 'Lentil soup' }] });
+    });
+
+    it('logs every step with its place in the loop, the wait before it, the model and the tools', async () => {
+      doStream
+        .mockImplementationOnce(async () =>
+          streamOf(toolCallParts(ChatToolName.SearchRecipes, { query: 'soup' })),
+        )
+        .mockImplementationOnce(async () => answer('Lentil soup.'));
+      const run = new ChatToolRun();
+
+      const calls = await runWithRequestId('req-1', async () => {
+        await collect(
+          new OpenAiService(openAiConfig).streamWithTools('Soup?', {
+            ...OPTIONS,
+            tools: toToolSet([searchTool], run, new Logger('test')),
+            maxSteps: 5,
+          }),
+        );
+        return getModelCalls();
+      });
+
+      const lines = (Logger.prototype.log as jest.Mock).mock.calls.map(([line]) => line);
+      expect(lines).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/^brief@v2 step 1 called search_recipes \(call_\d+\)$/),
+          expect.stringMatching(
+            /^openai gpt-test brief@v2 step 1 resp_t tool-calls in \d+ms \(at \d+ms; model \d+ms, first output after \d+ms; tools \d+ms\), tokens: 12 in/,
+          ),
+          expect.stringMatching(
+            /^openai gpt-test brief@v2 step 2 resp_1 stop in \d+ms \(at \d+ms, \d+ms after the step before; model \d+ms, first output after \d+ms\), tokens: 12 in/,
+          ),
+          expect.stringMatching(/^Chat tool search_recipes \(call_\d+\) ok in \d+ms/),
+        ]),
+      );
+      expect(calls.map(({ step, finishReason }) => ({ step, finishReason }))).toEqual([
+        { step: 1, finishReason: 'tool-calls' },
+        { step: 2, finishReason: 'stop' },
+      ]);
     });
 
     it('feeds invalid arguments back to the model as a tool error and goes on', async () => {
@@ -780,6 +908,43 @@ describe('OpenAiService', () => {
       expect((error as AssistantInvalidOutputException).call).toMatchObject({
         modelId: 'gpt-test',
       });
+    });
+
+    it('records the response for the request', async () => {
+      jest.spyOn(Logger.prototype, 'log').mockImplementation();
+      doGenerate.mockResolvedValue(generated('{"intent":"a"}'));
+
+      const calls = await runWithRequestId('req-1', async () => {
+        await new OpenAiService(openAiConfig).generateStructured('Hi', schema, OPTIONS);
+        return getModelCalls();
+      });
+
+      expect(calls).toEqual([
+        expect.objectContaining({
+          prompt: 'brief@v2',
+          step: 1,
+          usage: { inputTokens: 12, cachedInputTokens: 2, outputTokens: 30 },
+          finishReason: 'stop',
+        }),
+      ]);
+    });
+
+    it('logs and records a call aborted before its response as aborted', async () => {
+      const abort = new AbortController();
+      abort.abort();
+      doGenerate.mockRejectedValue(new Error('aborted'));
+
+      const calls = await runWithRequestId('req-1', async () => {
+        await new OpenAiService(openAiConfig)
+          .generateStructured('Hi', schema, { ...OPTIONS, abortSignal: abort.signal })
+          .catch(() => null);
+        return getModelCalls();
+      });
+
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        expect.stringMatching(/^no provider brief@v2 step 1 aborted after \d+ms, tokens: unknown$/),
+      );
+      expect(calls).toEqual([expect.objectContaining({ usage: null, finishReason: 'aborted' })]);
     });
 
     it('maps an API failure', async () => {

@@ -35,3 +35,21 @@ export interface ModelProvenance {
   modelId: string;
   prompt: string;
 }
+
+/**
+ * One model response (a step of a tool loop counts as one) as the request that made it sums them
+ * up: the chat logs the total of a message.
+ */
+export interface ModelCallRecord {
+  /** `promptLabel` of the call. */
+  prompt: string;
+  provider: string;
+  modelId: string;
+  /** The step of a tool loop, from 1; 1 for a call without tools. */
+  step: number;
+  durationMs: number;
+  /** Null when the call ended before the provider reported it: aborted or failed. */
+  usage: ModelUsage | null;
+  /** The SDK's finish reason, or `aborted` / `failed`. */
+  finishReason: string;
+}

@@ -1,4 +1,21 @@
-import { getRequestId, resolveRequestId, runWithRequestId } from './request-context';
+import { ModelCallRecord } from '../types';
+import {
+  getModelCalls,
+  getRequestId,
+  recordModelCall,
+  resolveRequestId,
+  runWithRequestId,
+} from './request-context';
+
+const call: ModelCallRecord = {
+  prompt: 'chat@v1',
+  provider: 'openai',
+  modelId: 'gpt-test',
+  step: 1,
+  durationMs: 10,
+  usage: null,
+  finishReason: 'aborted',
+};
 
 describe('request context', () => {
   describe('resolveRequestId', () => {
@@ -26,5 +43,26 @@ describe('request context', () => {
 
   it('has no id outside a request', () => {
     expect(getRequestId()).toBeUndefined();
+  });
+
+  it('collects the model calls of each request apart', async () => {
+    const [first, second] = await Promise.all(
+      ['req-1', 'req-2'].map((id, i) =>
+        runWithRequestId(id, async () => {
+          recordModelCall({ ...call, step: i + 1 });
+          await Promise.resolve();
+          return getModelCalls();
+        }),
+      ),
+    );
+
+    expect(first).toEqual([{ ...call, step: 1 }]);
+    expect(second).toEqual([{ ...call, step: 2 }]);
+  });
+
+  it('records nothing outside a request', () => {
+    recordModelCall(call);
+
+    expect(getModelCalls()).toEqual([]);
   });
 });
