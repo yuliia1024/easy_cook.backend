@@ -9,9 +9,8 @@ export enum PromptName {
   Summary = 'summary',
 }
 
-export const OPEN_AI_MODEL = 'gpt-4o-mini';
-/** A whole call, retries included. */
-export const OPEN_AI_TIMEOUT_MS = 30_000;
+/** A dated snapshot, never an alias: a model update must not change the app's answers unnoticed. */
+export const OPEN_AI_MODEL = 'gpt-4o-mini-2024-07-18';
 /** Marks a profile value the model must treat as unknown, never as zero or none. */
 export const MODEL_NOT_SET = 'not set';
 const MODEL_NOT_SET_NOTE = `"${MODEL_NOT_SET}" means unknown: do not assume a value. An empty list means none.`;
@@ -64,7 +63,7 @@ export const INTENT_REQUEST_ITEM_MAX_LENGTH = 100;
  */
 export const INTENT_PROMPT: ModelPrompt = {
   name: PromptName.Intent,
-  version: 4,
+  version: 5,
   instructions: `
   You classify the latest user message of a meal planning chat.
 ${MODEL_PROFILE_NOTE}
@@ -81,7 +80,8 @@ ${MODEL_MENU_NOTE}
     or no to a question whether to save the menu or apply a change of the preferences.
   - generate_menu: a request to plan a new menu that names days, meals, a diet, calories or
     ingredients, or relies on the profile ("for my diet", "fit my calories"); also "try again"
-    after an earlier request. Mentioning calories or a menu in a question is not a request.
+    after an earlier request. Any number of days counts, even 0 or more than a week ("for 0
+    days", "for two weeks", "for a month"): the app checks the limits, not you. Mentioning calories or a menu in a question is not a request.
   - revise_menu: a change to a menu an earlier assistant reply suggested ("no mushrooms",
     "another dinner", "redo day 3", "make it fewer calories").
   - clarification: a menu request without any such detail and not relying on the profile, like
@@ -94,7 +94,8 @@ ${MODEL_MENU_NOTE}
   - request: one standalone sentence with every detail the user gave; for revise_menu the
     earlier request with the change ("Plan a 3-day menu without mushrooms").
   - menuRequest: the same request as fields, only what the user said, not the profile:
-    days: the number of days the user named ("a week" is 7, "weekend" 2, "tomorrow" 1), else null.
+    days: the number of days the user named ("a week" is 7, "two weeks" 14, "weekend" 2,
+    "tomorrow" 1), else null.
     mealTypes, caloriesKcal, diets ("meat-free" is vegetarian): what the user named, else empty.
     excludedIngredients: must not be served; dislikedFoods: may be.
   For revise_menu, otherwise null, targets: every part of the menu the change is about, one item

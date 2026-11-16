@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
-import { ModelPrompt } from '../../src/common/types';
+import { ANTHROPIC_MODEL, ModelProviderName } from '../../src/common/constants';
+import { ModelPrompt, ModelRef } from '../../src/common/types';
 import {
   ModelCallOptions,
   ModelResult,
@@ -9,10 +10,14 @@ import {
 import { FieldScore } from './types';
 
 /**
- * The model that judges: stronger than the one the app runs, so it does not share its blind spots.
- * Rates judged by another model are not comparable with the baseline.
+ * The model that judges: stronger than the ones the app runs (OpenAI and the DeepSeek fallback) and
+ * of another vendor, so it does not share their blind spots. A dated snapshot at temperature 0, so
+ * a verdict changes with the reply, not with the judge; the newer Claude models take only the
+ * default temperature. Rates judged by another model are not comparable with the baseline.
  */
-export const JUDGE_MODEL = 'gpt-4.1';
+export const JUDGE_MODEL: ModelRef = { provider: ModelProviderName.Anthropic, id: ANTHROPIC_MODEL };
+export const JUDGE_TEMPERATURE = 0;
+export const JUDGE_PROMPT_NAME = 'judge';
 export const JUDGE_MAX_OUTPUT_TOKENS = 800;
 
 export const JUDGE_INSTRUCTIONS = `
@@ -28,9 +33,10 @@ export const JUDGE_INSTRUCTIONS = `
 
 /**
  * The version of the judge prompt: `JUDGE_INSTRUCTIONS` with a rubric. Raise it with every change
- * of either; the eval reports and baselines name it, so verdicts of two versions are not mixed.
+ * of either or of `JUDGE_MODEL`; the eval reports and baselines name it, so verdicts of two
+ * versions are not mixed. 2: judged by Claude Haiku 4.5 at temperature 0 instead of gpt-4.1.
  */
-export const JUDGE_PROMPT_VERSION = 1;
+export const JUDGE_PROMPT_VERSION = 2;
 
 /** The rubric of a suite: its text (`rubric.md`) and the ids of its criteria. */
 export interface Rubric<C extends string = string> {
@@ -60,7 +66,7 @@ export function loadRubric<C extends string>(file: string, criteria: readonly C[
 
 /** The judge prompt: the instructions with the rubric. */
 export const judgePrompt = (rubric: Rubric): ModelPrompt => ({
-  name: 'judge',
+  name: JUDGE_PROMPT_NAME,
   version: JUDGE_PROMPT_VERSION,
   instructions: `${JUDGE_INSTRUCTIONS}${rubric.text}`,
 });
@@ -77,6 +83,7 @@ export function judgeModelCall<C extends string>(
       prompt: judgePrompt(rubric),
       maxOutputTokens: JUDGE_MAX_OUTPUT_TOKENS,
       model: JUDGE_MODEL,
+      temperature: JUDGE_TEMPERATURE,
     },
   };
 }

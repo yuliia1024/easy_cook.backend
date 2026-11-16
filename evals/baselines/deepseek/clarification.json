@@ -1,0 +1,58 @@
+{
+  "suite": "clarification",
+  "createdAt": "2026-11-16T14:48:37.736Z",
+  "prompts": [
+    "intent@v5",
+    "judge@v2"
+  ],
+  "models": [
+    "deepseek-flash"
+  ],
+  "cases": 25,
+  "repeat": 3,
+  "passRate": 0.9333333333333333,
+  "fields": {
+    "clarification": 0.9333333333333333,
+    "judge.asks_for_missing": 0.9555555555555556,
+    "judge.clear": 0.9555555555555556,
+    "judge.consistent": 0.9555555555555556,
+    "judge.no_repeat": 0.9555555555555556,
+    "missingFields": 0.9555555555555556
+  },
+  "tags": {
+    "chat": 1,
+    "direct": 1,
+    "en": 0.9074074074074074,
+    "follow-up": 0.8095238095238095,
+    "no-question": 0.9,
+    "out-of-range": 0.9333333333333333,
+    "revise": 0.6666666666666666,
+    "surzhyk": 1,
+    "uk": 1,
+    "vague": 1
+  },
+  "metrics": {},
+  "passedCases": [
+    "chat-en-01",
+    "chat-en-02",
+    "direct-en-01",
+    "direct-en-02",
+    "direct-en-03",
+    "direct-uk-01",
+    "follow-up-en-02",
+    "follow-up-en-05",
+    "follow-up-uk-01",
+    "follow-up-uk-02",
+    "range-en-01",
+    "range-en-02",
+    "range-en-03",
+    "range-uk-01",
+    "vague-en-01",
+    "vague-en-02",
+    "vague-en-03",
+    "vague-en-04",
+    "vague-uk-01",
+    "vague-uk-02",
+    "vague-uk-03"
+  ]
+}

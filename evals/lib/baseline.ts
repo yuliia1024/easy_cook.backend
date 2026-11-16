@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
+import { ModelProviderName } from '../../src/common/constants';
 import { isFailedCall } from './summary';
 import { CaseResult, Rate, SuiteSummary } from './types';
 
@@ -126,6 +127,13 @@ export function compareWithBaseline(
 
 export const baselineFile = (dir: string, suite: string): string => join(dir, `${suite}.json`);
 
+/**
+ * The baselines of a provider: OpenAI, which serves the app, in `root`, a fallback in
+ * `root/<provider>`, so a prompt change is checked on every model that may answer it.
+ */
+export const baselinesDir = (root: string, provider: ModelProviderName): string =>
+  provider === ModelProviderName.OpenAi ? root : join(root, provider);
+
 export function readBaseline(dir: string, suite: string): Baseline | null {
   const file = baselineFile(dir, suite);
   if (!existsSync(file)) {
@@ -136,6 +144,7 @@ export function readBaseline(dir: string, suite: string): Baseline | null {
 
 export function writeBaseline(dir: string, baseline: Baseline): string {
   const file = baselineFile(dir, baseline.suite);
+  mkdirSync(dir, { recursive: true });
   writeFileSync(file, `${JSON.stringify(baseline, null, 2)}\n`);
   return file;
 }

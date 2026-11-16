@@ -11,6 +11,9 @@ describe('eval pricing', () => {
     expect(priceOf('gpt-4o-audio-preview')).toBeNull();
     expect(priceOf('gpt-4.1-2025-04-14')).toBe(MODEL_PRICES['gpt-4.1']);
     expect(priceOf('o3')).toBeNull();
+    expect(priceOf('claude-haiku-4-5-20251001')).toBe(MODEL_PRICES['claude-haiku-4-5']);
+    expect(priceOf('claude-haiku-4-5-2025')).toBeNull();
+    expect(priceOf('deepseek-flash')).toBe(MODEL_PRICES['deepseek-flash']);
   });
 
   it('prices uncached input, cached input and output per 1M tokens', () => {

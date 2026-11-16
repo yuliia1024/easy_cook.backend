@@ -1,3 +1,4 @@
+import { ModelProviderName } from '../../src/common/constants';
 import { DEFAULT_CONCURRENCY, DEFAULT_REPEAT, parseEvalArgs } from './args';
 
 describe('eval args', () => {
@@ -9,6 +10,7 @@ describe('eval args', () => {
       saveBaseline: false,
       concurrency: DEFAULT_CONCURRENCY,
       repeat: DEFAULT_REPEAT,
+      provider: ModelProviderName.OpenAi,
     });
   });
 
@@ -25,15 +27,29 @@ describe('eval args', () => {
           '2',
           '--repeat',
           '1',
+          '--provider',
+          'deepseek',
         ],
         known,
       ),
-    ).toEqual({ suites: ['intent', 'menu'], saveBaseline: true, concurrency: 2, repeat: 1 });
+    ).toEqual({
+      suites: ['intent', 'menu'],
+      saveBaseline: true,
+      concurrency: 2,
+      repeat: 1,
+      provider: ModelProviderName.DeepSeek,
+    });
   });
 
   it('rejects an unknown suite', () => {
     expect(() => parseEvalArgs(['--suite', 'nope'], known)).toThrow(
       'Unknown suite: nope. Known: intent, menu',
+    );
+  });
+
+  it('rejects an unknown provider', () => {
+    expect(() => parseEvalArgs(['--provider', 'mistral'], known)).toThrow(
+      'Unknown provider: mistral. Known: openai, deepseek',
     );
   });
 

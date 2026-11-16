@@ -20,3 +20,4 @@ evals/reports/*
 src/generated
 .vscode/launch.json
 /docs/notes
+.claude/.spro-cache/

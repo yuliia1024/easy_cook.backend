@@ -1,34 +1,34 @@
 {
   "suite": "clarification",
-  "createdAt": "2026-11-04T12:25:32.053Z",
+  "createdAt": "2026-11-16T14:53:56.466Z",
   "prompts": [
-    "intent@v3",
-    "judge@v1"
+    "intent@v5",
+    "judge@v2"
   ],
   "models": [
     "gpt-4o-mini-2024-07-18"
   ],
   "cases": 25,
   "repeat": 3,
-  "passRate": 0.92,
+  "passRate": 0.9733333333333334,
   "fields": {
     "clarification": 1,
-    "judge.asks_for_missing": 1,
+    "judge.asks_for_missing": 0.9777777777777777,
     "judge.clear": 1,
     "judge.consistent": 0.9777777777777777,
-    "judge.no_repeat": 1,
-    "missingFields": 0.8666666666666667
+    "judge.no_repeat": 0.9777777777777777,
+    "missingFields": 0.9777777777777777
   },
   "tags": {
     "chat": 1,
     "direct": 1,
-    "en": 0.9444444444444444,
+    "en": 1,
     "follow-up": 1,
     "no-question": 1,
-    "out-of-range": 0.6,
+    "out-of-range": 0.8666666666666667,
     "revise": 1,
     "surzhyk": 1,
-    "uk": 0.8571428571428571,
+    "uk": 0.9047619047619048,
     "vague": 1
   },
   "metrics": {},
@@ -48,6 +48,7 @@
     "follow-up-uk-02",
     "range-en-01",
     "range-en-02",
+    "range-en-03",
     "range-revise-01",
     "vague-en-01",
     "vague-en-02",
