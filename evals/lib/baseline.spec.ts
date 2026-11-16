@@ -5,11 +5,13 @@ import {
   allowedDrop,
   Baseline,
   baselineFile,
+  baselinesDir,
   compareWithBaseline,
   readBaseline,
   toBaseline,
   writeBaseline,
 } from './baseline';
+import { ModelProviderName } from '../../src/common/constants';
 import { summarize } from './summary';
 import { buildCaseResult } from '../test/helpers';
 import { CaseResult, RunErrorKind } from './types';
@@ -174,6 +176,19 @@ describe('eval baseline', () => {
     expect(readBaseline(dir, 'intent')).toBeNull();
     expect(writeBaseline(dir, baseline)).toBe(baselineFile(dir, 'intent'));
     expect(readBaseline(dir, 'intent')).toEqual(baseline);
+  });
+
+  it('keeps the baselines of a fallback provider in a folder of its own', () => {
+    expect(baselinesDir('/b', ModelProviderName.OpenAi)).toBe('/b');
+    expect(baselinesDir('/b', ModelProviderName.DeepSeek)).toBe(join('/b', 'deepseek'));
+  });
+
+  it('creates the folder of a baseline', () => {
+    const dir = join(mkdtempSync(join(tmpdir(), 'evals-')), 'deepseek');
+
+    writeBaseline(dir, baselineOf(2, 1));
+
+    expect(readBaseline(dir, 'intent')).toEqual(baselineOf(2, 1));
   });
 
   it('reads a baseline saved without metrics', () => {

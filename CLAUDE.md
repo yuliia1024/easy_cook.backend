@@ -9,6 +9,10 @@ repository. Layout:
   and the types inferred from them; plain TypeScript types, the chat stream protocol included,
   go into `types/`.
 - `src/providers/` - wrappers around external clients (`OpenAiService` and `PrismaService`).
+  `OpenAiService` is the only code that calls an LLM (AI SDK): `MODEL_PROVIDERS` in order (OpenAI,
+  then DeepSeek), retried and switched on a 5xx, timeout or rate limit by `ModelFallback`; every
+  response is logged with its provider. Models are pinned snapshots (`OPEN_AI_MODEL`,
+  `DEEPSEEK_MODEL`, `ANTHROPIC_MODEL`), never aliases.
 - `src/generated/prisma/` - Prisma client, generated on `npm install`, git-ignored. Import Prisma types
   from there (`../generated/prisma/client`), never from `@prisma/client`.
 - `src/modules/data-access/<name>/` - repository + repository module; the only code that touches Prisma.

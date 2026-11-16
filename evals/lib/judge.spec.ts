@@ -71,8 +71,10 @@ describe('judge', () => {
         version: JUDGE_PROMPT_VERSION,
         instructions: `${JUDGE_INSTRUCTIONS}${rubric.text}`,
       },
-      model: JUDGE_MODEL,
+      model: { provider: 'anthropic', id: 'claude-haiku-4-5-20251001' },
+      temperature: 0,
     });
+    expect(options.model).toBe(JUDGE_MODEL);
     expect(openAi.generateStructuredResult).toHaveBeenCalledWith(
       '{"reply":"Hi?"}',
       expect.anything(),

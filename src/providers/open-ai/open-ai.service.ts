@@ -1,4 +1,7 @@
-import { createOpenAI, OpenAIProvider } from '@ai-sdk/openai';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createDeepSeek } from '@ai-sdk/deepseek';
+import { createOpenAI } from '@ai-sdk/openai';
+import { LanguageModelV4 } from '@ai-sdk/provider';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   APICallError,
@@ -15,14 +18,24 @@ import {
   TypeValidationError,
 } from 'ai';
 import { z } from 'zod';
-import { OPEN_AI_MODEL, OPEN_AI_TIMEOUT_MS } from '../../common/constants';
+import {
+  ANTHROPIC_MODEL,
+  DEEPSEEK_MODEL,
+  MODEL_ATTEMPT_TIMEOUT_MS,
+  MODEL_CALL_TIMEOUT_MS,
+  MODEL_PROVIDER_RETRIES,
+  MODEL_RETRY_DELAY_MS,
+  ModelProviderName,
+  OPEN_AI_MODEL,
+} from '../../common/constants';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
 } from '../../common/exceptions';
-import { ModelCallInfo, ModelPrompt, ModelUsage } from '../../common/types';
+import { ModelCallInfo, ModelPrompt, ModelRef, ModelUsage } from '../../common/types';
 import { promptLabel } from '../../common/utils';
-import { OpenAiConfigService } from '../../configs/open-ai-config/open-ai-config.service';
+import { ModelProvidersConfigService } from '../../configs/model-providers-config/model-providers-config.service';
+import { ModelFallback, ModelRoute } from './model-fallback';
 
 /** A single prompt or a conversation, oldest message first. */
 export type ModelInput = string | ModelMessage[];
@@ -32,8 +45,13 @@ export interface ModelCallOptions {
   prompt: ModelPrompt;
   maxOutputTokens: number;
   abortSignal?: AbortSignal;
-  /** `OPEN_AI_MODEL` unless set; only the evals judge sets another one. */
-  model?: string;
+  /**
+   * A model to call instead of `MODEL_PROVIDERS`, without fallback (retries only); only the evals
+   * judge sets one.
+   */
+  model?: ModelRef;
+  /** The provider's default unless set; 0 for answers as repeatable as the model allows. */
+  temperature?: number;
 }
 
 /** A call that may run tools in a loop: one model call per step, the tool results fed back. */
@@ -47,8 +65,27 @@ export interface ToolLoopOptions extends ModelCallOptions {
 
 type ToolLoopSettings = Pick<
   Parameters<typeof streamText>[0] & Parameters<typeof generateText>[0],
-  'tools' | 'stopWhen' | 'prepareStep' | 'providerOptions'
+  'tools' | 'stopWhen' | 'prepareStep' | 'toolCallConcurrency'
 >;
+
+type CallSettings = Parameters<typeof streamText>[0] & Parameters<typeof generateText>[0];
+
+/**
+ * Of every provider; each one reads its own key. One tool call per step: OpenAI is asked for it,
+ * DeepSeek cannot be (`toolCallConcurrency` runs its calls one by one). DeepSeek V4 thinks by
+ * default, which a fallback has no time for.
+ */
+/** The model of every provider in `MODEL_PROVIDERS`: dated snapshots where the provider has them. */
+const PROVIDER_MODELS: Record<ModelProviderName, string> = {
+  [ModelProviderName.OpenAi]: OPEN_AI_MODEL,
+  [ModelProviderName.DeepSeek]: DEEPSEEK_MODEL,
+  [ModelProviderName.Anthropic]: ANTHROPIC_MODEL,
+};
+
+const PROVIDER_OPTIONS: CallSettings['providerOptions'] = {
+  openai: { parallelToolCalls: false },
+  deepseek: { thinking: { type: 'disabled' } },
+};
 
 /** A structured output with what it cost: the model that answered, time and tokens. */
 export interface ModelResult<T> extends ModelCallInfo {
@@ -64,6 +101,8 @@ const toModelUsage = (usage: LanguageModelUsage): ModelUsage => ({
 
 interface StepSummary {
   modelId: string;
+  /** The provider of the response; several when the steps of a tool loop had different ones. */
+  provider: string;
   responseId: string;
   finishReason: FinishReason;
   rawFinishReason: string | undefined;
@@ -71,17 +110,38 @@ interface StepSummary {
 }
 
 /**
- * The only place that calls the OpenAI API (AI SDK, Responses API): model, timeout, token limits,
- * error mapping and logging. Failures surface as `AssistantUnavailableException` or
- * `AssistantInvalidOutputException`; a call aborted through `abortSignal` rethrows the abort as is.
+ * The only place that calls an LLM API (AI SDK): models, timeouts, retries and fallback, token
+ * limits, error mapping and logging. Every call goes to the first of `MODEL_PROVIDERS` (OpenAI
+ * Responses API, DeepSeek) and falls back to the next on a 5xx, timeout or rate limit
+ * (`ModelFallback`); the log line of every response names its provider. Failures surface as
+ * `AssistantUnavailableException` or `AssistantInvalidOutputException`; a call aborted through
+ * `abortSignal` rethrows the abort as is.
  */
 @Injectable()
 export class OpenAiService {
   private readonly logger = new Logger(OpenAiService.name);
-  private readonly provider: OpenAIProvider;
+  /** The providers with a key: a model id to its model. */
+  private readonly clients: Partial<
+    Record<ModelProviderName, (modelId: string) => LanguageModelV4>
+  >;
+  private readonly providers: ModelProviderName[];
 
-  constructor(openAiConfig: OpenAiConfigService) {
-    this.provider = createOpenAI({ apiKey: openAiConfig.apiKey });
+  constructor(config: ModelProvidersConfigService) {
+    const openAi = createOpenAI({ apiKey: config.openAiApiKey });
+    const deepSeek = config.deepSeekApiKey && createDeepSeek({ apiKey: config.deepSeekApiKey });
+    const anthropic = config.anthropicApiKey && createAnthropic({ apiKey: config.anthropicApiKey });
+    this.clients = {
+      [ModelProviderName.OpenAi]: (modelId) => openAi.responses(modelId),
+      ...(deepSeek && { [ModelProviderName.DeepSeek]: (modelId) => deepSeek.chat(modelId) }),
+      ...(anthropic && {
+        [ModelProviderName.Anthropic]: (modelId) => anthropic.messages(modelId),
+      }),
+    };
+    this.providers = config.providers;
+    const missing = this.providers.filter((provider) => !this.clients[provider]);
+    if (missing.length > 0) {
+      throw new Error(`MODEL_PROVIDERS has ${missing.join(', ')} without an API key`);
+    }
   }
 
   /** Streams text generation; yields the model's text deltas. A failed call throws from the generator. */
@@ -111,12 +171,14 @@ export class OpenAiService {
   ): Promise<ModelResult<string>> {
     const startedAt = Date.now();
     try {
+      const model = this.model(options);
       const result = await generateText({
-        ...this.callSettings(input, options),
+        ...this.callSettings(input, options, model),
         ...this.toolLoopSettings({ tools, maxSteps, isDone }),
       });
       const step: StepSummary = {
         modelId: result.finalStep.response.modelId,
+        provider: [...new Set(model.served)].join('+'),
         responseId: result.finalStep.response.id,
         finishReason: result.finishReason,
         rawFinishReason: result.rawFinishReason,
@@ -149,7 +211,7 @@ export class OpenAiService {
       stopWhen: [isStepCount(maxSteps), () => isDone()],
       prepareStep: ({ stepNumber }) =>
         stepNumber >= maxSteps - 1 ? { toolChoice: 'none' } : undefined,
-      providerOptions: { openai: { parallelToolCalls: false } },
+      toolCallConcurrency: 1,
     };
   }
 
@@ -161,8 +223,9 @@ export class OpenAiService {
     const startedAt = Date.now();
     let firstDeltaAt: number | null = null;
     try {
+      const model = this.model(options);
       const result = streamText({
-        ...this.callSettings(input, options),
+        ...this.callSettings(input, options, model),
         ...toolSettings,
         // Errors arrive as `error` parts and are rethrown below; skip the default console log.
         onError: () => undefined,
@@ -179,6 +242,7 @@ export class OpenAiService {
             options.prompt,
             {
               modelId: part.response.modelId,
+              provider: model.served.at(-1) ?? 'unknown',
               responseId: part.response.id,
               finishReason: part.finishReason,
               rawFinishReason: part.rawFinishReason,
@@ -217,12 +281,14 @@ export class OpenAiService {
   ): Promise<ModelResult<T>> {
     const startedAt = Date.now();
     try {
+      const model = this.model(options);
       const result = await generateText({
-        ...this.callSettings(input, options),
+        ...this.callSettings(input, options, model),
         output: Output.object({ schema }),
       });
       const step: StepSummary = {
         modelId: result.finalStep.response.modelId,
+        provider: model.served.at(-1) ?? 'unknown',
         responseId: result.finalStep.response.id,
         finishReason: result.finishReason,
         rawFinishReason: result.rawFinishReason,
@@ -232,7 +298,7 @@ export class OpenAiService {
       const call: ModelCallInfo = { modelId: step.modelId, usage: toModelUsage(result.usage) };
       const parsed = schema.safeParse(result.output);
       if (!parsed.success) {
-        this.logger.error(`OpenAI call failed: ${parsed.error.message}`);
+        this.logger.error(`Model call failed: ${parsed.error.message}`);
         throw new AssistantInvalidOutputException(call);
       }
       return { ...call, output: parsed.data, latencyMs: Date.now() - startedAt };
@@ -241,16 +307,46 @@ export class OpenAiService {
     }
   }
 
+  /**
+   * The model of one call: `MODEL_PROVIDERS` in order, or the OpenAI model the options name. A new
+   * one per call, so its `served` are the providers of that call.
+   */
+  private model({ prompt, model }: ModelCallOptions): ModelFallback {
+    const routes: ModelRoute[] = model
+      ? [this.route(model.provider, model.id)]
+      : this.providers.map((provider) => this.route(provider, PROVIDER_MODELS[provider]));
+    return new ModelFallback(routes, {
+      attemptTimeoutMs: MODEL_ATTEMPT_TIMEOUT_MS,
+      retries: MODEL_PROVIDER_RETRIES,
+      retryDelayMs: MODEL_RETRY_DELAY_MS,
+      label: promptLabel(prompt),
+      logger: this.logger,
+    });
+  }
+
+  private route(provider: ModelProviderName, modelId: string): ModelRoute {
+    const client = this.clients[provider];
+    if (!client) {
+      throw new Error(`No API key for ${provider}`);
+    }
+    return { provider, model: client(modelId) };
+  }
+
+  /** `maxRetries: 0`: `ModelFallback` retries every provider on its own. */
   private callSettings(
     input: ModelInput,
-    { prompt, maxOutputTokens, abortSignal, model = OPEN_AI_MODEL }: ModelCallOptions,
-  ): Parameters<typeof streamText>[0] & Parameters<typeof generateText>[0] {
+    { prompt, maxOutputTokens, abortSignal, temperature }: ModelCallOptions,
+    model: ModelFallback,
+  ): CallSettings {
     return {
-      model: this.provider.responses(model),
+      model,
       instructions: prompt.instructions,
       maxOutputTokens,
-      timeout: OPEN_AI_TIMEOUT_MS,
+      temperature,
+      maxRetries: 0,
+      timeout: MODEL_CALL_TIMEOUT_MS,
       abortSignal,
+      providerOptions: PROVIDER_OPTIONS,
       ...(typeof input === 'string' ? { prompt: input } : { messages: input }),
     };
   }
@@ -260,7 +356,7 @@ export class OpenAiService {
       return error;
     }
     const cause = RetryError.isInstance(error) ? error.lastError : error;
-    this.logger.error(`OpenAI call failed: ${cause instanceof Error ? cause.message : cause}`);
+    this.logger.error(`Model call failed: ${cause instanceof Error ? cause.message : cause}`);
 
     if (NoObjectGeneratedError.isInstance(cause)) {
       return new AssistantInvalidOutputException(
@@ -277,7 +373,7 @@ export class OpenAiService {
     );
   }
 
-  /** Model, prompt version, outcome, timings and token usage of a finished response. */
+  /** Provider, model, prompt version, outcome, timings and token usage of a finished response. */
   private logSummary(
     prompt: ModelPrompt,
     step: StepSummary,
@@ -296,7 +392,7 @@ export class OpenAiService {
         ? ''
         : ` (first text after ${firstDeltaAt === null ? 'none' : `${firstDeltaAt - startedAt}ms`})`;
     const summary =
-      `${step.modelId} ${promptLabel(prompt)} ${step.responseId} ${step.finishReason} in ${Date.now() - startedAt}ms` +
+      `${step.provider} ${step.modelId} ${promptLabel(prompt)} ${step.responseId} ${step.finishReason} in ${Date.now() - startedAt}ms` +
       `${firstDelta}, ${tokens}`;
 
     if (step.finishReason === 'stop' || step.finishReason === 'tool-calls') {

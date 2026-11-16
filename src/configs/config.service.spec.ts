@@ -83,6 +83,36 @@ describe('ConfigService', () => {
     expect(() => new ConfigService()).toThrow(/OPEN_AI_API_KEY/);
   });
 
+  it.each(['openai', 'deepseek,openai', 'openai , deepseek'])(
+    'accepts the providers %p with their keys',
+    (providers) => {
+      process.env.MODEL_PROVIDERS = providers;
+      process.env.DEEPSEEK_API_KEY = 'sk-ds';
+
+      expect(() => new ConfigService()).not.toThrow();
+    },
+  );
+
+  it.each(['mistral', 'openai,', 'openai;deepseek'])('rejects the providers %p', (providers) => {
+    process.env.MODEL_PROVIDERS = providers;
+
+    expect(() => new ConfigService()).toThrow(/MODEL_PROVIDERS/);
+  });
+
+  it('requires DEEPSEEK_API_KEY only when MODEL_PROVIDERS has deepseek', () => {
+    process.env.MODEL_PROVIDERS = 'openai';
+    expect(() => new ConfigService()).not.toThrow();
+
+    process.env.MODEL_PROVIDERS = 'openai,deepseek';
+    expect(() => new ConfigService()).toThrow(/DEEPSEEK_API_KEY/);
+  });
+
+  it('requires ANTHROPIC_API_KEY only when MODEL_PROVIDERS has anthropic', () => {
+    process.env.MODEL_PROVIDERS = 'openai,anthropic';
+
+    expect(() => new ConfigService()).toThrow(/ANTHROPIC_API_KEY/);
+  });
+
   it('rejects an unknown environment name', () => {
     process.env.ENV = 'qa';
 

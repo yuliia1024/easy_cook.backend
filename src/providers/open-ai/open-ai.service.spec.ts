@@ -1,15 +1,25 @@
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createOpenAI } from '@ai-sdk/openai';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { APICallError, LanguageModel } from 'ai';
 import { z } from 'zod';
-import { ChatToolErrorCode, ChatToolName, OPEN_AI_MODEL } from '../../common/constants';
+import {
+  ChatToolErrorCode,
+  ChatToolName,
+  ANTHROPIC_MODEL,
+  DEEPSEEK_MODEL,
+  ModelProviderName,
+  OPEN_AI_MODEL,
+} from '../../common/constants';
 import { PlanMenuInputSchema } from '../../common/contracts';
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
 } from '../../common/exceptions';
-import { OpenAiConfigService } from '../../configs/open-ai-config/open-ai-config.service';
+import { Configs } from '../../configs/configs';
+import { ModelProvidersConfigService } from '../../configs/model-providers-config/model-providers-config.service';
 import {
   ChatToolRun,
   readTool,
@@ -39,8 +49,46 @@ const model: FakeModel = {
 };
 const responses = jest.fn(() => model);
 
+const deepSeekGenerate = jest.fn<
+  ReturnType<FakeModel['doGenerate']>,
+  Parameters<FakeModel['doGenerate']>
+>();
+const deepSeekStream = jest.fn<
+  ReturnType<FakeModel['doStream']>,
+  Parameters<FakeModel['doStream']>
+>();
+const deepSeekModel: FakeModel = {
+  specificationVersion: 'v4',
+  provider: 'deepseek.chat',
+  modelId: 'deepseek-test',
+  supportedUrls: {},
+  doGenerate: deepSeekGenerate,
+  doStream: deepSeekStream,
+};
+const chat = jest.fn(() => deepSeekModel);
+
+const anthropicGenerate = jest.fn<
+  ReturnType<FakeModel['doGenerate']>,
+  Parameters<FakeModel['doGenerate']>
+>();
+const anthropicModel: FakeModel = {
+  specificationVersion: 'v4',
+  provider: 'anthropic.messages',
+  modelId: 'claude-test',
+  supportedUrls: {},
+  doGenerate: anthropicGenerate,
+  doStream: jest.fn(),
+};
+const messages = jest.fn(() => anthropicModel);
+
 jest.mock('@ai-sdk/openai', () => ({
   createOpenAI: jest.fn(() => ({ responses })),
+}));
+jest.mock('@ai-sdk/deepseek', () => ({
+  createDeepSeek: jest.fn(() => ({ chat })),
+}));
+jest.mock('@ai-sdk/anthropic', () => ({
+  createAnthropic: jest.fn(() => ({ messages })),
 }));
 
 const usage = {
@@ -71,7 +119,10 @@ const OPTIONS = {
 };
 
 describe('OpenAiService', () => {
-  const openAiConfig = new OpenAiConfigService(fakeConfig({ OPEN_AI_API_KEY: 'sk-test' }));
+  const configOf = (values: Partial<Record<keyof Configs, string>>): ModelProvidersConfigService =>
+    new ModelProvidersConfigService(fakeConfig({ OPEN_AI_API_KEY: 'sk-test', ...values }));
+  const openAiConfig = configOf({});
+  const withFallback = configOf({ MODEL_PROVIDERS: 'openai,deepseek', DEEPSEEK_API_KEY: 'sk-ds' });
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -81,7 +132,7 @@ describe('OpenAiService', () => {
 
   it('is provided by OpenAiModule', async () => {
     const module = await Test.createTestingModule({ imports: [OpenAiModule] })
-      .useMocker((token) => (token === OpenAiConfigService ? openAiConfig : undefined))
+      .useMocker((token) => (token === ModelProvidersConfigService ? openAiConfig : undefined))
       .compile();
 
     expect(module.get(OpenAiService)).toBeInstanceOf(OpenAiService);
@@ -142,7 +193,7 @@ describe('OpenAiService', () => {
 
     expect(log).toHaveBeenCalledWith(
       expect.stringMatching(
-        /^gpt-test brief@v2 resp_1 stop in \d+ms \(first text after none\), tokens: 12 in \(2 cached\) \+ 30 out \(5 reasoning\) = 42$/,
+        /^openai gpt-test brief@v2 resp_1 stop in \d+ms \(first text after none\), tokens: 12 in \(2 cached\) \+ 30 out \(5 reasoning\) = 42$/,
       ),
     );
   });
@@ -209,6 +260,143 @@ describe('OpenAiService', () => {
 
     expect(error).toBeInstanceOf(Error);
     expect(error).not.toBeInstanceOf(AssistantUnavailableException);
+  });
+
+  describe('fallback', () => {
+    const generated: Awaited<ReturnType<FakeModel['doGenerate']>> = {
+      content: [{ type: 'text', text: '{"ok":true}' }],
+      finishReason: { unified: 'stop', raw: 'stop' },
+      usage,
+      warnings: [],
+      response: { id: 'resp_ds', modelId: 'deepseek-test' },
+    };
+    const down = (): APICallError =>
+      new APICallError({
+        message: 'Service Unavailable',
+        url: 'https://api.openai.com/v1/responses',
+        requestBodyValues: {},
+        statusCode: 503,
+        isRetryable: true,
+      });
+
+    beforeEach(() => {
+      jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    });
+
+    it('fails to start with deepseek in MODEL_PROVIDERS but no key', () => {
+      expect(() => new OpenAiService(configOf({ MODEL_PROVIDERS: 'openai,deepseek' }))).toThrow(
+        'MODEL_PROVIDERS has deepseek without an API key',
+      );
+    });
+
+    it('creates the DeepSeek provider with DEEPSEEK_API_KEY', () => {
+      new OpenAiService(withFallback);
+
+      expect(createDeepSeek).toHaveBeenCalledWith({ apiKey: 'sk-ds' });
+    });
+
+    it('retries OpenAI once, then answers with DeepSeek, without thinking and SDK retries', async () => {
+      const log = jest.spyOn(Logger.prototype, 'log').mockImplementation();
+      doGenerate.mockRejectedValue(down());
+      deepSeekGenerate.mockResolvedValue(generated);
+
+      const result = await new OpenAiService(withFallback).generateStructuredResult(
+        'Hi',
+        z.object({ ok: z.boolean() }),
+        OPTIONS,
+      );
+
+      expect(result).toMatchObject({ output: { ok: true }, modelId: 'deepseek-test' });
+      expect(doGenerate).toHaveBeenCalledTimes(2);
+      expect(chat).toHaveBeenCalledWith(DEEPSEEK_MODEL);
+      expect(deepSeekGenerate).toHaveBeenCalledTimes(1);
+      expect(deepSeekGenerate.mock.calls[0][0].providerOptions).toMatchObject({
+        deepseek: { thinking: { type: 'disabled' } },
+      });
+      expect(log).toHaveBeenCalledWith(expect.stringMatching(/^deepseek deepseek-test brief@v2 /));
+    });
+
+    it('streams from DeepSeek when OpenAI fails before the first output', async () => {
+      jest.spyOn(Logger.prototype, 'log').mockImplementation();
+      doStream.mockImplementation(async () =>
+        streamOf([
+          { type: 'stream-start', warnings: [] },
+          { type: 'error', error: down() },
+        ]),
+      );
+      deepSeekStream.mockImplementation(async () =>
+        streamOf([
+          ...textParts('From ', 'DeepSeek'),
+          { type: 'finish', usage, finishReason: { unified: 'stop', raw: 'stop' } },
+        ]),
+      );
+
+      const deltas = await collect(new OpenAiService(withFallback).streamText('x', OPTIONS));
+
+      expect(deltas).toEqual(['From ', 'DeepSeek']);
+      expect(doStream).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not fall back on a request the provider rejects', async () => {
+      doGenerate.mockRejectedValue(apiError(false));
+
+      await expect(
+        new OpenAiService(withFallback).generateStructured('Hi', z.object({}), OPTIONS),
+      ).rejects.toEqual(new AssistantUnavailableException(false));
+      expect(doGenerate).toHaveBeenCalledTimes(1);
+      expect(deepSeekGenerate).not.toHaveBeenCalled();
+    });
+
+    it('keeps a call that names its model on that model, without fallback', async () => {
+      doGenerate.mockRejectedValue(down());
+
+      await expect(
+        new OpenAiService(withFallback).generateStructured('Hi', z.object({}), {
+          ...OPTIONS,
+          model: { provider: ModelProviderName.OpenAi, id: 'gpt-judge' },
+        }),
+      ).rejects.toEqual(new AssistantUnavailableException(true));
+      expect(deepSeekGenerate).not.toHaveBeenCalled();
+    });
+
+    it('calls a named Anthropic model at the temperature of the call', async () => {
+      jest.spyOn(Logger.prototype, 'log').mockImplementation();
+      anthropicGenerate.mockResolvedValue({ ...generated, response: { modelId: 'claude-test' } });
+
+      const result = await new OpenAiService(
+        configOf({ ANTHROPIC_API_KEY: 'sk-a' }),
+      ).generateStructuredResult('Hi', z.object({ ok: z.boolean() }), {
+        ...OPTIONS,
+        model: { provider: ModelProviderName.Anthropic, id: ANTHROPIC_MODEL },
+        temperature: 0,
+      });
+
+      expect(createAnthropic).toHaveBeenCalledWith({ apiKey: 'sk-a' });
+      expect(messages).toHaveBeenCalledWith(ANTHROPIC_MODEL);
+      expect(anthropicGenerate.mock.calls[0][0].temperature).toBe(0);
+      expect(result.modelId).toBe('claude-test');
+      expect(doGenerate).not.toHaveBeenCalled();
+    });
+
+    it('fails a call to a provider without a key as unavailable', async () => {
+      await expect(
+        new OpenAiService(openAiConfig).generateStructured('Hi', z.object({}), {
+          ...OPTIONS,
+          model: { provider: ModelProviderName.Anthropic, id: ANTHROPIC_MODEL },
+        }),
+      ).rejects.toBeInstanceOf(AssistantUnavailableException);
+    });
+
+    it('serves from DeepSeek alone when MODEL_PROVIDERS is deepseek', async () => {
+      jest.spyOn(Logger.prototype, 'log').mockImplementation();
+      deepSeekGenerate.mockResolvedValue(generated);
+
+      await new OpenAiService(
+        configOf({ MODEL_PROVIDERS: 'deepseek', DEEPSEEK_API_KEY: 'sk-ds' }),
+      ).generateStructured('Hi', z.object({ ok: z.boolean() }), OPTIONS);
+
+      expect(doGenerate).not.toHaveBeenCalled();
+    });
   });
 
   describe('streamWithTools', () => {
@@ -336,14 +524,16 @@ describe('OpenAiService', () => {
         }),
       );
 
-      expect(doStream.mock.calls[0][0].providerOptions).toEqual({
+      expect(doStream.mock.calls[0][0].providerOptions).toMatchObject({
         openai: { parallelToolCalls: false },
       });
     });
 
     it('never calls the model more than maxSteps times', async () => {
-      doStream.mockImplementation(async () =>
-        streamOf(toolCallParts(ChatToolName.SearchRecipes, { query: 'soup' })),
+      doStream.mockImplementation(async ({ toolChoice }) =>
+        toolChoice?.type === 'none'
+          ? answer('Done.')
+          : streamOf(toolCallParts(ChatToolName.SearchRecipes, { query: 'soup' })),
       );
 
       await collect(
@@ -491,7 +681,7 @@ describe('OpenAiService', () => {
         }),
       );
       expect(log).toHaveBeenCalledWith(
-        expect.stringMatching(/^gpt-test brief@v2 resp_2 stop in \d+ms, tokens: 12 in/),
+        expect.stringMatching(/^openai gpt-test brief@v2 resp_2 stop in \d+ms, tokens: 12 in/),
       );
     });
 
@@ -519,7 +709,7 @@ describe('OpenAiService', () => {
 
       await new OpenAiService(openAiConfig).generateStructured('Hi', schema, {
         ...OPTIONS,
-        model: 'gpt-judge',
+        model: { provider: ModelProviderName.OpenAi, id: 'gpt-judge' },
       });
 
       expect(responses).toHaveBeenCalledWith('gpt-judge');

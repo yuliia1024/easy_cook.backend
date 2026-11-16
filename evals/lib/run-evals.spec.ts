@@ -2,6 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { OpenAiService } from '../../src/providers/open-ai/open-ai.service';
+import { ModelProviderName } from '../../src/common/constants';
 import { AssistantUnavailableException } from '../../src/common/exceptions';
 import { createMock } from '../../src/test/create-mock';
 import { EvalArgs } from './args';
@@ -23,6 +24,7 @@ describe('runEvals', () => {
     saveBaseline: false,
     concurrency: 2,
     repeat: 1,
+    provider: ModelProviderName.OpenAi,
     ...overrides,
   });
   /**

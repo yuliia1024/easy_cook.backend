@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util';
+import { ModelProviderName } from '../../src/common/constants';
 
 export const DEFAULT_CONCURRENCY = 5;
 /** Runs of every case; the rates average them, so one lucky or unlucky answer moves them less. */
@@ -11,6 +12,11 @@ export interface EvalArgs {
   saveBaseline: boolean;
   concurrency: number;
   repeat: number;
+  /**
+   * The one provider the prompts run on, without fallback, so a result measures one model; the
+   * judge stays on OpenAI.
+   */
+  provider: ModelProviderName;
 }
 
 function positiveInteger(name: string, value: string): number {
@@ -21,7 +27,10 @@ function positiveInteger(name: string, value: string): number {
   return number;
 }
 
-/** `--suite intent[,other]` (repeatable), `--save-baseline`, `--concurrency 5`, `--repeat 3`. */
+/**
+ * `--suite intent[,other]` (repeatable), `--save-baseline`, `--concurrency 5`, `--repeat 3`,
+ * `--provider deepseek` (openai by default).
+ */
 export function parseEvalArgs(argv: string[], known: string[]): EvalArgs {
   const { values } = parseArgs({
     args: argv,
@@ -30,6 +39,7 @@ export function parseEvalArgs(argv: string[], known: string[]): EvalArgs {
       'save-baseline': { type: 'boolean', default: false },
       concurrency: { type: 'string', default: String(DEFAULT_CONCURRENCY) },
       repeat: { type: 'string', default: String(DEFAULT_REPEAT) },
+      provider: { type: 'string', default: ModelProviderName.OpenAi },
     },
     strict: true,
   });
@@ -42,10 +52,16 @@ export function parseEvalArgs(argv: string[], known: string[]): EvalArgs {
     throw new Error(`Unknown suite: ${unknown.join(', ')}. Known: ${known.join(', ')}`);
   }
 
+  const providers: string[] = Object.values(ModelProviderName);
+  if (!providers.includes(values.provider)) {
+    throw new Error(`Unknown provider: ${values.provider}. Known: ${providers.join(', ')}`);
+  }
+
   return {
     suites,
     saveBaseline: values['save-baseline'],
     concurrency: positiveInteger('concurrency', values.concurrency),
     repeat: positiveInteger('repeat', values.repeat),
+    provider: values.provider as ModelProviderName,
   };
 }

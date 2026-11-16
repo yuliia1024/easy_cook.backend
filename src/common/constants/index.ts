@@ -8,4 +8,5 @@ export * from './menu';
 export * from './chat';
 export * from './logger';
 export * from './open-ai';
+export * from './model-providers';
 export * from './chat-tools';

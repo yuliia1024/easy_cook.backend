@@ -12,11 +12,14 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { LogLevel } from '@nestjs/common';
-import { LOG_LEVELS } from '../common/constants';
+import { LOG_LEVELS, ModelProviderName } from '../common/constants';
 import { Environments } from '../common/types';
 
 /** `https://a.com, http://localhost:5173`: comma separated http(s) origins. */
 const ORIGIN_LIST = /^https?:\/\/[^\s,]+(\s*,\s*https?:\/\/[^\s,]+)*$/;
+const PROVIDER = `(${Object.values(ModelProviderName).join('|')})`;
+/** `openai, deepseek`: comma separated providers; a repeated one counts once. */
+const PROVIDER_LIST = new RegExp(`^${PROVIDER}(\\s*,\\s*${PROVIDER})*$`);
 
 /**
  * Every environment variable the application reads. Validated once on start-up by
@@ -54,9 +57,31 @@ export class Configs {
   @Matches(/^postgres(ql)?:\/\//, { message: 'DATABASE_URL must be a postgres connection url' })
   DATABASE_URL: string;
 
+  /** Required even without openai in `MODEL_PROVIDERS`: a call that names its model (the evals judge) runs on OpenAI. */
   @IsString()
   @IsNotEmpty()
   OPEN_AI_API_KEY: string;
+
+  /** The providers in the order they are tried (`openai` when unset); the first one serves. */
+  @IsOptional()
+  @Matches(PROVIDER_LIST, {
+    message: `MODEL_PROVIDERS must be comma separated providers: ${Object.values(ModelProviderName).join(', ')}`,
+  })
+  MODEL_PROVIDERS?: string;
+
+  @ValidateIf((configs: Configs) =>
+    (configs.MODEL_PROVIDERS ?? '').includes(ModelProviderName.DeepSeek),
+  )
+  @IsString()
+  @IsNotEmpty({ message: 'DEEPSEEK_API_KEY is required when MODEL_PROVIDERS has deepseek' })
+  DEEPSEEK_API_KEY?: string;
+
+  @ValidateIf((configs: Configs) =>
+    (configs.MODEL_PROVIDERS ?? '').includes(ModelProviderName.Anthropic),
+  )
+  @IsString()
+  @IsNotEmpty({ message: 'ANTHROPIC_API_KEY is required when MODEL_PROVIDERS has anthropic' })
+  ANTHROPIC_API_KEY?: string;
 
   /** Minimum level printed (`log` when unset); `debug` adds the SQL queries. */
   @IsOptional()

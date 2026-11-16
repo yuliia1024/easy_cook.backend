@@ -193,15 +193,23 @@ from the description (`raw`, `boiled`, `dry`...). Names are English (`name` = `n
 
 ## Evals
 
-Prompt quality measured on the real model (`OPEN_AI_API_KEY`, costs money: the intent and
-menu-plan suites are ~$0.02 a run each). Not part of `npm test` or CI; run it before and after a prompt change.
+Prompt quality measured on the real model (`OPEN_AI_API_KEY`, `ANTHROPIC_API_KEY` for the judge,
+costs money: the intent and menu-plan suites are ~$0.02 a run each). Not part of `npm test` or CI;
+run it before and after a prompt change, on OpenAI and on the DeepSeek fallback.
 
 ```bash
 npm run eval                                   # every suite, compared with its baseline
 npm run eval -- --suite intent                 # one suite (comma separated or repeated)
 npm run eval -- --suite intent --save-baseline # record the current result as the baseline
 npm run eval -- --repeat 1 --concurrency 3     # runs per case (3 by default), parallel calls (5)
+npm run eval -- --provider deepseek            # the fallback model (DEEPSEEK_API_KEY)
 ```
+
+- A run measures one provider without fallback (`--provider`, openai by default). The baselines of
+  OpenAI are in `evals/baselines/`, of a fallback in `evals/baselines/<provider>/`.
+- The models are pinned: `gpt-4o-mini-2024-07-18`, `deepseek-flash` (DeepSeek has no dated
+  snapshots; its baseline catches a change) and the judge `claude-haiku-4-5-20251001` at
+  temperature 0 (`evals/lib/judge.ts`).
 
 - `evals/suites/<name>/cases.jsonl` - one case per line: `id`, `tags`, the input and `expected`.
   `evals/suites/<name>/<name>.suite.ts` runs a case through the same code the app uses and scores
