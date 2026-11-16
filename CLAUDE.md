@@ -38,6 +38,11 @@ repository. Layout:
   calls and tokens summed over the request (`recordModelCall` in the request context), tool calls.
   `OpenAiService` logs every step of a tool loop with its timing and every unfinished (aborted /
   failed) call; the registry logs every tool run with its call id and time, never its arguments.
+- Agent runs (`modules/services/agent-run/`, table `agent_runs`): the audit log of the chat agent,
+  one row per user message written in the orchestrator's `finally` whatever the outcome (a write
+  tool in a failed reply is on record too): request id, user / reply message, outcome, timings,
+  tokens, `ModelCallRecord[]` and `ChatToolCall[]` with tool call ids. Kept when the conversation
+  is deleted (ids set null); only added, never updated. A failed write is logged, never fails the reply.
 - `src/entrypoints/api/<name>-controller/` - controller, controller service (orchestrates the flow,
   maps to response DTOs with `static from()`), DTOs.
 - `prisma/schema/*.prisma` (one file per domain) + `prisma/migrations/` - create migrations with `NAME=... npm run migration:create`

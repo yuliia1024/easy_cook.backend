@@ -111,6 +111,7 @@ describe('chat tool registry', () => {
     expect(execute).toHaveBeenCalledWith({ query: 'soup', limit: null }, abort.signal);
     expect(run.calls).toEqual([
       {
+        toolCallId: 'call_1',
         name: ChatToolName.SearchRecipes,
         input: { query: 'soup', limit: null },
         output: { recipes: [] },
@@ -153,6 +154,7 @@ describe('chat tool registry', () => {
     expect(execute).not.toHaveBeenCalled();
     expect(run.calls).toEqual([
       {
+        toolCallId: 'call_1',
         name: ChatToolName.SearchRecipes,
         input: { query: '', limit: 1.5 },
         output: expect.objectContaining({ error: ChatToolErrorCode.InvalidArguments }),

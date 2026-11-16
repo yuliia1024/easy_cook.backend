@@ -69,7 +69,14 @@ describe('ChatTrace', () => {
   });
 
   it('counts the tool calls even when disabled, and traces them when enabled', () => {
-    const call = { name: 'search_recipes', input: {}, output: {}, error: null, durationMs: 3 };
+    const call = {
+      toolCallId: 'call_1',
+      name: 'search_recipes',
+      input: {},
+      output: {},
+      error: null,
+      durationMs: 3,
+    };
     const disabled = new ChatTrace(false, 'conv-1', 'Hi');
     const enabled = new ChatTrace(true, 'conv-1', 'Hi');
 

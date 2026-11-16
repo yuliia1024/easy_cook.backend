@@ -32,6 +32,7 @@ describe('chat-tools suite', () => {
     input: { request: 'Plan a menu.', menuRequest: { ...EMPTY_MENU_REQUEST, days } },
   });
   const toolCall = (name: ChatToolName, error: ChatToolErrorCode | null): ChatToolCall => ({
+    toolCallId: 'call_1',
     name,
     input: {},
     output: {},

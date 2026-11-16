@@ -36,6 +36,7 @@ describe('ConversationService', () => {
   beforeEach(() => {
     repository = createMock<ConversationRepository>();
     repository.findById.mockResolvedValue(conversation);
+    repository.addMessage.mockResolvedValue(buildMessage({ id: 'msg-new' }));
     const profileService = createMock<UserProfileService>();
     profileService.getCurrent.mockResolvedValue(buildProfile());
     menuService = createMock<MenuService>();
@@ -172,8 +173,10 @@ describe('ConversationService', () => {
   });
 
   describe('addUserMessage', () => {
-    it('saves the message and titles a new conversation after its first line', async () => {
-      await service.addUserMessage(buildConversation(), 'Hi\nsecond line');
+    it('saves the message, returns its id and titles a new conversation after its first line', async () => {
+      await expect(service.addUserMessage(buildConversation(), 'Hi\nsecond line')).resolves.toBe(
+        'msg-new',
+      );
 
       expect(repository.addMessage).toHaveBeenCalledWith(CONVERSATION_ID, {
         role: MessageRole.User,
@@ -200,7 +203,9 @@ describe('ConversationService', () => {
   });
 
   it('saves an assistant message with the menu version it suggests', async () => {
-    await service.addAssistantMessage(CONVERSATION_ID, 'Hello', { menuVersionId: MENU_VERSION_ID });
+    await expect(
+      service.addAssistantMessage(CONVERSATION_ID, 'Hello', { menuVersionId: MENU_VERSION_ID }),
+    ).resolves.toBe('msg-new');
 
     expect(repository.addMessage).toHaveBeenCalledWith(CONVERSATION_ID, {
       role: MessageRole.Assistant,
@@ -213,6 +218,7 @@ describe('ConversationService', () => {
   it('saves the tool calls the model made for a reply, in order', async () => {
     const toolCalls = [
       {
+        toolCallId: 'call_1',
         name: 'search_recipes',
         input: { query: 'soup' },
         output: { recipes: [] },
@@ -220,6 +226,7 @@ describe('ConversationService', () => {
         durationMs: 12,
       },
       {
+        toolCallId: 'call_2',
         name: 'save_menu',
         input: {},
         output: { error: 'not_found', message: 'No menu' },

@@ -19,9 +19,10 @@ model Conversation {
   createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  profile  UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  menu     Menu?       @relation(fields: [menuId], references: [id], onDelete: SetNull)
-  messages Message[]
+  profile   UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  menu      Menu?       @relation(fields: [menuId], references: [id], onDelete: SetNull)
+  messages  Message[]
+  agentRuns AgentRun[]
 
   @@index([profileId, updatedAt(sort: Desc)])
   @@index([menuId])
@@ -30,21 +31,25 @@ model Conversation {
 
 /// Never updated.
 model Message {
-  id             String   @id @default(uuid()) @db.Uuid
-  conversationId String   @map("conversation_id") @db.Uuid
+  id               String   @id @default(uuid()) @db.Uuid
+  conversationId   String   @map("conversation_id") @db.Uuid
   /// `MessageRole`: user | assistant
-  role           String   @db.VarChar(16)
-  content        String
+  role             String   @db.VarChar(16)
+  content          String
   /// The menu version an assistant action created with this message; the menu it suggested.
-  menuVersionId  String?  @map("menu_version_id") @db.Uuid
+  menuVersionId    String?  @map("menu_version_id") @db.Uuid
   /// The change of the dietary preferences the assistant proposed with this reply
   /// (`PreferenceChange`); applied only once the user confirms it, while it is the latest reply.
-  preferenceChange Json? @map("preference_change")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  preferenceChange Json?    @map("preference_change")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  menuVersion  MenuVersion? @relation(fields: [menuVersionId], references: [id], onDelete: SetNull)
-  toolCalls    MessageToolCall[]
+  conversation     Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  menuVersion      MenuVersion?      @relation(fields: [menuVersionId], references: [id], onDelete: SetNull)
+  toolCalls        MessageToolCall[]
+  /// The run this user message set off.
+  agentRunsAsked   AgentRun[]        @relation("AgentRunUserMessage")
+  /// The run that saved this reply.
+  agentRunsReplied AgentRun[]        @relation("AgentRunReply")
 
   @@index([conversationId, createdAt])
   @@index([menuVersionId])
@@ -72,4 +77,46 @@ model MessageToolCall {
 
   @@unique([messageId, position])
   @@map("message_tool_calls")
+}
+
+/// The audit log of the chat agent: one run per user message, saved when it ends whatever the
+/// outcome, so a tool that changed data in a reply that then failed or was aborted is on record too.
+/// Kept when its conversation is deleted (the ids become null); never updated.
+model AgentRun {
+  id                       String   @id @default(uuid()) @db.Uuid
+  /// `x-request-id` of the request: the log lines of the run.
+  requestId                String?  @map("request_id") @db.VarChar(128)
+  conversationId           String?  @map("conversation_id") @db.Uuid
+  /// Null when the message was not saved (the conversation limit).
+  userMessageId            String?  @map("user_message_id") @db.Uuid
+  /// Null when no reply was saved.
+  replyMessageId           String?  @map("reply_message_id") @db.Uuid
+  /// `ChatTraceOutcome`
+  outcome                  String   @db.VarChar(32)
+  durationMs               Int      @map("duration_ms")
+  /// Since the message came in; null when no text was sent.
+  firstTextMs              Int?     @map("first_text_ms")
+  modelCallCount           Int      @map("model_call_count")
+  /// Aborted or failed before the provider reported the tokens: not in the token counts.
+  unfinishedModelCallCount Int      @map("unfinished_model_call_count")
+  inputTokens              Int      @map("input_tokens")
+  cachedInputTokens        Int      @map("cached_input_tokens")
+  outputTokens             Int      @map("output_tokens")
+  toolCallCount            Int      @map("tool_call_count")
+  failedToolCallCount      Int      @map("failed_tool_call_count")
+  /// `ModelCallRecord[]`: every model response in order, with its prompt version and provider.
+  modelCalls               Json     @map("model_calls")
+  /// `ChatToolCall[]` in order, with the tool call ids: the arguments and results the model saw.
+  toolCalls                Json     @map("tool_calls")
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  userMessage  Message?      @relation("AgentRunUserMessage", fields: [userMessageId], references: [id], onDelete: SetNull)
+  replyMessage Message?      @relation("AgentRunReply", fields: [replyMessageId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+  @@index([createdAt])
+  @@index([userMessageId])
+  @@index([replyMessageId])
+  @@map("agent_runs")
 }

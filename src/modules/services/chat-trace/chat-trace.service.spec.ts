@@ -54,7 +54,15 @@ describe('ChatTraceService', () => {
       trace.add(ChatTraceStep.Intent, { intent: 'generate_menu' });
       recordCalls();
 
-      service.finish(trace, ChatTraceOutcome.Replied);
+      const report = service.finish(trace, ChatTraceOutcome.Replied);
+
+      expect(report).toEqual({
+        summary: expect.objectContaining({ outcome: ChatTraceOutcome.Replied, modelCalls: 2 }),
+        modelCalls: [
+          expect.objectContaining({ prompt: 'intent@v1' }),
+          expect.objectContaining({ prompt: 'chat@v1' }),
+        ],
+      });
     });
 
     expect(service.enabled).toBe(true);
