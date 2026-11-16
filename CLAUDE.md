@@ -32,8 +32,12 @@ repository. Layout:
   A running read tool streams a `status` step (`CHAT_TOOL_STATUS`).
 - Chat trace (`modules/services/chat-trace/`): with `ENV=local` every chat message is logged once,
   when the reply ends, as one JSON (`ChatTraceRecord`): request, context, intent, menu request,
-  route, tool calls with input/output, menu plan, events, saved reply or error. Elsewhere it is off
-  (user messages stay out of shared logs). New steps of the chain go into `ChatTraceStep`.
+  route, tool calls with input/output, menu plan, model calls, events, saved reply or error. Elsewhere it is off
+  (user messages stay out of shared logs). New steps of the chain go into `ChatTraceStep`. In every
+  environment each message ends with one summary line (`ChatReplySummary`): time, first text, model
+  calls and tokens summed over the request (`recordModelCall` in the request context), tool calls.
+  `OpenAiService` logs every step of a tool loop with its timing and every unfinished (aborted /
+  failed) call; the registry logs every tool run with its call id and time, never its arguments.
 - `src/entrypoints/api/<name>-controller/` - controller, controller service (orchestrates the flow,
   maps to response DTOs with `static from()`), DTOs.
 - `prisma/schema/*.prisma` (one file per domain) + `prisma/migrations/` - create migrations with `NAME=... npm run migration:create`

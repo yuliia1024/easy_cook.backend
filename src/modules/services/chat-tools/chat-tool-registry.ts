@@ -137,6 +137,19 @@ export function toChatToolError(error: unknown, logger: Logger): ChatToolError {
   return { error: ChatToolErrorCode.Failed, message: CHAT_TOOL_FAILED_MESSAGE };
 }
 
+/**
+ * One line per tool run: its call id (the one of the model's `called` line), time, and the size of
+ * the result or the error code. Never the arguments or the result: they hold what the user wrote.
+ */
+function logToolCall(logger: Logger, call: ChatToolCall, toolCallId: string): void {
+  const line = `Chat tool ${call.name} (${toolCallId})`;
+  if (call.error) {
+    logger.warn(`${line} returned ${call.error} in ${call.durationMs}ms`);
+  } else {
+    logger.log(`${line} ok in ${call.durationMs}ms, ${JSON.stringify(call.output).length} chars`);
+  }
+}
+
 /** Why a write tool may not run now, or null: once per reply, not after a service call or `notAfter`. */
 function writeRejection(chatTool: WriteChatTool<unknown>, run: ChatToolRun): string | null {
   if (run.writes.has(chatTool.name)) {
@@ -215,9 +228,9 @@ export function toToolSet(tools: ChatTool[], run: ChatToolRun, logger: Logger): 
         inputSchema: jsonSchema<unknown>(
           z.toJSONSchema(chatTool.inputSchema, { target: 'draft-07', io: 'input' }) as JSONSchema7,
         ),
-        execute: async (args: unknown, { abortSignal }): Promise<object> => {
+        execute: async (args: unknown, { abortSignal, toolCallId }): Promise<object> => {
           run.listener.onToolStart?.(chatTool.name);
-          const startedAt = Date.now();
+          const startedAt = performance.now();
           const result = await call(chatTool, args, abortSignal);
           const error = 'error' in result ? (result as ChatToolError).error : null;
           const record: ChatToolCall = {
@@ -225,13 +238,11 @@ export function toToolSet(tools: ChatTool[], run: ChatToolRun, logger: Logger): 
             input: args,
             output: result,
             error,
-            durationMs: Date.now() - startedAt,
+            durationMs: Math.round(performance.now() - startedAt),
           };
           run.calls.push(record);
           run.listener.onToolEnd?.(record);
-          if (error) {
-            logger.warn(`Chat tool ${chatTool.name} returned ${error}`);
-          }
+          logToolCall(logger, record, toolCallId);
           return result;
         },
       },

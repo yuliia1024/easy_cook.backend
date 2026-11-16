@@ -191,12 +191,14 @@ export class ChatOrchestratorService {
     try {
       for await (const event of this.route(conversation, content, signal, trace, toolCalls)) {
         if (event.type === ChatStreamEventType.TextDelta) {
+          trace.textSent();
           reply += textEnded && reply ? `${TEXT_PART_SEPARATOR}${event.content}` : event.content;
           textEnded = false;
         } else {
           textEnded = TEXT_PART_BREAKS.has(event.type);
           trace.add(ChatTraceStep.Event, traceEvent(event));
           if (event.type === ChatStreamEventType.Clarification) {
+            trace.textSent();
             reply += event.message;
           } else if (event.type === ChatStreamEventType.MenuReady) {
             menu = event;
@@ -386,7 +388,7 @@ export class ChatOrchestratorService {
       abortSignal,
       (call) => {
         toolCalls.push(call);
-        trace.add(ChatTraceStep.ToolCall, call);
+        trace.addToolCall(call);
       },
     );
     for (;;) {

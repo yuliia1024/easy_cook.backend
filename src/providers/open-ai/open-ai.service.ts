@@ -13,6 +13,7 @@ import {
   NoObjectGeneratedError,
   Output,
   RetryError,
+  StepResultPerformance,
   streamText,
   ToolSet,
   TypeValidationError,
@@ -32,7 +33,14 @@ import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
 } from '../../common/exceptions';
-import { ModelCallInfo, ModelPrompt, ModelRef, ModelUsage } from '../../common/types';
+import { recordModelCall } from '../../common/logger';
+import {
+  ModelCallInfo,
+  ModelCallRecord,
+  ModelPrompt,
+  ModelRef,
+  ModelUsage,
+} from '../../common/types';
 import { promptLabel } from '../../common/utils';
 import { ModelProvidersConfigService } from '../../configs/model-providers-config/model-providers-config.service';
 import { ModelFallback, ModelRoute } from './model-fallback';
@@ -109,6 +117,22 @@ interface StepSummary {
   usage: LanguageModelUsage;
 }
 
+/** Where a step of a tool loop sits in the call, and where its time went (`finish-step`). */
+interface StepTiming {
+  /** From 1. */
+  step: number;
+  /** Since the call started. */
+  startedAtMs: number;
+  /** Since the step before ended; null for the first step. */
+  gapMs: number | null;
+  performance: StepResultPerformance;
+}
+
+/** How a call that never reached its `finish-step` or response ended. */
+type UnfinishedReason = 'aborted' | 'failed';
+
+const elapsedSince = (startedAt: number): number => Math.round(performance.now() - startedAt);
+
 /**
  * The only place that calls an LLM API (AI SDK): models, timeouts, retries and fallback, token
  * limits, error mapping and logging. Every call goes to the first of `MODEL_PROVIDERS` (OpenAI
@@ -169,7 +193,7 @@ export class OpenAiService {
     input: ModelInput,
     { tools, maxSteps, isDone, ...options }: ToolLoopOptions,
   ): Promise<ModelResult<string>> {
-    const startedAt = Date.now();
+    const startedAt = performance.now();
     try {
       const model = this.model(options);
       const result = await generateText({
@@ -184,12 +208,12 @@ export class OpenAiService {
         rawFinishReason: result.rawFinishReason,
         usage: result.totalUsage,
       };
-      this.logSummary(options.prompt, step, startedAt);
+      this.logSummary(options.prompt, step, elapsedSince(startedAt));
       return {
         output: result.text,
         modelId: step.modelId,
         usage: toModelUsage(result.totalUsage),
-        latencyMs: Date.now() - startedAt,
+        latencyMs: elapsedSince(startedAt),
       };
     } catch (error) {
       throw this.toAssistantError(error, options.abortSignal);
@@ -215,15 +239,26 @@ export class OpenAiService {
     };
   }
 
+  /**
+   * Logs every step of the loop with its timing (`StepTiming`) and every tool the model called; a
+   * step that never finishes (aborted, failed, or the caller stopped reading) is logged too, with
+   * its time and unknown tokens.
+   */
   private async *stream(
     input: ModelInput,
     options: ModelCallOptions,
     toolSettings: ToolLoopSettings | Record<string, never>,
   ): AsyncGenerator<string> {
-    const startedAt = Date.now();
-    let firstDeltaAt: number | null = null;
+    const label = promptLabel(options.prompt);
+    const startedAt = performance.now();
+    let model: ModelFallback | undefined;
+    let step = 1;
+    let stepStartedAt = startedAt;
+    let lastStepEndedAt: number | null = null;
+    let finished = false;
+    let failed = false;
     try {
-      const model = this.model(options);
+      model = this.model(options);
       const result = streamText({
         ...this.callSettings(input, options, model),
         ...toolSettings,
@@ -233,11 +268,12 @@ export class OpenAiService {
 
       for await (const part of result.stream) {
         if (part.type === 'text-delta') {
-          firstDeltaAt ??= Date.now();
           yield part.text;
         } else if (part.type === 'tool-call') {
-          this.logger.log(`${promptLabel(options.prompt)} called ${part.toolName}`);
+          this.logger.log(`${label} step ${step} called ${part.toolName} (${part.toolCallId})`);
         } else if (part.type === 'finish-step') {
+          const endedAt = performance.now();
+          const stepStart = Math.max(endedAt - part.performance.stepTimeMs, startedAt);
           this.logSummary(
             options.prompt,
             {
@@ -248,15 +284,33 @@ export class OpenAiService {
               rawFinishReason: part.rawFinishReason,
               usage: part.usage,
             },
-            startedAt,
-            firstDeltaAt,
+            part.performance.stepTimeMs,
+            {
+              step,
+              startedAtMs: Math.round(stepStart - startedAt),
+              gapMs:
+                lastStepEndedAt === null
+                  ? null
+                  : Math.round(Math.max(stepStart - lastStepEndedAt, 0)),
+              performance: part.performance,
+            },
           );
+          lastStepEndedAt = endedAt;
+          step += 1;
+          stepStartedAt = endedAt;
+        } else if (part.type === 'finish') {
+          finished = true;
         } else if (part.type === 'error') {
           throw part.error;
         }
       }
     } catch (error) {
+      failed = !options.abortSignal?.aborted;
       throw this.toAssistantError(error, options.abortSignal);
+    } finally {
+      if (!finished) {
+        this.logUnfinished(label, model?.served[step - 1], step, stepStartedAt, failed);
+      }
     }
   }
 
@@ -279,13 +333,16 @@ export class OpenAiService {
     schema: z.ZodType<T>,
     options: ModelCallOptions,
   ): Promise<ModelResult<T>> {
-    const startedAt = Date.now();
+    const startedAt = performance.now();
+    let model: ModelFallback | undefined;
+    let responded = false;
     try {
-      const model = this.model(options);
+      model = this.model(options);
       const result = await generateText({
         ...this.callSettings(input, options, model),
         output: Output.object({ schema }),
       });
+      responded = true;
       const step: StepSummary = {
         modelId: result.finalStep.response.modelId,
         provider: model.served.at(-1) ?? 'unknown',
@@ -294,15 +351,27 @@ export class OpenAiService {
         rawFinishReason: result.rawFinishReason,
         usage: result.usage,
       };
-      this.logSummary(options.prompt, step, startedAt);
+      this.logSummary(options.prompt, step, elapsedSince(startedAt));
       const call: ModelCallInfo = { modelId: step.modelId, usage: toModelUsage(result.usage) };
       const parsed = schema.safeParse(result.output);
       if (!parsed.success) {
         this.logger.error(`Model call failed: ${parsed.error.message}`);
         throw new AssistantInvalidOutputException(call);
       }
-      return { ...call, output: parsed.data, latencyMs: Date.now() - startedAt };
+      return { ...call, output: parsed.data, latencyMs: elapsedSince(startedAt) };
     } catch (error) {
+      if (!responded) {
+        this.logUnfinished(
+          promptLabel(options.prompt),
+          model?.served.at(-1),
+          1,
+          startedAt,
+          !options.abortSignal?.aborted,
+          NoObjectGeneratedError.isInstance(error) && error.usage
+            ? toModelUsage(error.usage)
+            : null,
+        );
+      }
       throw this.toAssistantError(error, options.abortSignal);
     }
   }
@@ -373,12 +442,16 @@ export class OpenAiService {
     );
   }
 
-  /** Provider, model, prompt version, outcome, timings and token usage of a finished response. */
+  /**
+   * Logs a finished response - provider, model, prompt version, outcome, time and tokens; for a
+   * step of a stream also its place in the loop, the wait since the step before, the model's time,
+   * its first output and the tools - and records it for the request (`recordModelCall`).
+   */
   private logSummary(
     prompt: ModelPrompt,
     step: StepSummary,
-    startedAt: number,
-    firstDeltaAt?: number | null,
+    durationMs: number,
+    timing?: StepTiming,
   ): void {
     const { usage } = step;
     const tokens =
@@ -387,18 +460,75 @@ export class OpenAiService {
         : `tokens: ${usage.inputTokens} in (${usage.inputTokenDetails.cacheReadTokens ?? 0} cached)` +
           ` + ${usage.outputTokens} out (${usage.outputTokenDetails.reasoningTokens ?? 0} reasoning)` +
           ` = ${usage.totalTokens}`;
-    const firstDelta =
-      firstDeltaAt === undefined
-        ? ''
-        : ` (first text after ${firstDeltaAt === null ? 'none' : `${firstDeltaAt - startedAt}ms`})`;
+    const label = promptLabel(prompt);
     const summary =
-      `${step.provider} ${step.modelId} ${promptLabel(prompt)} ${step.responseId} ${step.finishReason} in ${Date.now() - startedAt}ms` +
-      `${firstDelta}, ${tokens}`;
+      `${step.provider} ${step.modelId} ${label}${timing ? ` step ${timing.step}` : ''} ` +
+      `${step.responseId} ${step.finishReason} in ${Math.round(durationMs)}ms` +
+      `${timing ? ` (${describeTiming(timing)})` : ''}, ${tokens}`;
 
     if (step.finishReason === 'stop' || step.finishReason === 'tool-calls') {
       this.logger.log(summary);
     } else {
       this.logger.warn(`${summary}; reason: ${step.rawFinishReason ?? step.finishReason}`);
     }
+    recordModelCall({
+      prompt: label,
+      provider: step.provider,
+      modelId: step.modelId,
+      step: timing?.step ?? 1,
+      durationMs: Math.round(durationMs),
+      usage: usage.totalTokens === undefined ? null : toModelUsage(usage),
+      finishReason: step.finishReason,
+    });
   }
+
+  /**
+   * A call or step that ended before its response: aborted (the caller's signal, or the caller
+   * stopped reading the stream) or failed. Its tokens are unknown unless the error reports them,
+   * though the provider may bill them.
+   */
+  private logUnfinished(
+    label: string,
+    provider: string | undefined,
+    step: number,
+    startedAt: number,
+    failed: boolean,
+    usage: ModelUsage | null = null,
+  ): void {
+    const reason: UnfinishedReason = failed ? 'failed' : 'aborted';
+    const durationMs = elapsedSince(startedAt);
+    const tokens = usage
+      ? `tokens: ${usage.inputTokens} in (${usage.cachedInputTokens} cached) + ${usage.outputTokens} out`
+      : 'tokens: unknown';
+    this.logger.warn(
+      `${provider ?? 'no provider'} ${label} step ${step} ${reason} after ${durationMs}ms, ${tokens}`,
+    );
+    const record: ModelCallRecord = {
+      prompt: label,
+      provider: provider ?? 'none',
+      modelId: 'unknown',
+      step,
+      durationMs,
+      usage,
+      finishReason: reason,
+    };
+    recordModelCall(record);
+  }
+}
+
+/** `at 1450ms, 12ms after the step before; model 830ms, first output after 300ms; tools 40ms`. */
+function describeTiming({ startedAtMs, gapMs, performance: perf }: StepTiming): string {
+  const parts = [
+    `at ${startedAtMs}ms${gapMs === null ? '' : `, ${gapMs}ms after the step before`}`,
+  ];
+  const firstOutput =
+    perf.timeToFirstOutputMs === undefined
+      ? ''
+      : `, first output after ${Math.round(perf.timeToFirstOutputMs)}ms`;
+  parts.push(`model ${Math.round(perf.responseTimeMs)}ms${firstOutput}`);
+  const toolsMs = Object.values(perf.toolExecutionMs).reduce((sum, ms) => sum + ms, 0);
+  if (toolsMs > 0 || Object.keys(perf.toolExecutionMs).length > 0) {
+    parts.push(`tools ${Math.round(toolsMs)}ms`);
+  }
+  return parts.join('; ');
 }

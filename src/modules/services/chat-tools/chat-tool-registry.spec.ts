@@ -68,6 +68,7 @@ describe('chat tool registry', () => {
     jest.restoreAllMocks();
     execute.mockReset();
     write.mockReset();
+    jest.spyOn(logger, 'log').mockImplementation();
     jest.spyOn(logger, 'warn').mockImplementation();
     jest.spyOn(logger, 'error').mockImplementation();
     run = new ChatToolRun();
@@ -117,6 +118,28 @@ describe('chat tool registry', () => {
         durationMs: expect.any(Number),
       },
     ]);
+  });
+
+  it('logs a tool run with its call id, time and the size of the result, never the arguments', async () => {
+    execute.mockResolvedValue({ recipes: [] });
+
+    await call(ChatToolName.SearchRecipes, { query: 'secret soup', limit: null });
+
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.stringMatching(/^Chat tool search_recipes \(call_1\) ok in \d+ms, 14 chars$/),
+    );
+    expect(JSON.stringify((logger.log as jest.Mock).mock.calls)).not.toContain('secret');
+  });
+
+  it('warns with the error code and time of a tool run that failed', async () => {
+    await call(ChatToolName.SearchRecipes, { query: '', limit: null });
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^Chat tool search_recipes \(call_1\) returned invalid_arguments in \d+ms$/,
+      ),
+    );
+    expect(logger.log).not.toHaveBeenCalled();
   });
 
   it('returns invalid arguments to the model with the issues, without running the tool', async () => {
