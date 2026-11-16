@@ -10,6 +10,7 @@ import {
   MESSAGE_MAX_LENGTH,
   MessageRole,
 } from '../../../src/common/constants';
+import { PreferenceChangeSchema } from '../../../src/common/contracts';
 import { ChatServiceCall, ProfileContext } from '../../../src/common/types';
 import {
   ChatToolCall,
@@ -70,6 +71,8 @@ export const ChatToolsCaseSchema = EvalCaseSchema.extend({
           .string()
           .min(1)
           .max(MESSAGE_MAX_LENGTH * 4),
+        /** The change an assistant reply proposed, as the app saves it with the reply. */
+        preferenceChange: PreferenceChangeSchema.optional(),
       }),
     )
     .min(1)

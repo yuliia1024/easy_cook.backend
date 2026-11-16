@@ -33,17 +33,19 @@ describe('FoodItemRepository', () => {
       });
     });
 
-    it('searches both names case-insensitively and filters by state and source', async () => {
+    it('searches every word in both names case-insensitively and filters by state and source', async () => {
       await repository.findPage(
-        { search: 'rice', state: 'boiled', source: 'seed' },
+        { search: 'Boiled rice', state: 'boiled', source: 'seed' },
         { page: 1, limit: 10, sortOrder: SortOrder.Asc },
       );
 
       const where = {
-        OR: [
-          { name: { contains: 'rice', mode: QueryMode.Insensitive } },
-          { nameEn: { contains: 'rice', mode: QueryMode.Insensitive } },
-        ],
+        AND: ['boiled', 'rice'].map((word) => ({
+          OR: [
+            { name: { contains: word, mode: QueryMode.Insensitive } },
+            { nameEn: { contains: word, mode: QueryMode.Insensitive } },
+          ],
+        })),
         state: 'boiled',
         source: 'seed',
       };

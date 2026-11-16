@@ -1,13 +1,14 @@
 import { ModelMessage } from 'ai';
-import { MessageRole } from '../../../common/constants';
+import { MessageRole, MODEL_PREFERENCE_CHANGE_MARKER } from '../../../common/constants';
 import { MenuComposition } from '../../../common/types';
 import { estimateTokens } from '../../../common/utils';
 import { MessageWithMenu } from '../../data-access/conversation/conversation.repository';
 import { toModelMenu } from './model-menu';
+import { pendingPreferenceChange } from './pending-preference-change';
 
 /** A saved message as the model reads it; the evals pass only the role and the text. */
 export type ModelHistoryMessage = Pick<MessageWithMenu, 'role' | 'content'> &
-  Partial<Pick<MessageWithMenu, 'menuVersionId' | 'menuVersion'>>;
+  Partial<Pick<MessageWithMenu, 'menuVersionId' | 'menuVersion' | 'preferenceChange'>>;
 
 /** The menu of the version the message suggested; a snapshot without days is not one. */
 function suggestedMenu(message: ModelHistoryMessage): MenuComposition | null {
@@ -16,9 +17,10 @@ function suggestedMenu(message: ModelHistoryMessage): MenuComposition | null {
 }
 
 /**
- * Saved messages as the model reads them, in the same order: role and text, and the latest menu an
- * assistant reply suggested, compactly after its text (`toModelMenu`). Earlier menus stay out to
- * save tokens; a revision changes the latest one.
+ * Saved messages as the model reads them, in the same order: role and text, the latest menu an
+ * assistant reply suggested, compactly after its text (`toModelMenu`), and the preference change
+ * waiting for the user's yes after the latest reply (`pendingPreferenceChange`). Earlier menus
+ * stay out to save tokens; a revision changes the latest one.
  */
 export function toModelMessages(messages: ModelHistoryMessage[]): ModelMessage[] {
   const texts = modelTexts(messages);
@@ -53,14 +55,26 @@ export function fitHistory<T extends ModelHistoryMessage>(messages: T[], maxToke
   return messages.slice(start);
 }
 
-/** The text of each message as the model reads it: the latest suggested menu after its reply. */
+/**
+ * The text of each message as the model reads it: the latest suggested menu after its reply, and
+ * the pending preference change after the latest reply (`MODEL_PREFERENCE_CHANGE_MARKER`).
+ */
 function modelTexts(messages: ModelHistoryMessage[]): string[] {
+  const isAssistant = messages.map(({ role }) => role === MessageRole.Assistant);
   const latestMenuIndex = messages
-    .map((message) => message.role === MessageRole.Assistant && suggestedMenu(message) !== null)
+    .map((message, index) => isAssistant[index] && suggestedMenu(message) !== null)
     .lastIndexOf(true);
+  const change = pendingPreferenceChange(messages);
+  const changeIndex = change ? isAssistant.lastIndexOf(true) : -1;
   return messages.map((message, index) => {
     const menu = index === latestMenuIndex ? suggestedMenu(message) : null;
     const modelMenu = menu && toModelMenu(menu, message.menuVersionId ?? null);
-    return modelMenu ? `${message.content}\n\n${modelMenu}` : message.content;
+    const parts = [message.content, modelMenu];
+    if (change && index === changeIndex) {
+      parts.push(
+        `${MODEL_PREFERENCE_CHANGE_MARKER} ${change.action} ${change.preferenceType}: ${change.value}`,
+      );
+    }
+    return parts.filter(Boolean).join('\n\n');
   });
 }

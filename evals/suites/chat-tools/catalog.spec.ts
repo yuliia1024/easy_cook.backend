@@ -67,6 +67,14 @@ describe('chat-tools eval catalog', () => {
     expect(foods.get(CATALOG_FOODS.rice.id)).toBe(CATALOG_FOODS.rice);
   });
 
+  it('finds foods by every word of the search, in any order, like the repository', async () => {
+    const { items } = await catalogFoodItemService.getPage(
+      { search: 'boiled white rice' },
+      firstPage,
+    );
+    expect(items.map(({ id }) => id)).toEqual([CATALOG_FOODS.rice.id]);
+  });
+
   it('runs the real chat tools on the catalog, with the nutrition the cases expect', async () => {
     const tools = catalogChatTools();
 

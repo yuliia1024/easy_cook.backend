@@ -4,16 +4,98 @@ Menu planner API. NestJS 12 monolith · Prisma 7 (`pg` driver adapter) · Postgr
 Structure: `configs/`, `common/`, `providers/`, `modules/data-access`, `modules/services`, `entrypoints/api`.
 The web app lives in its own repository.
 
-Single user, no auth, local run. Menus can be read, renamed, deleted and confirmed; the API does
-not create menus or add versions. The chat classifies each message with the recent history (OpenAI
-structured output) and routes it: small talk streams an OpenAI reply, unrelated requests and vague
-menu requests get fixed replies, and a menu request, restated from the conversation, reaches the
-menu planner. Every day of a menu has a breakfast, a lunch, a snack and a dinner, in that order (25 / 35 /
-10 / 30 % of the daily calories). The planner offers the model the candidates of each meal (the recipes
-closest to the meal's share of the daily calories, rotated, by short ids such as `b1` or `s2`) for
-the 1-7 days asked for; a plan with other days, unknown ids or errors of `validateMenu` goes back to the model with
-its problems, up to `MENU_PLAN_MAX_ATTEMPTS` calls, and then the chat shows that the menu failed.
-Tool calling and RAG are the next stage.
+A chat assistant that plans a weekly menu from real recipes and computes its nutrition. You ask
+"make me a vegetarian menu for 3 days without mushrooms", it builds a menu that meets your daily
+calories, diet and allergies, then lets you revise a day or a meal ("another dinner on Wednesday"),
+answers questions about recipes and foods, and saves the menu when you confirm it.
+
+The LLM never has the last word: it only picks recipe ids from the candidates the backend gives it,
+and every menu goes through deterministic code (composition, menu rules, nutrition maths, the diff
+of a revision) before it is saved. The prompts are measured by evals on the real models.
+
+Single user, no auth, local run.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    Web["Web app (separate repo)<br/>localhost:5173"] -->|"POST /api/conversations/:id/messages<br/>UI message stream"| Ctrl
+
+    subgraph API["NestJS API · localhost:3100/api"]
+        Ctrl["Controllers + DTOs<br/>(entrypoints/api)"] --> Orch["ChatOrchestratorService"]
+        Orch --> Intent["IntentService<br/>classify message + history"]
+        Intent -->|"menu request"| Planner["MenuPlannerService<br/>plan / revise, retries"]
+        Intent -->|"chat, questions"| General["GeneralChatService<br/>tool loop (≤ 5 steps)"]
+        General --> Tools["Chat tools registry<br/>search_recipes · get_recipe_details · get_food_nutrition<br/>calculate_nutrition · save_menu · preference change<br/>plan_menu / revise_menu → back to the planner"]
+        Tools -.->|"service_call"| Planner
+        Planner --> Rules["Deterministic core<br/>MenuComposer · menu-rules · menu-diff<br/>NutritionService · energy requirements"]
+        Rules --> MenuSvc["MenuService<br/>the only writer of menus"]
+        Tools --> Services["Business services<br/>recipes, foods, profile, preferences"]
+        Orch --> Trace["Chat trace + summary logs"]
+    end
+
+    Intent & Planner & General --> LLM["OpenAiService (AI SDK)<br/>ModelFallback: OpenAI gpt-4o-mini → DeepSeek<br/>retry / switch on 5xx, timeout, rate limit"]
+    MenuSvc & Services --> Repo["Repositories (data-access)<br/>the only Prisma code"]
+    Repo --> PG[("PostgreSQL 17<br/>foods · recipes · menus · chat")]
+```
+
+- **Intent first.** Each message is classified with the recent history (structured output):
+  small talk and questions go to the tool-calling chat, a clear menu request (restated from the
+  conversation) to the planner, a vague one gets a clarification with the missing fields.
+- **Planner.** Every day has breakfast, lunch, snack and dinner (25 / 35 / 10 / 30 % of the daily
+  calories). The model gets the candidates of each meal by short ids (`b1`, `s2`); a plan with
+  wrong days, unknown ids or rule errors goes back to it with its problems, up to
+  `MENU_PLAN_MAX_ATTEMPTS` calls. A revision may change only the parts it names (`menu-diff.ts`).
+- **Tools.** Read tools return data through the services; `plan_menu` / `revise_menu` are only
+  recorded and run on the planner path; errors go back to the model, never a 500.
+- **Resilience and observability.** Pinned model snapshots, provider fallback, every prompt
+  versioned (`name@vN`), one summary line per message (time, first text, calls, tokens), and with
+  `ENV=local` a full JSON trace of the chain.
+
+## Eval results
+
+Every suite runs on the real model, each case 3 times; a prompt change must not fall below the
+committed baseline (`evals/baselines/`). Pass rates of the current baselines:
+
+| Suite           | What it checks                                                                         | Cases | gpt-4o-mini (main) | deepseek-flash (fallback) |
+| --------------- | -------------------------------------------------------------------------------------- | ----: | -----------------: | ------------------------: |
+| `intent`        | routing of a message: intent, days, constraints, revision targets (uk / en / surzhyk)  |    76 |         **93.0 %** |                **92.5 %** |
+| `clarification` | a vague request asks exactly for what is missing (LLM judge: Claude Haiku 4.5)         |    25 |             97.3 % |                    93.3 % |
+| `menu-plan`     | 1-7 day menus: right days, only candidates, rules, calories ±15 %, dislikes, variety   |    22 |             97.0 % |                    84.8 % |
+| `menu-day`      | revising a day / meal / several parts: nothing outside the scope changes, constraints  | 32-38 |            100.0 % |                   100.0 % |
+| `chat-tools`    | the right tool with valid arguments, no tool for small talk, plan / revise handed over |    41 |             98.4 % |                   100.0 % |
+
+`chat-tools` is measured on `general-chat@v4`. Details of each suite and the runner: [Evals](#evals).
+
+## Quick start
+
+Requires Node 24 (`nvm use`), Docker, and an OpenAI key (DeepSeek optional, as the fallback).
+
+```bash
+nvm use
+cp .env.example .env          # set OPEN_AI_API_KEY (and DEEPSEEK_API_KEY for the fallback)
+npm install                   # also generates the Prisma client
+npm run infra:up              # postgres on localhost:5442
+npm run db:seed               # ~520 foods + 300 recipes from data/seed (idempotent)
+npm run start:dev             # applies migrations; API on http://localhost:3100/api, Swagger on /docs
+# or everything in docker:
+npm run compose
+```
+
+Then start the web app (`../easy_cook.frontend`, `npm run dev`, http://localhost:5173), fill in the
+profile, calculate the daily goal and ask the chat for a menu. Without the web app:
+
+```bash
+curl -X PUT localhost:3100/api/profile -H 'content-type: application/json' \
+  -d '{"age":30,"heightCm":175,"weightKg":70,"sex":"male","activityLevel":"moderate","goal":"maintain"}'
+curl -X POST localhost:3100/api/nutrition/goals/calculate
+curl -X POST localhost:3100/api/conversations -H 'content-type: application/json' -d '{}'
+curl -N -X POST localhost:3100/api/conversations/<id>/messages -H 'content-type: application/json' \
+  -d '{"content":"Make me a vegetarian menu for 3 days"}'
+```
+
+Check everything: `npm run lint && npm run type-check && npm test && npm run test:e2e && npm run build`.
+Run the evals (costs a few cents per suite): `npm run eval`, `npm run eval -- --provider deepseek`.
 
 ## Ports
 
@@ -21,18 +103,6 @@ Tool calling and RAG are the next stage.
 | -------- | --------- |
 | API      | 3100      |
 | Postgres | 5442      |
-
-## Run
-
-```bash
-cp .env.example .env
-npm install                   # also generates the Prisma client
-npm run infra:up              # postgres
-npm run db:seed               # foods + recipes from data/seed (idempotent)
-npm run start:dev             # applies migrations, API on http://localhost:3100/api, Swagger on /docs
-# or everything in docker:
-npm run compose
-```
 
 ### From scratch
 
@@ -194,7 +264,7 @@ from the description (`raw`, `boiled`, `dry`...). Names are English (`name` = `n
 ## Evals
 
 Prompt quality measured on the real model (`OPEN_AI_API_KEY`, `ANTHROPIC_API_KEY` for the judge,
-costs money: the intent and menu-plan suites are ~$0.02 a run each). Not part of `npm test` or CI;
+costs money: the intent and menu-plan suites are ~$0.02 a run each). Not part of `npm test`;
 run it before and after a prompt change, on OpenAI and on the DeepSeek fallback.
 
 ```bash
@@ -203,7 +273,22 @@ npm run eval -- --suite intent                 # one suite (comma separated or r
 npm run eval -- --suite intent --save-baseline # record the current result as the baseline
 npm run eval -- --repeat 1 --concurrency 3     # runs per case (3 by default), parallel calls (5)
 npm run eval -- --provider deepseek            # the fallback model (DEEPSEEK_API_KEY)
+npm run eval -- --suite chat-tools --tag save  # only the cases with any of the tags (repeatable)
+npm run eval -- --changed-since origin/main    # only what the changes since the ref touch
 ```
+
+- `--tag` runs the cases with any of the tags and compares only the rates of those tags with the
+  baseline (the pass and field rates of the whole suite say nothing about a part of it); a suite
+  without such a case is skipped. Baselines are saved from whole suites only.
+- `--changed-since <ref>` diffs the working tree with the merge base of the ref and runs a suite
+  whole when its prompt versions or model differ from its baseline or its folder under
+  `evals/suites/` changed, and the suites or tags of `evals/suites/triggers.ts` (path prefix ->
+  suites, tags) for the other files; specs and code no suite runs change nothing. A new path a
+  suite depends on goes into the triggers; `triggers.spec.ts` checks every path, suite and tag.
+- CI (`.github/workflows/evals.yml`, secrets `OPEN_AI_API_KEY`, `ANTHROPIC_API_KEY`,
+  `DEEPSEEK_API_KEY`): a pull request runs `--changed-since origin/<base>`; a manual run
+  (Actions -> Evals -> Run workflow) takes the suites, tags, provider and repeats. The reports are
+  the `eval-reports` artifact of the run.
 
 - A run measures one provider without fallback (`--provider`, openai by default). The baselines of
   OpenAI are in `evals/baselines/`, of a fallback in `evals/baselines/<provider>/`.
@@ -229,7 +314,7 @@ npm run eval -- --provider deepseek            # the fallback model (DEEPSEEK_AP
 - The runner logic lives in `evals/lib/` with specs, which run with `npm test`.
 
 **intent** - the classifier of chat messages (`IntentService`, with the rules of `resolveIntent`):
-58 messages in Ukrainian and English (direct, vague, more than 7 days, no days, surzhyk, out of
+76 messages in Ukrainian and English (direct, vague, more than 7 days, no days, surzhyk, out of
 scope, general chat, follow-ups, menu revisions). Fields: `intent`; `days` from `menuRequest`;
 `constraints` read from the restated request; `target`: the targets of a revision in any order,
 one for each (their scope and the fields the case sets), read as the app reads them on the menu of

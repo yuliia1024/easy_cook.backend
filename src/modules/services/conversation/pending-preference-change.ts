@@ -8,7 +8,9 @@ import { MessageWithMenu } from '../../data-access/conversation/conversation.rep
  * A stored value that no longer matches the schema is none. Pure.
  */
 export function pendingPreferenceChange(
-  messages: Array<Pick<MessageWithMenu, 'role' | 'preferenceChange'>>,
+  messages: Array<
+    Pick<MessageWithMenu, 'role'> & Partial<Pick<MessageWithMenu, 'preferenceChange'>>
+  >,
 ): PreferenceChange | null {
   const latest = [...messages].reverse().find(({ role }) => role === MessageRole.Assistant);
   const parsed = PreferenceChangeSchema.safeParse(latest?.preferenceChange);

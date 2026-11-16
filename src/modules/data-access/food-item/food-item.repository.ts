@@ -3,9 +3,10 @@ import { FoodItem, Prisma } from '../../../generated/prisma/client';
 import { Page, PageQuery } from '../../../common/types';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
 import { QueryMode } from '../../../common/constants';
+import { searchWords } from '../../../common/utils';
 
 export interface FoodItemFilter {
-  /** Case-insensitive substring of `name` or `name_en`. */
+  /** Every word is a case-insensitive substring of `name` or `name_en`, in any order. */
   search?: string;
   state?: string;
   source?: string;
@@ -71,12 +72,15 @@ export class FoodItemRepository {
   }
 
   private where({ search, state, source }: FoodItemFilter): Prisma.FoodItemWhereInput {
+    const words = searchWords(search);
     return {
-      ...(search && {
-        OR: [
-          { name: { contains: search, mode: QueryMode.Insensitive } },
-          { nameEn: { contains: search, mode: QueryMode.Insensitive } },
-        ],
+      ...(words.length > 0 && {
+        AND: words.map((word) => ({
+          OR: [
+            { name: { contains: word, mode: QueryMode.Insensitive } },
+            { nameEn: { contains: word, mode: QueryMode.Insensitive } },
+          ],
+        })),
       }),
       ...(state && { state }),
       ...(source && { source }),
