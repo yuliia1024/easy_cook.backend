@@ -21,6 +21,8 @@ describe('runEvals', () => {
 
   const args = (overrides: Partial<EvalArgs> = {}): EvalArgs => ({
     suites: [],
+    tags: [],
+    changedSince: null,
     saveBaseline: false,
     concurrency: 2,
     repeat: 1,
@@ -35,12 +37,19 @@ describe('runEvals', () => {
     name: string,
     count: number,
     passing: number,
-    { down = 0, modelId = 'gpt-4o-mini' }: { down?: number; modelId?: string } = {},
+    {
+      down = 0,
+      modelId = 'gpt-4o-mini',
+      tagged = 0,
+    }: { down?: number; modelId?: string; tagged?: number } = {},
   ) => {
     const file = join(root, `${name}.jsonl`);
     writeFileSync(
       file,
-      Array.from({ length: count }, (_, i) => `{"id":"c${i}","answer":"x"}`).join('\n'),
+      Array.from(
+        { length: count },
+        (_, i) => `{"id":"c${i}","tags":${i < tagged ? '["save"]' : '[]'},"answer":"x"}`,
+      ).join('\n'),
     );
     const suite = { ...buildEchoSuite(file), name };
     suite.run.mockImplementation(async (c: EchoCase) => {
@@ -254,5 +263,88 @@ describe('runEvals', () => {
       baseline: ['gpt-4o-mini'],
       current: ['gpt-4.1-mini'],
     });
+  });
+
+  it('runs only the tagged cases and compares them by the rates of their tags', async () => {
+    await runEvals(
+      args({ saveBaseline: true }),
+      [suiteOf('intent', 20, 20, { tagged: 10 })],
+      openAi,
+      dirs,
+      () => undefined,
+      now,
+    );
+    const worse = suiteOf('intent', 20, 5, { tagged: 10 });
+
+    const outcome = await runEvals(
+      args({ tags: ['save'] }),
+      [worse],
+      openAi,
+      dirs,
+      (l) => lines.push(l),
+      now,
+    );
+
+    expect(outcome.ok).toBe(false);
+    expect(worse.run).toHaveBeenCalledTimes(10);
+    expect(lines).toContain('Running intent: 10 cases x 1, tags save');
+    expect(report(outcome.reportFile).suites[0].baseline?.regressions).toEqual([
+      { metric: 'tag save', baseline: 1, current: 0.5 },
+    ]);
+  });
+
+  it('skips a suite without a case of the tags and fails when no suite has one', async () => {
+    const intent = suiteOf('intent', 2, 2, { tagged: 1 });
+    const other = suiteOf('other', 2, 2);
+
+    const some = await runEvals(
+      args({ tags: ['save'] }),
+      [intent, other],
+      openAi,
+      dirs,
+      (l) => lines.push(l),
+      now,
+    );
+    const none = await runEvals(
+      args({ tags: ['nope'] }),
+      [intent, other],
+      openAi,
+      dirs,
+      (l) => lines.push(l),
+      now,
+    );
+
+    expect(some.ok).toBe(true);
+    expect(other.run).not.toHaveBeenCalled();
+    expect(none.ok).toBe(false);
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        'Skipped other: no case tagged save',
+        'No case to run: no suite has a case with the tags',
+      ]),
+    );
+  });
+
+  it('runs a plan: its suites, their tags and why they run', async () => {
+    const intent = suiteOf('intent', 2, 2, { tagged: 1 });
+    const other = suiteOf('other', 2, 2);
+
+    await runEvals(args(), [intent, other], openAi, dirs, (l) => lines.push(l), now, [
+      { suite: 'intent', tags: ['save'], reasons: ['src/a.ts'] },
+    ]);
+
+    expect(intent.run).toHaveBeenCalledTimes(1);
+    expect(other.run).not.toHaveBeenCalled();
+    expect(lines).toEqual(
+      expect.arrayContaining(['Running intent: 1 cases x 1, tags save', '  changed    src/a.ts']),
+    );
+  });
+
+  it('rejects a plan with an unknown suite', async () => {
+    await expect(
+      runEvals(args(), [], openAi, dirs, () => undefined, now, [
+        { suite: 'nope', tags: [], reasons: [] },
+      ]),
+    ).rejects.toThrow('Unknown suite: nope');
   });
 });

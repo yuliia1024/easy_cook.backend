@@ -1,10 +1,13 @@
 /**
  * Runs the evals on the real model (OPEN_AI_API_KEY; DEEPSEEK_API_KEY for `--provider deepseek`;
- * ANTHROPIC_API_KEY for the suites with a judge; costs money). Not part of `npm test` or CI.
+ * ANTHROPIC_API_KEY for the suites with a judge; costs money). Not part of `npm test`; CI runs it
+ * with `--changed-since` (`.github/workflows/evals.yml`).
  *
  *   npm run eval                                  # every suite, compared with its baseline
  *   npm run eval -- --suite intent                # one suite (comma separated or repeated)
  *   npm run eval -- --suite intent --save-baseline
+ *   npm run eval -- --suite chat-tools --tag save # the cases with any of the tags
+ *   npm run eval -- --changed-since origin/main   # what the changes touch (evals/suites/triggers.ts)
  *   npm run eval -- --concurrency 3 --repeat 1   # 3 runs of every case by default
  *   npm run eval -- --provider deepseek          # the fallback model, its baselines in baselines/deepseek/
  *
@@ -12,16 +15,39 @@
  * Exit code 1 when a suite is worse than its baseline in evals/baselines/ (of the provider).
  */
 import 'dotenv/config';
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { Logger } from '@nestjs/common';
-import { ModelProviderName } from '../src/common/constants';
+import {
+  DEEPSEEK_MODEL,
+  ANTHROPIC_MODEL,
+  ModelProviderName,
+  OPEN_AI_MODEL,
+} from '../src/common/constants';
 import { ModelProvidersConfigService } from '../src/configs/model-providers-config/model-providers-config.service';
 import { OpenAiService } from '../src/providers/open-ai/open-ai.service';
 import { parseEvalArgs } from './lib/args';
-import { baselinesDir } from './lib/baseline';
+import { baselinesDir, readBaseline } from './lib/baseline';
 import { JUDGE_PROMPT_NAME } from './lib/judge';
+import { planFromArgs, planFromChanges, SuitePlan } from './lib/plan';
 import { runEvals } from './lib/run-evals';
 import { SUITES } from './suites';
+import { EVAL_TRIGGERS } from './suites/triggers';
+
+/** The model each provider runs: a baseline on another one is out of date. */
+const PINNED_MODELS: Record<ModelProviderName, string> = {
+  [ModelProviderName.OpenAi]: OPEN_AI_MODEL,
+  [ModelProviderName.DeepSeek]: DEEPSEEK_MODEL,
+  [ModelProviderName.Anthropic]: ANTHROPIC_MODEL,
+};
+
+/** Files changed between `ref` and the working tree, committed or not, from the repository root. */
+function changedFiles(ref: string): string[] {
+  const base = execFileSync('git', ['merge-base', ref, 'HEAD'], { encoding: 'utf8' }).trim();
+  return execFileSync('git', ['diff', '--name-only', base], { encoding: 'utf8' })
+    .split('\n')
+    .filter((file) => file !== '');
+}
 
 async function main(): Promise<boolean> {
   const args = parseEvalArgs(
@@ -36,10 +62,24 @@ async function main(): Promise<boolean> {
   if (args.provider === ModelProviderName.DeepSeek && !deepSeekApiKey) {
     throw new Error('DEEPSEEK_API_KEY is not set (see .env.example)');
   }
+  const baselines = baselinesDir(join(__dirname, 'baselines'), args.provider);
+  const plan: SuitePlan[] = args.changedSince
+    ? planFromChanges(
+        changedFiles(args.changedSince),
+        SUITES,
+        EVAL_TRIGGERS,
+        (suite) => readBaseline(baselines, suite),
+        PINNED_MODELS[args.provider],
+      )
+    : planFromArgs(args, SUITES);
+  if (plan.length === 0) {
+    console.log(`No eval to run: nothing since ${args.changedSince} touches a suite`);
+    return true;
+  }
   const anthropicApiKey = process.env.ANTHROPIC_API_KEY || undefined;
   const judged = SUITES.filter(
     (suite) =>
-      (args.suites.length === 0 || args.suites.includes(suite.name)) &&
+      plan.some((entry) => entry.suite === suite.name) &&
       suite.prompts.some((prompt) => prompt.name === JUDGE_PROMPT_NAME),
   );
   if (judged.length > 0 && !anthropicApiKey) {
@@ -61,11 +101,10 @@ async function main(): Promise<boolean> {
     args,
     SUITES,
     openAi,
-    {
-      baselines: baselinesDir(join(__dirname, 'baselines'), args.provider),
-      reports: join(__dirname, 'reports'),
-    },
+    { baselines, reports: join(__dirname, 'reports') },
     (line) => console.log(line),
+    undefined,
+    plan,
   );
   return ok;
 }

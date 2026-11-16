@@ -95,7 +95,9 @@ curl -N -X POST localhost:3100/api/conversations/<id>/messages -H 'content-type:
 ```
 
 Check everything: `npm run lint && npm run type-check && npm test && npm run test:e2e && npm run build`.
-Run the evals (costs a few cents per suite): `npm run eval`, `npm run eval -- --provider deepseek`.
+Run the evals (costs a few cents per suite): `npm run eval`, `npm run eval -- --provider deepseek`,
+or only what your changes touch: `npm run eval -- --changed-since origin/main` (what CI runs on a
+pull request).
 
 ## Ports
 

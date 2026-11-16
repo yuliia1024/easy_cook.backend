@@ -92,22 +92,35 @@ export function toBaseline(summary: SuiteSummary, results: CaseResult[], now: Da
 
 /**
  * The pass rate and every field rate of the baseline must hold, give or take `allowedDrop`, on the
- * same models.
+ * same models. A run of the cases with `tags` only is compared by the rates of those tags: the
+ * pass and field rates of the whole suite say nothing about a part of it.
  */
 export function compareWithBaseline(
   summary: SuiteSummary,
   results: CaseResult[],
   baseline: Baseline,
+  tags: string[] = [],
   z = BASELINE_Z,
 ): BaselineComparison {
-  const metrics: Array<[string, number, Rate | undefined]> = [
-    ['pass rate', baseline.passRate, summary.cases],
-    ...Object.entries(baseline.fields).map(([field, rate]): [string, number, Rate | undefined] => [
-      `field ${field}`,
-      rate,
-      summary.fields[field],
-    ]),
-  ];
+  const metrics: Array<[string, number, Rate | undefined]> =
+    tags.length > 0
+      ? tags
+          .filter((tag) => tag in baseline.tags)
+          .map((tag): [string, number, Rate | undefined] => [
+            `tag ${tag}`,
+            baseline.tags[tag],
+            summary.tags[tag],
+          ])
+      : [
+          ['pass rate', baseline.passRate, summary.cases],
+          ...Object.entries(baseline.fields).map(
+            ([field, rate]): [string, number, Rate | undefined] => [
+              `field ${field}`,
+              rate,
+              summary.fields[field],
+            ],
+          ),
+        ];
   const failed = failedCases(results);
   const sameModels = baseline.models.join() === summary.models.join();
   const samePrompts = baseline.prompts.join() === summary.prompts.join();

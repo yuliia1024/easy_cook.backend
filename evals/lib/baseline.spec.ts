@@ -120,6 +120,28 @@ describe('eval baseline', () => {
     expect(regressions).toEqual([{ metric: 'field intent', baseline: 1, current: 0 }]);
   });
 
+  it('compares a run of some tags by the rates of those tags only', () => {
+    const tagged = (count: number, passed: number): CaseResult[] =>
+      Array.from({ length: count }, (_, i) =>
+        buildCaseResult({
+          id: `s${i}`,
+          tags: ['save'],
+          pass: i < passed,
+          fields: [{ field: 'intent', pass: i < passed, expected: 'a', actual: 'a' }],
+        }),
+      );
+    const base = [...results(20, 20), ...tagged(10, 10)];
+    const baseline = toBaseline(summarize('intent', base), base, new Date());
+    const current = tagged(10, 5);
+
+    expect(
+      compareWithBaseline(summarize('intent', current), current, baseline, ['save', 'missing']),
+    ).toMatchObject({
+      regressions: [{ metric: 'tag save', baseline: 1, current: 0.5 }],
+      newlyFailed: ['s5', 's6', 's7', 's8', 's9'],
+    });
+  });
+
   it('flags a run on other models than the baseline', () => {
     const current = results(4, 4).map((result) => ({ ...result, modelId: 'gpt-4.1-mini' }));
 
