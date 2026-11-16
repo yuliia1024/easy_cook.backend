@@ -68,6 +68,8 @@ import { ProfileContextService } from '../profile-context/profile-context.servic
 import { ApiConfigService } from '../../../configs/api-config/api-config.service';
 import { ChatTraceRecord } from '../chat-trace/chat-trace';
 import { ChatTraceService } from '../chat-trace/chat-trace.service';
+import { AgentRunService } from '../agent-run/agent-run.service';
+import { runWithRequestId } from '../../../common/logger';
 import { ChatOrchestratorService } from './chat-orchestrator.service';
 
 const generatedWith = { modelId: 'gpt-test', prompt: 'menu-plan@v1' };
@@ -83,6 +85,7 @@ describe('ChatOrchestratorService', () => {
   let service: ChatOrchestratorService;
   let chatTraceService: ChatTraceService;
   let traces: ChatTraceRecord[];
+  let agentRunService: jest.Mocked<AgentRunService>;
   const conversation = buildConversation();
   const history: ModelHistory = { summary: 'Rejected the salmon.', messages: [buildMessage()] };
   const profile: ProfileContext = {
@@ -154,9 +157,13 @@ describe('ChatOrchestratorService', () => {
     conversationSummaryService.summarizeIfNeeded.mockResolvedValue(false);
     traces = [];
     chatTraceService = new ChatTraceService({ env: Environments.LOCAL } as ApiConfigService);
-    jest
-      .spyOn(chatTraceService, 'finish')
-      .mockImplementation((trace, outcome) => traces.push(trace.toRecord(outcome)));
+    jest.spyOn(chatTraceService, 'finish').mockImplementation((trace, outcome) => {
+      traces.push(trace.toRecord(outcome));
+      return { summary: trace.summarize(outcome, []), modelCalls: [] };
+    });
+    agentRunService = createMock<AgentRunService>();
+    conversationService.addUserMessage.mockResolvedValue('msg-user');
+    conversationService.addAssistantMessage.mockResolvedValue('msg-reply');
     service = new ChatOrchestratorService(
       conversationService,
       intentService,
@@ -166,6 +173,7 @@ describe('ChatOrchestratorService', () => {
       profileContextService,
       conversationSummaryService,
       chatTraceService,
+      agentRunService,
     );
   });
 
@@ -1174,6 +1182,7 @@ describe('ChatOrchestratorService', () => {
 
   describe('tool steps and trace', () => {
     const toolCall = {
+      toolCallId: 'call_1',
       name: ChatToolName.SearchRecipes,
       input: { query: 'soup' },
       output: { recipes: [] },
@@ -1346,6 +1355,109 @@ describe('ChatOrchestratorService', () => {
       await send();
 
       expect(traces.map(({ outcome }) => outcome)).toEqual([ChatTraceOutcome.LimitReached]);
+    });
+  });
+
+  describe('agent runs', () => {
+    const saveCall = {
+      toolCallId: 'call_2',
+      name: ChatToolName.SaveMenu,
+      input: {},
+      output: { menuId: MENU_ID },
+      error: null,
+      durationMs: 5,
+    };
+
+    it('records a replied run with its messages, tool calls and the request id', async () => {
+      classifyAs(Intent.GeneralChat);
+      generalChatService.reply.mockImplementation(
+        async function* (_history, _request, _profile, _conversationId, _signal, onToolCall) {
+          onToolCall!(saveCall);
+          yield 'Saved.';
+          return null;
+        },
+      );
+
+      await runWithRequestId('req-1', () => send());
+
+      expect(agentRunService.record).toHaveBeenCalledTimes(1);
+      expect(agentRunService.record).toHaveBeenCalledWith({
+        requestId: 'req-1',
+        conversationId: CONVERSATION_ID,
+        userMessageId: 'msg-user',
+        replyMessageId: 'msg-reply',
+        summary: expect.objectContaining({
+          outcome: ChatTraceOutcome.Replied,
+          firstTextMs: expect.any(Number),
+          toolCalls: 1,
+        }),
+        modelCalls: [],
+        toolCalls: [saveCall],
+      });
+    });
+
+    it('records a failed run with the tool that changed data, though no reply was saved', async () => {
+      jest.spyOn(service['logger'], 'error').mockImplementation();
+      classifyAs(Intent.GeneralChat);
+      generalChatService.reply.mockImplementation(
+        async function* (_history, _request, _profile, _conversationId, _signal, onToolCall) {
+          onToolCall!(saveCall);
+          yield* [];
+          throw new Error('db down');
+        },
+      );
+
+      await send();
+
+      expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
+      expect(agentRunService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userMessageId: 'msg-user',
+          replyMessageId: null,
+          summary: expect.objectContaining({ outcome: ChatTraceOutcome.Failed }),
+          toolCalls: [saveCall],
+        }),
+      );
+    });
+
+    it('records a run the client left as aborted', async () => {
+      classifyAs(Intent.GeneralChat);
+      const abort = new AbortController();
+      generalChatService.reply.mockImplementation(async function* () {
+        yield 'A ';
+        abort.abort();
+        throw new Error('aborted');
+      });
+
+      await send('Hi', abort.signal);
+
+      expect(agentRunService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          replyMessageId: null,
+          summary: expect.objectContaining({ outcome: ChatTraceOutcome.Aborted }),
+        }),
+      );
+    });
+
+    it('records a full conversation as limit reached, without a user message', async () => {
+      conversationService.getById.mockResolvedValue(
+        buildConversation({
+          messages: Array.from({ length: CONVERSATION_MAX_USER_MESSAGES }, () => buildMessage()),
+        }),
+      );
+
+      await send();
+
+      expect(conversationService.addUserMessage).not.toHaveBeenCalled();
+      expect(agentRunService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestId: null,
+          userMessageId: null,
+          replyMessageId: null,
+          summary: expect.objectContaining({ outcome: ChatTraceOutcome.LimitReached }),
+          toolCalls: [],
+        }),
+      );
     });
   });
 

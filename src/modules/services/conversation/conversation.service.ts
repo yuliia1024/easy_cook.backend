@@ -110,27 +110,28 @@ export class ConversationService {
     await this.conversationRepository.delete(id);
   }
 
-  /** The first message of an untitled conversation also becomes its title. */
+  /** Saves the message and returns its id; the first one of an untitled conversation also becomes its title. */
   public async addUserMessage(
     conversation: ConversationWithMessages,
     content: string,
-  ): Promise<void> {
-    await this.conversationRepository.addMessage(conversation.id, {
+  ): Promise<string> {
+    const message = await this.conversationRepository.addMessage(conversation.id, {
       role: MessageRole.User,
       content,
     });
     if (conversation.messages.length === 0 && conversation.title === DEFAULT_CONVERSATION_TITLE) {
       await this.conversationRepository.update(conversation.id, { title: this.titleFrom(content) });
     }
+    return message.id;
   }
 
-  /** Saves the reply with what it suggested and the tool calls the model made for it. */
+  /** Saves the reply with what it suggested and the tool calls the model made for it; its id. */
   public async addAssistantMessage(
     conversationId: string,
     content: string,
     { menuVersionId, preferenceChange, toolCalls = [] }: AssistantMessageExtras = {},
-  ): Promise<void> {
-    await this.conversationRepository.addMessage(conversationId, {
+  ): Promise<string> {
+    const message = await this.conversationRepository.addMessage(conversationId, {
       role: MessageRole.Assistant,
       content,
       menuVersionId,
@@ -143,6 +144,7 @@ export class ConversationService {
         durationMs,
       })),
     });
+    return message.id;
   }
 
   /**

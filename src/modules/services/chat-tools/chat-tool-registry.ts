@@ -78,6 +78,8 @@ export const serviceCallTool = <I>(
  * `ChatToolError`), the error code, if any, and how long the tool ran.
  */
 export interface ChatToolCall {
+  /** The SDK's id of the call: the one in the log lines of the run. */
+  toolCallId: string;
   name: string;
   input: unknown;
   output: object;
@@ -141,8 +143,8 @@ export function toChatToolError(error: unknown, logger: Logger): ChatToolError {
  * One line per tool run: its call id (the one of the model's `called` line), time, and the size of
  * the result or the error code. Never the arguments or the result: they hold what the user wrote.
  */
-function logToolCall(logger: Logger, call: ChatToolCall, toolCallId: string): void {
-  const line = `Chat tool ${call.name} (${toolCallId})`;
+function logToolCall(logger: Logger, call: ChatToolCall): void {
+  const line = `Chat tool ${call.name} (${call.toolCallId})`;
   if (call.error) {
     logger.warn(`${line} returned ${call.error} in ${call.durationMs}ms`);
   } else {
@@ -234,6 +236,7 @@ export function toToolSet(tools: ChatTool[], run: ChatToolRun, logger: Logger): 
           const result = await call(chatTool, args, abortSignal);
           const error = 'error' in result ? (result as ChatToolError).error : null;
           const record: ChatToolCall = {
+            toolCallId,
             name: chatTool.name,
             input: args,
             output: result,
@@ -242,7 +245,7 @@ export function toToolSet(tools: ChatTool[], run: ChatToolRun, logger: Logger): 
           };
           run.calls.push(record);
           run.listener.onToolEnd?.(record);
-          logToolCall(logger, record, toolCallId);
+          logToolCall(logger, record);
           return result;
         },
       },

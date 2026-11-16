@@ -35,7 +35,9 @@ import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
 } from '../../../common/exceptions';
+import { getRequestId } from '../../../common/logger';
 import { withProgress } from '../../../common/utils';
+import { AgentRunService } from '../agent-run/agent-run.service';
 import { ChatTrace } from '../chat-trace/chat-trace';
 import { ChatTraceService } from '../chat-trace/chat-trace.service';
 import { Conversation } from '../../../generated/prisma/client';
@@ -134,6 +136,7 @@ export class ChatOrchestratorService {
     private readonly profileContextService: ProfileContextService,
     private readonly conversationSummaryService: ConversationSummaryService,
     private readonly chatTraceService: ChatTraceService,
+    private readonly agentRunService: AgentRunService,
   ) {}
 
   /**
@@ -149,11 +152,30 @@ export class ChatOrchestratorService {
     const trace = this.chatTraceService.start(conversationId, content);
     const userMessages = conversation.messages.filter(({ role }) => role === MessageRole.User);
     if (userMessages.length >= CONVERSATION_MAX_USER_MESSAGES) {
-      this.chatTraceService.finish(trace, ChatTraceOutcome.LimitReached);
+      await this.finishRun(trace, ChatTraceOutcome.LimitReached, null, null, []);
       return this.limitReached();
     }
-    await this.conversationService.addUserMessage(conversation, content);
-    return this.reply(conversation, content, abortSignal, trace);
+    const userMessageId = await this.conversationService.addUserMessage(conversation, content);
+    return this.reply(conversation, content, abortSignal, trace, userMessageId);
+  }
+
+  /** Logs the run (`ChatTraceService`) and adds it to the audit log of the agent (`agent_runs`). */
+  private async finishRun(
+    trace: ChatTrace,
+    outcome: ChatTraceOutcome,
+    userMessageId: string | null,
+    replyMessageId: string | null,
+    toolCalls: ChatToolCall[],
+  ): Promise<void> {
+    const report = this.chatTraceService.finish(trace, outcome);
+    await this.agentRunService.record({
+      requestId: getRequestId() ?? null,
+      conversationId: trace.conversationId,
+      userMessageId,
+      replyMessageId,
+      ...report,
+      toolCalls,
+    });
   }
 
   private async *limitReached(): AsyncGenerator<ChatStreamEvent> {
@@ -167,7 +189,8 @@ export class ChatOrchestratorService {
   }
 
   /**
-   * The trace ends with the reply, also when the client goes away (`finally`). The whole reply has
+   * The trace and the agent run end with the reply, also when the client goes away (`finally`): a
+   * run is on record whatever its outcome. The whole reply has
    * `CHAT_REPLY_TIMEOUT_MS`: past it every model call is aborted and the reply ends with a
    * retryable `assistant_unavailable`, while a client that went away (`abortSignal`) ends it
    * silently.
@@ -177,8 +200,10 @@ export class ChatOrchestratorService {
     content: string,
     abortSignal: AbortSignal | undefined,
     trace: ChatTrace,
+    userMessageId: string,
   ): AsyncGenerator<ChatStreamEvent> {
     const conversationId = conversation.id;
+    let replyMessageId: string | null = null;
     const deadline = AbortSignal.timeout(CHAT_REPLY_TIMEOUT_MS);
     const signal = abortSignal ? AbortSignal.any([abortSignal, deadline]) : deadline;
     let reply = '';
@@ -214,7 +239,7 @@ export class ChatOrchestratorService {
         return;
       }
       if (!failed && reply) {
-        await this.conversationService.addAssistantMessage(conversationId, reply, {
+        replyMessageId = await this.conversationService.addAssistantMessage(conversationId, reply, {
           menuVersionId: menu?.versionId,
           preferenceChange,
           toolCalls,
@@ -237,7 +262,7 @@ export class ChatOrchestratorService {
       trace.add(ChatTraceStep.Event, traceEvent(event));
       yield event;
     } finally {
-      this.chatTraceService.finish(trace, outcome);
+      await this.finishRun(trace, outcome, userMessageId, replyMessageId, toolCalls);
     }
     yield { type: ChatStreamEventType.Done };
   }
