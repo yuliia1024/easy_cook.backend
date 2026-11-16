@@ -7,6 +7,8 @@ describe('eval args', () => {
   it('runs every suite by default', () => {
     expect(parseEvalArgs([], known)).toEqual({
       suites: [],
+      tags: [],
+      changedSince: null,
       saveBaseline: false,
       concurrency: DEFAULT_CONCURRENCY,
       repeat: DEFAULT_REPEAT,
@@ -34,12 +36,46 @@ describe('eval args', () => {
       ),
     ).toEqual({
       suites: ['intent', 'menu'],
+      tags: [],
+      changedSince: null,
       saveBaseline: true,
       concurrency: 2,
       repeat: 1,
       provider: ModelProviderName.DeepSeek,
     });
   });
+
+  it('filters by tag, comma separated or repeated, without duplicates', () => {
+    expect(
+      parseEvalArgs(['--suite', 'intent', '--tag', 'save, uk', '--tag', 'save'], known),
+    ).toMatchObject({ suites: ['intent'], tags: ['save', 'uk'] });
+  });
+
+  it('takes the ref the changes are counted from', () => {
+    expect(parseEvalArgs(['--changed-since', 'origin/main'], known)).toMatchObject({
+      suites: [],
+      tags: [],
+      changedSince: 'origin/main',
+    });
+  });
+
+  it.each([[['--suite', 'intent']], [['--tag', 'save']]])(
+    'rejects --changed-since with %j',
+    (extra) => {
+      expect(() => parseEvalArgs(['--changed-since', 'main', ...extra], known)).toThrow(
+        '--changed-since picks the suites and tags itself; drop --suite and --tag',
+      );
+    },
+  );
+
+  it.each([[['--tag', 'save']], [['--changed-since', 'main']]])(
+    'rejects --save-baseline with %j',
+    (extra) => {
+      expect(() => parseEvalArgs(['--save-baseline', ...extra], known)).toThrow(
+        '--save-baseline records whole suites; drop --tag and --changed-since',
+      );
+    },
+  );
 
   it('rejects an unknown suite', () => {
     expect(() => parseEvalArgs(['--suite', 'nope'], known)).toThrow(

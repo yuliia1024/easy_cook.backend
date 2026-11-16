@@ -65,6 +65,50 @@ describe('toModelMessages', () => {
     ).toEqual([{ role: 'assistant', content: 'Hello' }]);
   });
 
+  it('adds the preference change the latest reply proposed after its text', () => {
+    const change = { action: 'add', preferenceType: 'allergy', value: 'peanut' };
+    expect(
+      toModelMessages([
+        buildMessage({ content: "I'm allergic to peanuts" }),
+        buildMessage({
+          role: MessageRole.Assistant,
+          content: 'Add a peanut allergy?',
+          preferenceChange: change,
+        }),
+        buildMessage({ content: 'Yes' }),
+      ]),
+    ).toEqual([
+      { role: 'user', content: "I'm allergic to peanuts" },
+      {
+        role: 'assistant',
+        content: 'Add a peanut allergy?\n\n[preference change] add allergy: peanut',
+      },
+      { role: 'user', content: 'Yes' },
+    ]);
+  });
+
+  it('leaves out a change a later reply ended, and an invalid one', () => {
+    const change = { action: 'add', preferenceType: 'allergy', value: 'peanut' };
+    expect(
+      toModelMessages([
+        buildMessage({ role: MessageRole.Assistant, content: 'Add it?', preferenceChange: change }),
+        buildMessage({ role: MessageRole.Assistant, content: 'Anything else?' }),
+      ]),
+    ).toEqual([
+      { role: 'assistant', content: 'Add it?' },
+      { role: 'assistant', content: 'Anything else?' },
+    ]);
+    expect(
+      toModelMessages([
+        buildMessage({
+          role: MessageRole.Assistant,
+          content: 'Add it?',
+          preferenceChange: { action: 'add' },
+        }),
+      ]),
+    ).toEqual([{ role: 'assistant', content: 'Add it?' }]);
+  });
+
   it('passes a reply whose version was deleted as text only', () => {
     expect(
       toModelMessages([{ role: MessageRole.Assistant, content: 'Menu', menuVersion: null }]),

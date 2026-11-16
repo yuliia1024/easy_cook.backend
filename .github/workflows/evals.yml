@@ -1,0 +1,84 @@
+name: Evals
+
+# Prompt evals on the real model (costs money). A pull request runs only the suites and tags its
+# changes touch (`evals/suites/triggers.ts`) or whose prompt versions differ from the baseline;
+# a manual run takes the suites and tags to run.
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'evals/**'
+      - 'package-lock.json'
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Suites, comma separated (empty: every suite)'
+        required: false
+      tag:
+        description: 'Case tags, comma separated (empty: every case)'
+        required: false
+      provider:
+        type: choice
+        options: [openai, deepseek]
+        default: openai
+      repeat:
+        description: 'Runs of every case'
+        default: '3'
+
+concurrency:
+  group: evals-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    # A pull request from a fork gets no secrets.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      OPEN_AI_API_KEY: ${{ secrets.OPEN_AI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # --changed-since needs the merge base with the target branch.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Evals of the changes
+        if: github.event_name == 'pull_request'
+        run: npm run eval -- --changed-since "origin/${{ github.base_ref }}"
+
+      - name: Evals
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SUITE: ${{ inputs.suite }}
+          TAG: ${{ inputs.tag }}
+          PROVIDER: ${{ inputs.provider }}
+          REPEAT: ${{ inputs.repeat }}
+        run: |
+          args=(--provider "$PROVIDER" --repeat "$REPEAT")
+          [ -n "$SUITE" ] && args+=(--suite "$SUITE")
+          [ -n "$TAG" ] && args+=(--tag "$TAG")
+          npm run eval -- "${args[@]}"
+
+      - name: Upload the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-reports
+          path: evals/reports/*.json
+          if-no-files-found: ignore

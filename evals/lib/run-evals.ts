@@ -6,6 +6,7 @@ import { EvalReport, formatSuite, SuiteReport, writeReport } from './report';
 import { runSuite } from './runner';
 import { summarize } from './summary';
 import { EvalArgs } from './args';
+import { planFromArgs, SuitePlan } from './plan';
 import { EvalSuite } from './types';
 
 /**
@@ -29,9 +30,10 @@ export interface EvalOutcome {
 }
 
 /**
- * Runs the chosen suites on the real model one after another, prints a summary per suite, writes
+ * Runs the planned suites on the real model one after another, prints a summary per suite, writes
  * the full report and either saves each result as the baseline or compares it with the baseline.
- * A baseline is saved only from a run without failed calls.
+ * A baseline is saved only from a run without failed calls. A suite planned with tags runs only
+ * the cases with any of them and is compared by their rates; with no such case it is skipped.
  */
 export async function runEvals(
   args: EvalArgs,
@@ -40,17 +42,29 @@ export async function runEvals(
   dirs: EvalDirs,
   log: (line: string) => void,
   now: () => Date = () => new Date(),
+  plan: SuitePlan[] = planFromArgs(args, suites),
 ): Promise<EvalOutcome> {
   const startedAt = now();
-  const chosen = suites.filter(
-    (suite) => args.suites.length === 0 || args.suites.includes(suite.name),
-  );
   const reports: SuiteReport[] = [];
   let ok = true;
 
-  for (const suite of chosen) {
-    const cases = loadCases(suite.casesFile, suite.caseSchema);
-    log(`Running ${suite.name}: ${cases.length} cases x ${args.repeat}`);
+  for (const { suite: name, tags, reasons } of plan) {
+    const suite = suites.find((candidate) => candidate.name === name);
+    if (!suite) {
+      throw new Error(`Unknown suite: ${name}`);
+    }
+    const cases = loadCases(suite.casesFile, suite.caseSchema).filter(
+      (testCase) => tags.length === 0 || testCase.tags.some((tag) => tags.includes(tag)),
+    );
+    if (cases.length === 0) {
+      log(`Skipped ${suite.name}: no case tagged ${tags.join(', ')}`);
+      continue;
+    }
+    log(
+      `Running ${suite.name}: ${cases.length} cases x ${args.repeat}` +
+        (tags.length > 0 ? `, tags ${tags.join(', ')}` : ''),
+    );
+    reasons.forEach((reason) => log(`  changed    ${reason}`));
     const results = await runSuite(suite, cases, openAi, args);
     const summary = summarize(suite.name, results, suite.prompts.map(promptLabel));
 
@@ -69,7 +83,7 @@ export async function runEvals(
     } else {
       const baseline = readBaseline(dirs.baselines, suite.name);
       if (baseline) {
-        report.baseline = compareWithBaseline(summary, results, baseline);
+        report.baseline = compareWithBaseline(summary, results, baseline, tags);
         ok &&= report.baseline.regressions.length === 0 && !report.baseline.modelMismatch;
       } else {
         messages.push(`No baseline for ${suite.name}; save one with --save-baseline`);
@@ -85,6 +99,11 @@ export async function runEvals(
     formatSuite(report).forEach((line) => log(line));
     messages.forEach((line) => log(line));
     reports.push(report);
+  }
+
+  if (plan.length > 0 && reports.length === 0) {
+    ok = false;
+    log('No case to run: no suite has a case with the tags');
   }
 
   const report: EvalReport = {

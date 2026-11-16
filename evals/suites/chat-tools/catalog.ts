@@ -13,6 +13,7 @@ import {
   RecipeNotFoundException,
 } from '../../../src/common/exceptions';
 import { Page, PageQuery, PreferenceChangeResult } from '../../../src/common/types';
+import { searchWords } from '../../../src/common/utils';
 import { FoodItem } from '../../../src/generated/prisma/client';
 import { FoodItemFilter } from '../../../src/modules/data-access/food-item/food-item.repository';
 import {
@@ -217,8 +218,10 @@ export const catalogRecipeService = {
 export const catalogFoodItemService = {
   getPage: async (filter: FoodItemFilter, query: PageQuery): Promise<Page<FoodItem>> =>
     page(
-      Object.values(CATALOG_FOODS).filter(
-        (item) => contains(item.name, filter.search) || contains(item.nameEn, filter.search),
+      Object.values(CATALOG_FOODS).filter((item) =>
+        searchWords(filter.search).every(
+          (word) => contains(item.name, word) || contains(item.nameEn, word),
+        ),
       ),
       query,
     ),
