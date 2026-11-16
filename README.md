@@ -62,7 +62,7 @@ committed baseline (`evals/baselines/`). Pass rates of the current baselines:
 | `intent`        | routing of a message: intent, days, constraints, revision targets (uk / en / surzhyk)  |    76 |         **93.0 %** |                **92.5 %** |
 | `clarification` | a vague request asks exactly for what is missing (LLM judge: Claude Haiku 4.5)         |    25 |             97.3 % |                    93.3 % |
 | `menu-plan`     | 1-7 day menus: right days, only candidates, rules, calories ±15 %, dislikes, variety   |    22 |             97.0 % |                    84.8 % |
-| `menu-day`      | revising a day / meal / several parts: nothing outside the scope changes, constraints  | 32-38 |            100.0 % |                   100.0 % |
+| `menu-day`      | revising a day / meal / several parts: nothing outside the scope changes, constraints  |    38 |            100.0 % |                   100.0 % |
 | `chat-tools`    | the right tool with valid arguments, no tool for small talk, plan / revise handed over |    41 |             98.4 % |                   100.0 % |
 
 `chat-tools` is measured on `general-chat@v4`. Details of each suite and the runner: [Evals](#evals).
