@@ -3,6 +3,7 @@ import {
   CHAT_TOOL_MAX_STEPS,
   CHAT_TOOL_STATUS,
   ChatStreamEventType,
+  ChatToolName,
   GENERAL_CHAT_MAX_OUTPUT_TOKENS,
   GENERAL_CHAT_PROMPT,
 } from '../../../common/constants';
@@ -24,6 +25,7 @@ import {
 import { ChatToolsService } from '../chat-tools/chat-tools.service';
 import { ModelHistory } from '../conversation/conversation.service';
 import { ModelHistoryMessage, toModelMessages } from '../conversation/model-messages';
+import { pendingPreferenceChange } from '../conversation/pending-preference-change';
 import { profileMessage } from '../profile-context/model-profile';
 
 /** One chat call with tools: the input and the options of the loop. */
@@ -36,6 +38,8 @@ export interface GeneralChatModelCall {
  * The chat call for the profile, the conversation context and the recent messages, oldest first,
  * with `tools` recording their calls in `run`. The chat-tools evals (`evals/suites/chat-tools`) run
  * the same call, so they measure the prompt, the tools and the loop the chat uses.
+ * `apply_preference_change` is left out while the latest reply proposed no change: there is
+ * nothing to say yes to, so a message that only claims a confirmation cannot make the model call it.
  */
 export function generalChatModelCall(
   profile: ProfileContext | null,
@@ -55,11 +59,18 @@ export function generalChatModelCall(
       prompt: GENERAL_CHAT_PROMPT,
       maxOutputTokens: GENERAL_CHAT_MAX_OUTPUT_TOKENS,
       abortSignal,
-      tools: toToolSet(tools, run, logger),
+      tools: toToolSet(usableTools(tools, history.messages), run, logger),
       maxSteps: CHAT_TOOL_MAX_STEPS,
       isDone: () => run.isDone(),
     },
   };
+}
+
+/** `tools` without `apply_preference_change` when no change waits for the user's yes. */
+function usableTools(tools: ChatTool[], messages: ModelHistoryMessage[]): ChatTool[] {
+  return pendingPreferenceChange(messages)
+    ? tools
+    : tools.filter(({ name }) => name !== ChatToolName.ApplyPreferenceChange);
 }
 
 /**
