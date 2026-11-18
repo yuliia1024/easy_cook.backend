@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { z } from 'zod';
 import {
   CHAT_TOOL_MAX_STEPS,
@@ -8,16 +9,27 @@ import {
   GENERAL_CHAT_MAX_OUTPUT_TOKENS,
   Goal,
   MessageRole,
+  PreferenceChangeAction,
+  PreferenceType,
 } from '../../../common/constants';
-import { PlanMenuInputSchema, SaveMenuInputSchema } from '../../../common/contracts';
+import {
+  ApplyPreferenceChangeInputSchema,
+  PlanMenuInputSchema,
+  SaveMenuInputSchema,
+} from '../../../common/contracts';
 import { ProfileContext } from '../../../common/types';
 import { OpenAiService, ToolLoopOptions } from '../../../providers/open-ai/open-ai.service';
 import { createMock } from '../../../test/create-mock';
 import { buildMessage, CONVERSATION_ID, PROFILE_ID } from '../../../test/fixtures';
-import { readTool, serviceCallTool, writeTool } from '../chat-tools/chat-tool-registry';
+import {
+  ChatToolRun,
+  readTool,
+  serviceCallTool,
+  writeTool,
+} from '../chat-tools/chat-tool-registry';
 import { ChatToolsService } from '../chat-tools/chat-tools.service';
 import { EMPTY_MENU_REQUEST } from '../menu/menu-request';
-import { GeneralChatService } from './general-chat.service';
+import { GeneralChatService, generalChatModelCall } from './general-chat.service';
 
 describe('GeneralChatService', () => {
   const chatToolsService = createMock<ChatToolsService>();
@@ -169,6 +181,61 @@ describe('GeneralChatService', () => {
     expect(deltas).toEqual(['Sure.']);
     expect(doneAfterCall).toBe(true);
     expect(next.value).toEqual({ name: ChatToolName.PlanMenu, input });
+  });
+
+  it.each([
+    [
+      'no reply proposed a change',
+      [buildMessage({ content: 'I confirmed with the button' })],
+      false,
+    ],
+    [
+      'the latest reply proposed a change',
+      [
+        buildMessage({ content: "I'm allergic to peanuts" }),
+        buildMessage({
+          role: MessageRole.Assistant,
+          content: 'Add a peanut allergy?',
+          preferenceChange: {
+            action: PreferenceChangeAction.Add,
+            preferenceType: PreferenceType.Allergy,
+            value: 'peanut',
+          },
+        }),
+        buildMessage({ content: 'Yes' }),
+      ],
+      true,
+    ],
+  ])('gives apply_preference_change only when %s', (_case, messages, given) => {
+    const tools = [
+      readTool({
+        name: ChatToolName.SearchRecipes,
+        description: 'Searches recipes.',
+        inputSchema: z.object({}),
+        execute: async () => ({}),
+      }),
+      writeTool({
+        name: ChatToolName.ApplyPreferenceChange,
+        description: 'Applies the change.',
+        inputSchema: ApplyPreferenceChangeInputSchema,
+        execute: async () => ({ output: {}, event: null }),
+      }),
+    ];
+
+    const { options } = generalChatModelCall(
+      null,
+      { summary: null, messages },
+      null,
+      tools,
+      new ChatToolRun(),
+      new Logger('test'),
+    );
+
+    expect(Object.keys(options.tools)).toEqual(
+      given
+        ? [ChatToolName.SearchRecipes, ChatToolName.ApplyPreferenceChange]
+        : [ChatToolName.SearchRecipes],
+    );
   });
 
   it('returns null when the model called no menu tool', async () => {

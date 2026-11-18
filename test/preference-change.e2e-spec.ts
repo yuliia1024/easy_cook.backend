@@ -19,6 +19,9 @@ import {
   TestApp,
 } from './test-app';
 
+/** What the model gets for `apply_preference_change` while no change waits: the tool is not given. */
+const UNAVAILABLE_APPLY = `Model tried to call unavailable tool '${ChatToolName.ApplyPreferenceChange}'.`;
+
 /**
  * A change of the dietary preferences the chat model proposes (`propose_preference_change`) is
  * written only once the user confirms it: a yes in the chat (`apply_preference_change`) or the
@@ -149,10 +152,7 @@ describe('preference changes (e2e)', () => {
 
     const chunks = await say(id, "I'm allergic to peanuts");
 
-    expect(fakeOpenAiState.toolResults[1]).toEqual({
-      error: ChatToolErrorCode.Rejected,
-      message: `${ChatToolName.ApplyPreferenceChange} cannot follow ${ChatToolName.ProposePreferenceChange} in one reply: wait for the user's answer.`,
-    });
+    expect(fakeOpenAiState.toolResults[1]).toEqual({ error: UNAVAILABLE_APPLY });
     expect(chunks.some(({ type }) => type === 'data-preferences-updated')).toBe(false);
     expect(await preferences()).toEqual([]);
   });
@@ -166,9 +166,7 @@ describe('preference changes (e2e)', () => {
     modelCalls([ChatToolName.ApplyPreferenceChange, {}]);
     await say(id, 'Yes');
 
-    expect(fakeOpenAiState.toolResults).toEqual([
-      expect.objectContaining({ error: ChatToolErrorCode.NotFound }),
-    ]);
+    expect(fakeOpenAiState.toolResults).toEqual([{ error: UNAVAILABLE_APPLY }]);
     expect(await preferences()).toEqual([]);
   });
 
