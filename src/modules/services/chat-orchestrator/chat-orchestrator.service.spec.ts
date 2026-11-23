@@ -1341,6 +1341,7 @@ describe('ChatOrchestratorService', () => {
             content: 'Add a peanut allergy to your profile?',
             menuVersionId: null,
             preferenceChange: change,
+            wishOffer: null,
           },
         }),
       );
@@ -1480,6 +1481,7 @@ describe('ChatOrchestratorService', () => {
           content: withQuestion('Your day'),
           menuVersionId: MENU_VERSION_ID,
           preferenceChange: null,
+          wishOffer: null,
         },
       ]);
     });

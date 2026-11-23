@@ -47,12 +47,16 @@ const answer: DoEmbed['getMockImplementation'] extends () => infer F ? NonNullab
   values,
 }) =>
   Promise.resolve({ embeddings: values.map(() => vector()), usage: { tokens: 7 }, warnings: [] });
-const connectionRefused = (): APICallError =>
+/**
+ * The error of a server that is not there. `retryable: false` where a test is about the
+ * outcome, not the retries: the SDK would wait between them (2 s, 4 s).
+ */
+const connectionRefused = (retryable = true): APICallError =>
   new APICallError({
     message: 'Cannot connect to API: connect ECONNREFUSED',
     url: 'http://localhost:11434/v1/embeddings',
     requestBodyValues: {},
-    isRetryable: true,
+    isRetryable: retryable,
   });
 
 describe('EmbeddingService', () => {
@@ -140,8 +144,8 @@ describe('EmbeddingService', () => {
     });
 
     it('fails with EmbeddingUnavailableException when no provider answers', async () => {
-      ollamaEmbed.mockRejectedValue(connectionRefused());
-      openAiEmbed.mockRejectedValue(connectionRefused());
+      ollamaEmbed.mockRejectedValue(connectionRefused(false));
+      openAiEmbed.mockRejectedValue(connectionRefused(false));
 
       await expect(build().embedQuery('private text')).rejects.toThrow(
         EmbeddingUnavailableException,
@@ -208,8 +212,8 @@ describe('EmbeddingService', () => {
       expect(ollamaEmbed).not.toHaveBeenCalled();
     });
 
-    it('does not fall back: each model fills its own index', async () => {
-      ollamaEmbed.mockRejectedValue(connectionRefused());
+    it('does not fall back: each model fills its own vectors', async () => {
+      ollamaEmbed.mockRejectedValue(connectionRefused(false));
 
       await expect(build().embedDocuments(LOCAL, ['a'])).rejects.toThrow(
         EmbeddingUnavailableException,

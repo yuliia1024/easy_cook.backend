@@ -116,11 +116,12 @@ describe('recipe search (e2e)', () => {
       where: { name: 'Chicken soup with noodles' },
       data: { name: 'Chicken broth with noodles' },
     });
-    await expect(index.status()).resolves.toEqual([expect.objectContaining({ complete: false })]);
+    // `status` compares the stored hashes; a changed recipe shows up once `sync` builds its document.
     await expect(index.sync()).resolves.toMatchObject({
       documentsWritten: 1,
       models: [{ embedded: 1 }],
     });
+    await expect(index.status()).resolves.toEqual([expect.objectContaining({ complete: true })]);
   });
 
   it('ranks by both legs, the best match first', async () => {

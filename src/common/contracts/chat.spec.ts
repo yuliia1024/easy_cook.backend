@@ -30,6 +30,7 @@ describe('chat contracts', () => {
       request: null,
       menuRequest: null,
       targets: null,
+      wishOffer: null,
       ...overrides,
     });
 

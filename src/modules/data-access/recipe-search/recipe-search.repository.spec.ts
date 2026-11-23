@@ -7,6 +7,7 @@ import { HybridSearchParams, RecipeSearchRepository } from './recipe-search.repo
 const sqlOf = (mock: jest.Mock, call = 0): { sql: string; values: unknown[] } => {
   const [strings, ...values] = mock.mock.calls[call] as [TemplateStringsArray, ...unknown[]];
   const query = Prisma.sql(strings, ...values);
+  // A value is a `?` placeholder in `sql`: the values never reach the SQL text.
   return { sql: query.sql.replace(/\s+/g, ' '), values: query.values };
 };
 
@@ -62,7 +63,7 @@ describe('RecipeSearchRepository', () => {
 
       const { sql, values } = sqlOf(prisma.$queryRaw, 1);
       expect(sql).toContain('FROM recipe_embeddings e');
-      expect(sql).toContain('e.embedding <=> $');
+      expect(sql).toContain('e.embedding <=> ?');
       expect(sql).toContain('replace(plainto_tsquery(');
       expect(sql).toContain('FULL OUTER JOIN lexical l');
       expect(values).toEqual(
@@ -100,11 +101,11 @@ describe('RecipeSearchRepository', () => {
 
       const { sql, values } = sqlOf(prisma.$queryRaw, 1);
       for (const condition of [
-        'r.meal_type = $',
-        'r.diet_type && $',
-        'NOT (r.allergens && $',
-        'r.prep_time_minutes <= $',
-        'r.id <> ALL($',
+        'r.meal_type = ?',
+        'r.diet_type && ?',
+        'NOT (r.allergens && ?',
+        'r.prep_time_minutes <= ?',
+        'r.id <> ALL(?',
       ]) {
         expect(sql.split(condition)).toHaveLength(3);
       }

@@ -11,6 +11,7 @@ import {
   MENU_SAVE_QUESTION,
 } from '../src/common/constants';
 import { ChatTrace } from '../src/modules/services/chat-trace/chat-trace';
+import { RecipeIndexService } from '../src/modules/services/recipe-search/recipe-index.service';
 import { ChatTraceService } from '../src/modules/services/chat-trace/chat-trace.service';
 import { EMPTY_MENU_REQUEST } from '../src/modules/services/menu/menu-request';
 import { createMenuWorld } from './menu-fixtures';
@@ -43,7 +44,18 @@ describe('chat tools (e2e)', () => {
     (await http().get(`/api/conversations/${id}`).expect(200)).body.messages.map(
       ({ role, content }: { role: string; content: string }) => ({ role, content }),
     );
-  const search = { query: null, mealType: null, diet: null, maxKcalPerServing: null, limit: null };
+  const search = {
+    query: null,
+    mealType: null,
+    diet: null,
+    maxKcalPerServing: null,
+    maxPrepTimeMinutes: null,
+    limit: null,
+  };
+  /** The recipes of the world in the search index (fake embeddings), as `npm run search:index` does. */
+  const indexRecipes = async (): Promise<void> => {
+    await ctx.app.get(RecipeIndexService).sync();
+  };
   const menuRequest = { ...EMPTY_MENU_REQUEST, days: 1 };
 
   beforeAll(async () => {
@@ -62,6 +74,7 @@ describe('chat tools (e2e)', () => {
 
   it('runs a tool loop over the recipes and the nutrition maths, then answers', async () => {
     const { recipe } = await createMenuWorld(ctx);
+    await indexRecipes();
     const id = await start();
     type Results = [
       { recipes: Array<{ id: string }> },
@@ -70,7 +83,10 @@ describe('chat tools (e2e)', () => {
       unknown,
     ];
     fakeLlmState.toolCalls = [
-      { toolName: ChatToolName.SearchRecipes, input: { ...search, query: 'rice', limit: 1 } },
+      {
+        toolName: ChatToolName.SearchRecipes,
+        input: { ...search, query: 'chicken with rice', limit: 1 },
+      },
       {
         toolName: ChatToolName.GetRecipeDetails,
         input: ([found]: Results) => ({ recipeId: found.recipes[0].id }),
@@ -103,6 +119,7 @@ describe('chat tools (e2e)', () => {
         },
       ],
       more: true,
+      similar: [],
     });
     expect(details).toMatchObject({
       id: recipe.chicken,
@@ -206,6 +223,7 @@ describe('chat tools (e2e)', () => {
         (conversationId, content) => new ChatTrace(true, conversationId, content),
       );
     const finish = jest.spyOn(traceService, 'finish').mockImplementation();
+    await indexRecipes();
     fakeLlmState.toolCalls = [
       { toolName: ChatToolName.SearchRecipes, input: { ...search, query: 'bowl' } },
       { toolName: ChatToolName.GetRecipeDetails, input: { recipeId: 'Rice bowl' } },
@@ -232,7 +250,8 @@ describe('chat tools (e2e)', () => {
           name: ChatToolName.SearchRecipes,
           input: { ...search, query: 'bowl' },
           output: expect.objectContaining({
-            recipes: [expect.objectContaining({ name: 'Rice bowl' })],
+            // Best first; the fake embeddings, not calibrated, list the other recipes after it.
+            recipes: expect.arrayContaining([expect.objectContaining({ name: 'Rice bowl' })]),
           }),
           error: null,
         }),
@@ -242,7 +261,12 @@ describe('chat tools (e2e)', () => {
         }),
       ]);
       expect(steps(ChatTraceStep.Saved)).toEqual([
-        { content: FAKE_OPEN_AI_DELTAS.join(''), menuVersionId: null, preferenceChange: null },
+        {
+          content: FAKE_OPEN_AI_DELTAS.join(''),
+          menuVersionId: null,
+          preferenceChange: null,
+          wishOffer: null,
+        },
       ]);
       expect(() => JSON.stringify(record)).not.toThrow();
     } finally {
@@ -269,9 +293,7 @@ describe('chat tools (e2e)', () => {
 
       const { chunks } = await say(id, 'Sounds good, make it');
 
-      expect(fakeLlmState.toolResults).toEqual([
-        expect.objectContaining({ status: 'accepted' }),
-      ]);
+      expect(fakeLlmState.toolResults).toEqual([expect.objectContaining({ status: 'accepted' })]);
       expect(textOf(chunks)).toBe(`Here is your day.${MENU_SAVE_QUESTION}`);
       const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data;
       expect(

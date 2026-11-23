@@ -180,7 +180,14 @@ describe('chat-tools suite', () => {
       const llm = createMock<LlmService>();
       llm.generateWithToolsResult.mockImplementation(async (input, options: ToolLoopOptions) => {
         await options.tools[ChatToolName.SearchRecipes].execute!(
-          { query: 'lentil', mealType: null, diet: null, maxKcalPerServing: null, limit: null },
+          {
+            query: 'lentil',
+            mealType: null,
+            diet: null,
+            maxKcalPerServing: null,
+            maxPrepTimeMinutes: null,
+            limit: null,
+          },
           { toolCallId: '1', messages: [], context: undefined },
         );
         await options.tools[ChatToolName.GetRecipeDetails].execute!(

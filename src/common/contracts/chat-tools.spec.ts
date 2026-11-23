@@ -1,9 +1,9 @@
 import {
   CALCULATE_NUTRITION_MAX_ITEMS,
   CHAT_TOOL_MAX_QUANTITY_G,
-  CHAT_TOOL_QUERY_MAX_LENGTH,
   INTENT_REQUEST_MAX_LENGTH,
   SEARCH_RECIPES_MAX_RESULTS,
+  SEARCH_RECIPES_QUERY_MAX_LENGTH,
 } from '../constants';
 import {
   CalculateNutritionInputSchema,
@@ -18,7 +18,14 @@ const FOOD_ID = '22222222-2222-4222-8222-222222222222';
 
 describe('chat tool contracts', () => {
   describe('SearchRecipesInputSchema', () => {
-    const input = { query: null, mealType: null, diet: null, maxKcalPerServing: null, limit: null };
+    const input = {
+      query: null,
+      mealType: null,
+      diet: null,
+      maxKcalPerServing: null,
+      maxPrepTimeMinutes: null,
+      limit: null,
+    };
 
     it('accepts every filter as null or a known value, and trims the query', () => {
       expect(SearchRecipesInputSchema.parse(input)).toEqual(input);
@@ -28,6 +35,7 @@ describe('chat tool contracts', () => {
           mealType: 'lunch',
           diet: 'vegan',
           maxKcalPerServing: 500,
+          maxPrepTimeMinutes: 30,
           limit: SEARCH_RECIPES_MAX_RESULTS,
         }),
       ).toMatchObject({ query: 'soup' });
@@ -38,7 +46,8 @@ describe('chat tool contracts', () => {
       ['an unknown meal', { ...input, mealType: 'brunch' }],
       ['an unknown diet', { ...input, diet: 'paleo' }],
       ['a blank query', { ...input, query: '   ' }],
-      ['a long query', { ...input, query: 'a'.repeat(CHAT_TOOL_QUERY_MAX_LENGTH + 1) }],
+      ['a long query', { ...input, query: 'a'.repeat(SEARCH_RECIPES_QUERY_MAX_LENGTH + 1) }],
+      ['no time', { ...input, maxPrepTimeMinutes: 0 }],
       ['too many results', { ...input, limit: SEARCH_RECIPES_MAX_RESULTS + 1 }],
       ['no calories', { ...input, maxKcalPerServing: 0 }],
     ])('rejects %s', (_case, value) => {
