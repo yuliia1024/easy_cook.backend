@@ -5,8 +5,15 @@ import { PrismaService } from '../../../providers/prisma/prisma.service';
 import { QueryMode } from '../../../common/constants';
 import { searchWords } from '../../../common/utils';
 
+export const FOOD_ITEM_INCLUDE = { translations: true } satisfies Prisma.FoodItemInclude;
+
+/** A food with its names in other languages (`Locale`). */
+export type FoodItemWithTranslations = Prisma.FoodItemGetPayload<{
+  include: typeof FOOD_ITEM_INCLUDE;
+}>;
+
 export interface FoodItemFilter {
-  /** Every word is a case-insensitive substring of `name` or `name_en`, in any order. */
+  /** Every word is a case-insensitive substring of `name`, `name_en` or a translated name, in any order. */
   search?: string;
   state?: string;
   source?: string;
@@ -32,12 +39,13 @@ export class FoodItemRepository {
   public async findPage(
     filter: FoodItemFilter,
     { page, limit, sortOrder }: PageQuery,
-  ): Promise<Page<FoodItem>> {
+  ): Promise<Page<FoodItemWithTranslations>> {
     const where = this.where(filter);
     const [total, items] = await this.prisma.$transaction([
       this.prisma.foodItem.count({ where }),
       this.prisma.foodItem.findMany({
         where,
+        include: FOOD_ITEM_INCLUDE,
         orderBy: [{ name: sortOrder }, { id: sortOrder }],
         skip: (page - 1) * limit,
         take: limit,
@@ -46,8 +54,8 @@ export class FoodItemRepository {
     return { items, total };
   }
 
-  public async findById(id: string): Promise<FoodItem | null> {
-    return this.prisma.foodItem.findUnique({ where: { id } });
+  public async findById(id: string): Promise<FoodItemWithTranslations | null> {
+    return this.prisma.foodItem.findUnique({ where: { id }, include: FOOD_ITEM_INCLUDE });
   }
 
   /** The foods of `ids` that exist. */
@@ -63,12 +71,20 @@ export class FoodItemRepository {
     return this.prisma.foodItem.findUnique({ where: { source_sourceId: { source, sourceId } } });
   }
 
-  public async create(data: FoodItemData): Promise<FoodItem> {
-    return this.prisma.foodItem.create({ data });
+  public async create(data: FoodItemData): Promise<FoodItemWithTranslations> {
+    return this.prisma.foodItem.create({ data, include: FOOD_ITEM_INCLUDE });
   }
 
-  public async update(id: string, data: Partial<FoodItemData>): Promise<FoodItem> {
-    return this.prisma.foodItem.update({ where: { id }, data });
+  /** A new `name` drops the translations of the old one. */
+  public async update(id: string, data: Partial<FoodItemData>): Promise<FoodItemWithTranslations> {
+    return this.prisma.foodItem.update({
+      where: { id },
+      data: {
+        ...data,
+        ...(data.name !== undefined && { translations: { deleteMany: {} } }),
+      },
+      include: FOOD_ITEM_INCLUDE,
+    });
   }
 
   private where({ search, state, source }: FoodItemFilter): Prisma.FoodItemWhereInput {
@@ -79,6 +95,11 @@ export class FoodItemRepository {
           OR: [
             { name: { contains: word, mode: QueryMode.Insensitive } },
             { nameEn: { contains: word, mode: QueryMode.Insensitive } },
+            {
+              translations: {
+                some: { name: { contains: word, mode: QueryMode.Insensitive } },
+              },
+            },
           ],
         })),
       }),

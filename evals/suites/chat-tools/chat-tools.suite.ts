@@ -17,7 +17,7 @@ import {
   ChatToolRun,
 } from '../../../src/modules/services/chat-tools/chat-tool-registry';
 import { generalChatModelCall } from '../../../src/modules/services/general-chat/general-chat.service';
-import { OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { LlmService } from '../../../src/providers/llm/llm.service';
 import { EvalCaseSchema, EvalSuite, FieldScore, SuiteRun } from '../../lib/types';
 import { CATALOG_CONVERSATION_ID, catalogChatTools } from './catalog';
 
@@ -182,7 +182,7 @@ export function scoreChatTools(
 /** Runs the chat call of the app (`generalChatModelCall`) on the catalog of the evals. */
 export async function runChatTools(
   testCase: ChatToolsCase,
-  openAi: OpenAiService,
+  llm: LlmService,
 ): Promise<SuiteRun<ChatToolsOutput>> {
   const profile = CHAT_TOOLS_PROFILES[testCase.profile];
   const run = new ChatToolRun();
@@ -194,7 +194,7 @@ export async function runChatTools(
     run,
     new Logger('chat-tools-eval'),
   );
-  const result = await openAi.generateWithToolsResult(input, options);
+  const result = await llm.generateWithToolsResult(input, options);
   return {
     ...result,
     output: { reply: result.output, calls: run.calls, serviceCall: run.serviceCall },

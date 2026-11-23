@@ -66,9 +66,13 @@ export const CHAT_TOOL_SERVICE_CALL_MESSAGE =
   'Accepted: the app runs it and shows the user the result.';
 
 export const CHAT_TOOL_QUERY_MAX_LENGTH = 100;
+/** A request to `search_recipes` in the user's words is longer than a name. */
+export const SEARCH_RECIPES_QUERY_MAX_LENGTH = 200;
 export const SEARCH_RECIPES_MAX_RESULTS = 10;
 export const SEARCH_RECIPES_DEFAULT_RESULTS = 5;
-/** Recipes read to filter by calories, which the database does not hold per serving. */
+/** The closest recipes `search_recipes` offers when none fits the query. */
+export const SEARCH_RECIPES_SIMILAR_MAX = 3;
+/** Recipes read to filter by calories (not held per serving) or time when listing without a query. */
 export const SEARCH_RECIPES_SCAN_LIMIT = 100;
 export const FOOD_NUTRITION_MAX_RESULTS = 5;
 export const CHAT_TOOL_MAX_QUANTITY_G = 5000;

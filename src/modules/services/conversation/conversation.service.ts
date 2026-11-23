@@ -6,7 +6,12 @@ import {
   MODEL_HISTORY_MAX_TOKENS,
 } from '../../../common/constants';
 import { ConversationNotFoundException } from '../../../common/exceptions';
-import { MenuRequest, MenuRequestSchema, PreferenceChange } from '../../../common/contracts';
+import {
+  MenuRequest,
+  MenuRequestSchema,
+  PreferenceChange,
+  WishOffer,
+} from '../../../common/contracts';
 import {
   ConversationRepository,
   ConversationSummary,
@@ -35,6 +40,8 @@ export interface AssistantMessageExtras {
   menuVersionId?: string;
   /** The change of the preferences it proposes, waiting for the user's yes. */
   preferenceChange?: PreferenceChange;
+  /** The similar recipes it offers for wishes no recipe fits, waiting for the user's answer. */
+  wishOffer?: WishOffer;
   /** The steps the chat model took for it, in order. */
   toolCalls?: ChatToolCall[];
 }
@@ -129,13 +136,14 @@ export class ConversationService {
   public async addAssistantMessage(
     conversationId: string,
     content: string,
-    { menuVersionId, preferenceChange, toolCalls = [] }: AssistantMessageExtras = {},
+    { menuVersionId, preferenceChange, wishOffer, toolCalls = [] }: AssistantMessageExtras = {},
   ): Promise<string> {
     const message = await this.conversationRepository.addMessage(conversationId, {
       role: MessageRole.Assistant,
       content,
       menuVersionId,
       preferenceChange,
+      wishOffer,
       toolCalls: toolCalls.map(({ name, input, output, error, durationMs }) => ({
         toolName: name,
         input,
@@ -148,11 +156,17 @@ export class ConversationService {
   }
 
   /**
-   * The menu request the chat gathered so far; null before the first one. A stored value that no
-   * longer matches the schema is dropped rather than failing every later message of the chat.
+   * The menu request the chat gathered so far; null before the first one. One kept before
+   * `wishes` existed reads as without wishes; a stored value that no longer matches the schema
+   * is dropped rather than failing every later message of the chat.
    */
   public getMenuRequest(conversation: Pick<Conversation, 'menuRequest'>): MenuRequest | null {
-    const parsed = MenuRequestSchema.safeParse(conversation.menuRequest);
+    const stored = conversation.menuRequest;
+    const parsed = MenuRequestSchema.safeParse(
+      stored !== null && typeof stored === 'object' && !Array.isArray(stored)
+        ? { wishes: null, ...stored }
+        : stored,
+    );
     return parsed.success ? parsed.data : null;
   }
 

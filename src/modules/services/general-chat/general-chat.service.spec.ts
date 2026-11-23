@@ -18,7 +18,7 @@ import {
   SaveMenuInputSchema,
 } from '../../../common/contracts';
 import { ProfileContext } from '../../../common/types';
-import { OpenAiService, ToolLoopOptions } from '../../../providers/open-ai/open-ai.service';
+import { LlmService, ToolLoopOptions } from '../../../providers/llm/llm.service';
 import { createMock } from '../../../test/create-mock';
 import { buildMessage, CONVERSATION_ID, PROFILE_ID } from '../../../test/fixtures';
 import {
@@ -65,15 +65,15 @@ describe('GeneralChatService', () => {
           buildMessage({ content: 'How are you?' }),
         ],
       };
-      const openAiService = createMock<OpenAiService>();
-      openAiService.streamWithTools.mockImplementation(async function* () {
+      const llmService = createMock<LlmService>();
+      llmService.streamWithTools.mockImplementation(async function* () {
         yield 'Fine';
         yield '!';
       });
       const abort = new AbortController();
 
       const deltas: unknown[] = [];
-      for await (const delta of new GeneralChatService(openAiService, chatToolsService).reply(
+      for await (const delta of new GeneralChatService(llmService, chatToolsService).reply(
         history,
         null,
         context,
@@ -85,7 +85,7 @@ describe('GeneralChatService', () => {
 
       expect(deltas).toEqual(['Fine', '!']);
       expect(chatToolsService.tools).toHaveBeenCalledWith(context, CONVERSATION_ID);
-      expect(openAiService.streamWithTools).toHaveBeenCalledWith(
+      expect(llmService.streamWithTools).toHaveBeenCalledWith(
         [
           { role: 'user', content: profileJson },
           { role: 'user', content: 'Hi' },
@@ -105,8 +105,8 @@ describe('GeneralChatService', () => {
   );
 
   it('gives the model the menu request and the summary of the conversation', async () => {
-    const openAiService = createMock<OpenAiService>();
-    openAiService.streamWithTools.mockImplementation(async function* () {
+    const llmService = createMock<LlmService>();
+    llmService.streamWithTools.mockImplementation(async function* () {
       yield 'Sure';
     });
     const menuRequest = {
@@ -116,10 +116,11 @@ describe('GeneralChatService', () => {
       diets: [],
       excludedIngredients: ['mushrooms'],
       dislikedFoods: [],
+      wishes: null,
     };
     const history = { summary: 'Rejected the salmon.', messages: [buildMessage()] };
 
-    for await (const _delta of new GeneralChatService(openAiService, chatToolsService).reply(
+    for await (const _delta of new GeneralChatService(llmService, chatToolsService).reply(
       history,
       menuRequest,
       null,
@@ -128,7 +129,7 @@ describe('GeneralChatService', () => {
       // drain
     }
 
-    const [[[first]]] = openAiService.streamWithTools.mock.calls as unknown as [
+    const [[[first]]] = llmService.streamWithTools.mock.calls as unknown as [
       [[{ content: string }]],
     ];
     expect(JSON.parse(first.content)).toMatchObject({
@@ -138,7 +139,7 @@ describe('GeneralChatService', () => {
   });
 
   it('returns the menu tool the model called, which ends the loop', async () => {
-    const openAiService = createMock<OpenAiService>();
+    const llmService = createMock<LlmService>();
     const tools = createMock<ChatToolsService>();
     tools.tools.mockReturnValue([
       serviceCallTool({
@@ -152,7 +153,7 @@ describe('GeneralChatService', () => {
       menuRequest: { ...EMPTY_MENU_REQUEST, days: 2 },
     };
     let doneAfterCall: boolean | undefined;
-    openAiService.streamWithTools.mockImplementation(async function* (
+    llmService.streamWithTools.mockImplementation(async function* (
       _input,
       options: ToolLoopOptions,
     ) {
@@ -166,7 +167,7 @@ describe('GeneralChatService', () => {
       doneAfterCall = options.isDone?.();
     });
 
-    const reply = new GeneralChatService(openAiService, tools).reply(
+    const reply = new GeneralChatService(llmService, tools).reply(
       { summary: null, messages: [buildMessage()] },
       null,
       null,
@@ -239,12 +240,12 @@ describe('GeneralChatService', () => {
   });
 
   it('returns null when the model called no menu tool', async () => {
-    const openAiService = createMock<OpenAiService>();
-    openAiService.streamWithTools.mockImplementation(async function* () {
+    const llmService = createMock<LlmService>();
+    llmService.streamWithTools.mockImplementation(async function* () {
       yield 'Hi';
     });
 
-    const reply = new GeneralChatService(openAiService, chatToolsService).reply(
+    const reply = new GeneralChatService(llmService, chatToolsService).reply(
       { summary: null, messages: [buildMessage()] },
       null,
       null,
@@ -256,7 +257,7 @@ describe('GeneralChatService', () => {
   });
 
   it('streams the status of a tool as soon as it starts, and reports every finished call', async () => {
-    const openAiService = createMock<OpenAiService>();
+    const llmService = createMock<LlmService>();
     const tools = createMock<ChatToolsService>();
     let release: () => void = () => undefined;
     const searching = new Promise<void>((resolve) => (release = resolve));
@@ -284,7 +285,7 @@ describe('GeneralChatService', () => {
     ]);
     const execute = (options: ToolLoopOptions, name: string, args: object): Promise<unknown> =>
       options.tools[name].execute!(args, { toolCallId: name, messages: [], context: undefined });
-    openAiService.streamWithTools.mockImplementation(async function* (_input, options) {
+    llmService.streamWithTools.mockImplementation(async function* (_input, options) {
       yield 'Let me look. ';
       await execute(options, ChatToolName.SearchRecipes, { query: 'soup' });
       await execute(options, ChatToolName.CalculateNutrition, {});
@@ -293,7 +294,7 @@ describe('GeneralChatService', () => {
     });
     const onToolCall = jest.fn();
 
-    const reply = new GeneralChatService(openAiService, tools).reply(
+    const reply = new GeneralChatService(llmService, tools).reply(
       { summary: null, messages: [buildMessage()] },
       null,
       null,
@@ -333,7 +334,7 @@ describe('GeneralChatService', () => {
   });
 
   it('streams the status of save_menu and its menu_saved event, then the text', async () => {
-    const openAiService = createMock<OpenAiService>();
+    const llmService = createMock<LlmService>();
     const tools = createMock<ChatToolsService>();
     const saved = {
       type: ChatStreamEventType.MenuSaved,
@@ -348,7 +349,7 @@ describe('GeneralChatService', () => {
         execute: async () => ({ output: { status: 'saved' }, event: saved }),
       }),
     ]);
-    openAiService.streamWithTools.mockImplementation(async function* (_input, options) {
+    llmService.streamWithTools.mockImplementation(async function* (_input, options) {
       await options.tools[ChatToolName.SaveMenu].execute!(
         {},
         { toolCallId: '1', messages: [], context: undefined },
@@ -357,7 +358,7 @@ describe('GeneralChatService', () => {
     });
 
     const events: unknown[] = [];
-    const reply = new GeneralChatService(openAiService, tools).reply(
+    const reply = new GeneralChatService(llmService, tools).reply(
       { summary: null, messages: [buildMessage({ content: 'Save it' })] },
       null,
       null,

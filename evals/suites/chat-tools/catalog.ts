@@ -6,13 +6,19 @@ import {
   PreferenceChangeAction,
   PreferenceChangeStatus,
   PreferenceType,
+  RecipeSearchMode,
 } from '../../../src/common/constants';
 import { PreferenceChange } from '../../../src/common/contracts';
 import {
   FoodItemsNotFoundBadRequestException,
   RecipeNotFoundException,
 } from '../../../src/common/exceptions';
-import { Page, PageQuery, PreferenceChangeResult } from '../../../src/common/types';
+import {
+  Page,
+  PageQuery,
+  PreferenceChangeResult,
+  RecipeSearchQuery,
+} from '../../../src/common/types';
 import { searchWords } from '../../../src/common/utils';
 import { FoodItem } from '../../../src/generated/prisma/client';
 import { FoodItemFilter } from '../../../src/modules/data-access/food-item/food-item.repository';
@@ -29,11 +35,17 @@ import { MenuService } from '../../../src/modules/services/menu/menu.service';
 import { PreferenceChangeService } from '../../../src/modules/services/preference-change/preference-change.service';
 import { NutritionService } from '../../../src/modules/services/nutrition/nutrition.service';
 import { RecipeService } from '../../../src/modules/services/recipe/recipe.service';
+import { buildRecipeDocument } from '../../../src/modules/services/recipe-search/recipe-document';
+import {
+  RecipeSearchResult,
+  RecipeSearchService,
+} from '../../../src/modules/services/recipe-search/recipe-search.service';
 
 /*
  * The recipes and foods the chat tools read in the evals: a small fixed catalog in memory, so a
  * case does not need a database and its numbers stay the same. The tools, `NutritionService` and
- * the rules run as in the app; only the two services that read the database are replaced.
+ * the rules run as in the app; only the services that read the database are replaced (the recipe
+ * search by a word match on the recipe documents, English and Ukrainian, instead of embeddings).
  */
 
 const CREATED_AT = new Date('2026-01-01T00:00:00Z');
@@ -42,11 +54,13 @@ const CREATED_AT = new Date('2026-01-01T00:00:00Z');
 const food = (
   n: number,
   name: string,
+  nameUk: string,
   state: FoodState,
   [kcal, protein, fat, carbs]: [number, number, number, number],
-): FoodItem =>
-  ({
-    id: `f0000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
+): FoodItem => {
+  const id = `f0000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  return {
+    id,
     name,
     nameEn: name,
     kcalPer100g: kcal,
@@ -58,31 +72,45 @@ const food = (
     sourceId: null,
     createdAt: CREATED_AT,
     updatedAt: CREATED_AT,
-  }) as unknown as FoodItem;
+    translations: [{ foodItemId: id, locale: 'uk', name: nameUk, updatedAt: CREATED_AT }],
+  } as unknown as FoodItem;
+};
 
 export const CATALOG_FOODS = {
-  chicken: food(1, 'Chicken breast, cooked', FoodState.Other, [165, 31, 3.6, 0]),
-  rice: food(2, 'Rice, white, boiled', FoodState.Boiled, [130, 2.7, 0.3, 28]),
-  lentils: food(3, 'Lentils, boiled', FoodState.Boiled, [116, 9, 0.4, 20]),
-  chickpeas: food(4, 'Chickpeas, boiled', FoodState.Boiled, [164, 8.9, 2.6, 27]),
-  coconutMilk: food(5, 'Coconut milk, canned', FoodState.Other, [197, 2, 21, 3]),
-  oats: food(6, 'Oat flakes', FoodState.Dried, [370, 13, 7, 60]),
-  peanutButter: food(7, 'Peanut butter', FoodState.Other, [590, 25, 50, 12]),
-  salmon: food(8, 'Salmon, baked', FoodState.Other, [206, 22, 12, 0]),
-  tomato: food(9, 'Tomato', FoodState.Raw, [18, 0.9, 0.2, 3.9]),
-  bread: food(10, 'Whole wheat bread', FoodState.Other, [250, 13, 3.4, 41]),
-  yogurt: food(11, 'Greek yogurt, plain', FoodState.Other, [97, 9, 5, 4]),
-  spinach: food(12, 'Spinach', FoodState.Raw, [23, 2.9, 0.4, 3.6]),
-  oliveOil: food(13, 'Olive oil', FoodState.Other, [884, 0, 100, 0]),
-  tofu: food(14, 'Tofu, firm', FoodState.Raw, [144, 15.8, 8.7, 2.8]),
-  banana: food(15, 'Banana', FoodState.Raw, [89, 1.1, 0.3, 23]),
+  chicken: food(
+    1,
+    'Chicken breast, cooked',
+    'Куряче філе, приготоване',
+    FoodState.Other,
+    [165, 31, 3.6, 0],
+  ),
+  rice: food(2, 'Rice, white, boiled', 'Рис білий, варений', FoodState.Boiled, [130, 2.7, 0.3, 28]),
+  lentils: food(3, 'Lentils, boiled', 'Сочевиця, варена', FoodState.Boiled, [116, 9, 0.4, 20]),
+  chickpeas: food(4, 'Chickpeas, boiled', 'Нут, варений', FoodState.Boiled, [164, 8.9, 2.6, 27]),
+  coconutMilk: food(
+    5,
+    'Coconut milk, canned',
+    'Кокосове молоко, консервоване',
+    FoodState.Other,
+    [197, 2, 21, 3],
+  ),
+  oats: food(6, 'Oat flakes', 'Вівсяні пластівці', FoodState.Dried, [370, 13, 7, 60]),
+  peanutButter: food(7, 'Peanut butter', 'Арахісова паста', FoodState.Other, [590, 25, 50, 12]),
+  salmon: food(8, 'Salmon, baked', 'Лосось, запечений', FoodState.Other, [206, 22, 12, 0]),
+  tomato: food(9, 'Tomato', 'Помідор', FoodState.Raw, [18, 0.9, 0.2, 3.9]),
+  bread: food(10, 'Whole wheat bread', 'Цільнозерновий хліб', FoodState.Other, [250, 13, 3.4, 41]),
+  yogurt: food(11, 'Greek yogurt, plain', 'Грецький йогурт', FoodState.Other, [97, 9, 5, 4]),
+  spinach: food(12, 'Spinach', 'Шпинат', FoodState.Raw, [23, 2.9, 0.4, 3.6]),
+  oliveOil: food(13, 'Olive oil', 'Оливкова олія', FoodState.Other, [884, 0, 100, 0]),
+  tofu: food(14, 'Tofu, firm', 'Тофу', FoodState.Raw, [144, 15.8, 8.7, 2.8]),
+  banana: food(15, 'Banana', 'Банан', FoodState.Raw, [89, 1.1, 0.3, 23]),
 };
 
 type FoodKey = keyof typeof CATALOG_FOODS;
 
 const recipe = (
   n: number,
-  name: string,
+  [name, nameUk]: [string, string],
   mealType: MealType,
   dietType: DietTag[],
   servings: number,
@@ -104,6 +132,16 @@ const recipe = (
     sourceId: null,
     createdAt: CREATED_AT,
     updatedAt: CREATED_AT,
+    translations: [
+      {
+        recipeId: id,
+        locale: 'uk',
+        name: nameUk,
+        description: null,
+        instructions: `Приготуйте: ${nameUk.toLowerCase()}.`,
+        updatedAt: CREATED_AT,
+      },
+    ],
     ingredients: ingredients.map(([key, quantityG], position) => ({
       id: `${id.slice(0, -4)}${String(position).padStart(4, '0')}`,
       recipeId: id,
@@ -120,43 +158,71 @@ const recipe = (
 const VEGAN = [DietTag.Vegan, DietTag.DairyFree];
 
 export const CATALOG_RECIPES: RecipeWithIngredients[] = [
-  recipe(1, 'Lentil soup', MealType.Lunch, [...VEGAN, DietTag.GlutenFree], 2, [
+  recipe(1, ['Lentil soup', 'Суп із сочевиці'], MealType.Lunch, [...VEGAN, DietTag.GlutenFree], 2, [
     ['lentils', 400],
     ['tomato', 200],
     ['spinach', 100],
   ]),
-  recipe(2, 'Chickpea curry', MealType.Dinner, [...VEGAN, DietTag.GlutenFree], 2, [
+  recipe(2, ['Chickpea curry', 'Карі з нуту'], MealType.Dinner, [...VEGAN, DietTag.GlutenFree], 2, [
     ['chickpeas', 300],
     ['coconutMilk', 200],
     ['tomato', 200],
     ['rice', 300],
   ]),
-  recipe(3, 'Chicken with rice', MealType.Lunch, [DietTag.HighProtein, DietTag.DairyFree], 1, [
-    ['chicken', 200],
-    ['rice', 250],
-  ]),
-  recipe(4, 'Baked salmon with spinach', MealType.Dinner, [DietTag.Pescatarian], 1, [
-    ['salmon', 180],
-    ['spinach', 100],
-    ['oliveOil', 5],
-  ]),
-  recipe(5, 'Chicken salad', MealType.Lunch, [DietTag.HighProtein, DietTag.LowCarb], 1, [
-    ['chicken', 150],
-    ['tomato', 150],
-    ['spinach', 50],
-    ['oliveOil', 10],
-  ]),
-  recipe(6, 'Oatmeal with banana', MealType.Breakfast, VEGAN, 1, [
+  recipe(
+    3,
+    ['Chicken with rice', 'Курка з рисом'],
+    MealType.Lunch,
+    [DietTag.HighProtein, DietTag.DairyFree],
+    1,
+    [
+      ['chicken', 200],
+      ['rice', 250],
+    ],
+  ),
+  recipe(
+    4,
+    ['Baked salmon with spinach', 'Запечений лосось зі шпинатом'],
+    MealType.Dinner,
+    [DietTag.Pescatarian],
+    1,
+    [
+      ['salmon', 180],
+      ['spinach', 100],
+      ['oliveOil', 5],
+    ],
+  ),
+  recipe(
+    5,
+    ['Chicken salad', 'Курячий салат'],
+    MealType.Lunch,
+    [DietTag.HighProtein, DietTag.LowCarb],
+    1,
+    [
+      ['chicken', 150],
+      ['tomato', 150],
+      ['spinach', 50],
+      ['oliveOil', 10],
+    ],
+  ),
+  recipe(6, ['Oatmeal with banana', 'Вівсянка з бананом'], MealType.Breakfast, VEGAN, 1, [
     ['oats', 80],
     ['banana', 100],
   ]),
-  recipe(7, 'Yogurt bowl', MealType.Breakfast, [DietTag.Vegetarian, DietTag.GlutenFree], 1, [
-    ['yogurt', 200],
-    ['banana', 100],
-  ]),
+  recipe(
+    7,
+    ['Yogurt bowl', 'Боул із йогуртом'],
+    MealType.Breakfast,
+    [DietTag.Vegetarian, DietTag.GlutenFree],
+    1,
+    [
+      ['yogurt', 200],
+      ['banana', 100],
+    ],
+  ),
   recipe(
     8,
-    'Peanut butter toast',
+    ['Peanut butter toast', 'Тост з арахісовою пастою'],
     MealType.Snack,
     VEGAN,
     1,
@@ -166,21 +232,35 @@ export const CATALOG_RECIPES: RecipeWithIngredients[] = [
     ],
     ['peanut', 'gluten'],
   ),
-  recipe(9, 'Tofu stir-fry with rice', MealType.Dinner, VEGAN, 2, [
+  recipe(9, ['Tofu stir-fry with rice', 'Смажений тофу з рисом'], MealType.Dinner, VEGAN, 2, [
     ['tofu', 300],
     ['rice', 400],
     ['spinach', 100],
     ['oliveOil', 10],
   ]),
-  recipe(10, 'Banana yogurt snack', MealType.Snack, [DietTag.Vegetarian], 1, [
-    ['yogurt', 150],
-    ['banana', 50],
-  ]),
-  recipe(11, 'Grilled chicken with spinach', MealType.Dinner, [DietTag.HighProtein], 1, [
-    ['chicken', 220],
-    ['spinach', 150],
-    ['oliveOil', 10],
-  ]),
+  recipe(
+    10,
+    ['Banana yogurt snack', 'Перекус із йогурту з бананом'],
+    MealType.Snack,
+    [DietTag.Vegetarian],
+    1,
+    [
+      ['yogurt', 150],
+      ['banana', 50],
+    ],
+  ),
+  recipe(
+    11,
+    ['Grilled chicken with spinach', 'Курка на грилі зі шпинатом'],
+    MealType.Dinner,
+    [DietTag.HighProtein],
+    1,
+    [
+      ['chicken', 220],
+      ['spinach', 150],
+      ['oliveOil', 10],
+    ],
+  ),
 ];
 
 const contains = (text: string | null, search: string | undefined): boolean =>
@@ -211,6 +291,62 @@ export const catalogRecipeService = {
       throw new RecipeNotFoundException();
     }
     return found;
+  },
+};
+
+const words = (text: string): string[] =>
+  (text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter((word) => word.length >= 3);
+
+/** A crude stem: the first letters, so "курячого" finds "курячий" and "lentils" "lentil". */
+const stem = (word: string): string => word.slice(0, Math.max(4, word.length - 3));
+
+/**
+ * `RecipeSearchService.search` on `CATALOG_RECIPES`: the recipes within the filters whose document
+ * (`buildRecipeDocument`, Ukrainian included) has a word starting like a word of the query, most
+ * such words first. Stands in for the embeddings, which need a model and a database.
+ */
+export const catalogRecipeSearchService = {
+  search: async ({
+    text,
+    filters = {},
+    limit = 10,
+  }: RecipeSearchQuery): Promise<RecipeSearchResult> => {
+    const stems = [...new Set(words(text).map(stem))];
+    const ranked = CATALOG_RECIPES.filter(
+      (item) =>
+        (!filters.mealType || item.mealType === filters.mealType) &&
+        (filters.dietTypeGroups ?? []).every((group) =>
+          group.some((tag) => item.dietType.includes(tag)),
+        ) &&
+        !(filters.excludeAllergens ?? []).some((allergen) => item.allergens.includes(allergen)) &&
+        (filters.maxPrepTimeMinutes === undefined ||
+          (item.prepTimeMinutes ?? Infinity) <= filters.maxPrepTimeMinutes),
+    )
+      .map((item) => {
+        const documentWords = words(buildRecipeDocument(item).content);
+        const score = stems.filter((s) => documentWords.some((word) => word.startsWith(s))).length;
+        return { recipe: item, score };
+      })
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score || a.recipe.name.localeCompare(b.recipe.name))
+      .slice(0, limit);
+    return {
+      hits: ranked.map(({ recipe, score }, i) => ({
+        recipe,
+        score,
+        semanticRank: i + 1,
+        lexicalRank: null,
+        similarity: null,
+        allWords: false,
+        match: true,
+      })),
+      mode: RecipeSearchMode.Hybrid,
+      degraded: false,
+      model: null,
+      // A word of the query in a recipe: what the fake has to tell a match from none.
+      matched: ranked.length > 0,
+      timings: { embeddingMs: 0, databaseMs: 0, totalMs: 0 },
+    };
   },
 };
 
@@ -294,6 +430,7 @@ export const catalogPreferenceChangeService = {
 export const catalogChatTools = (): ChatToolsService =>
   new ChatToolsService(
     catalogRecipeService as unknown as RecipeService,
+    catalogRecipeSearchService as unknown as RecipeSearchService,
     catalogFoodItemService as unknown as FoodItemService,
     new NutritionService(),
     catalogConversationService as unknown as ConversationService,

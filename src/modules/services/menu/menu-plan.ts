@@ -8,12 +8,13 @@ import {
   MENU_PLAN_MAX_ATTEMPTS,
   MENU_PLAN_MEAL_KCAL_SHARE,
   MENU_PLAN_MEAL_TYPES,
+  MENU_PLAN_WISHED_SHARE,
   menuPlanMaxOutputTokens,
   menuPlanRetryMessage,
 } from '../../../common/constants';
 import { MenuPlan, MenuPlanSchema } from '../../../common/contracts';
 import { MacroValues, MenuComposition, ProfileContext } from '../../../common/types';
-import { ModelCallOptions } from '../../../providers/open-ai/open-ai.service';
+import { ModelCallOptions } from '../../../providers/llm/llm.service';
 import { toModelProfile } from '../profile-context/model-profile';
 import { errorsOf } from './menu-rules';
 
@@ -47,7 +48,9 @@ export const candidatesPerMeal = (days: number): number =>
  * The candidates of one meal: the recipes are ranked by how close a serving is to the meal's
  * share of `dailyKcal` (kept in their order without it), the best `count` x
  * `MENU_PLAN_CANDIDATE_POOL_FACTOR` form a pool, and `count` of them are taken from the pool
- * starting at `rotation` and wrapping around, so another rotation offers other recipes. Pure.
+ * starting at `rotation` and wrapping around, so another rotation offers other recipes.
+ * `wishedIds` (recipe ids the search found for the request's wishes, best first) come first, up
+ * to `MENU_PLAN_WISHED_SHARE` of `count`, and the pool fills the rest. Pure.
  */
 export function selectCandidates(
   candidates: MenuPlanCandidate[],
@@ -55,20 +58,29 @@ export function selectCandidates(
   dailyKcal: number | null,
   count: number,
   rotation: number,
+  wishedIds: readonly string[] = [],
 ): MenuPlanCandidate[] {
+  const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+  const wished = [...new Set(wishedIds)]
+    .map((id) => byId.get(id))
+    .filter((candidate): candidate is MenuPlanCandidate => candidate !== undefined)
+    .slice(0, Math.ceil(count * MENU_PLAN_WISHED_SHARE));
+  const taken = new Set(wished.map(({ id }) => id));
+  const rest = candidates.filter(({ id }) => !taken.has(id));
+  const left = count - wished.length;
   const ranked =
     dailyKcal === null
-      ? candidates
-      : [...candidates].sort((a, b) => {
+      ? rest
+      : [...rest].sort((a, b) => {
           const target = dailyKcal * MENU_PLAN_MEAL_KCAL_SHARE[mealType];
           return Math.abs(a.perServing.kcal - target) - Math.abs(b.perServing.kcal - target);
         });
-  const pool = ranked.slice(0, count * MENU_PLAN_CANDIDATE_POOL_FACTOR);
-  if (pool.length <= count) {
-    return pool;
+  const pool = ranked.slice(0, left * MENU_PLAN_CANDIDATE_POOL_FACTOR);
+  if (pool.length <= left) {
+    return [...wished, ...pool];
   }
   const start = Math.abs(Math.trunc(rotation)) % pool.length;
-  return Array.from({ length: count }, (_, i) => pool[(start + i) % pool.length]);
+  return [...wished, ...Array.from({ length: left }, (_, i) => pool[(start + i) % pool.length])];
 }
 
 export interface LabelledCandidates {

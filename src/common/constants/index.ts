@@ -10,3 +10,5 @@ export * from './logger';
 export * from './open-ai';
 export * from './model-providers';
 export * from './chat-tools';
+export * from './search';
+export * from './locale';

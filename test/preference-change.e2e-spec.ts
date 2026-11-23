@@ -12,9 +12,9 @@ import { readStream, StreamChunk } from './menu-stream';
 import {
   createTestApp,
   FAKE_OPEN_AI_DELTAS,
-  fakeOpenAiState,
+  fakeLlmState,
   resetDatabase,
-  resetFakeOpenAi,
+  resetFakeLlm,
   resetRateLimits,
   TestApp,
 } from './test-app';
@@ -57,9 +57,9 @@ describe('preference changes (e2e)', () => {
     http().post(`/api/conversations/${id}/preference-change/confirm`).send(change);
   /** The chat model answers the next message with these tools, one per step. */
   const modelCalls = (...calls: Array<[ChatToolName, object]>): void => {
-    fakeOpenAiState.intent = Intent.GeneralChat;
-    fakeOpenAiState.toolResults = [];
-    fakeOpenAiState.toolCalls = calls.map(([toolName, input]) => ({ toolName, input }));
+    fakeLlmState.intent = Intent.GeneralChat;
+    fakeLlmState.toolResults = [];
+    fakeLlmState.toolCalls = calls.map(([toolName, input]) => ({ toolName, input }));
   };
   /** The model proposes `change` in a new conversation; returns its id. */
   const proposed = async (change: object = { ...peanut, value: ' Peanut ' }): Promise<string> => {
@@ -75,7 +75,7 @@ describe('preference changes (e2e)', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
-    resetFakeOpenAi();
+    resetFakeLlm();
     resetRateLimits();
     await createMenuWorld(ctx);
   });
@@ -90,7 +90,7 @@ describe('preference changes (e2e)', () => {
 
     const chunks = await say(id, "I'm allergic to peanuts");
 
-    expect(fakeOpenAiState.toolResults).toEqual([
+    expect(fakeLlmState.toolResults).toEqual([
       { status: PreferenceChangeStatus.Proposed, change: peanut },
     ]);
     expect(dataOf(chunks, 'data-preference-change')).toEqual({ change: peanut });
@@ -108,7 +108,7 @@ describe('preference changes (e2e)', () => {
 
     const chunks = await say(id, 'Yes');
 
-    expect(fakeOpenAiState.toolResults).toEqual([
+    expect(fakeLlmState.toolResults).toEqual([
       { status: PreferenceChangeStatus.Applied, change: peanut },
     ]);
     expect(dataOf(chunks, 'data-preferences-updated')).toEqual({ change: peanut });
@@ -152,7 +152,7 @@ describe('preference changes (e2e)', () => {
 
     const chunks = await say(id, "I'm allergic to peanuts");
 
-    expect(fakeOpenAiState.toolResults[1]).toEqual({ error: UNAVAILABLE_APPLY });
+    expect(fakeLlmState.toolResults[1]).toEqual({ error: UNAVAILABLE_APPLY });
     expect(chunks.some(({ type }) => type === 'data-preferences-updated')).toBe(false);
     expect(await preferences()).toEqual([]);
   });
@@ -166,7 +166,7 @@ describe('preference changes (e2e)', () => {
     modelCalls([ChatToolName.ApplyPreferenceChange, {}]);
     await say(id, 'Yes');
 
-    expect(fakeOpenAiState.toolResults).toEqual([{ error: UNAVAILABLE_APPLY }]);
+    expect(fakeLlmState.toolResults).toEqual([{ error: UNAVAILABLE_APPLY }]);
     expect(await preferences()).toEqual([]);
   });
 
@@ -190,7 +190,7 @@ describe('preference changes (e2e)', () => {
 
     const chunks = await say(id, 'I eat only meat');
 
-    expect(fakeOpenAiState.toolResults).toEqual([
+    expect(fakeLlmState.toolResults).toEqual([
       expect.objectContaining({ error: ChatToolErrorCode.Rejected }),
     ]);
     expect(dataOf(chunks, 'data-preference-change')).toBeUndefined();
@@ -228,7 +228,7 @@ describe('preference changes (e2e)', () => {
 
       await say(id, 'Yes');
 
-      expect(fakeOpenAiState.toolResults).toEqual([
+      expect(fakeLlmState.toolResults).toEqual([
         {
           error: ChatToolErrorCode.Rejected,
           message: 'Removing an allergy is applied only with the confirm button of the proposal.',

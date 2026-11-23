@@ -19,9 +19,9 @@ import {
   createTestApp,
   FAKE_OPEN_AI_DELTAS,
   fakeMenuPlan,
-  fakeOpenAiState,
+  fakeLlmState,
   resetDatabase,
-  resetFakeOpenAi,
+  resetFakeLlm,
   resetRateLimits,
   TestApp,
 } from './test-app';
@@ -52,7 +52,7 @@ describe('chat tools (e2e)', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
-    resetFakeOpenAi();
+    resetFakeLlm();
     resetRateLimits();
   });
 
@@ -69,7 +69,7 @@ describe('chat tools (e2e)', () => {
       { foods: Array<{ id: string }> },
       unknown,
     ];
-    fakeOpenAiState.toolCalls = [
+    fakeLlmState.toolCalls = [
       { toolName: ChatToolName.SearchRecipes, input: { ...search, query: 'rice', limit: 1 } },
       {
         toolName: ChatToolName.GetRecipeDetails,
@@ -87,7 +87,7 @@ describe('chat tools (e2e)', () => {
 
     const { chunks } = await say(id, 'What is in the chicken with rice?');
 
-    const [found, details, food, calculated] = fakeOpenAiState.toolResults;
+    const [found, details, food, calculated] = fakeLlmState.toolResults;
     expect(found).toEqual({
       recipes: [
         {
@@ -152,7 +152,7 @@ describe('chat tools (e2e)', () => {
     await createMenuWorld(ctx);
     const id = await start();
     const unknownId = '0b6e5c1e-3f0a-4d2b-9c8e-7a6b5c4d3e2f';
-    fakeOpenAiState.toolCalls = [
+    fakeLlmState.toolCalls = [
       { toolName: ChatToolName.GetRecipeDetails, input: { recipeId: 'Rice bowl' } },
       { toolName: ChatToolName.GetRecipeDetails, input: { recipeId: unknownId } },
       {
@@ -164,7 +164,7 @@ describe('chat tools (e2e)', () => {
 
     const { chunks } = await say(id, 'Tell me about the rice bowl');
 
-    expect(fakeOpenAiState.toolResults).toEqual([
+    expect(fakeLlmState.toolResults).toEqual([
       {
         error: ChatToolErrorCode.InvalidArguments,
         message: expect.any(String),
@@ -185,14 +185,14 @@ describe('chat tools (e2e)', () => {
   it(`stops the tools after ${CHAT_TOOL_MAX_STEPS - 1} steps and answers in the last one`, async () => {
     await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.toolCalls = Array.from({ length: 10 }, () => ({
+    fakeLlmState.toolCalls = Array.from({ length: 10 }, () => ({
       toolName: ChatToolName.SearchRecipes,
       input: search,
     }));
 
     const { chunks } = await say(id, 'Show me every recipe');
 
-    expect(fakeOpenAiState.toolResults).toHaveLength(CHAT_TOOL_MAX_STEPS - 1);
+    expect(fakeLlmState.toolResults).toHaveLength(CHAT_TOOL_MAX_STEPS - 1);
     expect(textOf(chunks)).toBe(FAKE_OPEN_AI_DELTAS.join(''));
   });
 
@@ -206,7 +206,7 @@ describe('chat tools (e2e)', () => {
         (conversationId, content) => new ChatTrace(true, conversationId, content),
       );
     const finish = jest.spyOn(traceService, 'finish').mockImplementation();
-    fakeOpenAiState.toolCalls = [
+    fakeLlmState.toolCalls = [
       { toolName: ChatToolName.SearchRecipes, input: { ...search, query: 'bowl' } },
       { toolName: ChatToolName.GetRecipeDetails, input: { recipeId: 'Rice bowl' } },
     ];
@@ -254,13 +254,13 @@ describe('chat tools (e2e)', () => {
     it('plans the menu plan_menu asks for through the planner, its checks and a saved version', async () => {
       const { recipe } = await createMenuWorld(ctx);
       const id = await start();
-      fakeOpenAiState.intent = Intent.GeneralChat;
-      fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+      fakeLlmState.intent = Intent.GeneralChat;
+      fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
         breakfast: 'Oatmeal',
         lunch: 'Chicken with rice',
         dinner: 'Rice bowl',
       });
-      fakeOpenAiState.toolCalls = [
+      fakeLlmState.toolCalls = [
         {
           toolName: ChatToolName.PlanMenu,
           input: { request: 'Plan a one-day menu.', menuRequest },
@@ -269,7 +269,7 @@ describe('chat tools (e2e)', () => {
 
       const { chunks } = await say(id, 'Sounds good, make it');
 
-      expect(fakeOpenAiState.toolResults).toEqual([
+      expect(fakeLlmState.toolResults).toEqual([
         expect.objectContaining({ status: 'accepted' }),
       ]);
       expect(textOf(chunks)).toBe(`Here is your day.${MENU_SAVE_QUESTION}`);
@@ -294,7 +294,7 @@ describe('chat tools (e2e)', () => {
     it('asks about too many days instead of planning, as a classified request does', async () => {
       await createMenuWorld(ctx);
       const id = await start();
-      fakeOpenAiState.toolCalls = [
+      fakeLlmState.toolCalls = [
         {
           toolName: ChatToolName.PlanMenu,
           input: { request: 'Plan a 30-day menu.', menuRequest: { ...menuRequest, days: 30 } },
@@ -314,7 +314,7 @@ describe('chat tools (e2e)', () => {
     it('plans nothing for plan_menu with invalid arguments and lets the model answer', async () => {
       await createMenuWorld(ctx);
       const id = await start();
-      fakeOpenAiState.toolCalls = [
+      fakeLlmState.toolCalls = [
         {
           toolName: ChatToolName.PlanMenu,
           input: {
@@ -326,7 +326,7 @@ describe('chat tools (e2e)', () => {
 
       const { chunks } = await say(id, 'Make a brunch menu');
 
-      expect(fakeOpenAiState.toolResults).toEqual([
+      expect(fakeLlmState.toolResults).toEqual([
         expect.objectContaining({ error: ChatToolErrorCode.InvalidArguments }),
       ]);
       expect(textOf(chunks)).toBe(FAKE_OPEN_AI_DELTAS.join(''));

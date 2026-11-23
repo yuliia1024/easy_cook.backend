@@ -9,7 +9,7 @@ import { ALL_SUITES, EvalTrigger } from '../lib/plan';
 export const EVAL_TRIGGERS: EvalTrigger[] = [
   {
     paths: [
-      'src/providers/open-ai/',
+      'src/providers/llm/',
       'src/common/constants/model-providers.ts',
       'package-lock.json',
     ],

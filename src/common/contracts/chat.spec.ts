@@ -21,6 +21,7 @@ describe('chat contracts', () => {
     diets: ['vegetarian'],
     excludedIngredients: ['fish'],
     dislikedFoods: ['mushrooms'],
+    wishes: null,
   };
 
   describe('IntentResultSchema', () => {
@@ -88,6 +89,7 @@ describe('chat contracts', () => {
           diets: [],
           excludedIngredients: [],
           dislikedFoods: [],
+          wishes: null,
         }).success,
       ).toBe(true);
     });

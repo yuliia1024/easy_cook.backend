@@ -12,7 +12,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { LogLevel } from '@nestjs/common';
-import { LOG_LEVELS, ModelProviderName } from '../common/constants';
+import { EmbeddingProviderName, LOG_LEVELS, ModelProviderName } from '../common/constants';
 import { Environments } from '../common/types';
 
 /** `https://a.com, http://localhost:5173`: comma separated http(s) origins. */
@@ -20,6 +20,10 @@ const ORIGIN_LIST = /^https?:\/\/[^\s,]+(\s*,\s*https?:\/\/[^\s,]+)*$/;
 const PROVIDER = `(${Object.values(ModelProviderName).join('|')})`;
 /** `openai, deepseek`: comma separated providers; a repeated one counts once. */
 const PROVIDER_LIST = new RegExp(`^${PROVIDER}(\\s*,\\s*${PROVIDER})*$`);
+const EMBEDDING_PROVIDER = `(${Object.values(EmbeddingProviderName).join('|')})`;
+const EMBEDDING_PROVIDER_LIST = new RegExp(
+  `^${EMBEDDING_PROVIDER}(\\s*,\\s*${EMBEDDING_PROVIDER})*$`,
+);
 
 /**
  * Every environment variable the application reads. Validated once on start-up by
@@ -82,6 +86,21 @@ export class Configs {
   @IsString()
   @IsNotEmpty({ message: 'ANTHROPIC_API_KEY is required when MODEL_PROVIDERS has anthropic' })
   ANTHROPIC_API_KEY?: string;
+
+  /**
+   * Who embeds recipes and search queries, in the order tried (`ollama,openai` when unset): the
+   * first that answers serves a query, every one gets its own index.
+   */
+  @IsOptional()
+  @Matches(EMBEDDING_PROVIDER_LIST, {
+    message: `EMBEDDING_PROVIDERS must be comma separated providers: ${Object.values(EmbeddingProviderName).join(', ')}`,
+  })
+  EMBEDDING_PROVIDERS?: string;
+
+  /** The Ollama server of the `ollama` embedding provider (`http://localhost:11434` when unset). */
+  @IsOptional()
+  @Matches(/^https?:\/\/[^\s]+$/, { message: 'OLLAMA_BASE_URL must be an http(s) url' })
+  OLLAMA_BASE_URL?: string;
 
   /** Minimum level printed (`log` when unset); `debug` adds the SQL queries. */
   @IsOptional()

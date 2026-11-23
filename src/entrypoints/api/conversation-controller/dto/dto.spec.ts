@@ -62,6 +62,13 @@ describe('conversation DTOs', () => {
     expect(await errorsOf(SendMessageDto, {})).toEqual(['content']);
   });
 
+  it('takes an answer to a wish offer with a message', async () => {
+    expect(await errorsOf(SendMessageDto, { content: 'Yes', wishOffer: 'accept' })).toEqual([]);
+    expect(await errorsOf(SendMessageDto, { content: 'No', wishOffer: 'maybe' })).toEqual([
+      'wishOffer',
+    ]);
+  });
+
   it('accepts a confirmed preference change and trims its value', async () => {
     const plain = { action: 'add', preferenceType: 'allergy', value: ' peanut ' };
 
@@ -111,6 +118,7 @@ describe('conversation DTOs', () => {
           menuVersionId: null,
           menuId: null,
           preferenceChange: null,
+          wishOffer: null,
           createdAt: message.createdAt,
         },
       ],
@@ -148,6 +156,20 @@ describe('conversation DTOs', () => {
 
       expect(of(change)).toEqual(change);
       expect(of({ ...change, action: 'replace' })).toBeNull();
+    });
+
+    it('shows the wish offer of a reply, and none for a stored value that does not match', () => {
+      const offer = {
+        wishes: 'sushi',
+        recipes: [{ id: MENU_ID, name: 'Salmon poke bowl', mealType: 'lunch' }],
+      };
+      const of = (wishOffer: unknown) =>
+        ConversationResponseDto.from(
+          buildConversation({ messages: [buildMessage({ wishOffer: wishOffer as never })] }),
+        ).messages[0].wishOffer;
+
+      expect(of(offer)).toEqual(offer);
+      expect(of({ ...offer, recipes: [] })).toBeNull();
     });
 
     it('maps the result of a confirmed change', () => {

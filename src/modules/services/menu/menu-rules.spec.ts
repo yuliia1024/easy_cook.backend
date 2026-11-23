@@ -1,6 +1,7 @@
 import {
   Allergen,
   CalculationMode,
+  DietTag,
   MealType,
   MenuIssueCode,
   MenuIssueSeverity,
@@ -23,6 +24,7 @@ import {
   isRecipeAllowed,
   mentions,
   recipeIssues,
+  searchFiltersOf,
   validateMenu,
 } from './menu-rules';
 
@@ -110,6 +112,27 @@ describe('menu rules', () => {
       expect(isForbiddenFood('Mushrooms', null, { ...NO_RULES, dislikedFoods: ['mushroom'] })).toBe(
         false,
       );
+    });
+  });
+
+  describe('searchFiltersOf', () => {
+    it('gives a group of satisfying tags per diet and the allergens the allergies name, once', () => {
+      expect(
+        searchFiltersOf(
+          [DietTag.Vegetarian, DietTag.Vegetarian, DietTag.GlutenFree],
+          ['dairy', 'lactose', 'kiwi'],
+        ),
+      ).toEqual({
+        dietTypeGroups: [[DietTag.Vegetarian, DietTag.Vegan], [DietTag.GlutenFree]],
+        excludeAllergens: [Allergen.Milk],
+      });
+    });
+
+    it('sets no filter for no diets and no allergens', () => {
+      expect(searchFiltersOf([], ['kiwi'])).toEqual({
+        dietTypeGroups: undefined,
+        excludeAllergens: undefined,
+      });
     });
   });
 

@@ -12,6 +12,7 @@ import {
   MenuIssue,
   NutritionGoalSnapshot,
   PreferenceRules,
+  RecipeSearchFilters,
   RecipeSnapshot,
   ResolvedDay,
 } from '../../../common/types';
@@ -51,6 +52,25 @@ export function allergensOf(allergy: string): Allergen[] {
   return (Object.entries(ALLERGEN_ALIASES) as [Allergen, readonly string[]][])
     .filter(([, aliases]) => aliases.some((alias) => mentions(allergy, alias)))
     .map(([allergen]) => allergen);
+}
+
+/**
+ * The filters of the recipe search for the diets (each one satisfied, `dietTagsSatisfying`) and
+ * the allergies (as `Allergen`s, `allergensOf`), so the search ranks only what the rules may allow;
+ * excluded ingredients have no column, `isRecipeAllowed` still checks them. Pure.
+ */
+export function searchFiltersOf(
+  diets: readonly string[],
+  allergies: readonly string[],
+): Pick<RecipeSearchFilters, 'dietTypeGroups' | 'excludeAllergens'> {
+  const allergens = [...new Set(allergies.flatMap(allergensOf))];
+  return {
+    dietTypeGroups:
+      diets.length > 0
+        ? [...new Set(diets)].map((diet) => [...dietTagsSatisfying(diet)])
+        : undefined,
+    excludeAllergens: allergens.length > 0 ? allergens : undefined,
+  };
 }
 
 /** The first allergen of the recipe that the allergy names. */

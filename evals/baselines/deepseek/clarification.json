@@ -1,8 +1,8 @@
 {
   "suite": "clarification",
-  "createdAt": "2026-11-16T14:48:37.736Z",
+  "createdAt": "2026-11-23T13:28:18.082Z",
   "prompts": [
-    "intent@v5",
+    "intent@v6",
     "judge@v2"
   ],
   "models": [
@@ -10,25 +10,25 @@
   ],
   "cases": 25,
   "repeat": 3,
-  "passRate": 0.9333333333333333,
+  "passRate": 0.92,
   "fields": {
     "clarification": 0.9333333333333333,
-    "judge.asks_for_missing": 0.9555555555555556,
-    "judge.clear": 0.9555555555555556,
-    "judge.consistent": 0.9555555555555556,
-    "judge.no_repeat": 0.9555555555555556,
-    "missingFields": 0.9555555555555556
+    "judge.asks_for_missing": 0.9333333333333333,
+    "judge.clear": 0.9333333333333333,
+    "judge.consistent": 0.9333333333333333,
+    "judge.no_repeat": 0.9111111111111111,
+    "missingFields": 0.9333333333333333
   },
   "tags": {
     "chat": 1,
     "direct": 1,
     "en": 0.9074074074074074,
     "follow-up": 0.8095238095238095,
-    "no-question": 0.9,
-    "out-of-range": 0.9333333333333333,
+    "no-question": 0.9333333333333333,
+    "out-of-range": 0.8666666666666667,
     "revise": 0.6666666666666666,
     "surzhyk": 1,
-    "uk": 1,
+    "uk": 0.9523809523809523,
     "vague": 1
   },
   "metrics": {},
@@ -40,13 +40,13 @@
     "direct-en-03",
     "direct-uk-01",
     "follow-up-en-02",
+    "follow-up-en-03",
     "follow-up-en-05",
     "follow-up-uk-01",
     "follow-up-uk-02",
     "range-en-01",
     "range-en-02",
     "range-en-03",
-    "range-uk-01",
     "vague-en-01",
     "vague-en-02",
     "vague-en-03",

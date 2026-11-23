@@ -25,8 +25,8 @@ const PROMPTS: ModelPrompt[] = [
  */
 const RELEASED: Record<PromptName, { version: number; sha256: string }> = {
   [PromptName.Intent]: {
-    version: 5,
-    sha256: '26e103eaaa5edaa2f518dcfec6a24df458a5a91c19b6d90262c5beff9c32a944',
+    version: 6,
+    sha256: '55b5d290636d244cd79bb1c2a0207bac52e0f8ca8d15619a2e624ec79a62b25f',
   },
   [PromptName.MenuPlan]: {
     version: 1,
@@ -41,8 +41,8 @@ const RELEASED: Record<PromptName, { version: number; sha256: string }> = {
     sha256: '4349556be8e70a1ff0315411993e69122e84c5a1372a6aaa969867e5cd735f3d',
   },
   [PromptName.GeneralChat]: {
-    version: 5,
-    sha256: 'afc478f618a06565464aa3856f78e285847ce967a7c8e7d374928ac1ceac86b3',
+    version: 6,
+    sha256: '9e790e87c04c34dd1e9307836e397e2cd6b847027f77c86221254dd6aab28002',
   },
   [PromptName.Summary]: {
     version: 1,

@@ -64,6 +64,11 @@ export const MENU_PLAN_CANDIDATES_MAX = 12;
  */
 export const MENU_PLAN_CANDIDATE_POOL_FACTOR = 2;
 /**
+ * The share of the candidates of a meal the recipe search gives when the request has `wishes`
+ * ("more fish"); the rest come from the calorie pool, so the model still has a choice.
+ */
+export const MENU_PLAN_WISHED_SHARE = 0.5;
+/**
  * The model sees a candidate by a short id, this prefix and its position ("b1", "l3"): it copies
  * those reliably, unlike the UUIDs of many days.
  */

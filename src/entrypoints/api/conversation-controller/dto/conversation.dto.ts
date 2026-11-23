@@ -13,6 +13,7 @@ import {
   PREFERENCE_VALUE_MAX_LENGTH,
   PreferenceChangeAction,
   PreferenceType,
+  WishOfferAnswer,
 } from '../../../../common/constants';
 import { IsOptionalNotNull, Trim } from '../../dto/validators';
 
@@ -50,6 +51,14 @@ export class SendMessageDto {
   @IsNotEmpty()
   @MaxLength(MESSAGE_MAX_LENGTH)
   content: string;
+
+  /**
+   * A button of the wish offer of the latest reply: plan with the similar recipes (`accept`) or
+   * without the wish (`decline`); `content` is the text of the button. Ignored when no offer waits.
+   */
+  @IsOptional()
+  @IsEnum(WishOfferAnswer)
+  wishOffer?: WishOfferAnswer;
 }
 
 /**

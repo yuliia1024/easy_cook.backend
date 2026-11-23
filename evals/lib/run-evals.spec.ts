@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { OpenAiService } from '../../src/providers/open-ai/open-ai.service';
+import { LlmService } from '../../src/providers/llm/llm.service';
 import { ModelProviderName } from '../../src/common/constants';
 import { AssistantUnavailableException } from '../../src/common/exceptions';
 import { createMock } from '../../src/test/create-mock';
@@ -12,7 +12,7 @@ import { MAX_FAILED_CALLS_SHARE, runEvals } from './run-evals';
 import { buildEchoSuite, EchoCase } from '../test/helpers';
 
 describe('runEvals', () => {
-  const openAi = createMock<OpenAiService>();
+  const llm = createMock<LlmService>();
   const usage = { inputTokens: 10, cachedInputTokens: 0, outputTokens: 1 };
   const now = (): Date => new Date('2026-10-22T10:00:00Z');
   let root: string;
@@ -76,7 +76,7 @@ describe('runEvals', () => {
     const outcome = await runEvals(
       args({ suites: ['intent'] }),
       [intent, other],
-      openAi,
+      llm,
       dirs,
       (l) => lines.push(l),
       now,
@@ -102,7 +102,7 @@ describe('runEvals', () => {
     const intent = suiteOf('intent', 1, 1);
     const other = suiteOf('other', 1, 1);
 
-    await runEvals(args(), [intent, other], openAi, dirs, () => undefined, now);
+    await runEvals(args(), [intent, other], llm, dirs, () => undefined, now);
 
     expect(intent.run).toHaveBeenCalled();
     expect(other.run).toHaveBeenCalled();
@@ -112,7 +112,7 @@ describe('runEvals', () => {
     await runEvals(
       args({ saveBaseline: true }),
       [suiteOf('intent', 2, 1)],
-      openAi,
+      llm,
       dirs,
       (l) => lines.push(l),
       now,
@@ -130,7 +130,7 @@ describe('runEvals', () => {
     await runEvals(
       args({ saveBaseline: true }),
       [suiteOf('intent', 2, 2)],
-      openAi,
+      llm,
       dirs,
       () => undefined,
       now,
@@ -138,7 +138,7 @@ describe('runEvals', () => {
     const changed = suiteOf('intent', 2, 2);
     changed.prompts = [{ name: 'echo', version: 2, instructions: 'Echo it.' }];
 
-    const outcome = await runEvals(args(), [changed], openAi, dirs, (l) => lines.push(l), now);
+    const outcome = await runEvals(args(), [changed], llm, dirs, (l) => lines.push(l), now);
 
     expect(outcome.ok).toBe(true);
     const written = report(outcome.reportFile).suites[0];
@@ -151,7 +151,7 @@ describe('runEvals', () => {
     await runEvals(
       args({ saveBaseline: true }),
       [suiteOf('intent', 25, 20)],
-      openAi,
+      llm,
       dirs,
       () => undefined,
       now,
@@ -160,7 +160,7 @@ describe('runEvals', () => {
     const within = await runEvals(
       args(),
       [suiteOf('intent', 25, 19)],
-      openAi,
+      llm,
       dirs,
       () => undefined,
       now,
@@ -168,7 +168,7 @@ describe('runEvals', () => {
     const worse = await runEvals(
       args(),
       [suiteOf('intent', 25, 14)],
-      openAi,
+      llm,
       dirs,
       (l) => lines.push(l),
       now,
@@ -194,7 +194,7 @@ describe('runEvals', () => {
     const outcome = await runEvals(
       args({ saveBaseline: true }),
       [suiteOf('intent', 5, 5, { down: 1 })],
-      openAi,
+      llm,
       dirs,
       (l) => lines.push(l),
       now,
@@ -209,7 +209,7 @@ describe('runEvals', () => {
     await runEvals(
       args({ saveBaseline: true }),
       [suiteOf('intent', 20, 20)],
-      openAi,
+      llm,
       dirs,
       () => undefined,
       now,
@@ -218,7 +218,7 @@ describe('runEvals', () => {
     const few = await runEvals(
       args(),
       [suiteOf('intent', 20, 20, { down: 2 })],
-      openAi,
+      llm,
       dirs,
       () => undefined,
       now,
@@ -226,7 +226,7 @@ describe('runEvals', () => {
     const many = await runEvals(
       args(),
       [suiteOf('intent', 20, 20, { down: 3 })],
-      openAi,
+      llm,
       dirs,
       (l) => lines.push(l),
       now,
@@ -243,7 +243,7 @@ describe('runEvals', () => {
     await runEvals(
       args({ saveBaseline: true }),
       [suiteOf('intent', 2, 2)],
-      openAi,
+      llm,
       dirs,
       () => undefined,
       now,
@@ -252,7 +252,7 @@ describe('runEvals', () => {
     const outcome = await runEvals(
       args(),
       [suiteOf('intent', 2, 2, { modelId: 'gpt-4.1-mini' })],
-      openAi,
+      llm,
       dirs,
       () => undefined,
       now,
@@ -269,7 +269,7 @@ describe('runEvals', () => {
     await runEvals(
       args({ saveBaseline: true }),
       [suiteOf('intent', 20, 20, { tagged: 10 })],
-      openAi,
+      llm,
       dirs,
       () => undefined,
       now,
@@ -279,7 +279,7 @@ describe('runEvals', () => {
     const outcome = await runEvals(
       args({ tags: ['save'] }),
       [worse],
-      openAi,
+      llm,
       dirs,
       (l) => lines.push(l),
       now,
@@ -300,7 +300,7 @@ describe('runEvals', () => {
     const some = await runEvals(
       args({ tags: ['save'] }),
       [intent, other],
-      openAi,
+      llm,
       dirs,
       (l) => lines.push(l),
       now,
@@ -308,7 +308,7 @@ describe('runEvals', () => {
     const none = await runEvals(
       args({ tags: ['nope'] }),
       [intent, other],
-      openAi,
+      llm,
       dirs,
       (l) => lines.push(l),
       now,
@@ -329,7 +329,7 @@ describe('runEvals', () => {
     const intent = suiteOf('intent', 2, 2, { tagged: 1 });
     const other = suiteOf('other', 2, 2);
 
-    await runEvals(args(), [intent, other], openAi, dirs, (l) => lines.push(l), now, [
+    await runEvals(args(), [intent, other], llm, dirs, (l) => lines.push(l), now, [
       { suite: 'intent', tags: ['save'], reasons: ['src/a.ts'] },
     ]);
 
@@ -342,7 +342,7 @@ describe('runEvals', () => {
 
   it('rejects a plan with an unknown suite', async () => {
     await expect(
-      runEvals(args(), [], openAi, dirs, () => undefined, now, [
+      runEvals(args(), [], llm, dirs, () => undefined, now, [
         { suite: 'nope', tags: [], reasons: [] },
       ]),
     ).rejects.toThrow('Unknown suite: nope');

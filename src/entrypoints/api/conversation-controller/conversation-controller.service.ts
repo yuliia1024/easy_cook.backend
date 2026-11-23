@@ -56,9 +56,11 @@ export class ConversationControllerService {
 
   public async sendMessage(
     id: string,
-    { content }: SendMessageDto,
+    { content, wishOffer }: SendMessageDto,
     abortSignal?: AbortSignal,
   ): Promise<ReadableStream<UIMessageChunk>> {
-    return toChatStream(await this.chatOrchestratorService.handleMessage(id, content, abortSignal));
+    return toChatStream(
+      await this.chatOrchestratorService.handleMessage(id, content, abortSignal, wishOffer ?? null),
+    );
   }
 }

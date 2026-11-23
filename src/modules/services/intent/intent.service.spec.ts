@@ -13,14 +13,14 @@ import {
   AssistantUnavailableException,
 } from '../../../common/exceptions';
 import { ProfileContext } from '../../../common/types';
-import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
+import { LlmService } from '../../../providers/llm/llm.service';
 import { createMock } from '../../../test/create-mock';
 import { buildMessage, PROFILE_ID } from '../../../test/fixtures';
 import { ModelHistory } from '../conversation/conversation.service';
 import { intentModelCall, IntentService, resolveIntent } from './intent.service';
 
 describe('IntentService', () => {
-  let openAiService: jest.Mocked<OpenAiService>;
+  let llmService: jest.Mocked<LlmService>;
   let service: IntentService;
   const profile: ProfileContext = {
     profileId: PROFILE_ID,
@@ -44,13 +44,14 @@ describe('IntentService', () => {
       diets: [],
       excludedIngredients: ['chicken'],
       dislikedFoods: [],
+      wishes: null,
     },
     targets: [{ scope: MenuTargetScope.Menu, dayIndex: null, mealType: null }],
   };
 
   beforeEach(() => {
-    openAiService = createMock<OpenAiService>();
-    service = new IntentService(openAiService);
+    llmService = createMock<LlmService>();
+    service = new IntentService(llmService);
   });
 
   it('classifies the latest message with the recent history, the profile, its own instructions and schema', async () => {
@@ -69,14 +70,15 @@ describe('IntentService', () => {
         diets: [],
         excludedIngredients: [],
         dislikedFoods: [],
+        wishes: null,
       },
       targets: null,
     };
-    openAiService.generateStructured.mockResolvedValue(result);
+    llmService.generateStructured.mockResolvedValue(result);
     const abort = new AbortController();
 
     await expect(service.classify(messages, null, profile, abort.signal)).resolves.toEqual(result);
-    expect(openAiService.generateStructured).toHaveBeenCalledWith(
+    expect(llmService.generateStructured).toHaveBeenCalledWith(
       [
         {
           role: 'user',
@@ -98,7 +100,7 @@ describe('IntentService', () => {
   });
 
   it('classifies without a profile, marking it as not set', async () => {
-    openAiService.generateStructured.mockResolvedValue({
+    llmService.generateStructured.mockResolvedValue({
       intent: Intent.GeneralChat,
       request: null,
       menuRequest: null,
@@ -107,7 +109,7 @@ describe('IntentService', () => {
 
     await service.classify(history(buildMessage({ content: 'Hi' })), null, null);
 
-    const [[input]] = openAiService.generateStructured.mock.calls;
+    const [[input]] = llmService.generateStructured.mock.calls;
     expect(input).toEqual([
       {
         role: 'user',
@@ -118,7 +120,7 @@ describe('IntentService', () => {
   });
 
   it('turns a revision without an earlier reply into a new menu', async () => {
-    openAiService.generateStructured.mockResolvedValue(revision);
+    llmService.generateStructured.mockResolvedValue(revision);
 
     await expect(
       service.classify(
@@ -134,7 +136,7 @@ describe('IntentService', () => {
   });
 
   it('gives the model the menu request and the summary of the conversation', async () => {
-    openAiService.generateStructured.mockResolvedValue({
+    llmService.generateStructured.mockResolvedValue({
       intent: Intent.GeneralChat,
       request: null,
       menuRequest: null,
@@ -147,7 +149,7 @@ describe('IntentService', () => {
       null,
     );
 
-    const [[[first]]] = openAiService.generateStructured.mock.calls as unknown as [
+    const [[[first]]] = llmService.generateStructured.mock.calls as unknown as [
       [[{ content: string }]],
     ];
     expect(JSON.parse(first.content)).toMatchObject({
@@ -172,7 +174,13 @@ describe('IntentService', () => {
         resolveIntent({ ...revision, request: null, menuRequest: null }, [
           { role: MessageRole.User },
         ]),
-      ).toEqual({ intent: Intent.Clarification, request: null, menuRequest: null, targets: null });
+      ).toEqual({
+        intent: Intent.Clarification,
+        request: null,
+        menuRequest: null,
+        targets: null,
+        wishOffer: null,
+      });
     });
 
     const history = [{ role: MessageRole.User }, { role: MessageRole.Assistant }];
@@ -229,7 +237,7 @@ describe('IntentService', () => {
   });
 
   it('rethrows invalid model output instead of guessing an intent', async () => {
-    openAiService.generateStructured.mockRejectedValue(new AssistantInvalidOutputException());
+    llmService.generateStructured.mockRejectedValue(new AssistantInvalidOutputException());
 
     await expect(service.classify(history(buildMessage()), null, profile)).rejects.toBeInstanceOf(
       AssistantInvalidOutputException,
@@ -237,7 +245,7 @@ describe('IntentService', () => {
   });
 
   it('rethrows an API failure', async () => {
-    openAiService.generateStructured.mockRejectedValue(new AssistantUnavailableException(false));
+    llmService.generateStructured.mockRejectedValue(new AssistantUnavailableException(false));
 
     await expect(service.classify(history(buildMessage()), null, profile)).rejects.toBeInstanceOf(
       AssistantUnavailableException,

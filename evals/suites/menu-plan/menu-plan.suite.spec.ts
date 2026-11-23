@@ -10,7 +10,7 @@ import {
 import { MenuPlan, MenuPlanSchema } from '../../../src/common/contracts';
 import { AssistantInvalidOutputException } from '../../../src/common/exceptions';
 import { mentions } from '../../../src/modules/services/menu/menu-rules';
-import { ModelResult, OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { ModelResult, LlmService } from '../../../src/providers/llm/llm.service';
 import { createMock } from '../../../src/test/create-mock';
 import {
   candidatesPerMeal,
@@ -307,21 +307,21 @@ describe('menu-plan suite', () => {
       latencyMs: 10,
       usage,
     });
-    let openAi: jest.Mocked<OpenAiService>;
+    let llm: jest.Mocked<LlmService>;
 
     beforeEach(() => {
-      openAi = createMock<OpenAiService>();
+      llm = createMock<LlmService>();
     });
 
     it('runs the planner call of the app with the candidates of the case', async () => {
-      openAi.generateStructuredResult.mockResolvedValue(result(good) as never);
+      llm.generateStructuredResult.mockResolvedValue(result(good) as never);
 
-      await expect(menuPlanSuite.run(theCase, openAi)).resolves.toEqual({
+      await expect(menuPlanSuite.run(theCase, llm)).resolves.toEqual({
         ...result(good),
         metrics: { repairs: 0 },
       });
 
-      const [[input, schema, options]] = openAi.generateStructuredResult.mock.calls;
+      const [[input, schema, options]] = llm.generateStructuredResult.mock.calls;
       expect(schema).toBe(MenuPlanSchema);
       expect(options.maxOutputTokens).toBe(menuPlanMaxOutputTokens(1));
       const sent = JSON.parse((input as Array<{ content: string }>)[0].content);
@@ -330,38 +330,38 @@ describe('menu-plan suite', () => {
     });
 
     it('sends a plan with problems back and counts the repairs, usage and latency of every call', async () => {
-      openAi.generateStructuredResult
+      llm.generateStructuredResult
         .mockResolvedValueOnce(result(wrong) as never)
         .mockResolvedValueOnce(result(good) as never);
 
-      await expect(menuPlanSuite.run(theCase, openAi)).resolves.toEqual({
+      await expect(menuPlanSuite.run(theCase, llm)).resolves.toEqual({
         output: good,
         modelId: 'm',
         latencyMs: 20,
         usage: { inputTokens: 2000, cachedInputTokens: 200, outputTokens: 100 },
         metrics: { repairs: 1 },
       });
-      const [, [messages]] = openAi.generateStructuredResult.mock.calls;
+      const [, [messages]] = llm.generateStructuredResult.mock.calls;
       expect((messages as Array<{ content: string }>).at(-1)?.content).toBe(
         menuPlanRetryMessage(['dayIndex 0, lunch: "x" is not an id from the lunch recipes.']),
       );
     });
 
     it('returns the last plan after the last attempt', async () => {
-      openAi.generateStructuredResult.mockResolvedValue(result(wrong) as never);
+      llm.generateStructuredResult.mockResolvedValue(result(wrong) as never);
 
-      await expect(menuPlanSuite.run(theCase, openAi)).resolves.toMatchObject({
+      await expect(menuPlanSuite.run(theCase, llm)).resolves.toMatchObject({
         output: wrong,
         metrics: { repairs: MENU_PLAN_MAX_ATTEMPTS - 1 },
       });
     });
 
     it('fails invalid output with the usage of every call', async () => {
-      openAi.generateStructuredResult
+      llm.generateStructuredResult
         .mockResolvedValueOnce(result(wrong) as never)
         .mockRejectedValueOnce(new AssistantInvalidOutputException({ modelId: 'm', usage }));
 
-      const error = await menuPlanSuite.run(theCase, openAi).catch((e: unknown) => e);
+      const error = await menuPlanSuite.run(theCase, llm).catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(AssistantInvalidOutputException);
       expect((error as AssistantInvalidOutputException).call).toEqual({

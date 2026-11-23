@@ -1,15 +1,15 @@
 {
   "suite": "chat-tools",
-  "createdAt": "2026-11-17T11:50:55.753Z",
+  "createdAt": "2026-11-23T13:29:25.910Z",
   "prompts": [
-    "general-chat@v5"
+    "general-chat@v6"
   ],
   "models": [
     "deepseek-flash"
   ],
-  "cases": 47,
+  "cases": 52,
   "repeat": 3,
-  "passRate": 0.9929078014184397,
+  "passRate": 0.9935897435897436,
   "fields": {
     "days": 1,
     "excludes": 1,
@@ -28,7 +28,7 @@
     "confirm": 1,
     "decline": 1,
     "details": 1,
-    "en": 0.9895833333333334,
+    "en": 1,
     "follow-up": 1,
     "food": 1,
     "injection": 1,
@@ -52,11 +52,11 @@
     "save": 0.9666666666666667,
     "search": 1,
     "tool": 1,
-    "uk": 1
+    "uk": 0.9824561403508771
   },
   "metrics": {
     "invalidArguments": 0,
-    "toolCalls": 0.94
+    "toolCalls": 0.96
   },
   "passedCases": [
     "calc-en-01",
@@ -74,8 +74,8 @@
     "inject-tool-en-02",
     "menu-question-en-01",
     "menu-question-en-02",
+    "nosave-en-01",
     "nosave-en-02",
-    "nosave-uk-01",
     "nosave-uk-02",
     "plan-en-01",
     "plan-en-02",
@@ -96,6 +96,11 @@
     "recipe-protein-uk-01",
     "recipe-search-en-01",
     "recipe-search-en-02",
+    "recipe-search-en-03",
+    "recipe-search-uk-01",
+    "recipe-search-uk-02",
+    "recipe-search-uk-03",
+    "recipe-search-uk-04",
     "revise-en-01",
     "revise-en-02",
     "save-en-01",

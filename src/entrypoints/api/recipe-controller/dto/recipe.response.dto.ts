@@ -1,4 +1,4 @@
-import { Allergen, DietTag, MealType } from '../../../../common/constants';
+import { Allergen, DietTag, Locale, MealType } from '../../../../common/constants';
 import { toNumber } from '../../../../common/utils';
 import {
   IngredientWithFood,
@@ -6,6 +6,16 @@ import {
 } from '../../../../modules/data-access/recipe/recipe.repository';
 import { Macros, RecipeNutrition } from '../../../../modules/services/nutrition/nutrition.service';
 import { FoodItemResponseDto } from '../../dto/food-item.response.dto';
+
+export class RecipeIngredientTranslationResponseDto {
+  notes: string;
+}
+
+export class RecipeTranslationResponseDto {
+  name: string;
+  description: string | null;
+  instructions: string;
+}
 
 export class RecipeIngredientResponseDto {
   id: string;
@@ -15,6 +25,8 @@ export class RecipeIngredientResponseDto {
   notes: string | null;
   position: number;
   foodItem: FoodItemResponseDto;
+  /** `notes` in other languages, by `Locale`. */
+  translations: Partial<Record<Locale, RecipeIngredientTranslationResponseDto>>;
 
   static from(ingredient: IngredientWithFood): RecipeIngredientResponseDto {
     return {
@@ -25,6 +37,9 @@ export class RecipeIngredientResponseDto {
       notes: ingredient.notes,
       position: ingredient.position,
       foodItem: FoodItemResponseDto.from(ingredient.foodItem),
+      translations: Object.fromEntries(
+        ingredient.translations.map(({ locale, notes }) => [locale, { notes }]),
+      ),
     };
   }
 }
@@ -49,6 +64,8 @@ export class RecipeResponseDto {
   prepTimeMinutes: number | null;
   source: string;
   sourceId: string | null;
+  /** Name, description and instructions in other languages, by `Locale`; a missing one is not translated. */
+  translations: Partial<Record<Locale, RecipeTranslationResponseDto>>;
   createdAt: Date;
   updatedAt: Date;
   ingredients: RecipeIngredientResponseDto[];
@@ -70,6 +87,12 @@ export class RecipeResponseDto {
       prepTimeMinutes: recipe.prepTimeMinutes,
       source: recipe.source,
       sourceId: recipe.sourceId,
+      translations: Object.fromEntries(
+        recipe.translations.map(({ locale, name, description, instructions }) => [
+          locale,
+          { name, description, instructions },
+        ]),
+      ),
       createdAt: recipe.createdAt,
       updatedAt: recipe.updatedAt,
       ingredients: recipe.ingredients.map(RecipeIngredientResponseDto.from),

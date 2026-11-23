@@ -1,6 +1,12 @@
-import { Intent, MealType, MenuTargetScope, MessageRole } from '../../../src/common/constants';
+import {
+  Intent,
+  MealType,
+  MenuTargetScope,
+  MessageRole,
+  WishOfferAnswer,
+} from '../../../src/common/constants';
 import { IntentResult, IntentResultSchema, MenuTarget } from '../../../src/common/contracts';
-import { OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { LlmService } from '../../../src/providers/llm/llm.service';
 import { createMock } from '../../../src/test/create-mock';
 import { loadCases } from '../../lib/cases';
 import { IntentCase, IntentCaseSchema, intentSuite, mentions, scoreIntent } from './intent.suite';
@@ -20,12 +26,20 @@ describe('intent suite', () => {
     diets: [],
     excludedIngredients: [],
     dislikedFoods: [],
+    wishes: null,
   });
   const output = (
     intent: Intent,
     request: string | null,
     overrides: Partial<IntentResult> = {},
-  ): IntentResult => ({ intent, request, menuRequest: null, targets: null, ...overrides });
+  ): IntentResult => ({
+    intent,
+    request,
+    menuRequest: null,
+    targets: null,
+    wishOffer: null,
+    ...overrides,
+  });
 
   describe('scoreIntent', () => {
     it('scores only the intent when the case expects nothing else', () => {
@@ -92,6 +106,40 @@ describe('intent suite', () => {
         { field: 'days', pass: false, expected: null, actual: null },
         { field: 'constraints', pass: false, expected: [['!fish']], actual: null },
       ]);
+    });
+
+    it('scores the wishes by any of their terms, or by none when the case expects null', () => {
+      const withWishes = (wishes: string | null): IntentResult =>
+        output(Intent.GenerateMenu, 'Plan a menu', {
+          menuRequest: { ...menuRequest(null)!, wishes },
+        });
+      const wishesScore = (expected: string[] | null, given: IntentResult | null): boolean =>
+        scoreIntent(testCase({ intent: Intent.GenerateMenu, wishes: expected }), given).find(
+          ({ field }) => field === 'wishes',
+        )!.pass;
+
+      expect(wishesScore(['fish', 'salmon'], withWishes('More Fish'))).toBe(true);
+      expect(wishesScore(['fish'], withWishes('soups'))).toBe(false);
+      expect(wishesScore(['fish'], withWishes(null))).toBe(false);
+      expect(wishesScore(null, withWishes(null))).toBe(true);
+      expect(wishesScore(null, withWishes('soups'))).toBe(false);
+      expect(wishesScore(null, null)).toBe(false);
+    });
+
+    it('scores the answer to a wish offer', () => {
+      const score = (
+        expected: WishOfferAnswer | null,
+        wishOffer: WishOfferAnswer | null,
+      ): boolean =>
+        scoreIntent(
+          testCase({ intent: Intent.GenerateMenu, wishOffer: expected }),
+          output(Intent.GenerateMenu, null, { wishOffer }),
+        ).find(({ field }) => field === 'wishOffer')!.pass;
+
+      expect(score(WishOfferAnswer.Accept, WishOfferAnswer.Accept)).toBe(true);
+      expect(score(WishOfferAnswer.Accept, WishOfferAnswer.Decline)).toBe(false);
+      expect(score(null, null)).toBe(true);
+      expect(score(null, WishOfferAnswer.Accept)).toBe(false);
     });
 
     it('scores the scope of the targets and the fields the case sets', () => {
@@ -224,23 +272,23 @@ describe('intent suite', () => {
   });
 
   it('runs the classifier call of the app with the profile of the case', async () => {
-    const openAi = createMock<OpenAiService>();
+    const llm = createMock<LlmService>();
     const result = {
       output: output(Intent.GeneralChat, null),
       modelId: 'm',
       latencyMs: 1,
       usage: { inputTokens: 1, cachedInputTokens: 0, outputTokens: 1 },
     };
-    openAi.generateStructuredResult.mockResolvedValue(result);
+    llm.generateStructuredResult.mockResolvedValue(result);
 
     await expect(
       intentSuite.run(
         { ...testCase({ intent: Intent.GeneralChat }), profile: 'vegetarian' },
-        openAi,
+        llm,
       ),
     ).resolves.toEqual(result);
 
-    const [[input, schema, options]] = openAi.generateStructuredResult.mock.calls;
+    const [[input, schema, options]] = llm.generateStructuredResult.mock.calls;
     expect(input).toEqual([
       { role: 'user', content: expect.stringContaining('"diets":["vegetarian"]') },
       { role: 'user', content: 'x' },
@@ -250,8 +298,8 @@ describe('intent suite', () => {
   });
 
   it('applies the rules of the app to the model output', async () => {
-    const openAi = createMock<OpenAiService>();
-    openAi.generateStructuredResult.mockResolvedValue({
+    const llm = createMock<LlmService>();
+    llm.generateStructuredResult.mockResolvedValue({
       output: output(Intent.ReviseMenu, 'Plan a weekly menu', {
         menuRequest: menuRequest(7),
         targets: [{ scope: MenuTargetScope.Menu, dayIndex: null, mealType: null }],
@@ -263,7 +311,7 @@ describe('intent suite', () => {
 
     const { output: result } = await intentSuite.run(
       testCase({ intent: Intent.GenerateMenu }),
-      openAi,
+      llm,
     );
 
     expect(result).toMatchObject({ intent: Intent.GenerateMenu, targets: null });

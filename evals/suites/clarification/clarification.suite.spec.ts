@@ -1,7 +1,7 @@
 import { CLARIFICATION_REPLY, Intent, MealType, MessageRole } from '../../../src/common/constants';
 import { IntentResult } from '../../../src/common/contracts';
 import { EMPTY_MENU_REQUEST } from '../../../src/modules/services/menu/menu-request';
-import { OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { LlmService } from '../../../src/providers/llm/llm.service';
 import { createMock } from '../../../src/test/create-mock';
 import { loadCases } from '../../lib/cases';
 import { JUDGE_MODEL } from '../../lib/judge';
@@ -97,14 +97,14 @@ describe('clarification suite', () => {
   });
 
   describe('run', () => {
-    let openAi: jest.Mocked<OpenAiService>;
+    let llm: jest.Mocked<LlmService>;
 
     beforeEach(() => {
-      openAi = createMock<OpenAiService>();
+      llm = createMock<LlmService>();
     });
 
     it('asks for what the chat lacks and has the judge grade the question', async () => {
-      openAi.generateStructuredResult
+      llm.generateStructuredResult
         .mockResolvedValueOnce({
           output: classified({}),
           modelId: 'gpt-4o-mini',
@@ -120,7 +120,7 @@ describe('clarification suite', () => {
 
       const result = await clarificationSuite.run(
         testCase({ clarification: true }, { chat: { days: 3 }, messages }),
-        openAi,
+        llm,
       );
 
       expect(result).toEqual({
@@ -136,7 +136,7 @@ describe('clarification suite', () => {
         judge: { modelId: 'gpt-4.1', usage },
       });
       const [[intentInput], [judgeInput, , judgeOptions]] =
-        openAi.generateStructuredResult.mock.calls;
+        llm.generateStructuredResult.mock.calls;
       expect(intentInput).toContainEqual({
         role: 'user',
         content: expect.stringContaining('"days":3'),
@@ -152,7 +152,7 @@ describe('clarification suite', () => {
     });
 
     it('offers the nearest days for a menu request out of range', async () => {
-      openAi.generateStructuredResult
+      llm.generateStructuredResult
         .mockResolvedValueOnce({
           output: classified({
             intent: Intent.GenerateMenu,
@@ -167,7 +167,7 @@ describe('clarification suite', () => {
 
       const { output } = await clarificationSuite.run(
         testCase({ clarification: true, missingFields: ['days'] }),
-        openAi,
+        llm,
       );
 
       expect(output.clarification).toEqual({
@@ -177,7 +177,7 @@ describe('clarification suite', () => {
     });
 
     it('plans a clarification the chat can already answer, without the judge', async () => {
-      openAi.generateStructuredResult.mockResolvedValueOnce({
+      llm.generateStructuredResult.mockResolvedValueOnce({
         output: classified({}),
         modelId: 'm',
         latencyMs: 1,
@@ -186,7 +186,7 @@ describe('clarification suite', () => {
 
       const result = await clarificationSuite.run(
         testCase({ clarification: false }, { chat: { days: 3, mealTypes: [MealType.Breakfast] } }),
-        openAi,
+        llm,
       );
 
       expect(result.output).toMatchObject({
@@ -195,31 +195,31 @@ describe('clarification suite', () => {
         verdict: null,
       });
       expect(result.judge).toBeUndefined();
-      expect(openAi.generateStructuredResult).toHaveBeenCalledTimes(1);
+      expect(llm.generateStructuredResult).toHaveBeenCalledTimes(1);
     });
 
     it('does not judge a question the case does not expect', async () => {
-      openAi.generateStructuredResult.mockResolvedValueOnce({
+      llm.generateStructuredResult.mockResolvedValueOnce({
         output: classified({}),
         modelId: 'm',
         latencyMs: 1,
         usage,
       });
 
-      const { output } = await clarificationSuite.run(testCase({ clarification: false }), openAi);
+      const { output } = await clarificationSuite.run(testCase({ clarification: false }), llm);
 
       expect(output.clarification).not.toBeNull();
       expect(output.verdict).toBeNull();
-      expect(openAi.generateStructuredResult).toHaveBeenCalledTimes(1);
+      expect(llm.generateStructuredResult).toHaveBeenCalledTimes(1);
     });
 
     it('makes a failed judge a failed call, not invalid output of the prompt', async () => {
-      openAi.generateStructuredResult
+      llm.generateStructuredResult
         .mockResolvedValueOnce({ output: classified({}), modelId: 'm', latencyMs: 1, usage })
         .mockRejectedValueOnce(new Error('timeout'));
 
       await expect(
-        clarificationSuite.run(testCase({ clarification: true }), openAi),
+        clarificationSuite.run(testCase({ clarification: true }), llm),
       ).rejects.toThrow('The judge failed: timeout');
     });
   });

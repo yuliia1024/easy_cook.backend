@@ -41,6 +41,9 @@ model Message {
   /// The change of the dietary preferences the assistant proposed with this reply
   /// (`PreferenceChange`); applied only once the user confirms it, while it is the latest reply.
   preferenceChange Json?    @map("preference_change")
+  /// The closest recipes the assistant offered with this reply when none fitted the wishes of the
+  /// menu request (`WishOffer`); waits for the user's answer while it is the latest reply.
+  wishOffer        Json?    @map("wish_offer")
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   conversation     Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)

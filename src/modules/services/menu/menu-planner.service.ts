@@ -9,29 +9,36 @@ import {
   MENU_PLAN_CANDIDATE_POOL_FACTOR,
   MENU_PLAN_MAX_ATTEMPTS,
   MENU_PLAN_MEAL_TYPES,
+  MENU_PLAN_WISHED_SHARE,
   menuPlanRetryMessage,
+  MealType,
   NO_PROFILE_REPLY,
+  WISH_OFFER_RECIPES_MAX,
+  wishOfferReply,
 } from '../../../common/constants';
-import { MenuRequest } from '../../../common/contracts';
+import { MenuRequest, WishOffer } from '../../../common/contracts';
 import {
   ChatProgressEvent,
   ChatResponse,
   MacroValues,
   MenuComposition,
   ModelProvenance,
+  PreferenceRules,
   ProfileContext,
   RecipeSnapshot,
   ResolvedDay,
 } from '../../../common/types';
 import { AssistantInvalidOutputException } from '../../../common/exceptions';
 import { promptLabel } from '../../../common/utils';
-import { ModelCallOptions, OpenAiService } from '../../../providers/open-ai/open-ai.service';
+import { ModelCallOptions, LlmService } from '../../../providers/llm/llm.service';
 import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repository';
 import { NutritionService, RecipeNutrition } from '../nutrition/nutrition.service';
 import { RecipeService } from '../recipe/recipe.service';
+import { RecipeSearchService } from '../recipe-search/recipe-search.service';
 import { MenuComposer } from './menu-composer';
 import { findMenuShortage, hasEnoughRecipes, menuShortageReply } from './menu-shortage';
 import { requestRules } from './menu-request';
+import { searchFiltersOf } from './menu-rules';
 import { fitServings, snapshotRecipe } from './menu-composition';
 import { changedSlots, outsideScope, violatingSlots, widenReplacement } from './menu-diff';
 import { replaceParts, replacedSlots, ReplacementModelCall } from './menu-replacement';
@@ -42,6 +49,7 @@ import {
   LabelledCandidates,
   MenuPlanCandidates,
   menuPlanErrors,
+  MenuPlanMealType,
   menuPlanModelCall,
   planDays,
   PlannedDay,
@@ -56,6 +64,31 @@ interface RecipeOption {
 
 /** A recipe with the calories and macros of a serving, before it is a candidate. */
 type CandidateRecipe = Pick<RecipeSnapshot, 'id' | 'name' | 'mealType' | 'perServing' | 'complete'>;
+
+/** Per meal, the ids of the allowed recipes the search found for the wishes, best first. */
+type WishedRecipes = Partial<Record<MenuPlanMealType, string[]>>;
+
+/** The wished recipes of every meal, or the offer to make when none fits the wishes. */
+interface WishSearch {
+  wished: WishedRecipes;
+  offer: WishOffer | null;
+}
+
+/** The recipes of an accepted offer that are still allowed, by meal, in the offer's order. Pure. */
+export function offeredRecipes(
+  offer: WishOffer,
+  recipes: Pick<RecipeWithIngredients, 'id'>[],
+): WishedRecipes {
+  const allowed = new Set(recipes.map(({ id }) => id));
+  const wished: WishedRecipes = {};
+  for (const { id, mealType } of offer.recipes) {
+    const meal = mealType as MenuPlanMealType;
+    if (allowed.has(id) && MENU_PLAN_MEAL_TYPES.includes(meal)) {
+      wished[meal] = [...(wished[meal] ?? []), id];
+    }
+  }
+  return wished;
+}
 
 /** The allowed recipes with their nutrition and the labelled candidates. */
 interface PreparedMenu extends LabelledCandidates {
@@ -86,6 +119,11 @@ const roundToUnits = ({ kcal, proteinG, fatG, carbsG }: MacroValues): MacroValue
  * Before the model is called, every meal must have enough allowed recipes for the days
  * (`menuMinRecipes`); otherwise the reply names the rules that leave too few and offers to drop
  * one or plan fewer days (`findMenuShortage`), instead of a menu that repeats the same recipes.
+ * With `wishes` in the request ("more fish"), the recipe search (`RecipeSearchService`) finds the
+ * allowed recipes of every meal that fit them, and they take up to `MENU_PLAN_WISHED_SHARE` of
+ * the candidates (`selectCandidates`); the calorie pool gives the rest. When nothing fits the
+ * wishes ("sushi"), no menu is planned: the reply offers the closest recipes (`WishOffer`), and a
+ * menu with them is planned once the user accepts (`acceptedOffer`).
  * `onProgress` hears the steps: looking for recipes, the shape of the menu once there are
  * candidates for every meal (`menu_pending`), then picking and checking on every attempt.
  */
@@ -95,17 +133,23 @@ export class MenuPlannerService {
 
   constructor(
     private readonly recipeService: RecipeService,
+    private readonly recipeSearchService: RecipeSearchService,
     private readonly nutritionService: NutritionService,
-    private readonly openAiService: OpenAiService,
+    private readonly llmService: LlmService,
     private readonly menuComposer: MenuComposer,
   ) {}
 
+  /**
+   * `acceptedOffer`: the wish offer the user accepted; its recipes stand for the wishes, without a
+   * new search.
+   */
   public async plan(
     message: string,
     request: MenuRequest,
     profile: ProfileContext | null,
     abortSignal?: AbortSignal,
     onProgress: (event: ChatProgressEvent) => void = () => undefined,
+    acceptedOffer: WishOffer | null = null,
   ): Promise<ChatResponse> {
     if (!profile) {
       return { type: ChatResponseType.Text, message: NO_PROFILE_REPLY };
@@ -116,7 +160,26 @@ export class MenuPlannerService {
     if (shortage) {
       return shortage;
     }
-    const { options, candidates, recipeIds } = this.prepare(recipes, request, days, onProgress);
+    const { wished, offer } = acceptedOffer
+      ? { wished: offeredRecipes(acceptedOffer, recipes), offer: null }
+      : await this.wishedRecipes(request.wishes, context.rules, recipes, days, abortSignal);
+    if (offer) {
+      return {
+        type: ChatResponseType.WishOffer,
+        message: wishOfferReply(
+          offer.wishes,
+          offer.recipes.map(({ name }) => name),
+        ),
+        offer,
+      };
+    }
+    const { options, candidates, recipeIds } = this.prepare(
+      recipes,
+      request,
+      days,
+      onProgress,
+      wished,
+    );
     const {
       input,
       schema,
@@ -202,6 +265,14 @@ export class MenuPlannerService {
     if (shortage) {
       return shortage;
     }
+    // A replacement takes the recipes that fit the wishes; it never stops for an offer.
+    const { wished } = await this.wishedRecipes(
+      request.wishes,
+      context.rules,
+      recipes,
+      MENU_MIN_DAYS,
+      abortSignal,
+    );
     onProgress({
       type: ChatStreamEventType.MenuPending,
       days: previous.length,
@@ -242,7 +313,7 @@ export class MenuPlannerService {
         rejectedRecipeIds,
         dailyKcal: request.caloriesKcal,
         label: (allowed) =>
-          labelCandidates(this.candidates(allowed, MENU_MIN_DAYS, request.caloriesKcal)),
+          labelCandidates(this.candidates(allowed, MENU_MIN_DAYS, request.caloriesKcal, wished)),
         compose,
       },
       ask,
@@ -309,12 +380,91 @@ export class MenuPlannerService {
     return { type: ChatResponseType.Text, message: menuShortageReply(shortage) };
   }
 
+  /**
+   * The allowed `recipes` of every meal the recipe search finds for `wishes`, best first, as many
+   * as the wishes may take of the candidates for `days` days; none without wishes. A meal with no
+   * allowed recipe that matches the wishes (only similar ones) gets none; when no meal found a fit, the
+   * closest allowed recipes become an `offer` to ask the user about. A failed search plans
+   * without the wishes: the model still reads them in the request.
+   */
+  private async wishedRecipes(
+    wishes: string | null,
+    rules: PreferenceRules,
+    recipes: RecipeWithIngredients[],
+    days: number,
+    abortSignal?: AbortSignal,
+  ): Promise<WishSearch> {
+    if (wishes === null) {
+      return { wished: {}, offer: null };
+    }
+    const allowed = new Map(recipes.map((recipe) => [recipe.id, recipe]));
+    const wanted = Math.ceil(candidatesPerMeal(days) * MENU_PLAN_WISHED_SHARE);
+    try {
+      // One embedding of the wishes, one search per meal.
+      const results = await this.recipeSearchService.searchEach(
+        // Excluded ingredients are only checked here, so a few more than wanted.
+        { text: wishes, limit: wanted * 2 },
+        MENU_PLAN_MEAL_TYPES.map((mealType) => ({
+          mealType,
+          ...searchFiltersOf(rules.diets, rules.allergies),
+        })),
+        abortSignal,
+      );
+      // A meal fits the wishes only by a recipe the rules allow.
+      const found = MENU_PLAN_MEAL_TYPES.map((mealType, i) => {
+        const hits = results[i].hits.filter(({ recipe }) => allowed.has(recipe.id));
+        return { mealType, matched: hits.some(({ match }) => match), hits };
+      });
+      const wished: WishedRecipes = Object.fromEntries(
+        found
+          .filter(({ matched }) => matched)
+          .map(({ mealType, hits }) => [
+            mealType,
+            hits
+              .filter(({ match }) => match)
+              .slice(0, wanted)
+              .map(({ recipe }) => recipe.id),
+          ]),
+      );
+      if (Object.keys(wished).length > 0) {
+        return { wished, offer: null };
+      }
+      const closest = found
+        .flatMap(({ hits }) => hits)
+        .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0) || b.score - a.score)
+        .slice(0, WISH_OFFER_RECIPES_MAX);
+      return {
+        wished: {},
+        offer:
+          closest.length > 0
+            ? {
+                wishes,
+                recipes: closest.map(({ recipe }) => ({
+                  id: recipe.id,
+                  name: recipe.name,
+                  mealType: recipe.mealType as MealType,
+                })),
+              }
+            : null,
+      };
+    } catch (error) {
+      if (abortSignal?.aborted) {
+        throw error;
+      }
+      this.logger.warn(
+        `Recipe search for the wishes failed, planning without it: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return { wished: {}, offer: null };
+    }
+  }
+
   /** The recipes with their nutrition and the labelled candidates for `days` planned days. */
   private prepare(
     recipes: RecipeWithIngredients[],
     request: MenuRequest,
     days: number,
     onProgress: (event: ChatProgressEvent) => void,
+    wished: WishedRecipes,
   ): PreparedMenu {
     const options = new Map<string, RecipeOption>(
       recipes.map((recipe) => [
@@ -333,6 +483,7 @@ export class MenuPlannerService {
         })),
         days,
         request.caloriesKcal,
+        wished,
       ),
     );
     onProgress({
@@ -363,7 +514,7 @@ export class MenuPlannerService {
       input,
       async (messages) => {
         status(ChatStatusStep.PickingLunches);
-        const result = await this.openAiService.generateStructuredResult(
+        const result = await this.llmService.generateStructuredResult(
           messages,
           schema,
           callOptions,
@@ -397,11 +548,15 @@ export class MenuPlannerService {
     };
   }
 
-  /** The candidates of every meal, rotated by a random offset so a new plan gets other ones. */
+  /**
+   * The candidates of every meal, rotated by a random offset so a new plan gets other ones, the
+   * `wished` recipes first.
+   */
   private candidates(
     recipes: CandidateRecipe[],
     days: number,
     dailyKcal: number | null,
+    wished: WishedRecipes = {},
   ): MenuPlanCandidates {
     const count = candidatesPerMeal(days);
     const rotation = Math.floor(Math.random() * count * MENU_PLAN_CANDIDATE_POOL_FACTOR);
@@ -421,6 +576,7 @@ export class MenuPlannerService {
           dailyKcal,
           count,
           rotation,
+          wished[mealType],
         ),
       ]),
     ) as MenuPlanCandidates;

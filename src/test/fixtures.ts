@@ -6,7 +6,6 @@ import {
   Message,
   NutritionGoal,
   Prisma,
-  RecipeIngredient,
   UserProfile,
 } from '../generated/prisma/client';
 import {
@@ -22,6 +21,7 @@ import {
   PreferenceType,
   RecipeSource,
   Sex,
+  RecipeSearchMode,
 } from '../common/constants';
 import { RecipeSnapshot } from '../common/types';
 import {
@@ -29,6 +29,8 @@ import {
   MessageWithMenu,
 } from '../modules/data-access/conversation/conversation.repository';
 import { MenuVersionWithDays, MenuWithVersions } from '../modules/data-access/menu/menu.repository';
+import { FoodItemWithTranslations } from '../modules/data-access/food-item/food-item.repository';
+import { RecipeSearchResult } from '../modules/services/recipe-search/recipe-search.service';
 import {
   IngredientWithFood,
   RecipeWithIngredients,
@@ -87,7 +89,9 @@ export function buildPreference(overrides: Partial<DietaryPreference> = {}): Die
 }
 
 /** Boiled white rice per 100 g. */
-export function buildFoodItem(overrides: Partial<FoodItem> = {}): FoodItem {
+export function buildFoodItem(
+  overrides: Partial<FoodItemWithTranslations> = {},
+): FoodItemWithTranslations {
   return {
     id: FOOD_ID,
     name: 'White rice, boiled',
@@ -99,6 +103,7 @@ export function buildFoodItem(overrides: Partial<FoodItem> = {}): FoodItem {
     state: FoodState.Boiled,
     source: FoodSource.Seed,
     sourceId: 'rice-white-boiled',
+    translations: [],
     createdAt: CREATED_AT,
     updatedAt: UPDATED_AT,
     ...overrides,
@@ -106,9 +111,11 @@ export function buildFoodItem(overrides: Partial<FoodItem> = {}): FoodItem {
 }
 
 export function buildIngredient(
-  overrides: Partial<RecipeIngredient> & { foodItem?: FoodItem } = {},
+  overrides: Partial<Omit<IngredientWithFood, 'foodItem'>> & {
+    foodItem?: FoodItem & Partial<FoodItemWithTranslations>;
+  } = {},
 ): IngredientWithFood {
-  const foodItem = overrides.foodItem ?? buildFoodItem();
+  const foodItem = { translations: [], ...(overrides.foodItem ?? buildFoodItem()) };
   return {
     id: INGREDIENT_ID,
     recipeId: RECIPE_ID,
@@ -117,6 +124,7 @@ export function buildIngredient(
     isOptional: false,
     notes: null,
     position: 0,
+    translations: [],
     ...overrides,
     foodItem,
   };
@@ -135,9 +143,38 @@ export function buildRecipe(overrides: Partial<RecipeWithIngredients> = {}): Rec
     prepTimeMinutes: 20,
     source: RecipeSource.Manual,
     sourceId: null,
+    translations: [],
     createdAt: CREATED_AT,
     updatedAt: UPDATED_AT,
     ingredients: [buildIngredient()],
+    ...overrides,
+  };
+}
+
+/**
+ * A hybrid search that found `recipes` in this order, every one a match unless `overrides` say
+ * `matched: false` (then none is: only similar).
+ */
+export function buildSearchResult(
+  recipes: RecipeWithIngredients[],
+  overrides: Partial<RecipeSearchResult> = {},
+): RecipeSearchResult {
+  const matched = overrides.matched ?? recipes.length > 0;
+  return {
+    hits: recipes.map((recipe, i) => ({
+      recipe,
+      score: 1 / (i + 1),
+      semanticRank: i + 1,
+      lexicalRank: null,
+      similarity: 0.6,
+      allWords: false,
+      match: matched,
+    })),
+    mode: RecipeSearchMode.Hybrid,
+    degraded: false,
+    model: 'ollama/qwen3-embedding:0.6b-q8_0@1024',
+    matched,
+    timings: { embeddingMs: 1, databaseMs: 1, totalMs: 2 },
     ...overrides,
   };
 }
@@ -248,6 +285,7 @@ export function buildMessage(overrides: Partial<MessageWithMenu> = {}): MessageW
     content: 'Plan a menu for 3 days',
     menuVersionId: null,
     preferenceChange: null,
+    wishOffer: null,
     createdAt: CREATED_AT,
   };
   return { ...message, menuVersion: null, ...overrides };

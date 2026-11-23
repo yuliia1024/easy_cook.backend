@@ -54,6 +54,7 @@ describe('resolveMenuRequest', () => {
         diets: [DietTag.Vegetarian],
         excludedIngredients: ['pork'],
         dislikedFoods: ['olives'],
+        wishes: null,
       },
       missingFields: ['days', 'mealTypes'],
       daysOutOfRange: null,
@@ -81,6 +82,7 @@ describe('resolveMenuRequest', () => {
       diets: [DietTag.Vegan],
       excludedIngredients: ['pork'],
       dislikedFoods: ['olives'],
+      wishes: null,
     });
     expect(resolved.missingFields).toEqual([]);
   });
@@ -102,7 +104,15 @@ describe('resolveMenuRequest', () => {
       caloriesKcal: 1500,
       excludedIngredients: ['mushrooms'],
       dislikedFoods: ['olives'],
+      wishes: null,
     });
+  });
+
+  it('keeps the wishes of the chat until a message gives others', () => {
+    const chat = request({ days: 3, wishes: 'more fish' });
+
+    expect(resolveMenuRequest(null, chat, request({ days: 5 })).request.wishes).toBe('more fish');
+    expect(resolveMenuRequest(null, chat, request({ wishes: 'soups' })).chat.wishes).toBe('soups');
   });
 
   it('keeps the chat out of the profile it is resolved with', () => {
@@ -150,6 +160,7 @@ describe('resolveMenuRequest', () => {
       diets: [DietTag.Vegetarian],
       excludedIngredients: ['mushrooms'],
       dislikedFoods: ['olives'],
+      wishes: null,
     });
 
     const resolved = resolveMenuRequest(
@@ -231,9 +242,10 @@ describe('describeMenuRequest', () => {
         diets: [DietTag.GlutenFree],
         excludedIngredients: ['mushrooms'],
         dislikedFoods: ['olives', 'tofu'],
+        wishes: 'more fish',
       }),
     ).toBe(
-      'Plan a 3-day menu with breakfast, dinner of about 1800 kcal a day that is gluten free without mushrooms avoiding olives, tofu.',
+      'Plan a 3-day menu with breakfast, dinner of about 1800 kcal a day that is gluten free without mushrooms avoiding olives, tofu with more fish.',
     );
   });
 

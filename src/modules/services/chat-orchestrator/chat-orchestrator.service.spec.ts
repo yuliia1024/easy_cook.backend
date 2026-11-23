@@ -31,6 +31,7 @@ import {
   menuTargetMissingMealReply,
   MessageRole,
   OUT_OF_SCOPE_REPLY,
+  WishOfferAnswer,
 } from '../../../common/constants';
 import { MenuRequest, MenuTarget } from '../../../common/contracts';
 import {
@@ -63,14 +64,14 @@ import { GeneralChatService } from '../general-chat/general-chat.service';
 import { IntentService } from '../intent/intent.service';
 import { MenuPlannerService } from '../menu/menu-planner.service';
 import { MenuService } from '../menu/menu.service';
-import { EMPTY_MENU_REQUEST } from '../menu/menu-request';
+import { describeMenuRequest, EMPTY_MENU_REQUEST } from '../menu/menu-request';
 import { ProfileContextService } from '../profile-context/profile-context.service';
 import { ApiConfigService } from '../../../configs/api-config/api-config.service';
 import { ChatTraceRecord } from '../chat-trace/chat-trace';
 import { ChatTraceService } from '../chat-trace/chat-trace.service';
 import { AgentRunService } from '../agent-run/agent-run.service';
 import { runWithRequestId } from '../../../common/logger';
-import { ChatOrchestratorService } from './chat-orchestrator.service';
+import { ChatOrchestratorService, sameWish } from './chat-orchestrator.service';
 
 const generatedWith = { modelId: 'gpt-test', prompt: 'menu-plan@v1' };
 
@@ -305,6 +306,7 @@ describe('ChatOrchestratorService', () => {
       profile,
       expect.any(AbortSignal),
       expect.any(Function),
+      null,
     );
     expect(menuService.saveGenerated).toHaveBeenCalledWith(conversation, {
       menu,
@@ -335,6 +337,7 @@ describe('ChatOrchestratorService', () => {
       profile,
       expect.any(AbortSignal),
       expect.any(Function),
+      null,
     );
   });
 
@@ -568,6 +571,7 @@ describe('ChatOrchestratorService', () => {
       profile,
       expect.any(AbortSignal),
       expect.any(Function),
+      null,
     );
   });
 
@@ -589,6 +593,7 @@ describe('ChatOrchestratorService', () => {
       null,
       expect.any(AbortSignal),
       expect.any(Function),
+      null,
     );
   });
 
@@ -680,6 +685,7 @@ describe('ChatOrchestratorService', () => {
       withGoal,
       expect.any(AbortSignal),
       expect.any(Function),
+      null,
     );
   });
 
@@ -764,6 +770,7 @@ describe('ChatOrchestratorService', () => {
       profile,
       expect.any(AbortSignal),
       expect.any(Function),
+      null,
     );
     expect(conversationService.saveMenuRequest).not.toHaveBeenCalled();
   });
@@ -817,6 +824,7 @@ describe('ChatOrchestratorService', () => {
       profile,
       expect.any(AbortSignal),
       expect.any(Function),
+      null,
     );
   });
 
@@ -945,6 +953,171 @@ describe('ChatOrchestratorService', () => {
     expect(conversationService.addAssistantMessage).not.toHaveBeenCalled();
   });
 
+  describe('wish offers', () => {
+    const offer = {
+      wishes: 'sushi',
+      recipes: [{ id: MENU_ID, name: 'Salmon poke bowl', mealType: MealType.Lunch }],
+    };
+    const stored: MenuRequest = {
+      ...EMPTY_MENU_REQUEST,
+      days: 1,
+      mealTypes: [MealType.Lunch],
+      wishes: 'sushi',
+    };
+    const withOffer = buildConversation({
+      messages: [
+        buildMessage({ content: 'A lunch with sushi' }),
+        buildMessage({ role: MessageRole.Assistant, content: 'No sushi.', wishOffer: offer }),
+      ],
+    });
+    const answer = async (
+      content: string,
+      wishOffer: WishOfferAnswer | null = null,
+    ): Promise<ChatStreamEvent[]> =>
+      (
+        await collect(await service.handleMessage(CONVERSATION_ID, content, undefined, wishOffer))
+      ).filter((event) => !isProgress(event));
+
+    beforeEach(() => {
+      conversationService.getMenuRequest.mockReturnValue(stored);
+    });
+
+    it('streams the offer of the planner and saves it with the reply', async () => {
+      classifyAs(Intent.GenerateMenu, 'Plan a lunch with sushi.');
+      menuPlannerService.plan.mockResolvedValue({
+        type: ChatResponseType.WishOffer,
+        message: 'No sushi. Salmon poke bowl?',
+        offer,
+      });
+
+      await expect(answer('A lunch with sushi')).resolves.toEqual([
+        { type: ChatStreamEventType.TextDelta, content: 'No sushi. Salmon poke bowl?' },
+        { type: ChatStreamEventType.WishOfferProposed, offer },
+        { type: ChatStreamEventType.Done },
+      ]);
+      expect(conversationService.addAssistantMessage).toHaveBeenCalledWith(
+        CONVERSATION_ID,
+        'No sushi. Salmon poke bowl?',
+        { wishOffer: offer, toolCalls: [] },
+      );
+      expect(menuService.saveGenerated).not.toHaveBeenCalled();
+    });
+
+    it('plans with the offered recipes on the accept button, without the classifier', async () => {
+      conversationService.getById.mockResolvedValue(withOffer);
+
+      await answer('Use the similar recipes', WishOfferAnswer.Accept);
+
+      expect(intentService.classify).not.toHaveBeenCalled();
+      expect(menuPlannerService.plan).toHaveBeenCalledWith(
+        describeMenuRequest(stored),
+        expect.objectContaining({ wishes: null }),
+        profile,
+        expect.any(AbortSignal),
+        expect.any(Function),
+        offer,
+      );
+      // The wish is closed: the next plan does not make the same offer again.
+      expect(conversationService.saveMenuRequest).toHaveBeenCalledWith(CONVERSATION_ID, {
+        ...stored,
+        wishes: null,
+      });
+    });
+
+    it('takes an accept with the wish restated in other words as the answer', async () => {
+      conversationService.getById.mockResolvedValue(withOffer);
+      intentService.classify.mockResolvedValue({
+        intent: Intent.GenerateMenu,
+        request: null,
+        menuRequest: { ...EMPTY_MENU_REQUEST, wishes: 'Sushi rolls' },
+        targets: null,
+        wishOffer: WishOfferAnswer.Accept,
+      });
+
+      await answer('так, давай з ними');
+
+      expect(menuPlannerService.plan).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.anything(),
+        profile,
+        expect.any(AbortSignal),
+        expect.any(Function),
+        offer,
+      );
+    });
+
+    it('drops the wishes for good when the user declines in the chat', async () => {
+      conversationService.getById.mockResolvedValue(withOffer);
+      intentService.classify.mockResolvedValue({
+        intent: Intent.GenerateMenu,
+        request: null,
+        menuRequest: null,
+        targets: null,
+        wishOffer: WishOfferAnswer.Decline,
+      });
+
+      await answer('No, just plan it');
+
+      expect(conversationService.saveMenuRequest).toHaveBeenCalledWith(CONVERSATION_ID, {
+        ...stored,
+        wishes: null,
+      });
+      expect(menuPlannerService.plan).toHaveBeenCalledWith(
+        describeMenuRequest({ ...stored, wishes: null }),
+        expect.objectContaining({ wishes: null }),
+        profile,
+        expect.any(AbortSignal),
+        expect.any(Function),
+        null,
+      );
+    });
+
+    it.each([WishOfferAnswer.Accept, WishOfferAnswer.Decline])(
+      'takes a message with another wish as a new request, though classified %p',
+      async (wishOffer) => {
+        conversationService.getById.mockResolvedValue(withOffer);
+        intentService.classify.mockResolvedValue({
+          intent: Intent.GenerateMenu,
+          request: 'Plan a 1-day menu with lunch with more chicken.',
+          menuRequest: { ...EMPTY_MENU_REQUEST, wishes: 'more chicken' },
+          targets: null,
+          wishOffer,
+        });
+
+        await answer('Then with more chicken instead');
+
+        expect(menuPlannerService.plan).toHaveBeenCalledWith(
+          'Plan a 1-day menu with lunch with more chicken.',
+          expect.objectContaining({ wishes: 'more chicken' }),
+          profile,
+          expect.any(AbortSignal),
+          expect.any(Function),
+          null,
+        );
+        expect(conversationService.saveMenuRequest).toHaveBeenCalledWith(CONVERSATION_ID, {
+          ...stored,
+          wishes: 'more chicken',
+        });
+      },
+    );
+
+    it('ignores an answer when no offer waits: a button press is classified as a message', async () => {
+      classifyAs(Intent.GenerateMenu, 'Plan a lunch.');
+
+      await answer('Use the similar recipes', WishOfferAnswer.Accept);
+
+      expect(intentService.classify).toHaveBeenCalled();
+      expect(menuPlannerService.plan).toHaveBeenCalledWith(
+        'Plan a lunch.',
+        expect.anything(),
+        profile,
+        expect.any(AbortSignal),
+        expect.any(Function),
+        null,
+      );
+    });
+  });
+
   describe('menu tools of the chat model', () => {
     const menuRequest: MenuRequest = {
       ...EMPTY_MENU_REQUEST,
@@ -982,6 +1155,7 @@ describe('ChatOrchestratorService', () => {
         profile,
         expect.any(AbortSignal),
         expect.any(Function),
+        null,
       );
       expect(menuService.saveGenerated).toHaveBeenCalledWith(
         conversation,
@@ -1023,6 +1197,7 @@ describe('ChatOrchestratorService', () => {
         updated,
         expect.any(AbortSignal),
         expect.any(Function),
+        null,
       );
     });
 
@@ -1102,6 +1277,7 @@ describe('ChatOrchestratorService', () => {
         profile,
         expect.any(AbortSignal),
         expect.any(Function),
+        null,
       );
       expect(menuPlannerService.replan).not.toHaveBeenCalled();
     });
@@ -1616,5 +1792,17 @@ describe('ChatOrchestratorService', () => {
 
       expect(conversationService.addUserMessage).toHaveBeenCalled();
     });
+  });
+});
+
+describe('sameWish', () => {
+  it.each([
+    ['sushi', 'sushi', true],
+    ['Sushi ', 'sushi', true],
+    ['sushi rolls', 'sushi', true],
+    ['more chicken', 'sushi', false],
+    [null, 'sushi', false],
+  ])('%p and the offered %p: %p', (wishes, offered, same) => {
+    expect(sameWish(wishes, offered)).toBe(same);
   });
 });

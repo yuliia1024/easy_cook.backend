@@ -37,7 +37,7 @@ import {
   selectCandidates,
 } from '../../../src/modules/services/menu/menu-plan';
 import { dietTagsSatisfying, isForbiddenFood } from '../../../src/modules/services/menu/menu-rules';
-import { ModelResult, OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { ModelResult, LlmService } from '../../../src/providers/llm/llm.service';
 import { EvalCaseSchema, EvalSuite, FieldScore, SuiteRun } from '../../lib/types';
 
 const goal = (caloriesKcal: number): ProfileContext['nutritionGoal'] => ({
@@ -284,7 +284,7 @@ export const addUsage = (a: ModelUsage, b: ModelUsage): ModelUsage => ({
  */
 export async function runMenuPlan(
   testCase: MenuPlanCase,
-  openAi: OpenAiService,
+  llm: LlmService,
 ): Promise<SuiteRun<MenuPlan>> {
   const candidates = caseCandidates(testCase);
   const { input, schema, options } = menuPlanModelCall(
@@ -304,7 +304,7 @@ export async function runMenuPlan(
     const attempts = await planWithRetries(
       input,
       async (messages) => {
-        const call = await openAi.generateStructuredResult(messages, schema, options);
+        const call = await llm.generateStructuredResult(messages, schema, options);
         calls.push(call);
         return call.output;
       },

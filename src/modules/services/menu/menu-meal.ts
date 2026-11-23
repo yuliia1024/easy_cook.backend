@@ -10,7 +10,7 @@ import {
 } from '../../../common/constants';
 import { MenuMealPlan, MenuMealPlanSchema } from '../../../common/contracts';
 import { MenuComposition, ProfileContext, ResolvedDay, ResolvedMeal } from '../../../common/types';
-import { ModelCallOptions } from '../../../providers/open-ai/open-ai.service';
+import { ModelCallOptions } from '../../../providers/llm/llm.service';
 import { toModelProfile } from '../profile-context/model-profile';
 import { MenuPlanCandidate } from './menu-plan';
 import { withoutRecipes } from './menu-day';

@@ -97,6 +97,7 @@ describe('chat tool contracts', () => {
       diets: [],
       excludedIngredients: [],
       dislikedFoods: [],
+      wishes: null,
     };
 
     it('PlanMenuInputSchema takes the request and its fields as the classifier gives them', () => {

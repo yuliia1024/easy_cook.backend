@@ -35,9 +35,9 @@ import {
   FAKE_SUMMARY,
   FakeMenuPlan,
   fakeMenuPlan,
-  fakeOpenAiState,
+  fakeLlmState,
   resetDatabase,
-  resetFakeOpenAi,
+  resetFakeLlm,
   resetRateLimits,
   TestApp,
 } from './test-app';
@@ -56,7 +56,7 @@ describe('/api/conversations (e2e)', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
-    resetFakeOpenAi();
+    resetFakeLlm();
     resetRateLimits();
   });
 
@@ -97,13 +97,13 @@ describe('/api/conversations (e2e)', () => {
     async (intent, reply) => {
       await createMenuWorld(ctx);
       const id = await start();
-      fakeOpenAiState.intent = intent;
+      fakeLlmState.intent = intent;
 
       const { chunks } = await say(id, 'Write me a poem');
 
       expect(textOf(chunks)).toBe(reply);
       expect(chunks.at(-1)).toMatchObject({ type: 'finish' });
-      expect(fakeOpenAiState.streamTextCalls).toBe(0);
+      expect(fakeLlmState.streamTextCalls).toBe(0);
       expect(await savedMessages(id)).toEqual([
         { role: 'user', content: 'Write me a poem' },
         { role: 'assistant', content: reply },
@@ -114,8 +114,8 @@ describe('/api/conversations (e2e)', () => {
   it('streams the steps and the shape of the pending menu as transient parts before the menu, and saves none of them', async () => {
     await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -163,8 +163,8 @@ describe('/api/conversations (e2e)', () => {
   it('plans a one-day menu with a snack from the model choice, servings fitted to the goal, and saves it with its message', async () => {
     const { recipe } = await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -188,7 +188,7 @@ describe('/api/conversations (e2e)', () => {
     ]);
     expect(menu.days[0].totals.kcal).toBe(2162.5);
     expect(menu.issues).toEqual([]);
-    expect(fakeOpenAiState.streamTextCalls).toBe(0);
+    expect(fakeLlmState.streamTextCalls).toBe(0);
     expect(await savedMessages(id)).toEqual([
       { role: 'user', content: 'Plan my day' },
       { role: 'assistant', content: `Here is your day.\n\n${MENU_SAVE_QUESTION}` },
@@ -233,8 +233,8 @@ describe('/api/conversations (e2e)', () => {
   it('saves two generations of a conversation as one draft menu with two versions, out of the menu list', async () => {
     await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -243,7 +243,7 @@ describe('/api/conversations (e2e)', () => {
       chunks.find((chunk) => chunk.type === 'data-menu')?.data;
 
     const first = menuOf((await say(id, 'Plan my day')).chunks);
-    fakeOpenAiState.intent = Intent.ReviseMenu;
+    fakeLlmState.intent = Intent.ReviseMenu;
     const second = menuOf((await say(id, 'Another one')).chunks);
 
     expect(second.menuId).toBe(first.menuId);
@@ -279,8 +279,8 @@ describe('/api/conversations (e2e)', () => {
   it('confirms the version of a reply, lists the menu, and switches to another confirmed version', async () => {
     await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -324,8 +324,8 @@ describe('/api/conversations (e2e)', () => {
   it('keeps the confirmed version when another one breaks the preferences now', async () => {
     await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -352,8 +352,8 @@ describe('/api/conversations (e2e)', () => {
   it('starts a new draft menu when the menu of the conversation was deleted', async () => {
     await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -372,9 +372,9 @@ describe('/api/conversations (e2e)', () => {
     await createMenuWorld(ctx);
     await addRiceRecipes(ctx, 2);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuRequest = { ...menuRequest, days: 5 };
-    fakeOpenAiState.menuPlan = fakeMenuPlan(
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuRequest = { ...menuRequest, days: 5 };
+    fakeLlmState.menuPlan = fakeMenuPlan(
       'Here are your days.',
       { breakfast: 'Oatmeal', lunch: 'Chicken with rice', dinner: 'Rice bowl' },
       5,
@@ -382,7 +382,7 @@ describe('/api/conversations (e2e)', () => {
 
     const { chunks } = await say(id, 'Plan 5 days');
 
-    const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+    const [, planned] = fakeLlmState.structuredInputs as Array<Array<{ content: string }>>;
     expect(JSON.parse(planned[0].content).days).toBe(5);
     const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data.composition;
     expect(menu.days.map(({ dayIndex }: { dayIndex: number }) => dayIndex)).toEqual([
@@ -395,9 +395,9 @@ describe('/api/conversations (e2e)', () => {
     await createMenuWorld(ctx);
     await addRiceRecipes(ctx, 1);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuRequest = { ...menuRequest, days: 3 };
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuRequest = { ...menuRequest, days: 3 };
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -412,8 +412,8 @@ describe('/api/conversations (e2e)', () => {
         data: expect.objectContaining({ message: MENU_PLAN_FAILED_REPLY }),
       }),
     );
-    expect(fakeOpenAiState.structuredInputs).toHaveLength(1 + MENU_PLAN_MAX_ATTEMPTS);
-    const retry = fakeOpenAiState.structuredInputs.at(-1) as Array<{ content: string }>;
+    expect(fakeLlmState.structuredInputs).toHaveLength(1 + MENU_PLAN_MAX_ATTEMPTS);
+    const retry = fakeLlmState.structuredInputs.at(-1) as Array<{ content: string }>;
     expect(retry.at(-1)?.content).toContain('Return exactly 3 days');
   });
 
@@ -421,10 +421,10 @@ describe('/api/conversations (e2e)', () => {
     await createMenuWorld(ctx);
     const id = await start();
     await say(id, 'Plan my day');
-    fakeOpenAiState.structuredInputs = [];
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.request = 'Plan a one-day menu.';
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.structuredInputs = [];
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.request = 'Plan a one-day menu.';
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -433,7 +433,7 @@ describe('/api/conversations (e2e)', () => {
     const { chunks } = await say(id, 'done do it again');
 
     expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(true);
-    const [classified, planned] = fakeOpenAiState.structuredInputs as Array<
+    const [classified, planned] = fakeLlmState.structuredInputs as Array<
       Array<{ role: string; content: string }>
     >;
     expect(JSON.parse(classified[0].content).profile).toMatchObject({ goal: 'maintain' });
@@ -449,10 +449,10 @@ describe('/api/conversations (e2e)', () => {
     await createMenuWorld(ctx);
     const id = await start();
     await say(id, 'Plan my day');
-    fakeOpenAiState.structuredInputs = [];
-    fakeOpenAiState.intent = Intent.ReviseMenu;
-    fakeOpenAiState.request = 'Plan a one-day menu with another lunch.';
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.structuredInputs = [];
+    fakeLlmState.intent = Intent.ReviseMenu;
+    fakeLlmState.request = 'Plan a one-day menu with another lunch.';
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -461,7 +461,7 @@ describe('/api/conversations (e2e)', () => {
     const { chunks } = await say(id, 'replace the lunch');
 
     expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(true);
-    const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+    const [, planned] = fakeLlmState.structuredInputs as Array<Array<{ content: string }>>;
     expect(JSON.parse(planned[0].content).request).toBe('Plan a one-day menu with another lunch.');
     expect(await ctx.prisma.menu.count()).toBe(1);
   });
@@ -477,21 +477,21 @@ describe('/api/conversations (e2e)', () => {
     };
     const menuOf = (chunks: Array<{ type: string; data?: any }>) =>
       chunks.find((chunk) => chunk.type === 'data-menu')?.data;
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuRequest = threeDays;
-    fakeOpenAiState.menuPlan = fakeMenuPlan(
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuRequest = threeDays;
+    fakeLlmState.menuPlan = fakeMenuPlan(
       'Here are your days.',
       { breakfast: 'Oatmeal', lunch: 'Chicken with rice', dinner: 'Rice bowl' },
       3,
     );
     const first = menuOf((await say(id, 'Plan 3 days')).chunks);
 
-    fakeOpenAiState.structuredInputs = [];
-    fakeOpenAiState.intent = Intent.ReviseMenu;
-    fakeOpenAiState.request = 'Plan a 3-day menu with day 2 planned again.';
-    fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST };
-    fakeOpenAiState.targets = [{ scope: MenuTargetScope.Day, dayIndex: 1, mealType: null }];
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is a new Tuesday.', {
+    fakeLlmState.structuredInputs = [];
+    fakeLlmState.intent = Intent.ReviseMenu;
+    fakeLlmState.request = 'Plan a 3-day menu with day 2 planned again.';
+    fakeLlmState.menuRequest = { ...EMPTY_MENU_REQUEST };
+    fakeLlmState.targets = [{ scope: MenuTargetScope.Day, dayIndex: 1, mealType: null }];
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is a new Tuesday.', {
       breakfast: 'Rice breakfast 1',
       lunch: 'Rice lunch 1',
       snack: 'Rice snack 1',
@@ -499,7 +499,7 @@ describe('/api/conversations (e2e)', () => {
     });
     const second = menuOf((await say(id, 'Redo Tuesday')).chunks);
 
-    const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+    const [, planned] = fakeLlmState.structuredInputs as Array<Array<{ content: string }>>;
     const sent = JSON.parse(planned[0].content);
     expect(sent).toMatchObject({
       dayIndex: 1,
@@ -579,20 +579,20 @@ describe('/api/conversations (e2e)', () => {
       await createMenuWorld(ctx);
       await addRiceRecipes(ctx, 2);
       const id = await start();
-      fakeOpenAiState.intent = Intent.GenerateMenu;
-      fakeOpenAiState.menuRequest = threeDays;
-      fakeOpenAiState.menuPlan = fakeMenuPlan(
+      fakeLlmState.intent = Intent.GenerateMenu;
+      fakeLlmState.menuRequest = threeDays;
+      fakeLlmState.menuPlan = fakeMenuPlan(
         'Here are your days.',
         { breakfast: 'Oatmeal', lunch: 'Chicken with rice', dinner: 'Rice bowl' },
         3,
       );
       const first = menuOf((await say(id, 'Plan 3 days')).chunks);
-      fakeOpenAiState.structuredInputs = [];
-      fakeOpenAiState.intent = Intent.ReviseMenu;
-      fakeOpenAiState.request = 'Plan a 3-day menu with another dinner on day 3.';
-      fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST };
-      fakeOpenAiState.targets = [target];
-      fakeOpenAiState.menuPlan = fakeMenuPlan('Here is a new dinner.', {
+      fakeLlmState.structuredInputs = [];
+      fakeLlmState.intent = Intent.ReviseMenu;
+      fakeLlmState.request = 'Plan a 3-day menu with another dinner on day 3.';
+      fakeLlmState.menuRequest = { ...EMPTY_MENU_REQUEST };
+      fakeLlmState.targets = [target];
+      fakeLlmState.menuPlan = fakeMenuPlan('Here is a new dinner.', {
         breakfast: 'none',
         lunch: 'none',
         dinner: 'Rice dinner 2',
@@ -607,7 +607,7 @@ describe('/api/conversations (e2e)', () => {
         mealType: MealType.Dinner,
       });
 
-      const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+      const [, planned] = fakeLlmState.structuredInputs as Array<Array<{ content: string }>>;
       const sent = JSON.parse(planned[0].content);
       expect(sent).toMatchObject({ dayIndex: 2, mealType: MealType.Dinner });
       const offered = (sent.recipes as Array<{ name: string }>).map(({ name }) => name);
@@ -647,7 +647,7 @@ describe('/api/conversations (e2e)', () => {
           data: { missingFields: ['dayIndex'] },
         }),
       );
-      expect(fakeOpenAiState.structuredInputs).toHaveLength(1);
+      expect(fakeLlmState.structuredInputs).toHaveLength(1);
       expect(await versionsOf(first.menuId)).toHaveLength(1);
     });
   });
@@ -709,20 +709,20 @@ describe('/api/conversations (e2e)', () => {
       await createMenuWorld(ctx);
       await addRiceRecipes(ctx, 2);
       const id = await start();
-      fakeOpenAiState.intent = Intent.GenerateMenu;
-      fakeOpenAiState.menuRequest = threeDays;
-      fakeOpenAiState.menuPlan = fakeMenuPlan(
+      fakeLlmState.intent = Intent.GenerateMenu;
+      fakeLlmState.menuRequest = threeDays;
+      fakeLlmState.menuPlan = fakeMenuPlan(
         'Here are your days.',
         { breakfast: 'Oatmeal', lunch: 'Chicken with rice', dinner: 'Rice bowl' },
         3,
       );
       const first = menuOf((await say(id, 'Plan 3 days')).chunks);
-      fakeOpenAiState.structuredInputs = [];
-      fakeOpenAiState.intent = Intent.ReviseMenu;
-      fakeOpenAiState.request = 'Plan a 3-day menu with some parts planned again.';
-      fakeOpenAiState.menuRequest = revisionRequest;
-      fakeOpenAiState.targets = targets;
-      fakeOpenAiState.menuPlan = plan;
+      fakeLlmState.structuredInputs = [];
+      fakeLlmState.intent = Intent.ReviseMenu;
+      fakeLlmState.request = 'Plan a 3-day menu with some parts planned again.';
+      fakeLlmState.menuRequest = revisionRequest;
+      fakeLlmState.targets = targets;
+      fakeLlmState.menuPlan = plan;
       const second = await say(id, 'Change some parts');
       return { id, first, second, versions: await versionMeals(first.menuId) };
     };
@@ -766,7 +766,7 @@ describe('/api/conversations (e2e)', () => {
       );
 
       // The classifier, then one call for the day.
-      expect(fakeOpenAiState.structuredInputs).toHaveLength(2);
+      expect(fakeLlmState.structuredInputs).toHaveLength(2);
       const [before, after] = versions;
       expect(after.days[0]).toEqual(before.days[0]);
       expect(after.days[2]).toEqual(before.days[2]);
@@ -802,8 +802,8 @@ describe('/api/conversations (e2e)', () => {
     it('leaves out the recipes the earlier versions dropped', async () => {
       const { id, first } = await planThenRevise([meal(2, MealType.Dinner)]);
       await say(id, 'Another dinner on Wednesday');
-      fakeOpenAiState.structuredInputs = [];
-      fakeOpenAiState.menuPlan = (recipes) => ({
+      fakeLlmState.structuredInputs = [];
+      fakeLlmState.menuPlan = (recipes) => ({
         message: 'Here is something new.',
         days: [
           {
@@ -816,7 +816,7 @@ describe('/api/conversations (e2e)', () => {
       });
       await say(id, 'And another one');
 
-      const sent = (fakeOpenAiState.structuredInputs[1] as Array<{ content: string }>)[0].content;
+      const sent = (fakeLlmState.structuredInputs[1] as Array<{ content: string }>)[0].content;
       const names = JSON.parse(sent).recipes.map(({ name }: { name: string }) => name);
       // Rice dinner 1 of version 2, dropped by version 3, and Rice dinner 2 now in its place.
       expect(names).not.toContain('Rice dinner 1');
@@ -855,19 +855,19 @@ describe('/api/conversations (e2e)', () => {
     const menuOf = (chunks: Array<{ type: string; data?: any }>) =>
       chunks.find((chunk) => chunk.type === 'data-menu')?.data;
     const candidates = (): Record<string, Array<{ name: string }>> =>
-      JSON.parse((fakeOpenAiState.structuredInputs.at(-1) as Array<{ content: string }>)[0].content)
+      JSON.parse((fakeLlmState.structuredInputs.at(-1) as Array<{ content: string }>)[0].content)
         .recipes;
     const names = (meal: string): string[] => candidates()[meal].map(({ name }) => name);
 
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.request = 'Plan a one-day menu without peanuts.';
-    fakeOpenAiState.menuRequest = {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.request = 'Plan a one-day menu without peanuts.';
+    fakeLlmState.menuRequest = {
       ...EMPTY_MENU_REQUEST,
       days: 1,
       mealTypes: [MealType.Breakfast, MealType.Lunch, MealType.Snack, MealType.Dinner],
       excludedIngredients: ['peanut'],
     };
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -876,10 +876,10 @@ describe('/api/conversations (e2e)', () => {
     expect(names('dinner')).not.toContain('Peanut satay');
     expect(names('lunch')).toContain('Chicken with rice');
 
-    fakeOpenAiState.intent = Intent.ReviseMenu;
-    fakeOpenAiState.request = 'Plan a one-day menu without chicken.';
-    fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST, excludedIngredients: ['chicken'] };
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day without chicken.', {
+    fakeLlmState.intent = Intent.ReviseMenu;
+    fakeLlmState.request = 'Plan a one-day menu without chicken.';
+    fakeLlmState.menuRequest = { ...EMPTY_MENU_REQUEST, excludedIngredients: ['chicken'] };
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day without chicken.', {
       breakfast: 'Oatmeal',
       lunch: 'Lentil stew',
       dinner: 'Rice bowl',
@@ -913,8 +913,8 @@ describe('/api/conversations (e2e)', () => {
       .send({ preferenceType: 'allergy', value: 'peanut' })
       .expect(201);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -922,7 +922,7 @@ describe('/api/conversations (e2e)', () => {
 
     const { chunks } = await say(id, 'Plan my day');
 
-    const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+    const [, planned] = fakeLlmState.structuredInputs as Array<Array<{ content: string }>>;
     expect(JSON.parse(planned[0].content).profile).toEqual({
       goal: 'maintain',
       dailyTarget: 'not set',
@@ -938,8 +938,8 @@ describe('/api/conversations (e2e)', () => {
   it('gives the planner the calories and macros of a serving of each recipe, by short ids', async () => {
     await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -947,7 +947,7 @@ describe('/api/conversations (e2e)', () => {
 
     await say(id, 'Plan my day');
 
-    const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+    const [, planned] = fakeLlmState.structuredInputs as Array<Array<{ content: string }>>;
     const { profile, recipes } = JSON.parse(planned[0].content);
     expect(profile.dailyTarget).toMatchObject({ kcal: 2172 });
     expect(recipes.breakfast).toEqual([
@@ -967,8 +967,8 @@ describe('/api/conversations (e2e)', () => {
       .send({ preferenceType: 'allergy', value: 'peanut' })
       .expect(201);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Peanut satay',
@@ -986,7 +986,7 @@ describe('/api/conversations (e2e)', () => {
       }),
     );
     // The classification, then every attempt of the planner.
-    expect(fakeOpenAiState.structuredInputs).toHaveLength(1 + MENU_PLAN_MAX_ATTEMPTS);
+    expect(fakeLlmState.structuredInputs).toHaveLength(1 + MENU_PLAN_MAX_ATTEMPTS);
     expect(await savedMessages(id)).toEqual([{ role: 'user', content: 'Plan my day' }]);
   });
 
@@ -997,7 +997,7 @@ describe('/api/conversations (e2e)', () => {
       .send({ preferenceType: 'diet', value: 'vegan' })
       .expect(201);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
+    fakeLlmState.intent = Intent.GenerateMenu;
 
     const { chunks } = await say(id, 'Plan my day');
 
@@ -1016,8 +1016,8 @@ describe('/api/conversations (e2e)', () => {
       .send({ preferenceType: 'diet', value: 'vegan' })
       .expect(201);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuRequest = { ...menuRequest, days: 7, excludedIngredients: ['lentils'] };
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuRequest = { ...menuRequest, days: 7, excludedIngredients: ['lentils'] };
 
     const { chunks } = await say(id, 'A vegan week without lentils');
 
@@ -1027,14 +1027,14 @@ describe('/api/conversations (e2e)', () => {
     expect(chunks.some((chunk) => chunk.type === 'data-menu-pending')).toBe(false);
     expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(false);
     // Only the classification: the planner never reached the model.
-    expect(fakeOpenAiState.structuredInputs).toHaveLength(1);
+    expect(fakeLlmState.structuredInputs).toHaveLength(1);
     expect(await savedMessages(id)).toEqual([
       { role: 'user', content: 'A vegan week without lentils' },
       { role: 'assistant', content: reply },
     ]);
 
-    fakeOpenAiState.menuRequest = { ...menuRequest, days: 6 };
-    fakeOpenAiState.menuPlan = fakeMenuPlan(
+    fakeLlmState.menuRequest = { ...menuRequest, days: 6 };
+    fakeLlmState.menuPlan = fakeMenuPlan(
       'Here are your days.',
       { breakfast: 'Oatmeal', lunch: 'Rice lunch 1', dinner: 'Rice bowl' },
       6,
@@ -1071,8 +1071,8 @@ describe('/api/conversations (e2e)', () => {
       .send({ preferenceType: 'diet', value: 'vegetarian' })
       .expect(201);
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Rice lunch',
       dinner: 'Rice bowl',
@@ -1092,7 +1092,7 @@ describe('/api/conversations (e2e)', () => {
   it('asks for the missing details instead of generating a menu', async () => {
     await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.intent = Intent.Clarification;
+    fakeLlmState.intent = Intent.Clarification;
 
     const { chunks } = await say(id, 'Make a menu');
 
@@ -1103,7 +1103,7 @@ describe('/api/conversations (e2e)', () => {
         data: { missingFields: ['days', 'mealTypes'] },
       }),
     );
-    expect(fakeOpenAiState.streamTextCalls).toBe(0);
+    expect(fakeLlmState.streamTextCalls).toBe(0);
     expect(await ctx.prisma.menu.count()).toBe(0);
   });
 
@@ -1116,6 +1116,7 @@ describe('/api/conversations (e2e)', () => {
     diets: [],
     excludedIngredients: [],
     dislikedFoods: [],
+    wishes: null,
   };
 
   it('keeps the answer to a clarification in the conversation for later requests', async () => {
@@ -1123,27 +1124,27 @@ describe('/api/conversations (e2e)', () => {
     await addRiceRecipes(ctx, 1);
     await addLentilStew(ctx);
     const id = await start();
-    fakeOpenAiState.intent = Intent.Clarification;
+    fakeLlmState.intent = Intent.Clarification;
     await say(id, 'Make a menu');
     expect(await storedMenuRequest(id)).toBeNull();
 
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.menuRequest = {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.menuRequest = {
       ...menuRequest,
       days: 3,
       mealTypes: [MealType.Breakfast, MealType.Dinner],
       excludedIngredients: ['mushrooms'],
     };
-    fakeOpenAiState.menuPlan = fakeMenuPlan(
+    fakeLlmState.menuPlan = fakeMenuPlan(
       'Here are your days.',
       { breakfast: 'Oatmeal', lunch: 'Chicken with rice', dinner: 'Rice bowl' },
       3,
     );
     await say(id, '3 days, breakfast and dinner, no mushrooms');
-    expect(await storedMenuRequest(id)).toEqual(fakeOpenAiState.menuRequest);
+    expect(await storedMenuRequest(id)).toEqual(fakeLlmState.menuRequest);
 
-    fakeOpenAiState.menuRequest = { ...menuRequest, diets: [DietTag.Vegetarian] };
-    fakeOpenAiState.menuPlan = fakeMenuPlan(
+    fakeLlmState.menuRequest = { ...menuRequest, diets: [DietTag.Vegetarian] };
+    fakeLlmState.menuPlan = fakeMenuPlan(
       'Here are your days.',
       { breakfast: 'Oatmeal', lunch: 'Lentil stew', dinner: 'Rice bowl' },
       3,
@@ -1157,13 +1158,13 @@ describe('/api/conversations (e2e)', () => {
       excludedIngredients: ['mushrooms'],
     });
 
-    fakeOpenAiState.intent = Intent.Clarification;
-    fakeOpenAiState.menuRequest = null;
-    fakeOpenAiState.structuredInputs = [];
+    fakeLlmState.intent = Intent.Clarification;
+    fakeLlmState.menuRequest = null;
+    fakeLlmState.structuredInputs = [];
     const { chunks } = await say(id, 'and another one');
     expect(chunks.some((chunk) => chunk.type === 'data-clarification')).toBe(false);
     expect(chunks.some((chunk) => chunk.type === 'data-menu')).toBe(true);
-    const [, planned] = fakeOpenAiState.structuredInputs as Array<Array<{ content: string }>>;
+    const [, planned] = fakeLlmState.structuredInputs as Array<Array<{ content: string }>>;
     expect(JSON.parse(planned[0].content).request).toBe(
       'Plan a 3-day menu with breakfast, dinner that is vegetarian without mushrooms.',
     );
@@ -1178,8 +1179,8 @@ describe('/api/conversations (e2e)', () => {
     async (requested, offered, reply) => {
       await createMenuWorld(ctx);
       const id = await start();
-      fakeOpenAiState.intent = Intent.GenerateMenu;
-      fakeOpenAiState.menuRequest = { ...menuRequest, days: requested };
+      fakeLlmState.intent = Intent.GenerateMenu;
+      fakeLlmState.menuRequest = { ...menuRequest, days: requested };
 
       const { chunks } = await say(id, `A menu for ${requested} days`);
 
@@ -1199,7 +1200,7 @@ describe('/api/conversations (e2e)', () => {
   it('reports a failed classification as an error and saves no reply', async () => {
     await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.intent = 'unavailable';
+    fakeLlmState.intent = 'unavailable';
 
     const { status, chunks } = await say(id, 'Hi');
 
@@ -1215,14 +1216,14 @@ describe('/api/conversations (e2e)', () => {
       }),
       { type: 'error', errorText: ASSISTANT_UNAVAILABLE_REPLY },
     ]);
-    expect(fakeOpenAiState.streamTextCalls).toBe(0);
+    expect(fakeLlmState.streamTextCalls).toBe(0);
     expect(await savedMessages(id)).toEqual([{ role: 'user', content: 'Hi' }]);
   });
 
   it('reports invalid model output with its own error and saves no reply', async () => {
     await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.intent = 'invalid';
+    fakeLlmState.intent = 'invalid';
 
     const { chunks } = await say(id, 'Hi');
 
@@ -1317,7 +1318,7 @@ describe('/api/conversations (e2e)', () => {
 
       await say(id, 'Thanks!');
 
-      const [classified, summarized] = fakeOpenAiState.structuredInputs as Array<
+      const [classified, summarized] = fakeLlmState.structuredInputs as Array<
         Array<{ role: string; content: string }>
       >;
       const history = classified.slice(1);
@@ -1336,17 +1337,17 @@ describe('/api/conversations (e2e)', () => {
       expect(stored.summary).toBe(FAKE_SUMMARY);
       expect(stored.lastSummarizedMessageId).not.toBeNull();
 
-      fakeOpenAiState.intent = Intent.GenerateMenu;
-      fakeOpenAiState.menuRequest = { ...menuRequest, mealTypes: [MealType.Breakfast] };
-      fakeOpenAiState.menuPlan = fakeMenuPlan(
+      fakeLlmState.intent = Intent.GenerateMenu;
+      fakeLlmState.menuRequest = { ...menuRequest, mealTypes: [MealType.Breakfast] };
+      fakeLlmState.menuPlan = fakeMenuPlan(
         'Here are your days.',
         { breakfast: 'Oatmeal', lunch: 'Chicken with rice', dinner: 'Rice bowl' },
         3,
       );
-      fakeOpenAiState.structuredInputs = [];
+      fakeLlmState.structuredInputs = [];
       const { chunks } = await say(id, 'A menu with breakfast');
 
-      const [reclassified, planned] = fakeOpenAiState.structuredInputs as Array<
+      const [reclassified, planned] = fakeLlmState.structuredInputs as Array<
         Array<{ role: string; content: string }>
       >;
       expect(JSON.parse(reclassified[0].content)).toMatchObject({
@@ -1395,7 +1396,7 @@ describe('/api/conversations (e2e)', () => {
         }),
         { type: 'error', errorText: CONVERSATION_LIMIT_REPLY },
       ]);
-      expect(fakeOpenAiState.structuredInputs).toEqual([]);
+      expect(fakeLlmState.structuredInputs).toEqual([]);
       expect(await ctx.prisma.message.count({ where: { conversationId: id } })).toBe(
         2 * CONVERSATION_MAX_USER_MESSAGES,
       );

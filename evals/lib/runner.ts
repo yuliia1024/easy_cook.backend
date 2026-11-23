@@ -1,6 +1,6 @@
 import { AssistantInvalidOutputException } from '../../src/common/exceptions';
 import { ModelCallInfo } from '../../src/common/types';
-import { OpenAiService } from '../../src/providers/open-ai/open-ai.service';
+import { LlmService } from '../../src/providers/llm/llm.service';
 import { costUsd } from './pricing';
 import { CaseResult, EvalCase, EvalSuite, RunErrorKind } from './types';
 
@@ -43,13 +43,13 @@ const errorMessage = (error: unknown): string =>
 export async function runCase<TCase extends EvalCase, TOutput>(
   suite: EvalSuite<TCase, TOutput>,
   testCase: TCase,
-  openAi: OpenAiService,
+  llm: LlmService,
   attempt = 1,
 ): Promise<CaseResult> {
   const startedAt = Date.now();
   const base = { id: testCase.id, attempt, tags: testCase.tags };
   try {
-    const result = await suite.run(testCase, openAi);
+    const result = await suite.run(testCase, llm);
     const fields = suite.score(testCase, result.output);
     return {
       ...base,
@@ -98,13 +98,13 @@ export async function runCase<TCase extends EvalCase, TOutput>(
 export function runSuite<TCase extends EvalCase, TOutput>(
   suite: EvalSuite<TCase, TOutput>,
   cases: TCase[],
-  openAi: OpenAiService,
+  llm: LlmService,
   { concurrency, repeat }: { concurrency: number; repeat: number },
 ): Promise<CaseResult[]> {
   const runs = Array.from({ length: repeat }, (_, i) =>
     cases.map((testCase) => ({ testCase, attempt: i + 1 })),
   ).flat();
   return mapConcurrent(runs, concurrency, ({ testCase, attempt }) =>
-    runCase(suite, testCase, openAi, attempt),
+    runCase(suite, testCase, llm, attempt),
   );
 }

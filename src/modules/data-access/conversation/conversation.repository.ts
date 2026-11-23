@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Message, Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../providers/prisma/prisma.service';
 import { SortOrder } from '../../../common/constants';
-import { MenuRequest, PreferenceChange } from '../../../common/contracts';
+import { MenuRequest, PreferenceChange, WishOffer } from '../../../common/contracts';
 
 /** Oldest first; the id only makes ties deterministic. */
 const MESSAGE_ORDER = [
@@ -51,6 +51,7 @@ export interface MessageData {
   content: string;
   menuVersionId?: string | null;
   preferenceChange?: PreferenceChange;
+  wishOffer?: WishOffer;
   /** In the order the model called them; saved with the message. */
   toolCalls?: ToolCallData[];
 }

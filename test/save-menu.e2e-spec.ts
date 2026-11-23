@@ -13,9 +13,9 @@ import {
   createTestApp,
   FAKE_OPEN_AI_DELTAS,
   fakeMenuPlan,
-  fakeOpenAiState,
+  fakeLlmState,
   resetDatabase,
-  resetFakeOpenAi,
+  resetFakeLlm,
   resetRateLimits,
   TestApp,
 } from './test-app';
@@ -45,24 +45,24 @@ describe('save_menu (e2e)', () => {
 
   /** Plans a one-day menu in the conversation; returns the ids of its draft version. */
   const planDay = async (id: string): Promise<{ menuId: string; versionId: string }> => {
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.request = 'Plan a one-day menu.';
-    fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST, days: 1 };
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.request = 'Plan a one-day menu.';
+    fakeLlmState.menuRequest = { ...EMPTY_MENU_REQUEST, days: 1 };
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
     });
     const chunks = await say(id, 'Plan my day');
     const { menuId, versionId } = dataOf(chunks, 'data-menu');
-    resetFakeOpenAi();
+    resetFakeLlm();
     return { menuId, versionId };
   };
   /** The chat model answers the next message with `save_menu`, as many times as given. */
   const modelSaves = (times = 1, input: object = {}): void => {
-    fakeOpenAiState.intent = Intent.GeneralChat;
-    fakeOpenAiState.toolResults = [];
-    fakeOpenAiState.toolCalls = Array.from({ length: times }, () => ({
+    fakeLlmState.intent = Intent.GeneralChat;
+    fakeLlmState.toolResults = [];
+    fakeLlmState.toolCalls = Array.from({ length: times }, () => ({
       toolName: ChatToolName.SaveMenu,
       input,
     }));
@@ -76,7 +76,7 @@ describe('save_menu (e2e)', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
-    resetFakeOpenAi();
+    resetFakeLlm();
     resetRateLimits();
     await createMenuWorld(ctx);
   });
@@ -87,10 +87,10 @@ describe('save_menu (e2e)', () => {
 
   it('asks whether to save after the menu, in a text part of its own, and saves it in the reply', async () => {
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.request = 'Plan a one-day menu.';
-    fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST, days: 1 };
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.request = 'Plan a one-day menu.';
+    fakeLlmState.menuRequest = { ...EMPTY_MENU_REQUEST, days: 1 };
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
@@ -121,7 +121,7 @@ describe('save_menu (e2e)', () => {
 
     const chunks = await say(id, 'Save the menu');
 
-    expect(fakeOpenAiState.toolResults).toEqual([
+    expect(fakeLlmState.toolResults).toEqual([
       { status: SaveMenuStatus.Saved, title: '1-day menu' },
     ]);
     expect(dataOf(chunks, 'data-menu-saved')).toEqual({ menuId, versionId });
@@ -174,7 +174,7 @@ describe('save_menu (e2e)', () => {
 
     const chunks = await say(id, 'Save the menu');
 
-    expect(fakeOpenAiState.toolResults).toEqual([
+    expect(fakeLlmState.toolResults).toEqual([
       {
         error: ChatToolErrorCode.NotFound,
         message: 'This conversation has no menu to save yet: plan one first.',
@@ -195,7 +195,7 @@ describe('save_menu (e2e)', () => {
 
     const chunks = await say(id, 'Save it again');
 
-    expect(fakeOpenAiState.toolResults).toEqual([
+    expect(fakeLlmState.toolResults).toEqual([
       { status: SaveMenuStatus.AlreadySaved, title: '1-day menu' },
     ]);
     expect(dataOf(chunks, 'data-menu-saved')).toEqual({ menuId, versionId });
@@ -252,7 +252,7 @@ describe('save_menu (e2e)', () => {
 
     await say(id, 'Save the menu');
 
-    expect(fakeOpenAiState.toolResults).toEqual([
+    expect(fakeLlmState.toolResults).toEqual([
       expect.objectContaining({ status: SaveMenuStatus.Saved }),
       {
         error: ChatToolErrorCode.Rejected,
@@ -272,7 +272,7 @@ describe('save_menu (e2e)', () => {
 
     const chunks = await say(id, 'Save the menu');
 
-    expect(fakeOpenAiState.toolResults).toEqual([
+    expect(fakeLlmState.toolResults).toEqual([
       {
         error: ChatToolErrorCode.Rejected,
         message: expect.stringContaining('Chicken with rice contains Chicken breast, cooked'),

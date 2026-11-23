@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DEFAULT_MODEL_PROVIDERS, ModelProviderName } from '../../common/constants';
 import { ConfigService } from '../config.service';
 
-/** The LLM providers (`OpenAiService`): their keys and the order they are tried in. */
+/** The LLM providers (`LlmService`): their keys and the order they are tried in. */
 @Injectable()
 export class ModelProvidersConfigService {
   constructor(private readonly configService: ConfigService) {}

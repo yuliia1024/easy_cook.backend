@@ -6,7 +6,9 @@ import {
   upsertExternalFoods,
   upsertSeedFoods,
   upsertSeedRecipes,
+  upsertSeedTranslations,
 } from './seed-db';
+import { SeedTranslations } from './seed-translations';
 
 describe('seed db', () => {
   let prisma: PrismaMock;
@@ -171,6 +173,90 @@ describe('seed db', () => {
     it('does nothing for an empty list', async () => {
       await expect(upsertExternalFoods(prisma, [])).resolves.toBe(0);
       expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('upsertSeedTranslations', () => {
+    const translations: SeedTranslations = {
+      locale: 'uk',
+      foods: { 'rice-white-dry': 'Рис', 'usda_fdc:42': 'Сіль' },
+      recipes: { rice: { name: 'Рис', description: null, instructions: 'Зваріть' } },
+      notes: { 'to taste': 'за смаком' },
+    };
+
+    beforeEach(() => {
+      prisma.foodItem.findMany.mockResolvedValue([
+        { id: 'f1', source: 'seed', sourceId: 'rice-white-dry' },
+        { id: 'f2', source: 'usda_fdc', sourceId: '42' },
+        { id: 'f3', source: 'usda_fdc', sourceId: '7' },
+      ]);
+      prisma.recipe.findUnique.mockResolvedValue({
+        id: 'r1',
+        ingredients: [
+          { id: 'i1', notes: null },
+          { id: 'i2', notes: 'to taste' },
+        ],
+      });
+      prisma.$transaction.mockResolvedValue([]);
+    });
+
+    it('upserts the food, recipe and note translations by row and locale', async () => {
+      await expect(upsertSeedTranslations(prisma, translations, [recipe])).resolves.toEqual({
+        locale: 'uk',
+        foods: 2,
+        recipes: 1,
+        notes: 1,
+      });
+
+      expect(prisma.foodItemTranslation.upsert).toHaveBeenCalledWith({
+        where: { foodItemId_locale: { foodItemId: 'f2', locale: 'uk' } },
+        create: { foodItemId: 'f2', locale: 'uk', name: 'Сіль' },
+        update: { name: 'Сіль' },
+      });
+      expect(prisma.recipeTranslation.upsert).toHaveBeenCalledWith({
+        where: { recipeId_locale: { recipeId: 'r1', locale: 'uk' } },
+        create: {
+          recipeId: 'r1',
+          locale: 'uk',
+          name: 'Рис',
+          description: null,
+          instructions: 'Зваріть',
+        },
+        update: { name: 'Рис', description: null, instructions: 'Зваріть' },
+      });
+      expect(prisma.recipeIngredientTranslation.upsert).toHaveBeenCalledTimes(1);
+      expect(prisma.recipeIngredientTranslation.upsert).toHaveBeenCalledWith({
+        where: { recipeIngredientId_locale: { recipeIngredientId: 'i2', locale: 'uk' } },
+        create: { recipeIngredientId: 'i2', locale: 'uk', notes: 'за смаком' },
+        update: { notes: 'за смаком' },
+      });
+    });
+
+    it('drops the translations of seed rows left out of the file, never of manual ones', async () => {
+      await upsertSeedTranslations(prisma, translations, [recipe]);
+
+      expect(prisma.foodItemTranslation.deleteMany).toHaveBeenCalledWith({
+        where: {
+          locale: 'uk',
+          foodItem: { source: { not: 'manual' } },
+          foodItemId: { notIn: ['f1', 'f2'] },
+        },
+      });
+      expect(prisma.recipeTranslation.deleteMany).toHaveBeenCalledWith({
+        where: { locale: 'uk', recipe: { source: 'seed' }, recipeId: { notIn: ['r1'] } },
+      });
+    });
+
+    it('skips a recipe without a translation or not in the database', async () => {
+      prisma.recipe.findUnique.mockResolvedValue(null);
+
+      await expect(
+        upsertSeedTranslations(prisma, { ...translations, recipes: {} }, [recipe]),
+      ).resolves.toMatchObject({ recipes: 0, notes: 0 });
+      await expect(upsertSeedTranslations(prisma, translations, [recipe])).resolves.toMatchObject({
+        recipes: 0,
+      });
+      expect(prisma.recipeTranslation.upsert).not.toHaveBeenCalled();
     });
   });
 });

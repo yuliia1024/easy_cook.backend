@@ -1,6 +1,10 @@
-import { FoodItem } from '../../../generated/prisma/client';
-import { FoodSource, FoodState } from '../../../common/constants';
+import { FoodItem, FoodItemTranslation } from '../../../generated/prisma/client';
+import { FoodSource, FoodState, Locale } from '../../../common/constants';
 import { toNumber } from '../../../common/utils';
+
+export class FoodItemTranslationResponseDto {
+  name: string;
+}
 
 export class FoodItemResponseDto {
   id: string;
@@ -14,10 +18,12 @@ export class FoodItemResponseDto {
   state: FoodState;
   source: FoodSource;
   sourceId: string | null;
+  /** The name in other languages, by `Locale`; a missing one is not translated. */
+  translations: Partial<Record<Locale, FoodItemTranslationResponseDto>>;
   createdAt: Date;
   updatedAt: Date;
 
-  static from(food: FoodItem): FoodItemResponseDto {
+  static from(food: FoodItem & { translations: FoodItemTranslation[] }): FoodItemResponseDto {
     return {
       id: food.id,
       name: food.name,
@@ -29,6 +35,9 @@ export class FoodItemResponseDto {
       state: food.state as FoodState,
       source: food.source as FoodSource,
       sourceId: food.sourceId,
+      translations: Object.fromEntries(
+        food.translations.map(({ locale, name }) => [locale, { name }]),
+      ),
       createdAt: food.createdAt,
       updatedAt: food.updatedAt,
     };

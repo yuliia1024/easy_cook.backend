@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ModelCallInfo, ModelPrompt, ModelUsage } from '../../src/common/types';
-import { ModelResult, OpenAiService } from '../../src/providers/open-ai/open-ai.service';
+import { ModelResult, LlmService } from '../../src/providers/llm/llm.service';
 
 /** What every line of a suite's `cases.jsonl` has; a suite adds its input and expectations. */
 export const EvalCaseSchema = z.object({
@@ -41,7 +41,7 @@ export interface EvalSuite<TCase extends EvalCase = EvalCase, TOutput = unknown>
    */
   prompts: ModelPrompt[];
   /** Calls the real model for a case through the same code the app uses. */
-  run(testCase: TCase, openAi: OpenAiService): Promise<SuiteRun<TOutput>>;
+  run(testCase: TCase, llm: LlmService): Promise<SuiteRun<TOutput>>;
   /** Scores every field of the case; `null` is output that did not match the schema. */
   score(testCase: TCase, output: TOutput | null): FieldScore[];
 }

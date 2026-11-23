@@ -5,8 +5,8 @@ import { ModelPrompt, ModelRef } from '../../src/common/types';
 import {
   ModelCallOptions,
   ModelResult,
-  OpenAiService,
-} from '../../src/providers/open-ai/open-ai.service';
+  LlmService,
+} from '../../src/providers/llm/llm.service';
 import { FieldScore } from './types';
 
 /**
@@ -89,12 +89,12 @@ export function judgeModelCall<C extends string>(
 }
 
 export async function runJudge<C extends string>(
-  openAi: OpenAiService,
+  llm: LlmService,
   rubric: Rubric<C>,
   subject: object,
 ): Promise<ModelResult<JudgeVerdict<C>>> {
   const { input, schema, options } = judgeModelCall(rubric, subject);
-  return openAi.generateStructuredResult(input, schema, options);
+  return llm.generateStructuredResult(input, schema, options);
 }
 
 /**

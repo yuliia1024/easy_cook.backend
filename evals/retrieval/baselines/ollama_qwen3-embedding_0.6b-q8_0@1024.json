@@ -1,0 +1,38 @@
+{
+  "model": "ollama/qwen3-embedding:0.6b-q8_0@1024",
+  "documentVersion": 2,
+  "casesHash": "9086153e0039b503",
+  "createdAt": "2026-11-23T12:50:19.790Z",
+  "modes": {
+    "hybrid": {
+      "recall@5": 0.706,
+      "recall@10": 0.841,
+      "precision@5": 0.714,
+      "hit@3": 1,
+      "mrr@10": 0.981,
+      "ndcg@10": 0.902,
+      "match": 0.886,
+      "no-match": 0.923
+    },
+    "semantic": {
+      "recall@5": 0.698,
+      "recall@10": 0.852,
+      "precision@5": 0.714,
+      "hit@3": 0.971,
+      "mrr@10": 0.95,
+      "ndcg@10": 0.904,
+      "match": 0.857,
+      "no-match": 0.923
+    },
+    "lexical": {
+      "recall@5": 0.604,
+      "recall@10": 0.701,
+      "precision@5": 0.617,
+      "hit@3": 0.943,
+      "mrr@10": 0.9,
+      "ndcg@10": 0.785,
+      "match": 0.657,
+      "no-match": 1
+    }
+  }
+}

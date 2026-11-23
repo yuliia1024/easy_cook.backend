@@ -1,10 +1,16 @@
 import {
+  MealType,
   MessageRole,
   PreferenceChangeAction,
   PreferenceChangeStatus,
   PreferenceType,
 } from '../../../../common/constants';
-import { PreferenceChange, PreferenceChangeSchema } from '../../../../common/contracts';
+import {
+  PreferenceChange,
+  PreferenceChangeSchema,
+  WishOffer,
+  WishOfferSchema,
+} from '../../../../common/contracts';
 import { PreferenceChangeResult } from '../../../../common/types';
 import {
   ConversationSummary,
@@ -34,6 +40,24 @@ export class PreferenceChangeResultResponseDto {
   }
 }
 
+export class WishOfferRecipeResponseDto {
+  id: string;
+  /** @example Salmon poke bowl */
+  name: string;
+  mealType: MealType;
+}
+
+/** The closest recipes the assistant offered when none fitted the wishes of the menu request. */
+export class WishOfferResponseDto {
+  /** @example sushi */
+  wishes: string;
+  recipes: WishOfferRecipeResponseDto[];
+
+  static from({ wishes, recipes }: WishOffer): WishOfferResponseDto {
+    return { wishes, recipes: recipes.map(({ id, name, mealType }) => ({ id, name, mealType })) };
+  }
+}
+
 export class MessageResponseDto {
   id: string;
   role: MessageRole;
@@ -47,10 +71,16 @@ export class MessageResponseDto {
    * and only while this is the latest reply.
    */
   preferenceChange: PreferenceChangeResponseDto | null;
+  /**
+   * The similar recipes the assistant offered with this reply: answered by a message, or by one
+   * with `wishOffer` (`accept` / `decline`) from the buttons, while this is the latest reply.
+   */
+  wishOffer: WishOfferResponseDto | null;
   createdAt: Date;
 
   static from(message: MessageWithMenu): MessageResponseDto {
     const change = PreferenceChangeSchema.safeParse(message.preferenceChange);
+    const offer = WishOfferSchema.safeParse(message.wishOffer);
     return {
       id: message.id,
       role: message.role as MessageRole,
@@ -58,6 +88,7 @@ export class MessageResponseDto {
       menuVersionId: message.menuVersionId,
       menuId: message.menuVersion?.menuId ?? null,
       preferenceChange: change.success ? PreferenceChangeResponseDto.from(change.data) : null,
+      wishOffer: offer.success ? WishOfferResponseDto.from(offer.data) : null,
       createdAt: message.createdAt,
     };
   }

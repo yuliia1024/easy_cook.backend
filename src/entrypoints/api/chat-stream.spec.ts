@@ -134,6 +134,19 @@ describe('toChatStream', () => {
     ]);
   });
 
+  it('sends a wish offer with its recipes', async () => {
+    const offer = {
+      wishes: 'sushi',
+      recipes: [{ id: 'r1', name: 'Salmon poke bowl', mealType: 'lunch' }],
+    };
+    const chunks = await read([
+      { type: ChatStreamEventType.WishOfferProposed, offer } as ChatStreamEvent,
+      { type: ChatStreamEventType.Done },
+    ]);
+
+    expect(chunks[1]).toEqual({ type: 'data-wish-offer', data: { offer } });
+  });
+
   it('sends a clarification as text plus the missing fields', async () => {
     const chunks = await read([
       {

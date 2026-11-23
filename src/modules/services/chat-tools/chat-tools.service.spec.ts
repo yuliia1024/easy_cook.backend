@@ -11,9 +11,11 @@ import {
   PreferenceChangeAction,
   PreferenceChangeStatus,
   PreferenceType,
+  RECIPE_SEARCH_MAX_LIMIT,
   SaveMenuStatus,
   SEARCH_RECIPES_DEFAULT_RESULTS,
   SEARCH_RECIPES_SCAN_LIMIT,
+  SEARCH_RECIPES_SIMILAR_MAX,
   SortOrder,
 } from '../../../common/constants';
 import {
@@ -32,6 +34,7 @@ import {
   buildMenu,
   buildMessage,
   buildRecipe,
+  buildSearchResult,
   CONVERSATION_ID,
   FOOD_ID,
   MENU_ID,
@@ -45,12 +48,15 @@ import { MenuService } from '../menu/menu.service';
 import { PreferenceChangeService } from '../preference-change/preference-change.service';
 import { NutritionService } from '../nutrition/nutrition.service';
 import { RecipeService } from '../recipe/recipe.service';
+import { RecipeSearchResult, RecipeSearchService } from '../recipe-search/recipe-search.service';
+import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repository';
 import { ChatToolsService } from './chat-tools.service';
 
 type Executable = { execute: (input: object) => Promise<object> };
 
 describe('ChatToolsService', () => {
   let recipeService: jest.Mocked<RecipeService>;
+  let recipeSearchService: jest.Mocked<RecipeSearchService>;
   let foodItemService: jest.Mocked<FoodItemService>;
   let conversationService: jest.Mocked<ConversationService>;
   let menuService: jest.Mocked<MenuService>;
@@ -67,19 +73,24 @@ describe('ChatToolsService', () => {
     mealType: null,
     diet: null,
     maxKcalPerServing: null,
+    maxPrepTimeMinutes: null,
     limit: null,
   };
+  const found = (...recipes: RecipeWithIngredients[]): RecipeSearchResult =>
+    buildSearchResult(recipes);
   /** `buildRecipe()`: 200 g boiled rice for 2 servings. */
   const ricePerServing = { kcal: 130, proteinG: 2.7, fatG: 0.3, carbsG: 28.2 };
 
   beforeEach(() => {
     recipeService = createMock<RecipeService>();
+    recipeSearchService = createMock<RecipeSearchService>();
     foodItemService = createMock<FoodItemService>();
     conversationService = createMock<ConversationService>();
     menuService = createMock<MenuService>();
     preferenceChangeService = createMock<PreferenceChangeService>();
     service = new ChatToolsService(
       recipeService,
+      recipeSearchService,
       foodItemService,
       new NutritionService(),
       conversationService,
@@ -299,22 +310,39 @@ describe('ChatToolsService', () => {
   });
 
   describe('searchRecipes', () => {
-    it('reads one page by name, meal and diet, with the calories of a serving', async () => {
-      recipeService.getPage.mockResolvedValue({ items: [buildRecipe()], total: 1 });
+    it('ranks the recipes for a query, filtered in the search by the request and the profile', async () => {
+      recipeSearchService.search.mockResolvedValue(found(buildRecipe()));
+      const abort = new AbortController();
 
       const result = await service.searchRecipes(
-        { ...search, query: 'rice', mealType: MealType.Lunch, diet: DietTag.Vegetarian },
-        noRules,
+        {
+          ...search,
+          query: 'щось легке з рисом',
+          mealType: MealType.Lunch,
+          diet: DietTag.Vegetarian,
+          maxPrepTimeMinutes: 30,
+        },
+        { ...noRules, diets: [DietTag.DairyFree], allergies: ['dairy', 'lactose', 'kiwi'] },
+        abort.signal,
       );
 
-      expect(recipeService.getPage).toHaveBeenCalledWith(
+      expect(recipeSearchService.search).toHaveBeenCalledWith(
         {
-          search: 'rice',
-          mealType: MealType.Lunch,
-          dietTypeGroups: [[DietTag.Vegetarian, DietTag.Vegan]],
+          text: 'щось легке з рисом',
+          filters: {
+            mealType: MealType.Lunch,
+            dietTypeGroups: [
+              [DietTag.Vegetarian, DietTag.Vegan],
+              [DietTag.DairyFree, DietTag.Vegan],
+            ],
+            excludeAllergens: ['milk'],
+            maxPrepTimeMinutes: 30,
+          },
+          limit: SEARCH_RECIPES_DEFAULT_RESULTS + 1,
         },
-        { page: 1, limit: SEARCH_RECIPES_DEFAULT_RESULTS, sortOrder: SortOrder.Asc },
+        abort.signal,
       );
+      expect(recipeService.getPage).not.toHaveBeenCalled();
       expect(result).toEqual({
         recipes: [
           {
@@ -330,6 +358,87 @@ describe('ChatToolsService', () => {
           },
         ],
         more: false,
+        similar: [],
+      });
+    });
+
+    it('keeps the order of the search, says when more were found and passes no empty filter', async () => {
+      const first = buildRecipe({ id: 'first' });
+      const second = buildRecipe({ id: 'second' });
+      recipeSearchService.search.mockResolvedValue(found(second, first));
+
+      const result = await service.searchRecipes({ ...search, query: 'rice', limit: 1 }, null);
+
+      expect(recipeSearchService.search).toHaveBeenCalledWith(
+        {
+          text: 'rice',
+          filters: {
+            mealType: undefined,
+            dietTypeGroups: undefined,
+            excludeAllergens: undefined,
+            maxPrepTimeMinutes: undefined,
+          },
+          limit: 2,
+        },
+        undefined,
+      );
+      expect(result.recipes.map(({ id, fitsProfile }) => [id, fitsProfile])).toEqual([
+        ['second', null],
+      ]);
+      expect(result.more).toBe(true);
+    });
+
+    it('filters the ranked recipes by the calories of a serving among the widest result', async () => {
+      const light = buildRecipe({ id: 'light' });
+      const heavy = buildRecipe({
+        id: 'heavy',
+        ingredients: [buildIngredient({ quantityG: new Prisma.Decimal(1000) })],
+      });
+      recipeSearchService.search.mockResolvedValue(found(heavy, light));
+
+      const result = await service.searchRecipes(
+        { ...search, query: 'rice', maxKcalPerServing: 200 },
+        null,
+      );
+
+      expect(recipeSearchService.search).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: RECIPE_SEARCH_MAX_LIMIT }),
+        undefined,
+      );
+      expect(result.recipes.map(({ id }) => id)).toEqual(['light']);
+      expect(result.more).toBe(false);
+    });
+
+    it('gives only the closest recipes as similar when none fits the query', async () => {
+      const recipes = ['a', 'b', 'c', 'd'].map((id) => buildRecipe({ id }));
+      recipeSearchService.search.mockResolvedValue(buildSearchResult(recipes, { matched: false }));
+
+      const result = await service.searchRecipes({ ...search, query: 'sushi' }, null);
+
+      expect(result.recipes).toEqual([]);
+      expect(result.more).toBe(false);
+      expect(result.similar.map(({ id }) => id)).toEqual(
+        ['a', 'b', 'c'].slice(0, SEARCH_RECIPES_SIMILAR_MAX),
+      );
+    });
+
+    it('lists one page by meal and diet without a query', async () => {
+      recipeService.getPage.mockResolvedValue({ items: [buildRecipe()], total: 1 });
+
+      const result = await service.searchRecipes(
+        { ...search, mealType: MealType.Lunch, diet: DietTag.Vegetarian },
+        noRules,
+      );
+
+      expect(recipeSearchService.search).not.toHaveBeenCalled();
+      expect(recipeService.getPage).toHaveBeenCalledWith(
+        { mealType: MealType.Lunch, dietTypeGroups: [[DietTag.Vegetarian, DietTag.Vegan]] },
+        { page: 1, limit: SEARCH_RECIPES_DEFAULT_RESULTS, sortOrder: SortOrder.Asc },
+      );
+      expect(result).toEqual({
+        recipes: [expect.objectContaining({ id: RECIPE_ID, fitsProfile: true })],
+        more: false,
+        similar: [],
       });
     });
 
@@ -341,12 +450,12 @@ describe('ChatToolsService', () => {
         more: true,
       });
       expect(recipeService.getPage).toHaveBeenCalledWith(
-        { search: undefined, mealType: undefined, dietTypeGroups: undefined },
+        { mealType: undefined, dietTypeGroups: undefined },
         expect.objectContaining({ limit: 1 }),
       );
     });
 
-    it('filters by the calories of a serving among a wider page', async () => {
+    it('filters a listing by the calories of a serving among a wider page', async () => {
       const light = buildRecipe({ id: 'light' });
       const heavy = buildRecipe({
         id: 'heavy',
@@ -365,6 +474,25 @@ describe('ChatToolsService', () => {
       );
       expect(result.recipes.map(({ id }) => id)).toEqual(['light']);
       expect(result.more).toBe(true);
+    });
+
+    it('filters a listing by the time, a recipe of unknown time left out', async () => {
+      const quick = buildRecipe({ id: 'quick', prepTimeMinutes: 15 });
+      const slow = buildRecipe({ id: 'slow', prepTimeMinutes: 60 });
+      const unknown = buildRecipe({ id: 'unknown', prepTimeMinutes: null });
+      recipeService.getPage.mockResolvedValue({ items: [slow, unknown, quick], total: 3 });
+
+      const result = await service.searchRecipes({ ...search, maxPrepTimeMinutes: 20 }, null);
+
+      expect(recipeService.getPage).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ limit: SEARCH_RECIPES_SCAN_LIMIT }),
+      );
+      expect(result).toEqual({
+        recipes: [expect.objectContaining({ id: 'quick' })],
+        more: false,
+        similar: [],
+      });
     });
   });
 

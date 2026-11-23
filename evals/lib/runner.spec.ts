@@ -2,14 +2,14 @@ import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
 } from '../../src/common/exceptions';
-import { OpenAiService } from '../../src/providers/open-ai/open-ai.service';
+import { LlmService } from '../../src/providers/llm/llm.service';
 import { createMock } from '../../src/test/create-mock';
 import { mapConcurrent, runCase, runSuite } from './runner';
 import { RunErrorKind } from './types';
 import { buildEchoSuite, EchoCase } from '../test/helpers';
 
 describe('eval runner', () => {
-  const openAi = createMock<OpenAiService>();
+  const llm = createMock<LlmService>();
   const usage = { inputTokens: 1000, cachedInputTokens: 0, outputTokens: 100 };
   const testCase: EchoCase = { id: 'c1', tags: ['en'], answer: 'yes' };
 
@@ -46,9 +46,9 @@ describe('eval runner', () => {
         usage,
       });
 
-      const result = await runCase(suite, testCase, openAi);
+      const result = await runCase(suite, testCase, llm);
 
-      expect(suite.run).toHaveBeenCalledWith(testCase, openAi);
+      expect(suite.run).toHaveBeenCalledWith(testCase, llm);
       expect(result).toEqual({
         id: 'c1',
         attempt: 1,
@@ -78,7 +78,7 @@ describe('eval runner', () => {
         judge: { modelId: judgeModel, usage },
       });
 
-      const result = await runCase(suite, testCase, openAi);
+      const result = await runCase(suite, testCase, llm);
 
       expect(result.usage).toEqual(usage);
       expect(result.costUsd === null ? null : Number(result.costUsd.toFixed(9))).toBe(cost);
@@ -94,7 +94,7 @@ describe('eval runner', () => {
         metrics: { retries: 1 },
       });
 
-      await expect(runCase(suite, testCase, openAi)).resolves.toMatchObject({
+      await expect(runCase(suite, testCase, llm)).resolves.toMatchObject({
         metrics: { retries: 1 },
       });
     });
@@ -103,7 +103,7 @@ describe('eval runner', () => {
       const suite = buildEchoSuite();
       suite.run.mockResolvedValue({ output: 'no', modelId: 'm', latencyMs: 1, usage });
 
-      const result = await runCase(suite, testCase, openAi, 2);
+      const result = await runCase(suite, testCase, llm, 2);
 
       expect(result.attempt).toBe(2);
       expect(result.pass).toBe(false);
@@ -116,7 +116,7 @@ describe('eval runner', () => {
         new AssistantInvalidOutputException({ modelId: 'gpt-4o-mini-2024-07-18', usage }),
       );
 
-      const result = await runCase(suite, testCase, openAi);
+      const result = await runCase(suite, testCase, llm);
 
       expect(result).toMatchObject({
         id: 'c1',
@@ -137,7 +137,7 @@ describe('eval runner', () => {
       const suite = buildEchoSuite();
       suite.run.mockRejectedValue(new AssistantInvalidOutputException());
 
-      await expect(runCase(suite, testCase, openAi)).resolves.toMatchObject({
+      await expect(runCase(suite, testCase, llm)).resolves.toMatchObject({
         modelId: null,
         usage: { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 },
         costUsd: null,
@@ -148,7 +148,7 @@ describe('eval runner', () => {
       const suite = buildEchoSuite();
       suite.run.mockRejectedValue(new AssistantUnavailableException(true));
 
-      const result = await runCase(suite, testCase, openAi);
+      const result = await runCase(suite, testCase, llm);
 
       expect(result).toMatchObject({
         pass: false,
@@ -166,7 +166,7 @@ describe('eval runner', () => {
       const suite = buildEchoSuite();
       suite.run.mockRejectedValue('boom');
 
-      await expect(runCase(suite, testCase, openAi)).resolves.toMatchObject({
+      await expect(runCase(suite, testCase, llm)).resolves.toMatchObject({
         error: { kind: RunErrorKind.CallFailed, message: 'boom' },
       });
     });
@@ -181,7 +181,7 @@ describe('eval runner', () => {
       usage,
     }));
 
-    const results = await runSuite(suite, [testCase, { ...testCase, id: 'c2' }], openAi, {
+    const results = await runSuite(suite, [testCase, { ...testCase, id: 'c2' }], llm, {
       concurrency: 1,
       repeat: 2,
     });

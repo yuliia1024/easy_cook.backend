@@ -28,7 +28,14 @@ export enum ChatResponseType {
   Text = 'text',
   MenuReady = 'menu_ready',
   Clarification = 'clarification',
+  WishOffer = 'wish_offer',
   Error = 'error',
+}
+
+/** The user's answer to a wish offer (`WishOffer`): plan with the similar recipes, or without the wish. */
+export enum WishOfferAnswer {
+  Accept = 'accept',
+  Decline = 'decline',
 }
 
 export enum ChatStreamEventType {
@@ -39,6 +46,7 @@ export enum ChatStreamEventType {
   MenuSaved = 'menu_saved',
   PreferenceChangeProposed = 'preference_change_proposed',
   PreferencesUpdated = 'preferences_updated',
+  WishOfferProposed = 'wish_offer_proposed',
   Clarification = 'clarification',
   Error = 'error',
   Done = 'done',
@@ -54,6 +62,7 @@ export const TEXT_PART_BREAKS: ReadonlySet<ChatStreamEventType> = new Set([
   ChatStreamEventType.MenuSaved,
   ChatStreamEventType.PreferenceChangeProposed,
   ChatStreamEventType.PreferencesUpdated,
+  ChatStreamEventType.WishOfferProposed,
 ]);
 /**
  * The most a reply may take, every model call, retry and tool of it included (a revision runs one
@@ -139,6 +148,15 @@ export const MENU_SHORTAGE_NO_OPTIONS_REPLY = 'Please try a different request.';
  * model calls `save_menu`.
  */
 export const MENU_SAVE_QUESTION = 'If everything suits you, shall I save this menu?';
+/** The similar recipes a wish offer names at most. */
+export const WISH_OFFER_RECIPES_MAX = 3;
+/**
+ * Instead of a menu when no recipe fits the wishes of the request ("sushi"): names the closest
+ * ones and asks, so the menu never passes them off as what was asked for.
+ */
+export const wishOfferReply = (wishes: string, names: string[]): string =>
+  `I found no recipes for "${wishes}". The closest are: ${names.join(', ')}. ` +
+  'Shall I plan the menu with them, or without this wish?';
 /** Sent when every attempt of the planner gave a menu that breaks the rules. */
 export const MENU_PLAN_FAILED_REPLY =
   'Sorry, I could not put together a menu that fits your request and preferences. Please try again or change the request.';

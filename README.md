@@ -34,7 +34,7 @@ flowchart TD
         Orch --> Trace["Chat trace + summary logs"]
     end
 
-    Intent & Planner & General --> LLM["OpenAiService (AI SDK)<br/>ModelFallback: OpenAI gpt-4o-mini → DeepSeek<br/>retry / switch on 5xx, timeout, rate limit"]
+    Intent & Planner & General --> LLM["LlmService (AI SDK)<br/>ModelFallback: OpenAI gpt-4o-mini → DeepSeek<br/>retry / switch on 5xx, timeout, rate limit"]
     MenuSvc & Services --> Repo["Repositories (data-access)<br/>the only Prisma code"]
     Repo --> PG[("PostgreSQL 17<br/>foods · recipes · menus · chat")]
 ```
@@ -48,6 +48,9 @@ flowchart TD
   `MENU_PLAN_MAX_ATTEMPTS` calls. A revision may change only the parts it names (`menu-diff.ts`).
 - **Tools.** Read tools return data through the services; `plan_menu` / `revise_menu` are only
   recorded and run on the planner path; errors go back to the model, never a 500.
+- **Recipe search (RAG).** `search_recipes` and the wishes of a menu request ("more fish") find
+  recipes by meaning in English or Ukrainian: hybrid pgvector + full-text search, see
+  [Recipe search (RAG)](#recipe-search-rag).
 - **Resilience and observability.** Pinned model snapshots, provider fallback, every prompt
   versioned (`name@vN`), one summary line per message (time, first text, calls, tokens), and with
   `ENV=local` a full JSON trace of the chain.
@@ -59,13 +62,13 @@ committed baseline (`evals/baselines/`). Pass rates of the current baselines:
 
 | Suite           | What it checks                                                                         | Cases | gpt-4o-mini (main) | deepseek-flash (fallback) |
 | --------------- | -------------------------------------------------------------------------------------- | ----: | -----------------: | ------------------------: |
-| `intent`        | routing of a message: intent, days, constraints, revision targets (uk / en / surzhyk)  |    76 |         **93.0 %** |                **92.5 %** |
-| `clarification` | a vague request asks exactly for what is missing (LLM judge: Claude Haiku 4.5)         |    25 |             97.3 % |                    93.3 % |
+| `intent`        | routing of a message: intent, days, constraints, revision targets, wishes and the answer to a wish offer (uk / en / surzhyk) |    85 |         **93.3 %** |                **91.8 %** |
+| `clarification` | a vague request asks exactly for what is missing (LLM judge: Claude Haiku 4.5)         |    25 |             97.3 % |                    92.0 % |
 | `menu-plan`     | 1-7 day menus: right days, only candidates, rules, calories ±15 %, dislikes, variety   |    22 |             97.0 % |                    84.8 % |
 | `menu-day`      | revising a day / meal / several parts: nothing outside the scope changes, constraints  |    38 |            100.0 % |                   100.0 % |
-| `chat-tools`    | the right tool with valid arguments, no tool for small talk, plan / revise handed over |    41 |             98.4 % |                   100.0 % |
+| `chat-tools`    | the right tool with valid arguments, no tool for small talk, plan / revise handed over, recipe search by meaning |    52 |             98.1 % |                    99.4 % |
 
-`chat-tools` is measured on `general-chat@v4`. Details of each suite and the runner: [Evals](#evals).
+Measured on `intent@v6` and `general-chat@v6`. Details of each suite and the runner: [Evals](#evals).
 
 ## Quick start
 
@@ -105,6 +108,7 @@ pull request).
 | -------- | --------- |
 | API      | 3100      |
 | Postgres | 5442      |
+| Ollama   | 11434     |
 
 ### From scratch
 
@@ -175,6 +179,57 @@ Daily targets (`POST /api/nutrition/goals/calculate`): Mifflin-St Jeor BMR × ac
 -15 % / +10 % for lose / gain, protein 1.6–2.0 g/kg, fat 25 % of kcal, carbs the rest
 (`src/modules/services/nutrition-goal/energy-requirements.ts`, version `mifflin-st-jeor-v1`).
 These are reference values for meal planning, not medical advice.
+
+## Recipe search (RAG)
+
+Recipes are found by what the user means, not only by name: "something light with chicken",
+"суп із сочевиці", "more fish this week". Design notes, the model choice and the production plan:
+[`docs/notes/rag-recipe-search.md`](docs/notes/rag-recipe-search.md).
+
+```mermaid
+flowchart LR
+    Q["query in the user's words<br/>+ filters"] --> E["EmbeddingService<br/>Ollama qwen3-embedding 0.6B → OpenAI fallback"]
+    E --> S["semantic leg<br/>pgvector HNSW, cosine"]
+    Q --> L["full-text leg<br/>Postgres tsvector"]
+    S & L --> F["RRF fusion<br/>+ matched?"]
+    F --> T["search_recipes<br/>recipes / similar"]
+    F --> P["MenuPlannerService<br/>wishes → candidates / offer"]
+```
+
+- **One recipe = one document** (`buildRecipeDocument`): name, description, meal, diets, time,
+  ingredients and the method in English, then the Ukrainian name, description and ingredients
+  from `recipe_translations`. One vector per recipe, `vector(1024)`, keyed by model
+  (`provider/id@dims`), so two models never mix.
+- **Hybrid search** in one SQL query: the semantic leg (HNSW, iterative scan) and the full-text
+  leg (any word, words of 3+ letters), both pre-filtered by meal, diets, allergens and time, fused
+  by Reciprocal Rank Fusion. No embedding provider → full-text alone (`degraded`).
+- **Found or only similar.** A search `matched` when its best recipe reaches the calibrated
+  `matchSimilarity` of the model (0.50 for the local one) or a recipe has every word of the
+  query. Otherwise the hits are only similar ("sushi" finds a poke bowl):
+  - `search_recipes` returns no `recipes`, only `similar`, and the chat says the app has no such
+    recipe and may offer the similar ones, asking first;
+  - the planner plans no menu for wishes nothing fits: it offers the closest recipes
+    (`data-wish-offer`, kept in `messages.wish_offer`) and waits for the answer, a message ("yes,
+    take them") or a button of the web app (`wishOffer: accept | decline` with the message).
+- **Embedding models**: local Ollama `qwen3-embedding:0.6b-q8_0` first, OpenAI
+  `text-embedding-3-large` (1024 dims) when it is down (`EMBEDDING_PROVIDERS`, `OLLAMA_BASE_URL`).
+  Specs and e2e never call a model (`src/test/fake-embeddings.ts`).
+
+```bash
+npm run infra:embeddings            # Ollama in docker (or the native app: faster on a Mac)
+ollama pull qwen3-embedding:0.6b-q8_0   # native app only
+npm run search:index                # embeds new and changed recipes (by content hash)
+npm run search:index -- --status    # how many recipes every model has
+npm run eval:retrieval              # Recall@k, nDCG@k, MRR, match / no-match per mode
+```
+
+Retrieval evals (`evals/retrieval/`, 48 cases: en, uk and 13 dishes the catalog lacks), local model,
+hybrid mode: nDCG@10 **0.90** (en 0.90, uk 0.91), Hit@3 1.00, `match` 0.89 (a query with answers
+is found), `no-match` 0.92 (a dish the catalog lacks is not passed off as found). A change of the
+document or the search must not fall below the baseline in `evals/retrieval/baselines/`.
+
+Prisma cannot declare the HNSW index: `NAME=... npm run migration:create` takes its `DROP INDEX`
+out of a new migration; never run a bare `prisma migrate dev`.
 
 ## API
 

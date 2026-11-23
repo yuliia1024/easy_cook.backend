@@ -1,8 +1,8 @@
 {
   "suite": "clarification",
-  "createdAt": "2026-11-16T14:53:56.466Z",
+  "createdAt": "2026-11-23T13:24:16.413Z",
   "prompts": [
-    "intent@v5",
+    "intent@v6",
     "judge@v2"
   ],
   "models": [
@@ -15,9 +15,9 @@
     "clarification": 1,
     "judge.asks_for_missing": 0.9777777777777777,
     "judge.clear": 1,
-    "judge.consistent": 0.9777777777777777,
+    "judge.consistent": 0.9555555555555556,
     "judge.no_repeat": 0.9777777777777777,
-    "missingFields": 0.9777777777777777
+    "missingFields": 0.9555555555555556
   },
   "tags": {
     "chat": 1,

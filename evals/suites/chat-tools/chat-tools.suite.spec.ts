@@ -7,7 +7,7 @@ import {
 } from '../../../src/common/constants';
 import { ChatServiceCall } from '../../../src/common/types';
 import { EMPTY_MENU_REQUEST } from '../../../src/modules/services/menu/menu-request';
-import { OpenAiService, ToolLoopOptions } from '../../../src/providers/open-ai/open-ai.service';
+import { LlmService, ToolLoopOptions } from '../../../src/providers/llm/llm.service';
 import { ChatToolCall } from '../../../src/modules/services/chat-tools/chat-tool-registry';
 import { createMock } from '../../../src/test/create-mock';
 import { loadCases } from '../../lib/cases';
@@ -177,8 +177,8 @@ describe('chat-tools suite', () => {
 
   describe('runChatTools', () => {
     it('runs the chat call of the app with the catalog tools and records the loop', async () => {
-      const openAi = createMock<OpenAiService>();
-      openAi.generateWithToolsResult.mockImplementation(async (input, options: ToolLoopOptions) => {
+      const llm = createMock<LlmService>();
+      llm.generateWithToolsResult.mockImplementation(async (input, options: ToolLoopOptions) => {
         await options.tools[ChatToolName.SearchRecipes].execute!(
           { query: 'lentil', mealType: null, diet: null, maxKcalPerServing: null, limit: null },
           { toolCallId: '1', messages: [], context: undefined },
@@ -200,10 +200,10 @@ describe('chat-tools suite', () => {
           ...testCase({ serviceCall: null }),
           messages: [{ role: MessageRole.User, content: 'Hi' }],
         },
-        openAi,
+        llm,
       );
 
-      const [input, options] = openAi.generateWithToolsResult.mock.calls[0];
+      const [input, options] = llm.generateWithToolsResult.mock.calls[0];
       expect(input).toEqual([
         expect.objectContaining({ role: 'user' }),
         { role: 'user', content: 'Hi' },

@@ -66,6 +66,23 @@ describe('selectCandidates', () => {
   it('offers every recipe when there are no more than the count', () => {
     expect(selectCandidates(lunches.slice(0, 3), MealType.Lunch, 2000, 5, 2)).toHaveLength(3);
   });
+
+  it('puts the wished recipes first, up to half the count, and fills the rest from the pool', () => {
+    // Without l100 and l700 the pool is l600, l800, l900, l400 (twice the two places left).
+    expect(
+      ids(selectCandidates(lunches, MealType.Lunch, 2000, 4, 0, ['l100', 'unknown', 'l700'])),
+    ).toEqual(['l100', 'l700', 'l600', 'l800']);
+    expect(
+      ids(selectCandidates(lunches, MealType.Lunch, 2000, 2, 0, ['l100', 'l200', 'l400'])),
+    ).toEqual(['l100', 'l700']);
+  });
+
+  it('ignores wished ids of other meals or none at all', () => {
+    expect(ids(selectCandidates(lunches, MealType.Lunch, 2000, 2, 0, ['b1']))).toEqual([
+      'l700',
+      'l600',
+    ]);
+  });
 });
 
 describe('labelCandidates', () => {

@@ -2,6 +2,7 @@ import { PrismaClient } from '../../src/generated/prisma/client';
 import { FoodSource, RecipeSource } from '../../src/common/constants';
 import { classifyRecipe, FoodCategories, seedDietType } from './classify-recipes';
 import { parseFoodRef, SeedFood, SeedRecipe } from './seed-data';
+import { SeedTranslations } from './seed-translations';
 
 export interface UpsertResult {
   created: number;
@@ -150,4 +151,98 @@ export async function upsertExternalFoods(
     );
   }
   return foods.length;
+}
+
+export interface TranslationResult {
+  locale: string;
+  foods: number;
+  recipes: number;
+  notes: number;
+}
+
+/**
+ * Writes the translations of the seeded foods and recipes (`recipes`: the ones that were seeded),
+ * upserted by (row, locale); a seed row left out of the file loses its translation. Ingredient
+ * notes are matched by their English text, the ingredients being recreated by every seed run.
+ */
+export async function upsertSeedTranslations(
+  prisma: PrismaClient,
+  translations: SeedTranslations,
+  recipes: SeedRecipe[],
+): Promise<TranslationResult> {
+  const { locale } = translations;
+  const result: TranslationResult = { locale, foods: 0, recipes: 0, notes: 0 };
+
+  const foods = await prisma.foodItem.findMany({
+    where: { source: { not: FoodSource.Manual } },
+    select: { id: true, source: true, sourceId: true },
+  });
+  const foodRows = foods.flatMap(({ id, source, sourceId }) => {
+    const name =
+      translations.foods[source === FoodSource.Seed ? sourceId : `${source}:${sourceId}`];
+    return name ? [{ foodItemId: id, name }] : [];
+  });
+  await prisma.$transaction([
+    prisma.foodItemTranslation.deleteMany({
+      where: {
+        locale,
+        foodItem: { source: { not: FoodSource.Manual } },
+        foodItemId: { notIn: foodRows.map((row) => row.foodItemId) },
+      },
+    }),
+    ...foodRows.map(({ foodItemId, name }) =>
+      prisma.foodItemTranslation.upsert({
+        where: { foodItemId_locale: { foodItemId, locale } },
+        create: { foodItemId, locale, name },
+        update: { name },
+      }),
+    ),
+  ]);
+  result.foods = foodRows.length;
+
+  const translated = new Set<string>();
+  for (const { slug } of recipes) {
+    const text = translations.recipes[slug];
+    if (!text) {
+      continue;
+    }
+    const recipe = await prisma.recipe.findUnique({
+      where: { source_sourceId: { source: RecipeSource.Seed, sourceId: slug } },
+      select: { id: true, ingredients: { select: { id: true, notes: true } } },
+    });
+    if (!recipe) {
+      continue;
+    }
+    translated.add(recipe.id);
+    const data = {
+      name: text.name,
+      description: text.description ?? null,
+      instructions: text.instructions,
+    };
+    const notes = recipe.ingredients.flatMap(({ id, notes: note }) => {
+      const noteText = note ? translations.notes[note] : undefined;
+      return noteText ? [{ recipeIngredientId: id, notes: noteText }] : [];
+    });
+    await prisma.$transaction([
+      prisma.recipeTranslation.upsert({
+        where: { recipeId_locale: { recipeId: recipe.id, locale } },
+        create: { recipeId: recipe.id, locale, ...data },
+        update: data,
+      }),
+      ...notes.map(({ recipeIngredientId, notes: noteText }) =>
+        prisma.recipeIngredientTranslation.upsert({
+          where: { recipeIngredientId_locale: { recipeIngredientId, locale } },
+          create: { recipeIngredientId, locale, notes: noteText },
+          update: { notes: noteText },
+        }),
+      ),
+    ]);
+    result.recipes++;
+    result.notes += notes.length;
+  }
+  await prisma.recipeTranslation.deleteMany({
+    where: { locale, recipe: { source: RecipeSource.Seed }, recipeId: { notIn: [...translated] } },
+  });
+
+  return result;
 }
