@@ -99,16 +99,5 @@ describe('Redis scripts (e2e)', () => {
         's4',
       ]);
     });
-
-    it('ends every session of a user', async () => {
-      await sessions.create('s1', session(1), 60);
-      await sessions.create('s2', session(2), 60);
-
-      await sessions.deleteAllOfUser('scripts-user');
-
-      expect(await sessions.find('s1')).toBeNull();
-      expect(await sessions.find('s2')).toBeNull();
-      expect(await redis.client.exists('auth:user-sessions:scripts-user')).toBe(0);
-    });
   });
 });

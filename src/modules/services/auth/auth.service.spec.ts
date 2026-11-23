@@ -303,12 +303,6 @@ describe('AuthService', () => {
 
       expect(sessions.delete).not.toHaveBeenCalled();
     });
-
-    it('ends every session of the user', async () => {
-      await service.signOutEverywhere(USER_ID);
-
-      expect(sessions.deleteAllOfUser).toHaveBeenCalledWith(USER_ID);
-    });
   });
 
   it('accepts only the CSRF token of the session', () => {

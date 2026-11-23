@@ -35,14 +35,12 @@ describe('AuthController', () => {
     ]);
   });
 
-  it('getSession / signOut / signOutEverywhere', async () => {
+  it('getSession / signOut', async () => {
     controller.getSession(session);
     await controller.signOut({ cookies: { a: '1' } } as never, response);
-    await controller.signOutEverywhere(session, response);
 
     expect(service.getSession).toHaveBeenCalledWith(session);
     expect(service.signOut).toHaveBeenCalledWith({ a: '1' }, response);
-    expect(service.signOutEverywhere).toHaveBeenCalledWith(session, response);
   });
 
   it('makes only the nonce and the sign-in public, and limits the sign-in', () => {
@@ -53,7 +51,6 @@ describe('AuthController', () => {
     expect(meta(IS_PUBLIC_KEY, 'signInWithGoogle')).toBe(true);
     expect(meta(IS_PUBLIC_KEY, 'getSession')).toBeUndefined();
     expect(meta(IS_PUBLIC_KEY, 'signOut')).toBeUndefined();
-    expect(meta(IS_PUBLIC_KEY, 'signOutEverywhere')).toBeUndefined();
     expect(meta(RATE_LIMIT_KEY, 'signInWithGoogle')).toBe(RateLimitName.SignIn);
   });
 });

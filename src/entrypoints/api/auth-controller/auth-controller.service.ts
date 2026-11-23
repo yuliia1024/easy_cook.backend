@@ -62,15 +62,6 @@ export class AuthControllerService {
 
   public async signOut(cookies: Record<string, unknown>, response: Response): Promise<void> {
     await this.authService.signOut(cookies[this.authConfig.cookieName]);
-    this.clearSessionCookie(response);
-  }
-
-  public async signOutEverywhere(session: AuthenticatedSession, response: Response): Promise<void> {
-    await this.authService.signOutEverywhere(session.user.id);
-    this.clearSessionCookie(response);
-  }
-
-  private clearSessionCookie(response: Response): void {
     response.clearCookie(this.authConfig.cookieName, this.authConfig.clearCookieOptions());
   }
 }

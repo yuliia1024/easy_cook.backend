@@ -24,21 +24,11 @@ end
 return math.max(excess, 0)
 `;
 
-/** KEYS the sessions of a user; ARGV the session key prefix. Ends all of them, atomically. */
-const DELETE_ALL_SCRIPT = `
-local hashes = redis.call('ZRANGE', KEYS[1], 0, -1)
-for _, hash in ipairs(hashes) do
-  redis.call('DEL', ARGV[1] .. hash)
-end
-redis.call('DEL', KEYS[1])
-return #hashes
-`;
-
 const SESSION_KEY_PREFIX = REDIS_KEYS.session('');
 
 /**
  * Sessions in Redis, keyed by the sha256 of their token (a leaked dump holds no usable token), the
- * sessions of each user in a sorted set by sign-in time (to end all of them, or the oldest beyond
+ * sessions of each user in a sorted set by sign-in time (to end the oldest beyond
  * the limit), and the one-time nonces of Google sign-ins. Every key expires.
  */
 @Injectable()
@@ -100,15 +90,6 @@ export class AuthSessionRepository {
       .del(REDIS_KEYS.session(tokenHash))
       .zrem(REDIS_KEYS.userSessions(userId), tokenHash)
       .exec();
-  }
-
-  public async deleteAllOfUser(userId: string): Promise<void> {
-    await this.redis.client.eval(
-      DELETE_ALL_SCRIPT,
-      1,
-      REDIS_KEYS.userSessions(userId),
-      SESSION_KEY_PREFIX,
-    );
   }
 
   public async saveLoginNonce(nonceHash: string, ttlSeconds: number): Promise<void> {

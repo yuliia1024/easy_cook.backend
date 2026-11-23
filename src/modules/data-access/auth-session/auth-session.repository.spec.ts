@@ -79,19 +79,6 @@ describe('AuthSessionRepository', () => {
     expect(transaction.zrem).toHaveBeenCalledWith('auth:user-sessions:u1', 'hash');
   });
 
-  it('deletes every session of the user and their set in one script', async () => {
-    const { redis, client } = createRedis();
-
-    await new AuthSessionRepository(redis).deleteAllOfUser('u1');
-
-    expect(client.eval).toHaveBeenCalledWith(
-      expect.stringContaining("redis.call('DEL', KEYS[1])"),
-      1,
-      'auth:user-sessions:u1',
-      'auth:session:',
-    );
-  });
-
   it('trims the live sessions beyond the limit in one script', async () => {
     const { redis, client } = createRedis();
 

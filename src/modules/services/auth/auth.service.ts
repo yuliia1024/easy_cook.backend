@@ -156,12 +156,6 @@ export class AuthService {
     }
   }
 
-  /** Ends every session of the user, on every device. */
-  public async signOutEverywhere(userId: string): Promise<void> {
-    await this.authSessionRepository.deleteAllOfUser(userId);
-    this.logger.log(`User ${userId} signed out everywhere`);
-  }
-
   /** 401 unless the token carries the nonce of the cookie and it was issued and not used yet. */
   private async consumeLoginNonce(tokenNonce: string | null, cookieNonce: unknown): Promise<void> {
     if (!isSecureTokenShaped(cookieNonce) || !tokenNonce || !safeEqual(tokenNonce, cookieNonce)) {

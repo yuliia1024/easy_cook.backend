@@ -70,15 +70,4 @@ export class AuthController {
   ): Promise<void> {
     await this.authControllerService.signOut(request.cookies ?? {}, response);
   }
-
-  /** Ends every session of the user, on every device. */
-  @ApiCookieAuth()
-  @Post('logout-all')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async signOutEverywhere(
-    @CurrentSession() session: AuthenticatedSession,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<void> {
-    await this.authControllerService.signOutEverywhere(session, response);
-  }
 }

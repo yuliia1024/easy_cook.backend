@@ -102,11 +102,4 @@ describe('AuthControllerService', () => {
     expect(authService.signOut).toHaveBeenCalledWith('value');
     expect(response.clearCookie).toHaveBeenCalledWith('__Host-ec_session', clearOptions);
   });
-
-  it('signs out everywhere and clears the cookie', async () => {
-    await service.signOutEverywhere({ user, tokenHash: 'hash' }, response as never);
-
-    expect(authService.signOutEverywhere).toHaveBeenCalledWith(USER_ID);
-    expect(response.clearCookie).toHaveBeenCalledWith('__Host-ec_session', clearOptions);
-  });
 });

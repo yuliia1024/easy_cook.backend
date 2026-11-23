@@ -249,18 +249,6 @@ describe('auth (e2e)', () => {
       await ctx.http().get('/api/auth/session').expect(200);
     });
 
-    it('ends every session of the user, and nobody else', async () => {
-      const phone = await signIn(ctx.app, { email: NEW_EMAIL });
-      await resetRateLimits();
-      const laptop = await signIn(ctx.app, { email: NEW_EMAIL });
-
-      await httpAs(ctx.app, laptop).post('/api/auth/logout-all').expect(204);
-
-      await httpAs(ctx.app, phone).get('/api/auth/session').expect(401);
-      await httpAs(ctx.app, laptop).get('/api/auth/session').expect(401);
-      await ctx.http().get('/api/auth/session').expect(200);
-    });
-
     it('ends the sessions of a deleted user', async () => {
       const session = await signIn(ctx.app, { email: NEW_EMAIL });
       await ctx.prisma.user.delete({ where: { id: session.userId } });
