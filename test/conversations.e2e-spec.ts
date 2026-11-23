@@ -1,3 +1,4 @@
+import { createRecipe } from './catalog-fixtures';
 import { addLentilStew, addRiceRecipes, createMenuWorld, seedMenu } from './menu-fixtures';
 import { readStream } from './menu-stream';
 import { EMPTY_MENU_REQUEST } from '../src/modules/services/menu/menu-request';
@@ -1052,19 +1053,13 @@ describe('/api/conversations (e2e)', () => {
   it('plans vegan recipes for a vegetarian', async () => {
     const { recipe } = await createMenuWorld(ctx);
     const rice = await ctx.prisma.foodItem.findFirstOrThrow({ where: { name: 'Rice, boiled' } });
-    const lunch = (
-      await http()
-        .post('/api/recipes')
-        .send({
-          name: 'Rice lunch',
-          instructions: 'Cook.',
-          mealType: 'lunch',
-          dietType: ['vegan'],
-          servings: 1,
-          ingredients: [{ foodItemId: rice.id, quantityG: 300 }],
-        })
-        .expect(201)
-    ).body.id as string;
+    const lunch = await createRecipe(ctx.prisma, {
+      name: 'Rice lunch',
+      mealType: 'lunch',
+      dietType: ['vegan'],
+      servings: 1,
+      ingredients: [{ foodItemId: rice.id, quantityG: 300 }],
+    });
     await http()
       .post('/api/preferences')
       .send({ preferenceType: 'diet', value: 'vegetarian' })

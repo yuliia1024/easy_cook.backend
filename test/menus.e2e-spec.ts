@@ -137,7 +137,7 @@ describe('/api/menus (e2e)', () => {
   });
 
   it('keeps the snapshot of a deleted recipe', async () => {
-    await http().delete(`/api/recipes/${world.recipe.oats}`).expect(204);
+    await ctx.prisma.recipe.delete({ where: { id: world.recipe.oats } });
 
     const { body } = await http().get(`/api/menus/${menuId}`).expect(200);
     expect(body.versions[0].days[0].meals[0]).toMatchObject({

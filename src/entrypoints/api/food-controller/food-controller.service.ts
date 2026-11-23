@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { FoodItemService } from '../../../modules/services/food-item/food-item.service';
 import { FoodItemResponseDto } from '../dto/food-item.response.dto';
 import { PageResponseDto, PaginationQueryDto } from '../dto/pagination.dto';
-import { CreateFoodItemDto, FoodItemQueryDto, UpdateFoodItemDto } from './dto/food.dto';
+import { FoodItemQueryDto } from './dto/food.dto';
 
 @Injectable()
 export class FoodControllerService {
@@ -21,13 +21,5 @@ export class FoodControllerService {
 
   public async getById(id: string): Promise<FoodItemResponseDto> {
     return FoodItemResponseDto.from(await this.foodItemService.getById(id));
-  }
-
-  public async create(dto: CreateFoodItemDto): Promise<FoodItemResponseDto> {
-    return FoodItemResponseDto.from(await this.foodItemService.create(dto));
-  }
-
-  public async update(id: string, dto: UpdateFoodItemDto): Promise<FoodItemResponseDto> {
-    return FoodItemResponseDto.from(await this.foodItemService.update(id, dto));
   }
 }

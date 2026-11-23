@@ -86,14 +86,6 @@ describe('exception taxonomy', () => {
       'Weight and height give an implausible BMI (75.0); check the values',
     ],
     [
-      new badRequest.FoodKcalMismatchBadRequestException(130, 199.6),
-      '130 kcal does not match protein, fat and carbs (≈ 200 kcal by 4/9/4)',
-    ],
-    [
-      new badRequest.ServingTooHeavyBadRequestException(2500.4, 2000),
-      'One serving would weigh 2500 g; at most 2000 g',
-    ],
-    [
       new badRequest.ConflictingDietsBadRequestException('pescatarian', 'vegan'),
       'Diet "pescatarian" conflicts with "vegan"',
     ],

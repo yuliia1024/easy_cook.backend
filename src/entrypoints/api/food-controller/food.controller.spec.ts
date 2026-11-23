@@ -1,4 +1,5 @@
-import { FoodState } from '../../../common/constants';
+import { RequestMethod } from '@nestjs/common';
+import { METHOD_METADATA } from '@nestjs/common/constants';
 import { createMock } from '../../../test/create-mock';
 import { FOOD_ID } from '../../../test/fixtures';
 import { FoodControllerService } from './food-controller.service';
@@ -15,16 +16,24 @@ describe('FoodController', () => {
 
   it('delegates every route', async () => {
     const query = { search: 'rice' };
-    const dto = { name: 'Rice', state: FoodState.Raw };
 
     await controller.getPage(query);
     await controller.getById(FOOD_ID);
-    await controller.create(dto);
-    await controller.update(FOOD_ID, { name: 'x' });
 
     expect(service.getPage).toHaveBeenCalledWith(query);
     expect(service.getById).toHaveBeenCalledWith(FOOD_ID);
-    expect(service.create).toHaveBeenCalledWith(dto);
-    expect(service.update).toHaveBeenCalledWith(FOOD_ID, { name: 'x' });
+  });
+
+  it('only reads: the catalog comes from the seed', () => {
+    const methods = Object.getOwnPropertyNames(FoodController.prototype)
+      .filter((name) => name !== 'constructor')
+      .map((name) =>
+        Reflect.getMetadata(
+          METHOD_METADATA,
+          FoodController.prototype[name as keyof FoodController],
+        ),
+      );
+
+    expect(methods).toEqual([RequestMethod.GET, RequestMethod.GET]);
   });
 });

@@ -25,28 +25,6 @@ export interface RecipeFilter {
   dietTypeGroups?: string[][];
 }
 
-export interface RecipeData {
-  name: string;
-  description?: string | null;
-  instructions: string;
-  mealType: string;
-  dietType?: string[];
-  servings: number;
-  prepTimeMinutes?: number | null;
-  source: string;
-  sourceId?: string | null;
-}
-
-/** The fields `recipe_translations` translate. */
-const TRANSLATED_FIELDS = ['name', 'description', 'instructions'] as const;
-
-export interface IngredientData {
-  foodItemId: string;
-  quantityG: number;
-  isOptional?: boolean;
-  notes?: string | null;
-}
-
 @Injectable()
 export class RecipeRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -88,65 +66,6 @@ export class RecipeRepository {
 
   public async findById(id: string): Promise<RecipeWithIngredients | null> {
     return this.prisma.recipe.findUnique({ where: { id }, include: RECIPE_INCLUDE });
-  }
-
-  public async findBySource(source: string, sourceId: string): Promise<{ id: string } | null> {
-    return this.prisma.recipe.findUnique({
-      where: { source_sourceId: { source, sourceId } },
-      select: { id: true },
-    });
-  }
-
-  /** Ingredients keep the given order. */
-  public async create(
-    data: RecipeData,
-    ingredients: IngredientData[],
-  ): Promise<RecipeWithIngredients> {
-    return this.prisma.recipe.create({
-      data: {
-        ...data,
-        ingredients: {
-          create: ingredients.map((ingredient, position) => ({ ...ingredient, position })),
-        },
-      },
-      include: RECIPE_INCLUDE,
-    });
-  }
-
-  /**
-   * `ingredients`, when given, replace the whole list in the same transaction. A new name,
-   * description or instructions drop the recipe's translations (they translate the old text).
-   */
-  public async update(
-    id: string,
-    data: Partial<RecipeData>,
-    ingredients?: IngredientData[],
-  ): Promise<RecipeWithIngredients> {
-    return this.prisma.$transaction(async (tx) => {
-      if (ingredients) {
-        await tx.recipeIngredient.deleteMany({ where: { recipeId: id } });
-      }
-      return tx.recipe.update({
-        where: { id },
-        data: {
-          ...data,
-          ...(TRANSLATED_FIELDS.some((field) => data[field] !== undefined) && {
-            translations: { deleteMany: {} },
-          }),
-          ...(ingredients && {
-            ingredients: {
-              create: ingredients.map((ingredient, position) => ({ ...ingredient, position })),
-            },
-          }),
-        },
-        include: RECIPE_INCLUDE,
-      });
-    });
-  }
-
-  /** Ingredients go with it; menu meals keep their snapshot. */
-  public async delete(id: string): Promise<void> {
-    await this.prisma.recipe.delete({ where: { id } });
   }
 
   private where({

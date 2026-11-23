@@ -6,12 +6,6 @@ export class FoodItemsNotFoundBadRequestException extends BadRequestError {
   }
 }
 
-export class MacrosExceedWeightBadRequestException extends BadRequestError {
-  constructor() {
-    super('Protein, fat and carbs together cannot exceed 100 g per 100 g');
-  }
-}
-
 export class UnknownDietBadRequestException extends BadRequestError {
   constructor(value: string) {
     super(`Unknown diet "${value}"`);
@@ -52,32 +46,6 @@ export class ImplausibleBmiBadRequestException extends BadRequestError {
 export class WeightLossUnderweightBadRequestException extends BadRequestError {
   constructor(minBmi: number) {
     super(`Losing weight is not allowed with a BMI below ${minBmi}`);
-  }
-}
-
-export class FoodKcalMismatchBadRequestException extends BadRequestError {
-  constructor(kcal: number, estimate: number) {
-    super(
-      `${kcal} kcal does not match protein, fat and carbs (≈ ${Math.round(estimate)} kcal by 4/9/4)`,
-    );
-  }
-}
-
-export class TooManyIngredientsBadRequestException extends BadRequestError {
-  constructor(max: number) {
-    super(`A recipe can have at most ${max} ingredients`);
-  }
-}
-
-export class ServingTooHeavyBadRequestException extends BadRequestError {
-  constructor(grams: number, max: number) {
-    super(`One serving would weigh ${Math.round(grams)} g; at most ${max} g`);
-  }
-}
-
-export class ServingTooManyKcalBadRequestException extends BadRequestError {
-  constructor(kcal: number, max: number) {
-    super(`One serving would have ${Math.round(kcal)} kcal; at most ${max} kcal`);
   }
 }
 

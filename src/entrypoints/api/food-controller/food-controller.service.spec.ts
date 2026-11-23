@@ -11,8 +11,6 @@ describe('FoodControllerService', () => {
   beforeEach(() => {
     foodService = createMock<FoodItemService>();
     foodService.getById.mockResolvedValue(buildFoodItem());
-    foodService.create.mockResolvedValue(buildFoodItem());
-    foodService.update.mockResolvedValue(buildFoodItem());
     service = new FoodControllerService(foodService);
   });
 
@@ -44,14 +42,7 @@ describe('FoodControllerService', () => {
     );
   });
 
-  it('gets, creates and updates', async () => {
-    const dto = { name: 'Rice', state: FoodState.Boiled };
-
+  it('gets one by id', async () => {
     await expect(service.getById(FOOD_ID)).resolves.toMatchObject({ id: FOOD_ID });
-    await service.create(dto);
-    await service.update(FOOD_ID, { name: 'New' });
-
-    expect(foodService.create).toHaveBeenCalledWith(dto);
-    expect(foodService.update).toHaveBeenCalledWith(FOOD_ID, { name: 'New' });
   });
 });

@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { AllExceptionsFilter } from './all-exceptions.filter';
-import { FoodItemSourceConflictException } from './conflict';
+import { DietaryPreferenceExistsConflictException } from './conflict';
 import { RecipeNotFoundException } from './not-found';
 import { DatabaseUnavailableException } from './service-unavailable';
 
@@ -33,12 +33,12 @@ describe('AllExceptionsFilter', () => {
   const body = (): Record<string, unknown> => response.json.mock.calls[0][0];
 
   it('answers an AppError with its own status and message', () => {
-    filter.catch(new FoodItemSourceConflictException(), host);
+    filter.catch(new DietaryPreferenceExistsConflictException(), host);
 
     expect(response.status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
     expect(body()).toMatchObject({
       statusCode: 409,
-      message: 'A food item with this source and source id already exists',
+      message: 'This dietary preference is already saved',
       error: 'CONFLICT',
       path: '/api/foods',
     });

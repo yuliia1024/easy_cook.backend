@@ -85,8 +85,9 @@ NestJS 12 monolith, Prisma 7 (Postgres via `@prisma/adapter-pg`), Redis (ioredis
   `recipe_ingredient_translations`, keyed by (row, `Locale`); the main columns stay English (search,
   prompts, evals use them). Seeded from `data/seed/translations/<locale>.json` (validated by
   `npm run data:validate`), returned by the API as `translations: { uk: {...} }`, searched by the
-  food / recipe name filters and added to the recipe search document. A new English name or text
-  through the API drops the translations of the old one.
+  food / recipe name filters and added to the recipe search document.
+- The catalog (foods, recipes) is read only through the API: it comes from the seed and the dataset
+  imports, and e2e tests write it with `test/catalog-fixtures.ts`.
 - `evals/` - prompt evals on the real model (`npm run eval`, not in `npm test`): cases in
   `suites/<name>/cases.jsonl`, runner logic in `lib/` with specs, committed `baselines/`,
   git-ignored `reports/`. A prompt change must not be worse than the baseline. The `Evals`

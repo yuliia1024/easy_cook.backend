@@ -1,4 +1,4 @@
-import { buildRecipe, FOOD_ID, RECIPE_ID } from '../../../test/fixtures';
+import { buildRecipe, RECIPE_ID } from '../../../test/fixtures';
 import { createPrismaMock, PrismaMock } from '../../../test/prisma-mock';
 import { RECIPE_INCLUDE, RecipeRepository } from './recipe.repository';
 import { QueryMode, SortOrder } from '../../../common/constants';
@@ -6,17 +6,6 @@ import { QueryMode, SortOrder } from '../../../common/constants';
 describe('RecipeRepository', () => {
   let prisma: PrismaMock;
   let repository: RecipeRepository;
-  const data = {
-    name: 'Soup',
-    instructions: 'Cook',
-    mealType: 'lunch',
-    servings: 2,
-    source: 'manual',
-  };
-  const ingredients = [
-    { foodItemId: FOOD_ID, quantityG: 100 },
-    { foodItemId: 'other', quantityG: 5, isOptional: true },
-  ];
 
   beforeEach(() => {
     prisma = createPrismaMock();
@@ -147,77 +136,5 @@ describe('RecipeRepository', () => {
       where: { id: RECIPE_ID },
       include: RECIPE_INCLUDE,
     });
-  });
-
-  it('finds by the unique source + source id', async () => {
-    await repository.findBySource('seed', 'soup');
-
-    expect(prisma.recipe.findUnique).toHaveBeenCalledWith({
-      where: { source_sourceId: { source: 'seed', sourceId: 'soup' } },
-      select: { id: true },
-    });
-  });
-
-  it('creates the recipe with numbered ingredients', async () => {
-    await repository.create(data, ingredients);
-
-    expect(prisma.recipe.create).toHaveBeenCalledWith({
-      data: {
-        ...data,
-        ingredients: {
-          create: [
-            { foodItemId: FOOD_ID, quantityG: 100, position: 0 },
-            { foodItemId: 'other', quantityG: 5, isOptional: true, position: 1 },
-          ],
-        },
-      },
-      include: RECIPE_INCLUDE,
-    });
-  });
-
-  describe('update', () => {
-    it('changes only fields when no ingredients are given', async () => {
-      await repository.update(RECIPE_ID, { servings: 3 });
-
-      expect(prisma.recipeIngredient.deleteMany).not.toHaveBeenCalled();
-      expect(prisma.recipe.update).toHaveBeenCalledWith({
-        where: { id: RECIPE_ID },
-        data: { servings: 3 },
-        include: RECIPE_INCLUDE,
-      });
-    });
-
-    it.each([{ name: 'New' }, { description: null }, { instructions: 'Stir.' }])(
-      'drops the translations of the old text on %p',
-      async (data) => {
-        await repository.update(RECIPE_ID, data);
-
-        expect(prisma.recipe.update).toHaveBeenCalledWith({
-          where: { id: RECIPE_ID },
-          data: { ...data, translations: { deleteMany: {} } },
-          include: RECIPE_INCLUDE,
-        });
-      },
-    );
-
-    it('replaces the ingredient list in a transaction', async () => {
-      await repository.update(RECIPE_ID, {}, [ingredients[0]]);
-
-      expect(prisma.$transaction).toHaveBeenCalled();
-      expect(prisma.recipeIngredient.deleteMany).toHaveBeenCalledWith({
-        where: { recipeId: RECIPE_ID },
-      });
-      expect(prisma.recipe.update).toHaveBeenCalledWith({
-        where: { id: RECIPE_ID },
-        data: { ingredients: { create: [{ ...ingredients[0], position: 0 }] } },
-        include: RECIPE_INCLUDE,
-      });
-    });
-  });
-
-  it('deletes', async () => {
-    await repository.delete(RECIPE_ID);
-
-    expect(prisma.recipe.delete).toHaveBeenCalledWith({ where: { id: RECIPE_ID } });
   });
 });
