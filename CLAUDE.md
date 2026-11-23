@@ -104,6 +104,8 @@ NestJS 12 monolith, Prisma 7 (Postgres via `@prisma/adapter-pg`), Redis (ioredis
   API behaviour across layers goes into `test/*.e2e-spec.ts` (Supertest, test database).
 - Before calling a task done run `npm run lint`, `npm run type-check`, `npm test`, `npm run test:e2e`
   and `npm run build`.
+  Jest only transpiles (`tsconfig.jest.json`, `isolatedModules`, half the cores): `type-check` is
+  what checks the types of the specs.
 - Add explicit return types to methods you create or modify.
 - New exceptions extend a base from `src/common/exceptions/app-error.ts` and live in the file named
   after their status (`bad-request.ts`, `conflict.ts`, ...). `exceptions.spec.ts` checks this.

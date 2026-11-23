@@ -4,7 +4,12 @@
   "roots": ["<rootDir>/src", "<rootDir>/scripts", "<rootDir>/evals"],
   "testRegex": ".*\\.spec\\.ts$",
   "transform": {
-    "^.+\\.ts$": "ts-jest"
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        "tsconfig": "<rootDir>/tsconfig.jest.json"
+      }
+    ]
   },
   "testEnvironment": "node",
   "setupFiles": ["reflect-metadata"],
@@ -20,5 +25,7 @@
     "!**/*.module.ts",
     "!src/test/**"
   ],
-  "coverageDirectory": "./coverage"
+  "coverageDirectory": "./coverage",
+  "maxWorkers": "50%",
+  "workerIdleMemoryLimit": "512MB"
 }
