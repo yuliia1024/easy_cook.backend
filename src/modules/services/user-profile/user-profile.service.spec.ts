@@ -1,12 +1,19 @@
 import {
   ImplausibleBmiBadRequestException,
   ProfileNotFoundException,
+  SessionRequiredUnauthorizedException,
   WeightLossUnderweightBadRequestException,
 } from '../../../common/exceptions';
+import { getCurrentUserId } from '../../../common/logger';
 import { createMock } from '../../../test/create-mock';
-import { buildProfile, PROFILE_ID } from '../../../test/fixtures';
+import { buildProfile, PROFILE_ID, USER_ID } from '../../../test/fixtures';
 import { UserProfileRepository } from '../../data-access/user-profile/user-profile.repository';
 import { UserProfileService } from './user-profile.service';
+
+jest.mock('../../../common/logger', () => ({
+  ...jest.requireActual('../../../common/logger'),
+  getCurrentUserId: jest.fn(),
+}));
 
 describe('UserProfileService', () => {
   let repository: jest.Mocked<UserProfileRepository>;
@@ -23,18 +30,37 @@ describe('UserProfileService', () => {
   beforeEach(() => {
     repository = createMock<UserProfileRepository>();
     service = new UserProfileService(repository);
+    jest.mocked(getCurrentUserId).mockReturnValue(USER_ID);
+  });
+
+  it('reads the profile of the signed-in user', async () => {
+    repository.findByUserId.mockResolvedValue(buildProfile());
+
+    await service.getCurrent();
+
+    expect(repository.findByUserId).toHaveBeenCalledWith(USER_ID);
+  });
+
+  it('is 401 outside a signed-in request, never falling back to a profile', async () => {
+    jest.mocked(getCurrentUserId).mockReturnValue(undefined);
+
+    await expect(service.findCurrent()).rejects.toBeInstanceOf(
+      SessionRequiredUnauthorizedException,
+    );
+    await expect(service.save(data)).rejects.toBeInstanceOf(SessionRequiredUnauthorizedException);
+    expect(repository.findByUserId).not.toHaveBeenCalled();
   });
 
   describe('getCurrent', () => {
     it('returns the profile', async () => {
       const profile = buildProfile();
-      repository.findCurrent.mockResolvedValue(profile);
+      repository.findByUserId.mockResolvedValue(profile);
 
       await expect(service.getCurrent()).resolves.toBe(profile);
     });
 
     it('fails until the profile is filled in', async () => {
-      repository.findCurrent.mockResolvedValue(null);
+      repository.findByUserId.mockResolvedValue(null);
 
       await expect(service.getCurrent()).rejects.toBeInstanceOf(ProfileNotFoundException);
     });
@@ -43,36 +69,25 @@ describe('UserProfileService', () => {
   describe('findCurrent', () => {
     it('returns the profile', async () => {
       const profile = buildProfile();
-      repository.findCurrent.mockResolvedValue(profile);
+      repository.findByUserId.mockResolvedValue(profile);
 
       await expect(service.findCurrent()).resolves.toBe(profile);
     });
 
     it('returns null until the profile is filled in', async () => {
-      repository.findCurrent.mockResolvedValue(null);
+      repository.findByUserId.mockResolvedValue(null);
 
       await expect(service.findCurrent()).resolves.toBeNull();
     });
   });
 
   describe('save', () => {
-    it('creates the first profile', async () => {
+    it('creates or replaces the profile of the current user', async () => {
       const profile = buildProfile();
-      repository.findCurrent.mockResolvedValue(null);
-      repository.create.mockResolvedValue(profile);
+      repository.upsert.mockResolvedValue(profile);
 
       await expect(service.save(data)).resolves.toBe(profile);
-      expect(repository.create).toHaveBeenCalledWith(data);
-      expect(repository.update).not.toHaveBeenCalled();
-    });
-
-    it('replaces the existing one', async () => {
-      repository.findCurrent.mockResolvedValue(buildProfile());
-
-      await service.save(data);
-
-      expect(repository.update).toHaveBeenCalledWith(PROFILE_ID, data);
-      expect(repository.create).not.toHaveBeenCalled();
+      expect(repository.upsert).toHaveBeenCalledWith(USER_ID, data);
     });
 
     it.each([
@@ -82,7 +97,7 @@ describe('UserProfileService', () => {
       await expect(service.save({ ...data, ...body })).rejects.toBeInstanceOf(
         ImplausibleBmiBadRequestException,
       );
-      expect(repository.create).not.toHaveBeenCalled();
+      expect(repository.upsert).not.toHaveBeenCalled();
     });
 
     it('rejects losing weight when underweight (BMI 17.3)', async () => {
@@ -92,17 +107,15 @@ describe('UserProfileService', () => {
     });
 
     it('lets an underweight profile maintain or gain', async () => {
-      repository.findCurrent.mockResolvedValue(null);
-
       await service.save({ ...data, weightKg: 50, goal: 'gain_muscle' });
 
-      expect(repository.create).toHaveBeenCalled();
+      expect(repository.upsert).toHaveBeenCalled();
     });
   });
 
   describe('update', () => {
     it('changes the given fields', async () => {
-      repository.findCurrent.mockResolvedValue(buildProfile());
+      repository.findByUserId.mockResolvedValue(buildProfile());
 
       await service.update({ weightKg: 60 });
 
@@ -111,7 +124,7 @@ describe('UserProfileService', () => {
 
     it('checks the BMI against the stored height', async () => {
       // 170 cm, 300 kg -> BMI 103.8
-      repository.findCurrent.mockResolvedValue(buildProfile());
+      repository.findByUserId.mockResolvedValue(buildProfile());
 
       await expect(service.update({ weightKg: 300 })).rejects.toBeInstanceOf(
         ImplausibleBmiBadRequestException,
@@ -120,7 +133,7 @@ describe('UserProfileService', () => {
     });
 
     it('checks a new goal against the stored weight', async () => {
-      repository.findCurrent.mockResolvedValue(buildProfile());
+      repository.findByUserId.mockResolvedValue(buildProfile());
 
       await service.update({ weightKg: 50 });
       await expect(service.update({ weightKg: 50, goal: 'lose_weight' })).rejects.toBeInstanceOf(
@@ -129,7 +142,7 @@ describe('UserProfileService', () => {
     });
 
     it('requires a profile', async () => {
-      repository.findCurrent.mockResolvedValue(null);
+      repository.findByUserId.mockResolvedValue(null);
 
       await expect(service.update({ age: 31 })).rejects.toBeInstanceOf(ProfileNotFoundException);
     });

@@ -10,11 +10,7 @@ import {
 import { MenuRequest } from '../../../common/contracts';
 import { ChatServiceCall, ChatToolEvent, ProfileContext } from '../../../common/types';
 import { withEvents } from '../../../common/utils';
-import {
-  ModelInput,
-  LlmService,
-  ToolLoopOptions,
-} from '../../../providers/llm/llm.service';
+import { ModelInput, LlmService, ToolLoopOptions } from '../../../providers/llm/llm.service';
 import {
   ChatTool,
   ChatToolCall,

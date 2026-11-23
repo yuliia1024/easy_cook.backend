@@ -1,9 +1,8 @@
-import request from 'supertest';
 import { createTestApp, resetDatabase, TestApp } from './test-app';
 
 describe('/api/foods (e2e)', () => {
   let ctx: TestApp;
-  const http = () => request(ctx.app.getHttpServer());
+  const http = () => ctx.http();
 
   const riceDry = {
     name: 'White rice, dry',

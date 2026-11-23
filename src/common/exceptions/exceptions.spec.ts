@@ -1,8 +1,11 @@
 import { HttpStatus } from '@nestjs/common';
 import * as badRequest from './bad-request';
 import * as conflict from './conflict';
+import * as forbidden from './forbidden';
 import * as notFound from './not-found';
 import * as serviceUnavailable from './service-unavailable';
+import * as unauthorized from './unauthorized';
+import * as unsupportedMediaType from './unsupported-media-type';
 import { AppError } from './app-error';
 
 /** Constructor arguments for the exceptions that need them. */
@@ -31,8 +34,11 @@ const ARGS: Record<string, unknown[]> = {
 describe('exception taxonomy', () => {
   const groups: Array<[string, Record<string, unknown>, HttpStatus]> = [
     ['bad-request', badRequest, HttpStatus.BAD_REQUEST],
+    ['unauthorized', unauthorized, HttpStatus.UNAUTHORIZED],
+    ['forbidden', forbidden, HttpStatus.FORBIDDEN],
     ['not-found', notFound, HttpStatus.NOT_FOUND],
     ['conflict', conflict, HttpStatus.CONFLICT],
+    ['unsupported-media-type', unsupportedMediaType, HttpStatus.UNSUPPORTED_MEDIA_TYPE],
     ['service-unavailable', serviceUnavailable, HttpStatus.SERVICE_UNAVAILABLE],
   ];
 

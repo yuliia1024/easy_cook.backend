@@ -12,3 +12,5 @@ export * from './model-providers';
 export * from './chat-tools';
 export * from './search';
 export * from './locale';
+export * from './auth';
+export * from './rate-limit';

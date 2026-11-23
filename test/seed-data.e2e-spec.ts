@@ -1,4 +1,3 @@
-import request from 'supertest';
 import { foodCategoriesOf } from '../scripts/lib/classify-recipes';
 import { compareNutrition, loadControlRecipes } from '../scripts/lib/control-recipes';
 import { acceptedRecipes, loadSeedData, validateSeedData } from '../scripts/lib/seed-data';
@@ -17,7 +16,7 @@ const SEEDED_RECIPES = 24;
 /** `npm run db:seed` on an empty database, twice, then `data:verify` and the API. */
 describe('seed data (e2e)', () => {
   let ctx: TestApp;
-  const http = () => request(ctx.app.getHttpServer());
+  const http = () => ctx.http();
   const seedData = loadSeedData();
   const data = { ...seedData, recipes: seedData.recipes.slice(0, SEEDED_RECIPES) };
   const controls = loadControlRecipes();

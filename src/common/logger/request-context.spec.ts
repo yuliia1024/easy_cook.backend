@@ -1,10 +1,12 @@
 import { ModelCallRecord } from '../types';
 import {
+  getCurrentUserId,
   getModelCalls,
   getRequestId,
   recordModelCall,
   resolveRequestId,
   runWithRequestId,
+  setCurrentUserId,
 } from './request-context';
 
 const call: ModelCallRecord = {
@@ -64,5 +66,26 @@ describe('request context', () => {
     recordModelCall(call);
 
     expect(getModelCalls()).toEqual([]);
+  });
+
+  it('keeps the signed-in user of each request apart', async () => {
+    const seen = await Promise.all(
+      ['u1', 'u2'].map((userId) =>
+        runWithRequestId(`r-${userId}`, async () => {
+          expect(getCurrentUserId()).toBeUndefined();
+          setCurrentUserId(userId);
+          await Promise.resolve();
+          return getCurrentUserId();
+        }),
+      ),
+    );
+
+    expect(seen).toEqual(['u1', 'u2']);
+  });
+
+  it('has no user outside a request', () => {
+    setCurrentUserId('u1');
+
+    expect(getCurrentUserId()).toBeUndefined();
   });
 });

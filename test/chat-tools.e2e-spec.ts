@@ -1,4 +1,3 @@
-import request from 'supertest';
 import {
   CHAT_TOOL_MAX_STEPS,
   ChatToolErrorCode,
@@ -30,7 +29,7 @@ import {
 /** The chat model's tools on the real services and the test database, run by the fake model. */
 describe('chat tools (e2e)', () => {
   let ctx: TestApp;
-  const http = () => request(ctx.app.getHttpServer());
+  const http = () => ctx.http();
   const start = async (): Promise<string> =>
     (await http().post('/api/conversations').send({}).expect(201)).body.id;
   const say = (id: string, content: string) =>
@@ -65,7 +64,7 @@ describe('chat tools (e2e)', () => {
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
     resetFakeLlm();
-    resetRateLimits();
+    await resetRateLimits();
   });
 
   afterAll(async () => {

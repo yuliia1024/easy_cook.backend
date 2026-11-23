@@ -1,0 +1,21 @@
+// Users. A user signs in with Google (an ID token from Google Identity Services); the session
+// itself lives in Redis (`AuthSessionRepository`), the browser holds only its httpOnly cookie.
+
+/// A person who can sign in. Created on the first Google sign-in of an allowed email
+/// (`AUTH_ALLOWED_EMAILS`); a user already here may always sign in.
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  /// Lower case.
+  email       String    @unique @db.VarChar(320)
+  /// The Google account id (`sub`); null until the first Google sign-in of a user added by email.
+  googleSub   String?   @unique @map("google_sub") @db.VarChar(255)
+  name        String?   @db.VarChar(255)
+  avatarUrl   String?   @map("avatar_url")
+  lastLoginAt DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profile UserProfile?
+
+  @@map("users")
+}

@@ -1,4 +1,4 @@
-import request, { Test } from 'supertest';
+import { Test } from 'supertest';
 import {
   MealType,
   MENU_PLAN_MEAL_TYPES,
@@ -34,7 +34,7 @@ export async function createMenuWorld(
   ctx: TestApp,
   { goal = true }: { goal?: boolean } = {},
 ): Promise<MenuWorld> {
-  const http = () => request(ctx.app.getHttpServer());
+  const http = () => ctx.http();
   const post = (path: string, body: object): Test => http().post(path).send(body).expect(201);
 
   await http()
@@ -114,8 +114,7 @@ export async function createMenuWorld(
 
 /** A vegan lunch, `Lentil stew` (400 g boiled lentils), for menus that leave out the chicken. */
 export async function addLentilStew(ctx: TestApp): Promise<string> {
-  const post = (path: string, body: object): Test =>
-    request(ctx.app.getHttpServer()).post(path).send(body).expect(201);
+  const post = (path: string, body: object): Test => ctx.http().post(path).send(body).expect(201);
   const lentils = (
     await post('/api/foods', {
       name: 'Lentils, boiled',
@@ -148,7 +147,7 @@ export async function seedMenu(
   days: MenuDayBody[],
   notes: string | null = null,
 ): Promise<string> {
-  const { profileId } = await ctx.app.get(ProfileContextService).get();
+  const { profileId } = await ctx.asUser(() => ctx.app.get(ProfileContextService).get());
   const menu = await ctx.prisma.menu.create({ data: { profileId, title } });
   await seedVersion(ctx, menu.id, days, notes);
   return menu.id;
@@ -164,7 +163,7 @@ export async function seedVersion(
   days: MenuDayBody[],
   notes: string | null = null,
 ): Promise<string> {
-  const context = await ctx.app.get(ProfileContextService).get();
+  const context = await ctx.asUser(() => ctx.app.get(ProfileContextService).get());
   const nutrition = ctx.app.get(NutritionService);
   const recipes = new Map(
     (
@@ -236,7 +235,8 @@ export async function addRiceRecipes(ctx: TestApp, count: number): Promise<void>
   const rice = await ctx.prisma.foodItem.findFirstOrThrow({ where: { name: 'Rice, boiled' } });
   for (const mealType of MENU_PLAN_MEAL_TYPES) {
     for (let i = 1; i <= count; i++) {
-      await request(ctx.app.getHttpServer())
+      await ctx
+        .http()
         .post('/api/recipes')
         .send({
           name: `Rice ${mealType} ${i}`,

@@ -681,14 +681,12 @@ describe('MenuPlannerService', () => {
         dinner,
         snack,
       ]);
-      llmService.generateStructuredResult
-        .mockResolvedValueOnce(result(plan))
-        .mockResolvedValueOnce(
-          result({
-            ...plan,
-            days: [{ dayIndex: 0, meals: { ...meals, lunch: 'l2' } }],
-          }),
-        );
+      llmService.generateStructuredResult.mockResolvedValueOnce(result(plan)).mockResolvedValueOnce(
+        result({
+          ...plan,
+          days: [{ dayIndex: 0, meals: { ...meals, lunch: 'l2' } }],
+        }),
+      );
 
       const response = await service.plan('Light day', oneDay, profile);
 

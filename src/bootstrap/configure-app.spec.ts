@@ -3,16 +3,33 @@ import { AllExceptionsFilter } from '../common/exceptions';
 import { requestLoggingMiddleware } from '../common/logger';
 import { ApiConfigService } from '../configs/api-config/api-config.service';
 import { createMock } from '../test/create-mock';
-import { configureApp } from './configure-app';
+import { configureApp, noStoreMiddleware } from './configure-app';
 
 describe('configureApp', () => {
   let app: jest.Mocked<INestApplication>;
   const cors = { origin: true, credentials: true };
+  const express = { set: jest.fn() };
 
   beforeEach(() => {
     app = createMock<INestApplication>();
-    app.get.mockReturnValue(createMock<ApiConfigService>({ cors: () => cors }));
+    app.get.mockReturnValue(createMock<ApiConfigService>({ cors: () => cors, trustProxyHops: 1 }));
+    app.getHttpAdapter.mockReturnValue({ getInstance: () => express } as never);
     configureApp(app);
+  });
+
+  it('trusts the configured proxies for the client ip', () => {
+    expect(express.set).toHaveBeenCalledWith('trust proxy', 1);
+  });
+
+  it('marks every response no-store', () => {
+    const res = { setHeader: jest.fn() };
+    const next = jest.fn();
+
+    noStoreMiddleware({} as never, res as never, next);
+
+    expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
+    expect(next).toHaveBeenCalled();
+    expect(app.use).toHaveBeenCalledWith(noStoreMiddleware);
   });
 
   it('serves everything under /api', () => {
@@ -40,7 +57,8 @@ describe('configureApp', () => {
     });
   });
 
-  it('adds helmet, CORS from config and shutdown hooks', () => {
+  it('adds helmet, cookies, CORS from config and shutdown hooks', () => {
+    expect(app.use).toHaveBeenCalledTimes(4);
     expect(app.use).toHaveBeenCalledWith(expect.any(Function));
     expect(app.enableCors).toHaveBeenCalledWith(cors);
     expect(app.enableShutdownHooks).toHaveBeenCalled();

@@ -1,11 +1,18 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { ThrottlerStorage, ThrottlerStorageService } from '@nestjs/throttler';
 import { Prisma } from '../src/generated/prisma/client';
+import request from 'supertest';
+import TestAgent from 'supertest/lib/agent';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap';
-import { Intent, MealType, WishOfferAnswer } from '../src/common/constants';
+import {
+  CSRF_HEADER,
+  Intent,
+  MealType,
+  RATE_LIMIT_REDIS_KEY,
+  WishOfferAnswer,
+} from '../src/common/constants';
 import {
   IntentResultSchema,
   MenuDayPlanSchema,
@@ -18,13 +25,14 @@ import {
 import {
   AssistantInvalidOutputException,
   AssistantUnavailableException,
+  InvalidGoogleTokenUnauthorizedException,
 } from '../src/common/exceptions';
+import { runWithRequestId, setCurrentUserId } from '../src/common/logger';
+import { GoogleIdentity } from '../src/common/types';
+import { GoogleIdentityService } from '../src/providers/google/google-identity.service';
+import { RedisService } from '../src/providers/redis/redis.service';
 import { MenuPlanCandidates } from '../src/modules/services/menu/menu-plan';
-import {
-  ModelResult,
-  LlmService,
-  ToolLoopOptions,
-} from '../src/providers/llm/llm.service';
+import { ModelResult, LlmService, ToolLoopOptions } from '../src/providers/llm/llm.service';
 import { EmbeddingService } from '../src/providers/embedding/embedding.service';
 import { PrismaService } from '../src/providers/prisma/prisma.service';
 import { createFakeEmbeddingService } from '../src/test/fake-embeddings';
@@ -214,9 +222,112 @@ const fakeLlm: Pick<
   },
 };
 
+/** A signed-in browser: its cookies and the CSRF token of its session. */
+export interface TestSession {
+  userId: string;
+  cookie: string;
+  csrfToken: string;
+}
+
+type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
+export type TestHttp = Pick<TestAgent, HttpMethod>;
+
 export interface TestApp {
   app: INestApplication<App>;
   prisma: PrismaService;
+  /** The user `createTestApp` signed in; kept by `resetDatabase`. */
+  session: TestSession;
+  /** Requests of that user: its session cookie and CSRF token on every call. */
+  http: () => TestHttp;
+  /** Runs `callback` as a request of that user (services that read the current user). */
+  asUser: <T>(callback: () => T) => T;
+}
+
+/** The user every e2e test runs as unless it signs in another one. */
+export const E2E_USER_EMAIL = 'e2e@easy-cook.test';
+
+const part = (value: object): string => Buffer.from(JSON.stringify(value)).toString('base64url');
+
+/**
+ * A stand-in Google ID token (JWT-shaped) the fake `GoogleIdentityService` accepts: it carries the
+ * identity as its payload. No real Google key signs it; the real verifier would refuse it.
+ */
+export function fakeGoogleIdToken(identity: Partial<GoogleIdentity> & { email: string }): string {
+  const claims: GoogleIdentity = {
+    sub: `google-${identity.email}`,
+    emailVerified: true,
+    name: 'E2E Cook',
+    avatarUrl: null,
+    nonce: null,
+    ...identity,
+  };
+  return [part({ alg: 'none' }), part(claims), 'fake-signature'].join('.');
+}
+
+const fakeGoogleIdentity: Pick<GoogleIdentityService, 'verify'> = {
+  async verify(idToken: string): Promise<GoogleIdentity> {
+    try {
+      return JSON.parse(
+        Buffer.from(idToken.split('.')[1], 'base64url').toString(),
+      ) as GoogleIdentity;
+    } catch {
+      throw new InvalidGoogleTokenUnauthorizedException();
+    }
+  },
+};
+
+/** `name=value` of each `Set-Cookie` header, ready for a `Cookie` header. */
+export function cookiesOf(setCookie: string | string[] | undefined): Record<string, string> {
+  const headers = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+  return Object.fromEntries(
+    headers.map((header) => header.split(';')[0].split('=') as [string, string]),
+  );
+}
+
+export const cookieHeader = (cookies: Record<string, string>): string =>
+  Object.entries(cookies)
+    .filter(([, value]) => value !== '')
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+
+/**
+ * Signs in like the web app: a nonce (and its cookie), a Google ID token carrying it, the session
+ * cookie and CSRF token back. `identity.nonce` overrides the nonce the token carries.
+ */
+export async function signIn(
+  app: INestApplication<App>,
+  identity: Partial<GoogleIdentity> & { email: string },
+): Promise<TestSession> {
+  const server = app.getHttpServer();
+  const nonceResponse = await request(server).get('/api/auth/nonce').expect(200);
+  const nonceCookies = cookiesOf(nonceResponse.headers['set-cookie']);
+  const response = await request(server)
+    .post('/api/auth/google')
+    .set('Cookie', cookieHeader(nonceCookies))
+    .send({ idToken: fakeGoogleIdToken({ nonce: nonceResponse.body.nonce, ...identity }) })
+    .expect(200);
+  const sessionCookies = cookiesOf(response.headers['set-cookie']);
+  return {
+    userId: response.body.user.id,
+    cookie: cookieHeader(sessionCookies),
+    csrfToken: response.body.csrfToken,
+  };
+}
+
+/** Requests that carry the cookie and CSRF token of `session`. */
+export function httpAs(app: INestApplication<App>, session: TestSession): TestHttp {
+  const server = request(app.getHttpServer());
+  const as =
+    (method: HttpMethod) =>
+    (url: string): ReturnType<TestAgent[HttpMethod]> =>
+      server[method](url).set('Cookie', session.cookie).set(CSRF_HEADER, session.csrfToken);
+  return {
+    get: as('get'),
+    post: as('post'),
+    put: as('put'),
+    patch: as('patch'),
+    delete: as('delete'),
+  } as TestHttp;
 }
 
 /**
@@ -225,48 +336,67 @@ export interface TestApp {
  */
 export async function createTestApp(): Promise<TestApp> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(GoogleIdentityService)
+    .useValue(fakeGoogleIdentity)
     .overrideProvider(LlmService)
     .useValue(fakeLlm)
     .overrideProvider(EmbeddingService)
     .useValue(createFakeEmbeddingService())
-    .overrideProvider(ThrottlerStorage)
-    .useValue(rateLimits)
     .compile();
   const app = moduleRef.createNestApplication<INestApplication<App>>({ logger: false });
   configureApp(app);
   await app.init();
 
-  return { app, prisma: app.get(PrismaService) };
+  const prisma = app.get(PrismaService);
+  await prisma.user.upsert({
+    where: { email: E2E_USER_EMAIL },
+    create: { email: E2E_USER_EMAIL },
+    update: {},
+  });
+  const session = await signIn(app, { email: E2E_USER_EMAIL });
+  testRedis = app.get(RedisService);
+  await resetRateLimits();
+
+  return {
+    app,
+    prisma,
+    session,
+    http: () => httpAs(app, session),
+    asUser: (callback) =>
+      runWithRequestId('e2e', () => {
+        setCurrentUserId(session.userId);
+        return callback();
+      }),
+  };
 }
 
-/** The in-memory rate limit storage, started afresh by `reset()`. */
-class ResettableThrottlerStorage implements ThrottlerStorage {
-  private storage = new ThrottlerStorageService();
-
-  public async increment(
-    ...args: Parameters<ThrottlerStorage['increment']>
-  ): ReturnType<ThrottlerStorage['increment']> {
-    return this.storage.increment(...args);
-  }
-
-  public reset(): void {
-    this.storage.onApplicationShutdown();
-    this.storage = new ThrottlerStorageService();
-  }
-}
-
-const rateLimits = new ResettableThrottlerStorage();
+/** The Redis of the running test app (`TEST_REDIS_URL`): the real rate limits count there. */
+let testRedis: RedisService | undefined;
 
 /** Forgets the requests the rate limits counted, so every test starts with the full limits. */
-export function resetRateLimits(): void {
-  rateLimits.reset();
+export async function resetRateLimits(): Promise<void> {
+  const client = testRedis?.client;
+  if (!client) {
+    return;
+  }
+  const keys = await client.keys(RATE_LIMIT_REDIS_KEY('*'));
+  if (keys.length > 0) {
+    await client.del(...keys);
+  }
 }
 
-/** Empties every table except Prisma's migration log. */
-export async function resetDatabase(prisma: PrismaService): Promise<void> {
+/**
+ * Empties every table except Prisma's migration log and the users (the signed-in test user stays,
+ * with its session); `users: true` empties those too, ending every session.
+ */
+export async function resetDatabase(
+  prisma: PrismaService,
+  { users = false }: { users?: boolean } = {},
+): Promise<void> {
+  const kept = users ? ['_prisma_migrations'] : ['_prisma_migrations', 'users'];
   const tables = await prisma.$queryRaw<Array<{ tablename: string }>>`
     SELECT tablename FROM pg_tables
-    WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;
+    WHERE schemaname = 'public' AND tablename <> ALL(${kept})`;
   if (tables.length > 0) {
     const list = tables.map(({ tablename }) => `"public"."${tablename}"`).join(', ');
     await prisma.$executeRaw`TRUNCATE TABLE ${Prisma.raw(list)} CASCADE`;

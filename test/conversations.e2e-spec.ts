@@ -1,4 +1,3 @@
-import request from 'supertest';
 import { addLentilStew, addRiceRecipes, createMenuWorld, seedMenu } from './menu-fixtures';
 import { readStream } from './menu-stream';
 import { EMPTY_MENU_REQUEST } from '../src/modules/services/menu/menu-request';
@@ -44,7 +43,7 @@ import {
 
 describe('/api/conversations (e2e)', () => {
   let ctx: TestApp;
-  const http = () => request(ctx.app.getHttpServer());
+  const http = () => ctx.http();
   const start = async (body: object = {}): Promise<string> =>
     (await http().post('/api/conversations').send(body).expect(201)).body.id;
   const say = (id: string, content: string) =>
@@ -57,7 +56,7 @@ describe('/api/conversations (e2e)', () => {
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
     resetFakeLlm();
-    resetRateLimits();
+    await resetRateLimits();
   });
 
   afterAll(async () => {

@@ -1,9 +1,8 @@
-import request from 'supertest';
 import { createTestApp, resetDatabase, TestApp } from './test-app';
 
 describe('/api/recipes (e2e)', () => {
   let ctx: TestApp;
-  const http = () => request(ctx.app.getHttpServer());
+  const http = () => ctx.http();
   const food: Record<string, string> = {};
 
   const createFood = async (key: string, data: object): Promise<void> => {

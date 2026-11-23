@@ -12,10 +12,10 @@ describe('GET /api/health (e2e)', () => {
     await ctx.app.close();
   });
 
-  it('reports the database as up', async () => {
+  it('reports the database and Redis as up', async () => {
     await request(ctx.app.getHttpServer())
       .get('/api/health')
-      .expect(200, { status: 'ok', database: 'up' });
+      .expect(200, { status: 'ok', database: 'up', redis: 'up' });
   });
 
   it('echoes the caller request id', async () => {

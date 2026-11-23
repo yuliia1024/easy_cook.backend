@@ -1,8 +1,8 @@
-# Easy Cook local stack. Host ports: api 3100, postgres 5442, ollama 11434.
+# Easy Cook local stack. Host ports: api 3100, postgres 5442, redis 6389, ollama 11434.
 #
-#   npm run infra:up          -> postgres only (run the API with `npm run start:dev`)
+#   npm run infra:up          -> postgres and redis (run the API with `npm run start:dev`)
 #   npm run infra:embeddings  -> the local embedding model (Ollama), ready once healthy
-#   npm run compose           -> postgres + the API container
+#   npm run compose           -> postgres + redis + the API container
 name: easy-cook
 
 services:
@@ -14,11 +14,40 @@ services:
       PORT: 3000
       DATABASE_URL: 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public'
       OLLAMA_BASE_URL: 'http://ollama:11434'
+      REDIS_URL: 'redis://:${REDIS_PASSWORD}@redis:6379/0'
     ports:
       - '${PORT:-3100}:3000'
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Sessions and rate limits. Password protected, bound to localhost only, no persistence to disk
+  # beyond the append-only log (sessions survive a restart).
+  redis:
+    container_name: easy-cook-redis
+    image: redis:8.2-alpine
+    command:
+      - redis-server
+      - --requirepass
+      - '${REDIS_PASSWORD}'
+      - --appendonly
+      - 'yes'
+      - --rename-command
+      - FLUSHALL
+      - ''
+    environment:
+      REDISCLI_AUTH: '${REDIS_PASSWORD}'
+    volumes:
+      - redis_data:/data
+    ports:
+      - '127.0.0.1:6389:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 3s
+      retries: 20
 
   postgres:
     container_name: easy-cook-postgres
@@ -67,4 +96,5 @@ services:
 
 volumes:
   pg_data:
+  redis_data:
   ollama_data:

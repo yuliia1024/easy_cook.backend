@@ -48,24 +48,58 @@ describe('ApiConfigService', () => {
     });
   });
 
+  it('trusts no proxy unless configured', () => {
+    expect(build({}).trustProxyHops).toBe(0);
+    expect(build({ TRUST_PROXY_HOPS: '1' }).trustProxyHops).toBe(1);
+  });
+
+  describe('isOriginAllowed', () => {
+    it('allows only local origins for "*" or unset', () => {
+      for (const service of [build({ CORS_ORIGINS: '*' }), build({})]) {
+        expect(service.isOriginAllowed('http://localhost:5173')).toBe(true);
+        expect(service.isOriginAllowed('http://127.0.0.1:3100')).toBe(true);
+        expect(service.isOriginAllowed('https://evil.example.com')).toBe(false);
+        expect(service.isOriginAllowed('http://localhost.evil.com')).toBe(false);
+        expect(service.isOriginAllowed('null')).toBe(false);
+      }
+    });
+
+    it('allows exactly the listed origins', () => {
+      const service = build({ CORS_ORIGINS: 'https://a.com, https://b.com' });
+
+      expect(service.isOriginAllowed('https://b.com')).toBe(true);
+      expect(service.isOriginAllowed('https://a.com.evil.com')).toBe(false);
+      expect(service.isOriginAllowed('http://a.com')).toBe(false);
+      expect(service.isOriginAllowed('http://localhost:5173')).toBe(false);
+    });
+  });
+
   describe('cors', () => {
-    it('reflects any origin for "*"', () => {
-      expect(build({ CORS_ORIGINS: '*' }).cors()).toEqual({
-        origin: true,
+    const allows = (options: ReturnType<ApiConfigService['cors']>, origin?: string): boolean => {
+      let allowed = false;
+      (
+        options.origin as (o: string | undefined, cb: (e: Error | null, a: boolean) => void) => void
+      )(origin, (_error, result) => {
+        allowed = result;
+      });
+      return allowed;
+    };
+
+    it('sends credentials, the CSRF header, the request id and the retry times of the limits', () => {
+      expect(build({}).cors()).toMatchObject({
         credentials: true,
-        exposedHeaders: ['x-request-id'],
+        allowedHeaders: ['content-type', 'x-csrf-token', 'x-request-id'],
+        exposedHeaders: ['x-request-id', 'retry-after', 'retry-after-sign_in', 'retry-after-llm'],
+        maxAge: 600,
       });
     });
 
-    it('defaults to any origin when unset', () => {
-      expect(build({}).cors().origin).toBe(true);
-    });
+    it('answers only allowed origins, and requests without one', () => {
+      const options = build({ CORS_ORIGINS: 'https://a.com' }).cors();
 
-    it('splits and trims a comma separated list', () => {
-      expect(build({ CORS_ORIGINS: 'http://a.com, http://b.com' }).cors().origin).toEqual([
-        'http://a.com',
-        'http://b.com',
-      ]);
+      expect(allows(options, 'https://a.com')).toBe(true);
+      expect(allows(options, 'https://evil.com')).toBe(false);
+      expect(allows(options, undefined)).toBe(true);
     });
   });
 });

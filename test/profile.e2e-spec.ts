@@ -1,11 +1,10 @@
-import request from 'supertest';
 import { createTestApp, resetDatabase, TestApp } from './test-app';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 describe('profile, nutrition goals and preferences (e2e)', () => {
   let ctx: TestApp;
-  const http = () => request(ctx.app.getHttpServer());
+  const http = () => ctx.http();
   const profile = {
     age: 30,
     heightCm: 170,

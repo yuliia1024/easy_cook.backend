@@ -6,6 +6,7 @@ import {
   Message,
   NutritionGoal,
   Prisma,
+  User,
   UserProfile,
 } from '../generated/prisma/client';
 import {
@@ -36,6 +37,7 @@ import {
   RecipeWithIngredients,
 } from '../modules/data-access/recipe/recipe.repository';
 
+export const USER_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 export const PROFILE_ID = '11111111-1111-4111-8111-111111111111';
 export const FOOD_ID = '22222222-2222-4222-8222-222222222222';
 export const RECIPE_ID = '33333333-3333-4333-8333-333333333333';
@@ -48,9 +50,24 @@ const CREATED_AT = new Date('2026-01-01T00:00:00Z');
 const UPDATED_AT = new Date('2026-01-02T00:00:00Z');
 const d = (value: number): Prisma.Decimal => new Prisma.Decimal(value);
 
+export function buildUser(overrides: Partial<User> = {}): User {
+  return {
+    id: USER_ID,
+    email: 'cook@example.com',
+    googleSub: 'google-1234',
+    name: 'Cook',
+    avatarUrl: null,
+    lastLoginAt: null,
+    createdAt: CREATED_AT,
+    updatedAt: UPDATED_AT,
+    ...overrides,
+  };
+}
+
 export function buildProfile(overrides: Partial<UserProfile> = {}): UserProfile {
   return {
     id: PROFILE_ID,
+    userId: USER_ID,
     age: 30,
     heightCm: d(170),
     weightKg: d(65),
