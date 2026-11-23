@@ -18,5 +18,5 @@ generator client {
 // The connection URL lives in prisma.config.ts (CLI) and DatabaseConfigService (app).
 datasource db {
   provider   = "postgresql"
-  extensions = [pg_trgm]
+  extensions = [pg_trgm, vector]
 }

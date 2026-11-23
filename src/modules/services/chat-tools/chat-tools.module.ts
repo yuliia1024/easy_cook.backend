@@ -5,11 +5,13 @@ import { MenuModule } from '../menu/menu.module';
 import { NutritionModule } from '../nutrition/nutrition.module';
 import { PreferenceChangeModule } from '../preference-change/preference-change.module';
 import { RecipeModule } from '../recipe/recipe.module';
+import { RecipeSearchModule } from '../recipe-search/recipe-search.module';
 import { ChatToolsService } from './chat-tools.service';
 
 @Module({
   imports: [
     RecipeModule,
+    RecipeSearchModule,
     FoodItemModule,
     NutritionModule,
     ConversationModule,

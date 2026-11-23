@@ -1,0 +1,41 @@
+// Hybrid (semantic + full-text) recipe search, rebuilt from the catalog by `npm run search:index`.
+// Never written by the API: the recipes stay the source of truth.
+
+/// The text a recipe is searched by (`buildRecipeDocument`), one row per recipe. `searchVector`
+/// is `to_tsvector('english', content)`, written with the row by `RecipeSearchRepository`.
+model RecipeSearchDocument {
+  recipeId        String                  @id @map("recipe_id") @db.Uuid
+  /// `RECIPE_DOCUMENT_VERSION` the content was built with.
+  documentVersion Int                     @map("document_version")
+  content         String
+  /// sha256 of the version and the content: an embedding of another hash is stale.
+  contentHash     String                  @map("content_hash") @db.Char(64)
+  searchVector    Unsupported("tsvector") @map("search_vector")
+  updatedAt       DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([searchVector], type: Gin, map: "recipe_search_documents_search_vector_idx")
+  @@map("recipe_search_documents")
+}
+
+/// The embedding of a recipe document by one model (`EmbeddingModelSpec.key`): the vectors of two
+/// models are never compared, so switching the model keeps the old rows until they are dropped.
+/// The HNSW index (cosine) `recipe_embeddings_embedding_hnsw_idx` is created by the migration:
+/// Prisma cannot declare it and puts a `DROP INDEX` of it into every new migration;
+/// `npm run migration:create` takes that out (`UNMANAGED_INDEXES`). Never a bare `prisma migrate dev`.
+model RecipeEmbedding {
+  recipeId    String                      @map("recipe_id") @db.Uuid
+  /// `provider/model@dimensions`, e.g. `openai/text-embedding-3-large@1024`.
+  model       String                      @db.VarChar(128)
+  /// `contentHash` of the document that was embedded.
+  contentHash String                      @map("content_hash") @db.Char(64)
+  embedding   Unsupported("vector(1024)")
+  createdAt   DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@id([recipeId, model])
+  @@index([model])
+  @@map("recipe_embeddings")
+}

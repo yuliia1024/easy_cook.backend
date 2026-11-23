@@ -4,3 +4,4 @@ export * from './progress';
 export * from './tokens';
 export * from './prompt';
 export * from './search';
+export * from './embedding';

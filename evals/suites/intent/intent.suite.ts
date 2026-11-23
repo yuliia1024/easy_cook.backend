@@ -9,6 +9,7 @@ import {
   MenuTargetScope,
   MESSAGE_MAX_LENGTH,
   MessageRole,
+  WishOfferAnswer,
 } from '../../../src/common/constants';
 import { IntentResult, MenuTarget } from '../../../src/common/contracts';
 import { ProfileContext } from '../../../src/common/types';
@@ -16,7 +17,7 @@ import {
   intentModelCall,
   resolveIntent,
 } from '../../../src/modules/services/intent/intent.service';
-import { ModelResult, OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { ModelResult, LlmService } from '../../../src/providers/llm/llm.service';
 import { readTargets } from '../../../src/modules/services/menu/menu-target';
 import { EvalCaseSchema, EvalSuite, FieldScore } from '../../lib/types';
 
@@ -65,7 +66,9 @@ export const INTENT_PROFILES: Record<string, ProfileContext | null> = {
  * one of which the restated request must name: `"vegetarian"` named as wanted, `"!meat"` named as
  * excluded ("without meat", "meat-free"). `targets` scores every target, in any order, by its
  * scope and the fields it sets (`sameTargets`), as the app reads them on the menu of `menuDays`
- * days in the history (`readTargets`) when the case gives it.
+ * days in the history (`readTargets`) when the case gives it. `wishes` (`menuRequest.wishes`): one
+ * of the terms in it, or null when the user asked for no foods or dishes. `wishOffer`: the answer
+ * to the wish offer the latest reply made (its text ends with `MODEL_WISH_OFFER_MARKER`).
  */
 export const IntentCaseSchema = EvalCaseSchema.extend({
   profile: z.enum(Object.keys(INTENT_PROFILES) as [string, ...string[]]).default('basic'),
@@ -88,6 +91,8 @@ export const IntentCaseSchema = EvalCaseSchema.extend({
       .array(z.array(z.string().regex(/^!?[^!\s]/)).min(1))
       .min(1)
       .optional(),
+    wishes: z.array(z.string().min(1)).min(1).nullable().optional(),
+    wishOffer: z.enum(WishOfferAnswer).nullable().optional(),
     targets: z
       .array(
         z.object({
@@ -185,6 +190,29 @@ export function scoreIntent(testCase: IntentCase, output: IntentResult | null): 
       actual: request,
     });
   }
+  if (expected.wishes !== undefined) {
+    const wishes = output?.menuRequest?.wishes ?? null;
+    scores.push({
+      field: 'wishes',
+      pass:
+        output !== null &&
+        (expected.wishes === null
+          ? wishes === null
+          : wishes !== null &&
+            expected.wishes.some((term) => wishes.toLowerCase().includes(term.toLowerCase()))),
+      expected: expected.wishes,
+      actual: wishes,
+    });
+  }
+  if (expected.wishOffer !== undefined) {
+    const answer = output?.wishOffer ?? null;
+    scores.push({
+      field: 'wishOffer',
+      pass: output !== null && answer === expected.wishOffer,
+      expected: expected.wishOffer,
+      actual: answer,
+    });
+  }
   if (expected.targets) {
     const given = output?.targets ?? null;
     const targets = given && testCase.menuDays ? readTargets(given, testCase.menuDays) : given;
@@ -204,12 +232,12 @@ export const intentSuite: EvalSuite<IntentCase, IntentResult> = {
   casesFile: join(__dirname, 'cases.jsonl'),
   caseSchema: IntentCaseSchema,
   prompts: [INTENT_PROMPT],
-  run: async (testCase: IntentCase, openAi: OpenAiService): Promise<ModelResult<IntentResult>> => {
+  run: async (testCase: IntentCase, llm: LlmService): Promise<ModelResult<IntentResult>> => {
     const { input, schema, options } = intentModelCall(
       INTENT_PROFILES[testCase.profile],
       testCase.messages,
     );
-    const result = await openAi.generateStructuredResult(input, schema, options);
+    const result = await llm.generateStructuredResult(input, schema, options);
     return { ...result, output: resolveIntent(result.output, testCase.messages) };
   },
   score: scoreIntent,

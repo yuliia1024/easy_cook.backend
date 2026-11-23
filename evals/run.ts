@@ -18,14 +18,10 @@ import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { Logger } from '@nestjs/common';
-import {
-  DEEPSEEK_MODEL,
-  ANTHROPIC_MODEL,
-  ModelProviderName,
-  OPEN_AI_MODEL,
-} from '../src/common/constants';
+import { ModelProviderName } from '../src/common/constants';
 import { ModelProvidersConfigService } from '../src/configs/model-providers-config/model-providers-config.service';
-import { OpenAiService } from '../src/providers/open-ai/open-ai.service';
+import { LlmService } from '../src/providers/llm/llm.service';
+import { MODEL_VENDORS } from '../src/providers/llm/vendors';
 import { parseEvalArgs } from './lib/args';
 import { baselinesDir, readBaseline } from './lib/baseline';
 import { JUDGE_PROMPT_NAME } from './lib/judge';
@@ -33,13 +29,6 @@ import { planFromArgs, planFromChanges, SuitePlan } from './lib/plan';
 import { runEvals } from './lib/run-evals';
 import { SUITES } from './suites';
 import { EVAL_TRIGGERS } from './suites/triggers';
-
-/** The model each provider runs: a baseline on another one is out of date. */
-const PINNED_MODELS: Record<ModelProviderName, string> = {
-  [ModelProviderName.OpenAi]: OPEN_AI_MODEL,
-  [ModelProviderName.DeepSeek]: DEEPSEEK_MODEL,
-  [ModelProviderName.Anthropic]: ANTHROPIC_MODEL,
-};
 
 /** Files changed between `ref` and the working tree, committed or not, from the repository root. */
 function changedFiles(ref: string): string[] {
@@ -69,7 +58,7 @@ async function main(): Promise<boolean> {
         SUITES,
         EVAL_TRIGGERS,
         (suite) => readBaseline(baselines, suite),
-        PINNED_MODELS[args.provider],
+        MODEL_VENDORS[args.provider].model,
       )
     : planFromArgs(args, SUITES);
   if (plan.length === 0) {
@@ -90,7 +79,7 @@ async function main(): Promise<boolean> {
   // Failed calls end up in the report; the per-call log lines would only bury the summary.
   Logger.overrideLogger(false);
   // One provider, no fallback: a result measures one model.
-  const openAi = new OpenAiService({
+  const llm = new LlmService({
     openAiApiKey,
     deepSeekApiKey,
     anthropicApiKey,
@@ -100,7 +89,7 @@ async function main(): Promise<boolean> {
   const { ok } = await runEvals(
     args,
     SUITES,
-    openAi,
+    llm,
     { baselines, reports: join(__dirname, 'reports') },
     (line) => console.log(line),
     undefined,

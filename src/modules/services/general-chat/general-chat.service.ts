@@ -12,9 +12,9 @@ import { ChatServiceCall, ChatToolEvent, ProfileContext } from '../../../common/
 import { withEvents } from '../../../common/utils';
 import {
   ModelInput,
-  OpenAiService,
+  LlmService,
   ToolLoopOptions,
-} from '../../../providers/open-ai/open-ai.service';
+} from '../../../providers/llm/llm.service';
 import {
   ChatTool,
   ChatToolCall,
@@ -85,7 +85,7 @@ export class GeneralChatService {
   private readonly logger = new Logger(GeneralChatService.name);
 
   constructor(
-    private readonly openAiService: OpenAiService,
+    private readonly llmService: LlmService,
     private readonly chatToolsService: ChatToolsService,
   ) {}
 
@@ -142,7 +142,7 @@ export class GeneralChatService {
       this.logger,
       abortSignal,
     );
-    yield* this.openAiService.streamWithTools(input, options);
+    yield* this.llmService.streamWithTools(input, options);
     return run.serviceCall;
   }
 }

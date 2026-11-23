@@ -15,6 +15,7 @@ export function toIntentResult(call: ChatServiceCall): IntentResult {
         request: call.input.request,
         menuRequest: call.input.menuRequest,
         targets: null,
+        wishOffer: null,
       };
     case ChatToolName.ReviseMenu:
       return {
@@ -22,6 +23,7 @@ export function toIntentResult(call: ChatServiceCall): IntentResult {
         request: call.input.request,
         menuRequest: call.input.menuRequest,
         targets: call.input.targets,
+        wishOffer: null,
       };
     default: {
       const unknown: never = call;

@@ -6,16 +6,17 @@ import { QueryMode, SortOrder } from '../../../common/constants';
 
 export const RECIPE_INCLUDE = {
   ingredients: {
-    include: { foodItem: true },
+    include: { foodItem: { include: { translations: true } }, translations: true },
     orderBy: [{ position: SortOrder.Asc }, { id: SortOrder.Asc }],
   },
+  translations: true,
 } satisfies Prisma.RecipeInclude;
 
 export type RecipeWithIngredients = Prisma.RecipeGetPayload<{ include: typeof RECIPE_INCLUDE }>;
 export type IngredientWithFood = RecipeWithIngredients['ingredients'][number];
 
 export interface RecipeFilter {
-  /** Case-insensitive substring of the name. */
+  /** Case-insensitive substring of the name or of a translated name. */
   search?: string;
   mealType?: string;
   /** The recipe must have every one of these tags. */
@@ -35,6 +36,9 @@ export interface RecipeData {
   source: string;
   sourceId?: string | null;
 }
+
+/** The fields `recipe_translations` translate. */
+const TRANSLATED_FIELDS = ['name', 'description', 'instructions'] as const;
 
 export interface IngredientData {
   foodItemId: string;
@@ -74,6 +78,14 @@ export class RecipeRepository {
     });
   }
 
+  /** In no particular order; unknown ids are left out. */
+  public async findByIds(ids: string[]): Promise<RecipeWithIngredients[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    return this.prisma.recipe.findMany({ where: { id: { in: ids } }, include: RECIPE_INCLUDE });
+  }
+
   public async findById(id: string): Promise<RecipeWithIngredients | null> {
     return this.prisma.recipe.findUnique({ where: { id }, include: RECIPE_INCLUDE });
   }
@@ -101,7 +113,10 @@ export class RecipeRepository {
     });
   }
 
-  /** `ingredients`, when given, replace the whole list in the same transaction. */
+  /**
+   * `ingredients`, when given, replace the whole list in the same transaction. A new name,
+   * description or instructions drop the recipe's translations (they translate the old text).
+   */
   public async update(
     id: string,
     data: Partial<RecipeData>,
@@ -115,6 +130,9 @@ export class RecipeRepository {
         where: { id },
         data: {
           ...data,
+          ...(TRANSLATED_FIELDS.some((field) => data[field] !== undefined) && {
+            translations: { deleteMany: {} },
+          }),
           ...(ingredients && {
             ingredients: {
               create: ingredients.map((ingredient, position) => ({ ...ingredient, position })),
@@ -138,7 +156,16 @@ export class RecipeRepository {
     dietTypeGroups,
   }: RecipeFilter): Prisma.RecipeWhereInput {
     return {
-      ...(search && { name: { contains: search, mode: QueryMode.Insensitive } }),
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: QueryMode.Insensitive } },
+          {
+            translations: {
+              some: { name: { contains: search, mode: QueryMode.Insensitive } },
+            },
+          },
+        ],
+      }),
       ...(mealType && { mealType }),
       ...(dietTypes?.length && { dietType: { hasEvery: dietTypes } }),
       ...(dietTypeGroups?.length && {

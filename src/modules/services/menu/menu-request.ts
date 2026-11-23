@@ -33,6 +33,7 @@ export const EMPTY_MENU_REQUEST: MenuRequest = {
   diets: [],
   excludedIngredients: [],
   dislikedFoods: [],
+  wishes: null,
 };
 
 const DIET_TAGS = new Set<string>(Object.values(DietTag));
@@ -145,6 +146,7 @@ export function describeMenuRequest(request: MenuRequest): string {
     request.diets.length > 0 && `that is ${request.diets.join(', ').replaceAll('_', ' ')}`,
     request.excludedIngredients.length > 0 && `without ${request.excludedIngredients.join(', ')}`,
     request.dislikedFoods.length > 0 && `avoiding ${request.dislikedFoods.join(', ')}`,
+    request.wishes !== null && `with ${request.wishes}`,
   ];
   return `${parts.filter(Boolean).join(' ')}.`;
 }

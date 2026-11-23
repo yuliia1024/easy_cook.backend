@@ -148,6 +148,26 @@ describe('ModelFallback', () => {
     );
   });
 
+  it('gives every provider its own options, added to the call', async () => {
+    routes = [
+      { ...routes[0], providerOptions: { openai: { parallelToolCalls: false } } },
+      { ...routes[1], providerOptions: { deepseek: { thinking: { type: 'disabled' } } } },
+    ];
+    openAi.doGenerate.mockRejectedValue(apiError(503, true));
+    deepSeek.doGenerate.mockResolvedValue(RESULT);
+
+    await fallback({ retries: 0 }).doGenerate({ ...OPTIONS, providerOptions: { x: { y: 1 } } });
+
+    expect(openAi.doGenerate.mock.calls[0][0].providerOptions).toEqual({
+      x: { y: 1 },
+      openai: { parallelToolCalls: false },
+    });
+    expect(deepSeek.doGenerate.mock.calls[0][0].providerOptions).toEqual({
+      x: { y: 1 },
+      deepseek: { thinking: { type: 'disabled' } },
+    });
+  });
+
   it('serves from a retry of the same provider', async () => {
     openAi.doGenerate.mockRejectedValueOnce(apiError(500, true)).mockResolvedValue(RESULT);
     const model = fallback();

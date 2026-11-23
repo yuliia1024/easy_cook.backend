@@ -1,0 +1,86 @@
+name: Retrieval evals
+
+# The recipe search measured on the seed catalog (`npm run eval:retrieval`): Recall@k, nDCG@k, MRR
+# and friends of hybrid search and its legs, against evals/retrieval/baselines/. Runs the local
+# embedding model in an Ollama container, so it needs no API key and costs nothing but time.
+on:
+  pull_request:
+    paths:
+      - 'src/modules/services/recipe-search/**'
+      - 'src/modules/data-access/recipe-search/**'
+      - 'src/providers/embedding/**'
+      - 'src/common/constants/search.ts'
+      - 'prisma/**'
+      - 'data/seed/**'
+      - 'evals/retrieval/**'
+  workflow_dispatch:
+
+concurrency:
+  group: retrieval-evals-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  retrieval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: easy_cook
+          POSTGRES_PASSWORD: easy_cook
+          POSTGRES_DB: easy_cook
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U easy_cook" --health-interval 2s --health-timeout 3s --health-retries 30
+      ollama:
+        image: ollama/ollama:0.40.15
+        ports: ['11434:11434']
+
+    env:
+      PORT: '3100'
+      ENV: development
+      DATABASE_URL: postgresql://easy_cook:easy_cook@localhost:5432/easy_cook?schema=public
+      # Required by the config, never called: the evals measure the local model alone.
+      OPEN_AI_API_KEY: unused
+      EMBEDDING_PROVIDERS: ollama
+      OLLAMA_BASE_URL: http://localhost:11434
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Pull the embedding model
+        # Keep in sync with EMBEDDING_MODELS.ollama in src/common/constants/search.ts.
+        run: curl -sf http://localhost:11434/api/pull -d '{"model":"qwen3-embedding:0.6b-q8_0","stream":false}'
+
+      - name: Seed the catalog
+        run: |
+          npm run migration:run
+          npm run db:seed
+          npm run data:seed-recipes
+
+      - name: Index the recipes
+        run: npm run search:index
+
+      - name: Retrieval evals
+        run: npm run eval:retrieval -- --provider ollama
+
+      - name: Upload the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrieval-eval-reports
+          path: evals/reports/retrieval-*.json
+          if-no-files-found: ignore

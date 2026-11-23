@@ -11,6 +11,7 @@ import {
   MENU_SAVE_QUESTION,
 } from '../src/common/constants';
 import { ChatTrace } from '../src/modules/services/chat-trace/chat-trace';
+import { RecipeIndexService } from '../src/modules/services/recipe-search/recipe-index.service';
 import { ChatTraceService } from '../src/modules/services/chat-trace/chat-trace.service';
 import { EMPTY_MENU_REQUEST } from '../src/modules/services/menu/menu-request';
 import { createMenuWorld } from './menu-fixtures';
@@ -19,9 +20,9 @@ import {
   createTestApp,
   FAKE_OPEN_AI_DELTAS,
   fakeMenuPlan,
-  fakeOpenAiState,
+  fakeLlmState,
   resetDatabase,
-  resetFakeOpenAi,
+  resetFakeLlm,
   resetRateLimits,
   TestApp,
 } from './test-app';
@@ -43,7 +44,18 @@ describe('chat tools (e2e)', () => {
     (await http().get(`/api/conversations/${id}`).expect(200)).body.messages.map(
       ({ role, content }: { role: string; content: string }) => ({ role, content }),
     );
-  const search = { query: null, mealType: null, diet: null, maxKcalPerServing: null, limit: null };
+  const search = {
+    query: null,
+    mealType: null,
+    diet: null,
+    maxKcalPerServing: null,
+    maxPrepTimeMinutes: null,
+    limit: null,
+  };
+  /** The recipes of the world in the search index (fake embeddings), as `npm run search:index` does. */
+  const indexRecipes = async (): Promise<void> => {
+    await ctx.app.get(RecipeIndexService).sync();
+  };
   const menuRequest = { ...EMPTY_MENU_REQUEST, days: 1 };
 
   beforeAll(async () => {
@@ -52,7 +64,7 @@ describe('chat tools (e2e)', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
-    resetFakeOpenAi();
+    resetFakeLlm();
     resetRateLimits();
   });
 
@@ -62,6 +74,7 @@ describe('chat tools (e2e)', () => {
 
   it('runs a tool loop over the recipes and the nutrition maths, then answers', async () => {
     const { recipe } = await createMenuWorld(ctx);
+    await indexRecipes();
     const id = await start();
     type Results = [
       { recipes: Array<{ id: string }> },
@@ -69,8 +82,11 @@ describe('chat tools (e2e)', () => {
       { foods: Array<{ id: string }> },
       unknown,
     ];
-    fakeOpenAiState.toolCalls = [
-      { toolName: ChatToolName.SearchRecipes, input: { ...search, query: 'rice', limit: 1 } },
+    fakeLlmState.toolCalls = [
+      {
+        toolName: ChatToolName.SearchRecipes,
+        input: { ...search, query: 'chicken with rice', limit: 1 },
+      },
       {
         toolName: ChatToolName.GetRecipeDetails,
         input: ([found]: Results) => ({ recipeId: found.recipes[0].id }),
@@ -87,7 +103,7 @@ describe('chat tools (e2e)', () => {
 
     const { chunks } = await say(id, 'What is in the chicken with rice?');
 
-    const [found, details, food, calculated] = fakeOpenAiState.toolResults;
+    const [found, details, food, calculated] = fakeLlmState.toolResults;
     expect(found).toEqual({
       recipes: [
         {
@@ -103,6 +119,7 @@ describe('chat tools (e2e)', () => {
         },
       ],
       more: true,
+      similar: [],
     });
     expect(details).toMatchObject({
       id: recipe.chicken,
@@ -152,7 +169,7 @@ describe('chat tools (e2e)', () => {
     await createMenuWorld(ctx);
     const id = await start();
     const unknownId = '0b6e5c1e-3f0a-4d2b-9c8e-7a6b5c4d3e2f';
-    fakeOpenAiState.toolCalls = [
+    fakeLlmState.toolCalls = [
       { toolName: ChatToolName.GetRecipeDetails, input: { recipeId: 'Rice bowl' } },
       { toolName: ChatToolName.GetRecipeDetails, input: { recipeId: unknownId } },
       {
@@ -164,7 +181,7 @@ describe('chat tools (e2e)', () => {
 
     const { chunks } = await say(id, 'Tell me about the rice bowl');
 
-    expect(fakeOpenAiState.toolResults).toEqual([
+    expect(fakeLlmState.toolResults).toEqual([
       {
         error: ChatToolErrorCode.InvalidArguments,
         message: expect.any(String),
@@ -185,14 +202,14 @@ describe('chat tools (e2e)', () => {
   it(`stops the tools after ${CHAT_TOOL_MAX_STEPS - 1} steps and answers in the last one`, async () => {
     await createMenuWorld(ctx);
     const id = await start();
-    fakeOpenAiState.toolCalls = Array.from({ length: 10 }, () => ({
+    fakeLlmState.toolCalls = Array.from({ length: 10 }, () => ({
       toolName: ChatToolName.SearchRecipes,
       input: search,
     }));
 
     const { chunks } = await say(id, 'Show me every recipe');
 
-    expect(fakeOpenAiState.toolResults).toHaveLength(CHAT_TOOL_MAX_STEPS - 1);
+    expect(fakeLlmState.toolResults).toHaveLength(CHAT_TOOL_MAX_STEPS - 1);
     expect(textOf(chunks)).toBe(FAKE_OPEN_AI_DELTAS.join(''));
   });
 
@@ -206,7 +223,8 @@ describe('chat tools (e2e)', () => {
         (conversationId, content) => new ChatTrace(true, conversationId, content),
       );
     const finish = jest.spyOn(traceService, 'finish').mockImplementation();
-    fakeOpenAiState.toolCalls = [
+    await indexRecipes();
+    fakeLlmState.toolCalls = [
       { toolName: ChatToolName.SearchRecipes, input: { ...search, query: 'bowl' } },
       { toolName: ChatToolName.GetRecipeDetails, input: { recipeId: 'Rice bowl' } },
     ];
@@ -232,7 +250,8 @@ describe('chat tools (e2e)', () => {
           name: ChatToolName.SearchRecipes,
           input: { ...search, query: 'bowl' },
           output: expect.objectContaining({
-            recipes: [expect.objectContaining({ name: 'Rice bowl' })],
+            // Best first; the fake embeddings, not calibrated, list the other recipes after it.
+            recipes: expect.arrayContaining([expect.objectContaining({ name: 'Rice bowl' })]),
           }),
           error: null,
         }),
@@ -242,7 +261,12 @@ describe('chat tools (e2e)', () => {
         }),
       ]);
       expect(steps(ChatTraceStep.Saved)).toEqual([
-        { content: FAKE_OPEN_AI_DELTAS.join(''), menuVersionId: null, preferenceChange: null },
+        {
+          content: FAKE_OPEN_AI_DELTAS.join(''),
+          menuVersionId: null,
+          preferenceChange: null,
+          wishOffer: null,
+        },
       ]);
       expect(() => JSON.stringify(record)).not.toThrow();
     } finally {
@@ -254,13 +278,13 @@ describe('chat tools (e2e)', () => {
     it('plans the menu plan_menu asks for through the planner, its checks and a saved version', async () => {
       const { recipe } = await createMenuWorld(ctx);
       const id = await start();
-      fakeOpenAiState.intent = Intent.GeneralChat;
-      fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+      fakeLlmState.intent = Intent.GeneralChat;
+      fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
         breakfast: 'Oatmeal',
         lunch: 'Chicken with rice',
         dinner: 'Rice bowl',
       });
-      fakeOpenAiState.toolCalls = [
+      fakeLlmState.toolCalls = [
         {
           toolName: ChatToolName.PlanMenu,
           input: { request: 'Plan a one-day menu.', menuRequest },
@@ -269,9 +293,7 @@ describe('chat tools (e2e)', () => {
 
       const { chunks } = await say(id, 'Sounds good, make it');
 
-      expect(fakeOpenAiState.toolResults).toEqual([
-        expect.objectContaining({ status: 'accepted' }),
-      ]);
+      expect(fakeLlmState.toolResults).toEqual([expect.objectContaining({ status: 'accepted' })]);
       expect(textOf(chunks)).toBe(`Here is your day.${MENU_SAVE_QUESTION}`);
       const menu = chunks.find((chunk) => chunk.type === 'data-menu')?.data;
       expect(
@@ -294,7 +316,7 @@ describe('chat tools (e2e)', () => {
     it('asks about too many days instead of planning, as a classified request does', async () => {
       await createMenuWorld(ctx);
       const id = await start();
-      fakeOpenAiState.toolCalls = [
+      fakeLlmState.toolCalls = [
         {
           toolName: ChatToolName.PlanMenu,
           input: { request: 'Plan a 30-day menu.', menuRequest: { ...menuRequest, days: 30 } },
@@ -314,7 +336,7 @@ describe('chat tools (e2e)', () => {
     it('plans nothing for plan_menu with invalid arguments and lets the model answer', async () => {
       await createMenuWorld(ctx);
       const id = await start();
-      fakeOpenAiState.toolCalls = [
+      fakeLlmState.toolCalls = [
         {
           toolName: ChatToolName.PlanMenu,
           input: {
@@ -326,7 +348,7 @@ describe('chat tools (e2e)', () => {
 
       const { chunks } = await say(id, 'Make a brunch menu');
 
-      expect(fakeOpenAiState.toolResults).toEqual([
+      expect(fakeLlmState.toolResults).toEqual([
         expect.objectContaining({ error: ChatToolErrorCode.InvalidArguments }),
       ]);
       expect(textOf(chunks)).toBe(FAKE_OPEN_AI_DELTAS.join(''));

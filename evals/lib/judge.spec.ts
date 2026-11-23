@@ -1,7 +1,7 @@
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { OpenAiService } from '../../src/providers/open-ai/open-ai.service';
+import { LlmService } from '../../src/providers/llm/llm.service';
 import { createMock } from '../../src/test/create-mock';
 import {
   JUDGE_INSTRUCTIONS,
@@ -53,16 +53,16 @@ describe('judge', () => {
   });
 
   it('calls the judge model with the rubric and the subject as JSON', async () => {
-    const openAi = createMock<OpenAiService>();
+    const llm = createMock<LlmService>();
     const result = {
       output: { clear: { reason: 'r', pass: true }, polite: { reason: 'r', pass: true } },
       modelId: 'gpt-4.1',
       latencyMs: 1,
       usage: { inputTokens: 1, cachedInputTokens: 0, outputTokens: 1 },
     };
-    openAi.generateStructuredResult.mockResolvedValue(result);
+    llm.generateStructuredResult.mockResolvedValue(result);
 
-    await expect(runJudge(openAi, rubric, { reply: 'Hi?' })).resolves.toBe(result);
+    await expect(runJudge(llm, rubric, { reply: 'Hi?' })).resolves.toBe(result);
 
     const { options } = judgeModelCall(rubric, { reply: 'Hi?' });
     expect(options).toMatchObject({
@@ -75,7 +75,7 @@ describe('judge', () => {
       temperature: 0,
     });
     expect(options.model).toBe(JUDGE_MODEL);
-    expect(openAi.generateStructuredResult).toHaveBeenCalledWith(
+    expect(llm.generateStructuredResult).toHaveBeenCalledWith(
       '{"reply":"Hi?"}',
       expect.anything(),
       options,

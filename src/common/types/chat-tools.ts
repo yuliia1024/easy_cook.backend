@@ -35,9 +35,15 @@ export interface RecipeSummaryResult {
 }
 
 export interface SearchRecipesResult {
+  /** The recipes that fit the request; empty when none does. */
   recipes: RecipeSummaryResult[];
   /** More recipes match than are listed. */
   more: boolean;
+  /**
+   * Only when no recipe fits the query: the closest ones (`SEARCH_RECIPES_SIMILAR_MAX`), which the
+   * model may offer as such and ask about, never as what was asked for.
+   */
+  similar: RecipeSummaryResult[];
 }
 
 export interface RecipeDetailsResult extends RecipeSummaryResult {

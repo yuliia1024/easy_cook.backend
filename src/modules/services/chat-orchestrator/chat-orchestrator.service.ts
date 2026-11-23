@@ -21,8 +21,9 @@ import {
   CHAT_REPLY_TIMEOUT_MS,
   TEXT_PART_BREAKS,
   TEXT_PART_SEPARATOR,
+  WishOfferAnswer,
 } from '../../../common/constants';
-import { IntentResult, MenuTarget, PreferenceChange } from '../../../common/contracts';
+import { IntentResult, MenuTarget, PreferenceChange, WishOffer } from '../../../common/contracts';
 import {
   ChatProgressEvent,
   ChatResponse,
@@ -46,11 +47,13 @@ import { toIntentResult } from '../chat-tools/chat-service-call';
 import { ChatToolCall } from '../chat-tools/chat-tool-registry';
 import { ConversationService, ModelHistory } from '../conversation/conversation.service';
 import { ConversationSummaryService } from '../conversation-summary/conversation-summary.service';
+import { pendingWishOffer } from '../conversation/pending-wish-offer';
 import { GeneralChatService } from '../general-chat/general-chat.service';
 import { IntentService, resolveIntent } from '../intent/intent.service';
 import { MenuPlannerService } from '../menu/menu-planner.service';
 import { MenuService } from '../menu/menu.service';
 import {
+  describeMenuRequest,
   EMPTY_MENU_REQUEST,
   menuClarification,
   resolveClarification,
@@ -72,6 +75,18 @@ interface Revision {
   /** The recipes earlier versions of the menu had and `previous` has not. */
   rejectedRecipeIds: Set<string>;
   targets: MenuTarget[];
+}
+
+/**
+ * Whether the wishes of the request are still those of the offer, as the classifier may restate
+ * them ("Sushi", "sushi rolls"); another wish ("more chicken") is a new request.
+ */
+export function sameWish(wishes: string | null, offered: string): boolean {
+  if (wishes === null) {
+    return false;
+  }
+  const [a, b] = [wishes, offered].map((text) => text.trim().toLowerCase());
+  return a.includes(b) || b.includes(a);
 }
 
 /** An event as the trace keeps it: a menu by its ids, the rest as it was sent. */
@@ -142,11 +157,14 @@ export class ChatOrchestratorService {
   /**
    * Saves the message and returns the reply as events, ending with `done`. 404 for an unknown
    * conversation comes before the stream. Once `abortSignal` aborts, the stream ends silently.
+   * `wishOffer` is the button the user pressed on the wish offer of the latest reply: it answers
+   * the offer without the classifier (ignored when no offer waits).
    */
   public async handleMessage(
     conversationId: string,
     content: string,
     abortSignal?: AbortSignal,
+    wishOffer: WishOfferAnswer | null = null,
   ): Promise<AsyncGenerator<ChatStreamEvent>> {
     const conversation = await this.conversationService.getById(conversationId);
     const trace = this.chatTraceService.start(conversationId, content);
@@ -156,7 +174,7 @@ export class ChatOrchestratorService {
       return this.limitReached();
     }
     const userMessageId = await this.conversationService.addUserMessage(conversation, content);
-    return this.reply(conversation, content, abortSignal, trace, userMessageId);
+    return this.reply(conversation, content, abortSignal, trace, userMessageId, wishOffer);
   }
 
   /** Logs the run (`ChatTraceService`) and adds it to the audit log of the agent (`agent_runs`). */
@@ -201,6 +219,7 @@ export class ChatOrchestratorService {
     abortSignal: AbortSignal | undefined,
     trace: ChatTrace,
     userMessageId: string,
+    wishOfferAnswer: WishOfferAnswer | null = null,
   ): AsyncGenerator<ChatStreamEvent> {
     const conversationId = conversation.id;
     let replyMessageId: string | null = null;
@@ -212,9 +231,17 @@ export class ChatOrchestratorService {
     let outcome = ChatTraceOutcome.Aborted;
     let textEnded = false;
     let preferenceChange: PreferenceChange | undefined;
+    let wishOffer: WishOffer | undefined;
     const toolCalls: ChatToolCall[] = [];
     try {
-      for await (const event of this.route(conversation, content, signal, trace, toolCalls)) {
+      for await (const event of this.route(
+        conversation,
+        content,
+        signal,
+        trace,
+        toolCalls,
+        wishOfferAnswer,
+      )) {
         if (event.type === ChatStreamEventType.TextDelta) {
           trace.textSent();
           reply += textEnded && reply ? `${TEXT_PART_SEPARATOR}${event.content}` : event.content;
@@ -229,6 +256,8 @@ export class ChatOrchestratorService {
             menu = event;
           } else if (event.type === ChatStreamEventType.PreferenceChangeProposed) {
             preferenceChange = event.change;
+          } else if (event.type === ChatStreamEventType.WishOfferProposed) {
+            wishOffer = event.offer;
           } else if (event.type === ChatStreamEventType.Error) {
             failed = true;
           }
@@ -242,12 +271,14 @@ export class ChatOrchestratorService {
         replyMessageId = await this.conversationService.addAssistantMessage(conversationId, reply, {
           menuVersionId: menu?.versionId,
           preferenceChange,
+          wishOffer,
           toolCalls,
         });
         trace.add(ChatTraceStep.Saved, {
           content: reply,
           menuVersionId: menu?.versionId ?? null,
           preferenceChange: preferenceChange ?? null,
+          wishOffer: wishOffer ?? null,
         });
         await this.summarize(conversation, signal);
       }
@@ -267,12 +298,17 @@ export class ChatOrchestratorService {
     yield { type: ChatStreamEventType.Done };
   }
 
+  /**
+   * A press of a wish offer button answers the offer the latest reply made without the
+   * classifier: a menu request with that answer.
+   */
   private async *route(
     conversation: ConversationWithMessages,
     content: string,
     abortSignal: AbortSignal | undefined,
     trace: ChatTrace,
     toolCalls: ChatToolCall[],
+    wishOfferAnswer: WishOfferAnswer | null,
   ): AsyncGenerator<ChatStreamEvent> {
     yield { type: ChatStreamEventType.Status, step: ChatStatusStep.Thinking };
     const profile = await this.profileContextService.find();
@@ -288,12 +324,17 @@ export class ChatOrchestratorService {
         menuVersionId: menuVersionId ?? null,
       })),
     });
-    const classified = await this.intentService.classify(
-      history,
-      storedMenuRequest,
-      profile,
-      abortSignal,
-    );
+    const pressed =
+      wishOfferAnswer && pendingWishOffer(conversation.messages) ? wishOfferAnswer : null;
+    const classified: IntentResult = pressed
+      ? {
+          intent: Intent.GenerateMenu,
+          request: null,
+          menuRequest: null,
+          targets: null,
+          wishOffer: pressed,
+        }
+      : await this.intentService.classify(history, storedMenuRequest, profile, abortSignal);
     trace.add(ChatTraceStep.Intent, classified);
     yield* this.answer(
       conversation,
@@ -323,7 +364,22 @@ export class ChatOrchestratorService {
     trace: ChatTrace,
     toolCalls: ChatToolCall[],
   ): AsyncGenerator<ChatStreamEvent> {
-    const menuRequest = await this.mergeMenuRequest(conversation, profile, classified);
+    // The answer to the wish offer of the latest reply; the classifier may give one to no offer.
+    // A message with another wish ("then with chicken") is a new request, whatever it answered.
+    const offer = pendingWishOffer(conversation.messages);
+    let menuRequest = await this.mergeMenuRequest(conversation, profile, classified);
+    const offerAnswer =
+      offer && sameWish(menuRequest.chat.wishes, offer.wishes) ? classified.wishOffer : null;
+    // Answered either way, the wish is closed: an accepted one would only make the same offer
+    // again on the next plan. The request of this plan still names it when accepted.
+    let answeredRequest: string | null = null;
+    if (offer && offerAnswer) {
+      const answered = await this.withoutWishes(conversation.id, menuRequest);
+      answeredRequest = describeMenuRequest(
+        (offerAnswer === WishOfferAnswer.Accept ? menuRequest : answered).request,
+      );
+      menuRequest = answered;
+    }
     trace.add(ChatTraceStep.MenuRequest, menuRequest);
     const { intent, request, targets } = resolveClarification(classified, menuRequest);
     const clarification = menuClarification(intent, menuRequest);
@@ -368,12 +424,13 @@ export class ChatOrchestratorService {
       case Intent.ReviseMenu:
         yield* this.planMenu(
           conversation,
-          request ?? content,
+          request ?? answeredRequest ?? content,
           menuRequest,
           profile,
           abortSignal,
           intent === Intent.ReviseMenu ? targets : null,
           trace,
+          offerAnswer === WishOfferAnswer.Accept ? offer : null,
         );
         return;
       // Asked above (`menuClarification`).
@@ -445,6 +502,7 @@ export class ChatOrchestratorService {
     abortSignal: AbortSignal | undefined,
     targets: MenuTarget[] | null,
     trace: ChatTrace,
+    acceptedOffer: WishOffer | null = null,
   ): AsyncGenerator<ChatStreamEvent> {
     const revision = await this.revisionOf(conversation, targets, menuRequest);
     const clarification = revision && replacementClarification(revision.targets, revision.previous);
@@ -455,7 +513,15 @@ export class ChatOrchestratorService {
     let response: ChatResponse;
     try {
       response = yield* withProgress<ChatStreamEvent, ChatResponse>((onProgress) =>
-        this.planned(request, menuRequest, profile, revision, abortSignal, onProgress),
+        this.planned(
+          request,
+          menuRequest,
+          profile,
+          revision,
+          abortSignal,
+          onProgress,
+          acceptedOffer,
+        ),
       );
     } catch (error) {
       if (!(error instanceof AssistantInvalidOutputException)) {
@@ -503,6 +569,7 @@ export class ChatOrchestratorService {
     revision: Revision | null,
     abortSignal: AbortSignal | undefined,
     onProgress: (event: ChatProgressEvent) => void,
+    acceptedOffer: WishOffer | null,
   ): Promise<ChatResponse> {
     const replacement = revision && resolveReplaceTarget(revision.targets, revision.previous);
     if (replacement) {
@@ -523,7 +590,18 @@ export class ChatOrchestratorService {
       profile,
       abortSignal,
       onProgress,
+      acceptedOffer,
     );
+  }
+
+  /** The request without its wishes, kept so: the user answered the offer for them. */
+  private async withoutWishes(
+    conversationId: string,
+    menuRequest: ResolvedMenuRequest,
+  ): Promise<ResolvedMenuRequest> {
+    const chat = { ...menuRequest.chat, wishes: null };
+    await this.conversationService.saveMenuRequest(conversationId, chat);
+    return { ...menuRequest, chat, request: { ...menuRequest.request, wishes: null } };
   }
 
   /**
@@ -608,6 +686,11 @@ export class ChatOrchestratorService {
             message: response.message,
             missingFields: response.missingFields,
           },
+        ];
+      case ChatResponseType.WishOffer:
+        return [
+          { type: ChatStreamEventType.TextDelta, content: response.message },
+          { type: ChatStreamEventType.WishOfferProposed, offer: response.offer },
         ];
       case ChatResponseType.Error:
         return [

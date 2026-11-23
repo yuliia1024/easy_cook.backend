@@ -16,6 +16,7 @@ describe('toIntentResult', () => {
       request: 'Plan a 3-day menu.',
       menuRequest,
       targets: null,
+      wishOffer: null,
     });
   });
 
@@ -32,6 +33,7 @@ describe('toIntentResult', () => {
       request: 'Another dinner on day 2.',
       menuRequest,
       targets,
+      wishOffer: null,
     });
   });
 });

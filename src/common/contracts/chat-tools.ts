@@ -11,6 +11,7 @@ import {
   PreferenceChangeAction,
   PreferenceType,
   SEARCH_RECIPES_MAX_RESULTS,
+  SEARCH_RECIPES_QUERY_MAX_LENGTH,
 } from '../constants';
 import { MenuRequestSchema, MenuTargetSchema } from './chat';
 
@@ -24,10 +25,20 @@ const query = z.string().trim().min(1).max(CHAT_TOOL_QUERY_MAX_LENGTH);
 const quantityG = z.number().positive().max(CHAT_TOOL_MAX_QUANTITY_G);
 
 export const SearchRecipesInputSchema = z.object({
-  query: query.nullable().describe('Part of the recipe name; null for any.'),
+  query: z
+    .string()
+    .trim()
+    .min(1)
+    .max(SEARCH_RECIPES_QUERY_MAX_LENGTH)
+    .nullable()
+    .describe(
+      'What the user wants, in their own words and language ("something light with chicken", ' +
+        '"суп із сочевиці"); null to list recipes by the other fields alone.',
+    ),
   mealType: z.enum(MealType).nullable(),
   diet: z.enum(DietTag).nullable().describe('A diet every recipe must satisfy; null for any.'),
   maxKcalPerServing: z.number().positive().nullable(),
+  maxPrepTimeMinutes: z.number().int().positive().nullable(),
   limit: z.number().int().min(1).max(SEARCH_RECIPES_MAX_RESULTS).nullable(),
 });
 

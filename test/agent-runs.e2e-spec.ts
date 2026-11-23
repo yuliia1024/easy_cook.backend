@@ -6,9 +6,9 @@ import { readStream } from './menu-stream';
 import {
   createTestApp,
   fakeMenuPlan,
-  fakeOpenAiState,
+  fakeLlmState,
   resetDatabase,
-  resetFakeOpenAi,
+  resetFakeLlm,
   resetRateLimits,
   TestApp,
 } from './test-app';
@@ -40,7 +40,7 @@ describe('agent runs (e2e)', () => {
 
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
-    resetFakeOpenAi();
+    resetFakeLlm();
     resetRateLimits();
     await createMenuWorld(ctx);
   });
@@ -51,17 +51,17 @@ describe('agent runs (e2e)', () => {
 
   it('records a replied run with its request id, messages and the tool calls of the model', async () => {
     const id = await start();
-    fakeOpenAiState.intent = Intent.GenerateMenu;
-    fakeOpenAiState.request = 'Plan a one-day menu.';
-    fakeOpenAiState.menuRequest = { ...EMPTY_MENU_REQUEST, days: 1 };
-    fakeOpenAiState.menuPlan = fakeMenuPlan('Here is your day.', {
+    fakeLlmState.intent = Intent.GenerateMenu;
+    fakeLlmState.request = 'Plan a one-day menu.';
+    fakeLlmState.menuRequest = { ...EMPTY_MENU_REQUEST, days: 1 };
+    fakeLlmState.menuPlan = fakeMenuPlan('Here is your day.', {
       breakfast: 'Oatmeal',
       lunch: 'Chicken with rice',
       dinner: 'Rice bowl',
     });
     await say(id, 'Plan my day', 'req-plan');
-    resetFakeOpenAi();
-    fakeOpenAiState.toolCalls = [{ toolName: ChatToolName.SaveMenu, input: {} }];
+    resetFakeLlm();
+    fakeLlmState.toolCalls = [{ toolName: ChatToolName.SaveMenu, input: {} }];
 
     await say(id, 'Save the menu', 'req-save');
 
@@ -86,7 +86,7 @@ describe('agent runs (e2e)', () => {
 
   it('records a failed run without a reply', async () => {
     const id = await start();
-    fakeOpenAiState.intent = 'unavailable';
+    fakeLlmState.intent = 'unavailable';
 
     await say(id, 'Hi');
 

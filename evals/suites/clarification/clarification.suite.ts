@@ -21,7 +21,7 @@ import {
   resolveClarification,
   resolveMenuRequest,
 } from '../../../src/modules/services/menu/menu-request';
-import { OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { LlmService } from '../../../src/providers/llm/llm.service';
 import { judgePrompt, JudgeVerdict, judgeScores, loadRubric, runJudge } from '../../lib/judge';
 import { EvalCaseSchema, EvalSuite, FieldScore, SuiteRun } from '../../lib/types';
 import { INTENT_PROFILES } from '../intent/intent.suite';
@@ -128,7 +128,7 @@ export function scoreClarification(
  */
 export async function runClarification(
   testCase: ClarificationCase,
-  openAi: OpenAiService,
+  llm: LlmService,
 ): Promise<SuiteRun<ClarificationOutput>> {
   const profile = INTENT_PROFILES[testCase.profile];
   const chat = testCase.chat ? { ...EMPTY_MENU_REQUEST, ...testCase.chat } : null;
@@ -136,7 +136,7 @@ export async function runClarification(
     menuRequest: chat,
     summary: null,
   });
-  const result = await openAi.generateStructuredResult(input, schema, options);
+  const result = await llm.generateStructuredResult(input, schema, options);
   const classified = resolveIntent(result.output, testCase.messages);
   const isMenuRequest =
     classified.intent === Intent.GenerateMenu || classified.intent === Intent.ReviseMenu;
@@ -159,7 +159,7 @@ export async function runClarification(
     return { ...call, output };
   }
   try {
-    const judged = await runJudge(openAi, CLARIFICATION_RUBRIC, {
+    const judged = await runJudge(llm, CLARIFICATION_RUBRIC, {
       conversation: testCase.messages,
       known: resolved.request,
       missingFields: clarification.missingFields,

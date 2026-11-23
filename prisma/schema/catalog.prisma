@@ -19,6 +19,7 @@ model FoodItem {
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   recipeIngredients RecipeIngredient[]
+  translations      FoodItemTranslation[]
 
   @@unique([source, sourceId])
   // Trigram indexes serve the case-insensitive `contains` search.
@@ -46,8 +47,11 @@ model Recipe {
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  ingredients RecipeIngredient[]
-  menuMeals   MenuMeal[]
+  ingredients    RecipeIngredient[]
+  menuMeals      MenuMeal[]
+  searchDocument RecipeSearchDocument?
+  embeddings     RecipeEmbedding[]
+  translations   RecipeTranslation[]
 
   @@unique([source, sourceId])
   @@index([mealType])
@@ -67,11 +71,57 @@ model RecipeIngredient {
   /// Display order within the recipe.
   position   Int     @default(0)
 
-  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipe       Recipe                        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   // A food used by a recipe cannot be deleted.
-  foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  foodItem     FoodItem                      @relation(fields: [foodItemId], references: [id], onDelete: Restrict)
+  translations RecipeIngredientTranslation[]
 
   @@index([recipeId])
   @@index([foodItemId])
   @@map("recipe_ingredients")
+}
+
+// Translations of the catalog text, one row per `Locale`; the columns above stay English, the
+// base text that search, prompts and evals use. Written by the seed (data/seed/translations/),
+// dropped by the API when the English text they translate changes.
+
+model FoodItemTranslation {
+  foodItemId String   @map("food_item_id") @db.Uuid
+  /// `Locale`
+  locale     String   @db.VarChar(8)
+  name       String   @db.VarChar(255)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  foodItem FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+
+  @@id([foodItemId, locale])
+  @@map("food_item_translations")
+}
+
+model RecipeTranslation {
+  recipeId     String   @map("recipe_id") @db.Uuid
+  /// `Locale`
+  locale       String   @db.VarChar(8)
+  name         String   @db.VarChar(255)
+  description  String?
+  instructions String
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@id([recipeId, locale])
+  @@map("recipe_translations")
+}
+
+model RecipeIngredientTranslation {
+  recipeIngredientId String   @map("recipe_ingredient_id") @db.Uuid
+  /// `Locale`
+  locale             String   @db.VarChar(8)
+  notes              String
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  recipeIngredient RecipeIngredient @relation(fields: [recipeIngredientId], references: [id], onDelete: Cascade)
+
+  @@id([recipeIngredientId, locale])
+  @@map("recipe_ingredient_translations")
 }

@@ -23,3 +23,20 @@ export class AssistantInvalidOutputException extends ServiceUnavailableError {
     super('Assistant returned invalid output');
   }
 }
+
+/** The embeddings API (or the local model) failed or timed out: no search, no indexing. */
+export class EmbeddingUnavailableException extends ServiceUnavailableError {
+  constructor() {
+    super('Embedding model is unavailable');
+  }
+}
+
+/** The model answered vectors of another size than `EMBEDDING_DIMENSIONS`: a wrong model. */
+export class EmbeddingDimensionsMismatchException extends ServiceUnavailableError {
+  constructor(
+    public readonly expected: number,
+    public readonly actual: number,
+  ) {
+    super(`Embedding model returned ${actual} dimensions, expected ${expected}`);
+  }
+}

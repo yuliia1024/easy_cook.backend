@@ -51,7 +51,7 @@ import {
   MenuReplacement,
   resolveReplaceTarget,
 } from '../../../src/modules/services/menu/menu-target';
-import { ModelResult, OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { ModelResult, LlmService } from '../../../src/providers/llm/llm.service';
 import { EvalCaseSchema, EvalSuite, FieldScore, SuiteRun } from '../../lib/types';
 import {
   addUsage,
@@ -420,7 +420,7 @@ export async function planWholeMenu(
  */
 export async function runMenuDay(
   testCase: MenuDayCase,
-  openAi: OpenAiService,
+  llm: LlmService,
 ): Promise<SuiteRun<MenuDayOutput>> {
   const replacement = caseReplacement(testCase);
   const calls: ModelResult<unknown>[] = [];
@@ -439,7 +439,7 @@ export async function runMenuDay(
     const attempts = await planWithRetries<T>(
       input,
       async (messages) => {
-        const call = await openAi.generateStructuredResult(messages, schema, options);
+        const call = await llm.generateStructuredResult(messages, schema, options);
         calls.push(call);
         return call.output;
       },

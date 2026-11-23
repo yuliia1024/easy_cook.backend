@@ -7,6 +7,8 @@ import {
   MealType,
   MenuTargetScope,
   SUMMARY_MAX_LENGTH,
+  WISH_OFFER_RECIPES_MAX,
+  WishOfferAnswer,
 } from '../constants';
 
 const requestItem = z.string().min(1).max(INTENT_REQUEST_ITEM_MAX_LENGTH);
@@ -24,6 +26,8 @@ export const MenuRequestSchema = z.object({
   diets: z.array(z.enum(DietTag)),
   excludedIngredients: z.array(requestItem),
   dislikedFoods: z.array(requestItem),
+  /** What the user asks for in their words ("more fish"): the menu planner searches the recipes by it. */
+  wishes: requestItem.nullable(),
 });
 
 export type MenuRequest = z.infer<typeof MenuRequestSchema>;
@@ -47,16 +51,31 @@ export type MenuTarget = z.infer<typeof MenuTargetSchema>;
  * What `IntentService` accepts from the model; anything else is invalid output. `request` is the
  * menu request restated from the conversation and `menuRequest` the same request as fields, both
  * set only for `generate_menu` and `revise_menu`; `targets`, every part of the menu the change
- * names, only for `revise_menu`.
+ * names, only for `revise_menu`; `wishOffer`, the answer to a wish offer of the latest reply.
  */
 export const IntentResultSchema = z.object({
   intent: z.enum(Intent),
   request: z.string().max(INTENT_REQUEST_MAX_LENGTH).nullable(),
   menuRequest: MenuRequestSchema.nullable(),
   targets: z.array(MenuTargetSchema).nullable(),
+  wishOffer: z.enum(WishOfferAnswer).nullable(),
 });
 
 export type IntentResult = z.infer<typeof IntentResultSchema>;
+
+/**
+ * Made instead of a menu when no recipe fits the `wishes` of the request: the closest allowed
+ * recipes, kept with the reply (`messages.wish_offer`) until the user accepts or declines them.
+ */
+export const WishOfferSchema = z.object({
+  wishes: z.string().min(1),
+  recipes: z
+    .array(z.object({ id: z.uuid(), name: z.string().min(1), mealType: z.enum(MealType) }))
+    .min(1)
+    .max(WISH_OFFER_RECIPES_MAX),
+});
+
+export type WishOffer = z.infer<typeof WishOfferSchema>;
 
 /**
  * What `MenuPlannerService` accepts from the model: a recipe id for each meal of every day, checked

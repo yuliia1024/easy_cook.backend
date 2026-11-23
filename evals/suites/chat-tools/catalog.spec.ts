@@ -12,6 +12,7 @@ import {
   CATALOG_RECIPES,
   catalogChatTools,
   catalogFoodItemService,
+  catalogRecipeSearchService,
   catalogRecipeService,
 } from './catalog';
 
@@ -75,12 +76,39 @@ describe('chat-tools eval catalog', () => {
     expect(items.map(({ id }) => id)).toEqual([CATALOG_FOODS.rice.id]);
   });
 
+  it('searches the recipes by the words of the query, Ukrainian too, most matches first', async () => {
+    const names = async (text: string, filters = {}): Promise<string[]> =>
+      (await catalogRecipeSearchService.search({ text, filters })).hits.map(
+        ({ recipe }) => recipe.name,
+      );
+
+    await expect(names('скільки білка в курячому салаті')).resolves.toEqual([
+      'Chicken salad',
+      'Chicken with rice',
+      'Grilled chicken with spinach',
+    ]);
+    await expect(names('суп із сочевиці')).resolves.toEqual(['Lentil soup']);
+    await expect(names('salmon', { mealType: MealType.Dinner })).resolves.toEqual([
+      'Baked salmon with spinach',
+    ]);
+    await expect(names('salmon', { mealType: MealType.Lunch })).resolves.toEqual([]);
+    await expect(names('toast', { excludeAllergens: ['peanut'] })).resolves.toEqual([]);
+    await expect(names('a menu')).resolves.toEqual([]);
+  });
+
   it('runs the real chat tools on the catalog, with the nutrition the cases expect', async () => {
     const tools = catalogChatTools();
 
     await expect(
       tools.searchRecipes(
-        { query: 'lentil', mealType: null, diet: null, maxKcalPerServing: null, limit: null },
+        {
+          query: 'lentil soup',
+          mealType: null,
+          diet: null,
+          maxKcalPerServing: null,
+          maxPrepTimeMinutes: null,
+          limit: null,
+        },
         null,
       ),
     ).resolves.toMatchObject({ recipes: [{ name: 'Lentil soup', perServing: { kcal: 261.5 } }] });

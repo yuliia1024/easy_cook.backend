@@ -87,6 +87,32 @@ describe('toModelMessages', () => {
     ]);
   });
 
+  it('adds the wish offer of the latest reply after its text', () => {
+    const offer = {
+      wishes: 'sushi',
+      recipes: [
+        { id: MENU_ID, name: 'Salmon poke bowl', mealType: 'lunch' },
+        { id: MENU_VERSION_ID, name: 'Shrimp rolls', mealType: 'dinner' },
+      ],
+    };
+    expect(
+      toModelMessages([
+        buildMessage({ content: 'A menu with sushi' }),
+        buildMessage({
+          role: MessageRole.Assistant,
+          content: 'No sushi. Similar?',
+          wishOffer: offer,
+        }),
+      ]),
+    ).toEqual([
+      { role: 'user', content: 'A menu with sushi' },
+      {
+        role: 'assistant',
+        content: 'No sushi. Similar?\n\n[wish offer] sushi: Salmon poke bowl, Shrimp rolls',
+      },
+    ]);
+  });
+
   it('leaves out a change a later reply ended, and an invalid one', () => {
     const change = { action: 'add', preferenceType: 'allergy', value: 'peanut' };
     expect(

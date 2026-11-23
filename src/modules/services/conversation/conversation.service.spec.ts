@@ -98,6 +98,7 @@ describe('ConversationService', () => {
         diets: [],
         excludedIngredients: ['mushrooms'],
         dislikedFoods: [],
+        wishes: null,
       };
       repository.findById.mockResolvedValue(
         buildConversation({
@@ -327,10 +328,19 @@ describe('ConversationService', () => {
       diets: [],
       excludedIngredients: [],
       dislikedFoods: [],
+      wishes: null,
     };
 
     it('reads the stored menu request back', () => {
       expect(service.getMenuRequest(buildConversation({ menuRequest }))).toEqual(menuRequest);
+    });
+
+    it('reads a request stored before wishes existed as one without wishes', () => {
+      const { wishes: _wishes, ...older } = menuRequest;
+
+      expect(service.getMenuRequest(buildConversation({ menuRequest: older }))).toEqual(
+        menuRequest,
+      );
     });
 
     it.each([

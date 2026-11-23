@@ -17,8 +17,8 @@ import { Message } from '../../../generated/prisma/client';
 import {
   ModelCallOptions,
   ModelInput,
-  OpenAiService,
-} from '../../../providers/open-ai/open-ai.service';
+  LlmService,
+} from '../../../providers/llm/llm.service';
 import { ModelHistory } from '../conversation/conversation.service';
 import { ModelHistoryMessage, toModelMessages } from '../conversation/model-messages';
 import {
@@ -89,7 +89,13 @@ export function resolveIntent(
   if (!messages.some((message) => message.role === MessageRole.Assistant)) {
     return result.menuRequest
       ? { ...result, intent: Intent.GenerateMenu, targets: null }
-      : { intent: Intent.Clarification, request: null, menuRequest: null, targets: null };
+      : {
+          intent: Intent.Clarification,
+          request: null,
+          menuRequest: null,
+          targets: null,
+          wishOffer: null,
+        };
   }
   if (!result.targets) {
     return result;
@@ -109,7 +115,7 @@ export function resolveIntent(
  */
 @Injectable()
 export class IntentService {
-  constructor(private readonly openAiService: OpenAiService) {}
+  constructor(private readonly llmService: LlmService) {}
 
   /** `history` ends with the message to classify. */
   public async classify(
@@ -122,7 +128,7 @@ export class IntentService {
       menuRequest,
       summary: history.summary,
     });
-    const result = await this.openAiService.generateStructured(input, schema, options);
+    const result = await this.llmService.generateStructured(input, schema, options);
     return resolveIntent(result, history.messages);
   }
 }

@@ -2,7 +2,14 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { DietTag, MealType } from '../../../../common/constants';
 import { NutritionService } from '../../../../modules/services/nutrition/nutrition.service';
-import { buildRecipe, FOOD_ID } from '../../../../test/fixtures';
+import {
+  buildFoodItem,
+  buildIngredient,
+  buildRecipe,
+  FOOD_ID,
+  INGREDIENT_ID,
+  RECIPE_ID,
+} from '../../../../test/fixtures';
 import {
   CreateRecipeDto,
   RecipeIngredientDto,
@@ -162,5 +169,44 @@ describe('recipe DTOs', () => {
     // 200 g boiled rice = 260 kcal, 2 servings
     expect(dto.nutritionPerServing.kcal).toBe(130);
     expect(dto.nutritionComplete).toBe(true);
+  });
+
+  it('RecipeResponseDto maps the translations of the recipe, its notes and foods by locale', () => {
+    const updatedAt = new Date();
+    const recipe = buildRecipe({
+      description: 'Light.',
+      translations: [
+        {
+          recipeId: RECIPE_ID,
+          locale: 'uk',
+          name: 'Рис з овочами',
+          description: 'Легка страва.',
+          instructions: 'Зваріть рис.',
+          updatedAt,
+        },
+      ],
+      ingredients: [
+        buildIngredient({
+          notes: 'chopped',
+          translations: [
+            { recipeIngredientId: INGREDIENT_ID, locale: 'uk', notes: 'подрібнити', updatedAt },
+          ],
+          foodItem: buildFoodItem({
+            translations: [{ foodItemId: FOOD_ID, locale: 'uk', name: 'Рис, варений', updatedAt }],
+          }),
+        }),
+      ],
+    });
+    const dto = RecipeResponseDto.from(recipe, new NutritionService().calculateRecipe(recipe));
+
+    expect(dto.translations).toEqual({
+      uk: { name: 'Рис з овочами', description: 'Легка страва.', instructions: 'Зваріть рис.' },
+    });
+    expect(dto.ingredients[0].translations).toEqual({ uk: { notes: 'подрібнити' } });
+    expect(dto.ingredients[0].foodItem.translations).toEqual({ uk: { name: 'Рис, варений' } });
+    const plain = buildRecipe();
+    expect(
+      RecipeResponseDto.from(plain, new NutritionService().calculateRecipe(plain)).translations,
+    ).toEqual({});
   });
 });

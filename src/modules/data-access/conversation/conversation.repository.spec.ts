@@ -93,6 +93,7 @@ describe('ConversationRepository', () => {
       diets: [],
       excludedIngredients: ['mushrooms'],
       dislikedFoods: [],
+      wishes: null,
     };
     await repository.create(PROFILE_ID, { title: 'Chat', menuRequest });
 
@@ -205,6 +206,7 @@ describe('ConversationRepository', () => {
       diets: [],
       excludedIngredients: ['mushrooms'],
       dislikedFoods: [],
+      wishes: null,
     };
 
     await repository.updateMenuRequest(CONVERSATION_ID, menuRequest);

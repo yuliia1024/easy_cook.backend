@@ -23,10 +23,31 @@ describe('RecipeRepository', () => {
     repository = new RecipeRepository(prisma);
   });
 
-  it('orders ingredients by position and loads their food', () => {
-    expect(RECIPE_INCLUDE.ingredients).toEqual({
-      include: { foodItem: true },
-      orderBy: [{ position: SortOrder.Asc }, { id: SortOrder.Asc }],
+  it('orders ingredients by position and loads their food and every translation', () => {
+    expect(RECIPE_INCLUDE).toEqual({
+      ingredients: {
+        include: { foodItem: { include: { translations: true } }, translations: true },
+        orderBy: [{ position: SortOrder.Asc }, { id: SortOrder.Asc }],
+      },
+      translations: true,
+    });
+  });
+
+  describe('findByIds', () => {
+    it('loads the recipes with their ingredients', async () => {
+      const recipe = buildRecipe();
+      prisma.recipe.findMany.mockResolvedValue([recipe]);
+
+      await expect(repository.findByIds([RECIPE_ID])).resolves.toEqual([recipe]);
+      expect(prisma.recipe.findMany).toHaveBeenCalledWith({
+        where: { id: { in: [RECIPE_ID] } },
+        include: RECIPE_INCLUDE,
+      });
+    });
+
+    it('makes no query for no ids', async () => {
+      await expect(repository.findByIds([])).resolves.toEqual([]);
+      expect(prisma.recipe.findMany).not.toHaveBeenCalled();
     });
   });
 
@@ -51,7 +72,7 @@ describe('RecipeRepository', () => {
       });
     });
 
-    it('filters by name, meal type and every given diet tag', async () => {
+    it('filters by name or translated name, meal type and every given diet tag', async () => {
       await repository.findPage(
         { search: 'soup', mealType: 'lunch', dietTypes: ['vegan', 'gluten_free'] },
         { page: 1, limit: 20, sortOrder: SortOrder.Asc },
@@ -59,7 +80,14 @@ describe('RecipeRepository', () => {
 
       expect(prisma.recipe.count).toHaveBeenCalledWith({
         where: {
-          name: { contains: 'soup', mode: QueryMode.Insensitive },
+          OR: [
+            { name: { contains: 'soup', mode: QueryMode.Insensitive } },
+            {
+              translations: {
+                some: { name: { contains: 'soup', mode: QueryMode.Insensitive } },
+              },
+            },
+          ],
           mealType: 'lunch',
           dietType: { hasEvery: ['vegan', 'gluten_free'] },
         },
@@ -149,15 +177,28 @@ describe('RecipeRepository', () => {
 
   describe('update', () => {
     it('changes only fields when no ingredients are given', async () => {
-      await repository.update(RECIPE_ID, { name: 'New' });
+      await repository.update(RECIPE_ID, { servings: 3 });
 
       expect(prisma.recipeIngredient.deleteMany).not.toHaveBeenCalled();
       expect(prisma.recipe.update).toHaveBeenCalledWith({
         where: { id: RECIPE_ID },
-        data: { name: 'New' },
+        data: { servings: 3 },
         include: RECIPE_INCLUDE,
       });
     });
+
+    it.each([{ name: 'New' }, { description: null }, { instructions: 'Stir.' }])(
+      'drops the translations of the old text on %p',
+      async (data) => {
+        await repository.update(RECIPE_ID, data);
+
+        expect(prisma.recipe.update).toHaveBeenCalledWith({
+          where: { id: RECIPE_ID },
+          data: { ...data, translations: { deleteMany: {} } },
+          include: RECIPE_INCLUDE,
+        });
+      },
+    );
 
     it('replaces the ingredient list in a transaction', async () => {
       await repository.update(RECIPE_ID, {}, [ingredients[0]]);

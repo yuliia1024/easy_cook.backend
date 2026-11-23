@@ -115,7 +115,9 @@ export class ConversationController {
    * `data-clarification` when details are missing, `data-menu` for a planned menu,
    * `data-menu-saved` when the chat saved (confirmed) the menu, `data-preference-change` for a
    * change of the preferences waiting for the user's yes, `data-preferences-updated` once one is
-   * applied, and `data-error` + `error` when the reply failed. The reply is saved once it is complete. 400 and 404 come before the stream; a client
+   * applied, `data-wish-offer` when no recipe fits the wishes of a menu request and the closest
+   * ones wait for the user's answer (a message, or `wishOffer` from its buttons), and
+   * `data-error` + `error` when the reply failed. The reply is saved once it is complete. 400 and 404 come before the stream; a client
    * that disconnects stops the model call. Limited to 30 messages a minute: each one calls the model.
    */
   @Post(':id/messages')

@@ -5,7 +5,7 @@ import { Prisma } from '../src/generated/prisma/client';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap';
-import { Intent, MealType } from '../src/common/constants';
+import { Intent, MealType, WishOfferAnswer } from '../src/common/constants';
 import {
   IntentResultSchema,
   MenuDayPlanSchema,
@@ -22,10 +22,12 @@ import {
 import { MenuPlanCandidates } from '../src/modules/services/menu/menu-plan';
 import {
   ModelResult,
-  OpenAiService,
+  LlmService,
   ToolLoopOptions,
-} from '../src/providers/open-ai/open-ai.service';
+} from '../src/providers/llm/llm.service';
+import { EmbeddingService } from '../src/providers/embedding/embedding.service';
 import { PrismaService } from '../src/providers/prisma/prisma.service';
+import { createFakeEmbeddingService } from '../src/test/fake-embeddings';
 
 /** Text the fake OpenAI streams instead of calling the API. */
 export const FAKE_OPEN_AI_DELTAS = ['Day 1: ', 'oatmeal'];
@@ -39,13 +41,14 @@ export const FAKE_SUMMARY = 'The user rejected the salmon soup.';
  * sent (`fakeMenuPlan`), its first day for every day planned again and the meal of that day for every
  * meal replaced; `summary` is
  * the summary of the older messages. `structuredInputs` records what each structured call was given. Set them in
- * a test; `resetFakeOpenAi()` restores `general_chat` and no plan.
+ * a test; `resetFakeLlm()` restores `general_chat` and no plan.
  */
-export const fakeOpenAiState: {
+export const fakeLlmState: {
   intent: Intent | 'unavailable' | 'invalid';
   request: string | null;
   menuRequest: MenuRequest | null;
   targets: MenuTarget[] | null;
+  wishOffer: WishOfferAnswer | null;
   menuPlan: FakeMenuPlan | null;
   summary: string;
   streamTextCalls: number;
@@ -57,6 +60,7 @@ export const fakeOpenAiState: {
   request: null,
   menuRequest: null,
   targets: null,
+  wishOffer: null,
   menuPlan: null,
   summary: FAKE_SUMMARY,
   streamTextCalls: 0,
@@ -67,7 +71,7 @@ export const fakeOpenAiState: {
 
 /**
  * A tool the fake chat model calls, one per step; `input` can read the results of the calls before
- * it (`fakeOpenAiState.toolResults`), as the model reads them.
+ * it (`fakeLlmState.toolResults`), as the model reads them.
  */
 export interface FakeToolCall {
   toolName: string;
@@ -104,38 +108,39 @@ export const fakeMenuPlan =
     };
   };
 
-export function resetFakeOpenAi(): void {
-  fakeOpenAiState.intent = Intent.GeneralChat;
-  fakeOpenAiState.request = null;
-  fakeOpenAiState.menuRequest = null;
-  fakeOpenAiState.targets = null;
-  fakeOpenAiState.menuPlan = null;
-  fakeOpenAiState.summary = FAKE_SUMMARY;
-  fakeOpenAiState.streamTextCalls = 0;
-  fakeOpenAiState.structuredInputs = [];
-  fakeOpenAiState.toolCalls = [];
-  fakeOpenAiState.toolResults = [];
+export function resetFakeLlm(): void {
+  fakeLlmState.intent = Intent.GeneralChat;
+  fakeLlmState.request = null;
+  fakeLlmState.menuRequest = null;
+  fakeLlmState.targets = null;
+  fakeLlmState.wishOffer = null;
+  fakeLlmState.menuPlan = null;
+  fakeLlmState.summary = FAKE_SUMMARY;
+  fakeLlmState.streamTextCalls = 0;
+  fakeLlmState.structuredInputs = [];
+  fakeLlmState.toolCalls = [];
+  fakeLlmState.toolResults = [];
 }
 
 async function fakeStructured<T>(input: unknown, schema: unknown): Promise<T> {
-  fakeOpenAiState.structuredInputs.push(input);
+  fakeLlmState.structuredInputs.push(input);
   if (schema === SummaryResultSchema) {
-    return { summary: fakeOpenAiState.summary } as T;
+    return { summary: fakeLlmState.summary } as T;
   }
-  if (fakeOpenAiState.intent === 'unavailable') {
+  if (fakeLlmState.intent === 'unavailable') {
     throw new AssistantUnavailableException(true);
   }
-  if (fakeOpenAiState.intent === 'invalid') {
+  if (fakeLlmState.intent === 'invalid') {
     throw new AssistantInvalidOutputException();
   }
   if (schema !== IntentResultSchema) {
-    if (!fakeOpenAiState.menuPlan) {
+    if (!fakeLlmState.menuPlan) {
       throw new AssistantInvalidOutputException();
     }
     const [sent] = input as Array<{ content: string }>;
     const { recipes, mealType } = JSON.parse(sent.content);
     if (schema === MenuMealPlanSchema) {
-      const plan = fakeOpenAiState.menuPlan({
+      const plan = fakeLlmState.menuPlan({
         breakfast: [],
         lunch: [],
         snack: [],
@@ -144,39 +149,40 @@ async function fakeStructured<T>(input: unknown, schema: unknown): Promise<T> {
       });
       return { message: plan.message, recipe: plan.days[0].meals[mealType as MealType] } as T;
     }
-    const plan = fakeOpenAiState.menuPlan(recipes);
+    const plan = fakeLlmState.menuPlan(recipes);
     return (
       schema === MenuDayPlanSchema ? { message: plan.message, meals: plan.days[0].meals } : plan
     ) as T;
   }
   return {
-    intent: fakeOpenAiState.intent,
-    request: fakeOpenAiState.request,
-    menuRequest: fakeOpenAiState.menuRequest,
-    targets: fakeOpenAiState.targets,
+    intent: fakeLlmState.intent,
+    request: fakeLlmState.request,
+    menuRequest: fakeLlmState.menuRequest,
+    targets: fakeLlmState.targets,
+    wishOffer: fakeLlmState.wishOffer,
   } as T;
 }
 
 /** The model id the fake answers with. */
 export const FAKE_MODEL_ID = 'gpt-fake';
 
-const fakeOpenAi: Pick<
-  OpenAiService,
+const fakeLlm: Pick<
+  LlmService,
   'streamText' | 'streamWithTools' | 'generateStructured' | 'generateStructuredResult'
 > = {
   async *streamText(): AsyncGenerator<string> {
-    fakeOpenAiState.streamTextCalls += 1;
+    fakeLlmState.streamTextCalls += 1;
     yield* FAKE_OPEN_AI_DELTAS;
   },
   /**
-   * Runs the real tools of `fakeOpenAiState.toolCalls`, one per step, as the AI SDK loop does: up to
+   * Runs the real tools of `fakeLlmState.toolCalls`, one per step, as the AI SDK loop does: up to
    * `maxSteps - 1` of them, the last step answering with `FAKE_OPEN_AI_DELTAS`, and none once
    * `isDone`; an unknown tool is an error result, as the SDK gives the model.
    */
   async *streamWithTools(_input: unknown, options: ToolLoopOptions): AsyncGenerator<string> {
-    fakeOpenAiState.streamTextCalls += 1;
-    const results = fakeOpenAiState.toolResults;
-    for (const [step, call] of fakeOpenAiState.toolCalls.entries()) {
+    fakeLlmState.streamTextCalls += 1;
+    const results = fakeLlmState.toolResults;
+    for (const [step, call] of fakeLlmState.toolCalls.entries()) {
       if (step >= options.maxSteps - 1 || options.isDone?.()) {
         break;
       }
@@ -213,11 +219,16 @@ export interface TestApp {
   prisma: PrismaService;
 }
 
-/** The real app (same pipes, filter and prefix as `main.ts`) on the test database, with a fake OpenAI. */
+/**
+ * The real app (same pipes, filter and prefix as `main.ts`) on the test database, with a fake
+ * OpenAI and fake embeddings (`search_recipes` never calls a real model).
+ */
 export async function createTestApp(): Promise<TestApp> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
-    .overrideProvider(OpenAiService)
-    .useValue(fakeOpenAi)
+    .overrideProvider(LlmService)
+    .useValue(fakeLlm)
+    .overrideProvider(EmbeddingService)
+    .useValue(createFakeEmbeddingService())
     .overrideProvider(ThrottlerStorage)
     .useValue(rateLimits)
     .compile();

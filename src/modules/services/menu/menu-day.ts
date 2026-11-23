@@ -6,7 +6,7 @@ import {
 } from '../../../common/constants';
 import { MenuDayPlan, MenuDayPlanSchema } from '../../../common/contracts';
 import { MenuComposition, ProfileContext, ResolvedDay } from '../../../common/types';
-import { ModelCallOptions } from '../../../providers/open-ai/open-ai.service';
+import { ModelCallOptions } from '../../../providers/llm/llm.service';
 import { toModelProfile } from '../profile-context/model-profile';
 import { candidateProblems, MenuPlanCandidates, PlannedDay } from './menu-plan';
 import { errorsOf } from './menu-rules';

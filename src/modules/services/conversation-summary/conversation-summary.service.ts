@@ -8,7 +8,7 @@ import {
 } from '../../../common/constants';
 import { SummaryResultSchema } from '../../../common/contracts';
 import { Message } from '../../../generated/prisma/client';
-import { ModelInput, OpenAiService } from '../../../providers/open-ai/open-ai.service';
+import { ModelInput, LlmService } from '../../../providers/llm/llm.service';
 import { ConversationService, SummaryState } from '../conversation/conversation.service';
 import { historyTokens } from '../conversation/model-messages';
 
@@ -39,7 +39,7 @@ export function summaryModelInput(
 export class ConversationSummaryService {
   constructor(
     private readonly conversationService: ConversationService,
-    private readonly openAiService: OpenAiService,
+    private readonly llmService: LlmService,
   ) {}
 
   /** Returns whether it summarized; a failed model call is rethrown and nothing is saved. */
@@ -56,7 +56,7 @@ export class ConversationSummaryService {
     if (!last) {
       return false;
     }
-    const { summary } = await this.openAiService.generateStructured(
+    const { summary } = await this.llmService.generateStructured(
       summaryModelInput(conversation.summary, older),
       SummaryResultSchema,
       {

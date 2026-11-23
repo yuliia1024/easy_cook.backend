@@ -1,6 +1,3 @@
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createDeepSeek } from '@ai-sdk/deepseek';
-import { createOpenAI } from '@ai-sdk/openai';
 import { LanguageModelV4 } from '@ai-sdk/provider';
 import { Injectable, Logger } from '@nestjs/common';
 import {
@@ -20,14 +17,11 @@ import {
 } from 'ai';
 import { z } from 'zod';
 import {
-  ANTHROPIC_MODEL,
-  DEEPSEEK_MODEL,
   MODEL_ATTEMPT_TIMEOUT_MS,
   MODEL_CALL_TIMEOUT_MS,
   MODEL_PROVIDER_RETRIES,
   MODEL_RETRY_DELAY_MS,
   ModelProviderName,
-  OPEN_AI_MODEL,
 } from '../../common/constants';
 import {
   AssistantInvalidOutputException,
@@ -44,6 +38,7 @@ import {
 import { promptLabel } from '../../common/utils';
 import { ModelProvidersConfigService } from '../../configs/model-providers-config/model-providers-config.service';
 import { ModelFallback, ModelRoute } from './model-fallback';
+import { MODEL_VENDORS } from './vendors';
 
 /** A single prompt or a conversation, oldest message first. */
 export type ModelInput = string | ModelMessage[];
@@ -77,23 +72,6 @@ type ToolLoopSettings = Pick<
 >;
 
 type CallSettings = Parameters<typeof streamText>[0] & Parameters<typeof generateText>[0];
-
-/**
- * Of every provider; each one reads its own key. One tool call per step: OpenAI is asked for it,
- * DeepSeek cannot be (`toolCallConcurrency` runs its calls one by one). DeepSeek V4 thinks by
- * default, which a fallback has no time for.
- */
-/** The model of every provider in `MODEL_PROVIDERS`: dated snapshots where the provider has them. */
-const PROVIDER_MODELS: Record<ModelProviderName, string> = {
-  [ModelProviderName.OpenAi]: OPEN_AI_MODEL,
-  [ModelProviderName.DeepSeek]: DEEPSEEK_MODEL,
-  [ModelProviderName.Anthropic]: ANTHROPIC_MODEL,
-};
-
-const PROVIDER_OPTIONS: CallSettings['providerOptions'] = {
-  openai: { parallelToolCalls: false },
-  deepseek: { thinking: { type: 'disabled' } },
-};
 
 /** A structured output with what it cost: the model that answered, time and tokens. */
 export interface ModelResult<T> extends ModelCallInfo {
@@ -134,16 +112,16 @@ type UnfinishedReason = 'aborted' | 'failed';
 const elapsedSince = (startedAt: number): number => Math.round(performance.now() - startedAt);
 
 /**
- * The only place that calls an LLM API (AI SDK): models, timeouts, retries and fallback, token
- * limits, error mapping and logging. Every call goes to the first of `MODEL_PROVIDERS` (OpenAI
- * Responses API, DeepSeek) and falls back to the next on a 5xx, timeout or rate limit
- * (`ModelFallback`); the log line of every response names its provider. Failures surface as
+ * The only place that calls an LLM API (AI SDK): timeouts, retries and fallback, token limits,
+ * error mapping and logging. Every call goes to the first of `MODEL_PROVIDERS` and falls back to
+ * the next on a 5xx, timeout or rate limit (`ModelFallback`); the vendors, their models and options
+ * are in `vendors/`, and no caller knows which one answered but from the logs. Failures surface as
  * `AssistantUnavailableException` or `AssistantInvalidOutputException`; a call aborted through
  * `abortSignal` rethrows the abort as is.
  */
 @Injectable()
-export class OpenAiService {
-  private readonly logger = new Logger(OpenAiService.name);
+export class LlmService {
+  private readonly logger = new Logger(LlmService.name);
   /** The providers with a key: a model id to its model. */
   private readonly clients: Partial<
     Record<ModelProviderName, (modelId: string) => LanguageModelV4>
@@ -151,16 +129,12 @@ export class OpenAiService {
   private readonly providers: ModelProviderName[];
 
   constructor(config: ModelProvidersConfigService) {
-    const openAi = createOpenAI({ apiKey: config.openAiApiKey });
-    const deepSeek = config.deepSeekApiKey && createDeepSeek({ apiKey: config.deepSeekApiKey });
-    const anthropic = config.anthropicApiKey && createAnthropic({ apiKey: config.anthropicApiKey });
-    this.clients = {
-      [ModelProviderName.OpenAi]: (modelId) => openAi.responses(modelId),
-      ...(deepSeek && { [ModelProviderName.DeepSeek]: (modelId) => deepSeek.chat(modelId) }),
-      ...(anthropic && {
-        [ModelProviderName.Anthropic]: (modelId) => anthropic.messages(modelId),
+    this.clients = Object.fromEntries(
+      Object.values(MODEL_VENDORS).flatMap((vendor) => {
+        const apiKey = vendor.apiKey(config);
+        return apiKey ? [[vendor.name, vendor.connect(apiKey)]] : [];
       }),
-    };
+    );
     this.providers = config.providers;
     const missing = this.providers.filter((provider) => !this.clients[provider]);
     if (missing.length > 0) {
@@ -383,7 +357,7 @@ export class OpenAiService {
   private model({ prompt, model }: ModelCallOptions): ModelFallback {
     const routes: ModelRoute[] = model
       ? [this.route(model.provider, model.id)]
-      : this.providers.map((provider) => this.route(provider, PROVIDER_MODELS[provider]));
+      : this.providers.map((provider) => this.route(provider, MODEL_VENDORS[provider].model));
     return new ModelFallback(routes, {
       attemptTimeoutMs: MODEL_ATTEMPT_TIMEOUT_MS,
       retries: MODEL_PROVIDER_RETRIES,
@@ -398,10 +372,17 @@ export class OpenAiService {
     if (!client) {
       throw new Error(`No API key for ${provider}`);
     }
-    return { provider, model: client(modelId) };
+    return {
+      provider,
+      model: client(modelId),
+      providerOptions: MODEL_VENDORS[provider].providerOptions,
+    };
   }
 
-  /** `maxRetries: 0`: `ModelFallback` retries every provider on its own. */
+  /**
+   * `maxRetries: 0`: `ModelFallback` retries every provider on its own and adds its
+   * `providerOptions`.
+   */
   private callSettings(
     input: ModelInput,
     { prompt, maxOutputTokens, abortSignal, temperature }: ModelCallOptions,
@@ -415,7 +396,6 @@ export class OpenAiService {
       maxRetries: 0,
       timeout: MODEL_CALL_TIMEOUT_MS,
       abortSignal,
-      providerOptions: PROVIDER_OPTIONS,
       ...(typeof input === 'string' ? { prompt: input } : { messages: input }),
     };
   }

@@ -27,13 +27,14 @@ describe('FoodItemRepository', () => {
       expect(prisma.$transaction).toHaveBeenCalled();
       expect(prisma.foodItem.findMany).toHaveBeenCalledWith({
         where: {},
+        include: { translations: true },
         orderBy: [{ name: SortOrder.Asc }, { id: SortOrder.Asc }],
         skip: 40,
         take: 20,
       });
     });
 
-    it('searches every word in both names case-insensitively and filters by state and source', async () => {
+    it('searches every word in both names and the translations case-insensitively and filters by state and source', async () => {
       await repository.findPage(
         { search: 'Boiled rice', state: 'boiled', source: 'seed' },
         { page: 1, limit: 10, sortOrder: SortOrder.Asc },
@@ -44,6 +45,7 @@ describe('FoodItemRepository', () => {
           OR: [
             { name: { contains: word, mode: QueryMode.Insensitive } },
             { nameEn: { contains: word, mode: QueryMode.Insensitive } },
+            { translations: { some: { name: { contains: word, mode: QueryMode.Insensitive } } } },
           ],
         })),
         state: 'boiled',
@@ -65,7 +67,10 @@ describe('FoodItemRepository', () => {
   it('finds by id', async () => {
     await repository.findById(FOOD_ID);
 
-    expect(prisma.foodItem.findUnique).toHaveBeenCalledWith({ where: { id: FOOD_ID } });
+    expect(prisma.foodItem.findUnique).toHaveBeenCalledWith({
+      where: { id: FOOD_ID },
+      include: { translations: true },
+    });
   });
 
   it('returns the foods that exist', async () => {
@@ -98,16 +103,30 @@ describe('FoodItemRepository', () => {
     });
   });
 
-  it('creates and updates', async () => {
+  it('creates and updates with the translations', async () => {
     const data = { name: 'Rice', state: 'raw', source: 'manual', kcalPer100g: 360 };
 
     await repository.create(data);
     await repository.update(FOOD_ID, { kcalPer100g: null });
 
-    expect(prisma.foodItem.create).toHaveBeenCalledWith({ data });
+    expect(prisma.foodItem.create).toHaveBeenCalledWith({
+      data,
+      include: { translations: true },
+    });
     expect(prisma.foodItem.update).toHaveBeenCalledWith({
       where: { id: FOOD_ID },
       data: { kcalPer100g: null },
+      include: { translations: true },
+    });
+  });
+
+  it('drops the translations of the old name on a new one', async () => {
+    await repository.update(FOOD_ID, { name: 'Brown rice' });
+
+    expect(prisma.foodItem.update).toHaveBeenCalledWith({
+      where: { id: FOOD_ID },
+      data: { name: 'Brown rice', translations: { deleteMany: {} } },
+      include: { translations: true },
     });
   });
 });

@@ -1,5 +1,5 @@
 import { ChatResponseType, ChatStatusStep, ChatStreamEventType, MealType } from '../constants';
-import type { PreferenceChange } from '../contracts';
+import type { PreferenceChange, WishOffer } from '../contracts';
 import { MenuComposition, ResolvedDay } from './menu';
 import { ModelProvenance } from './model';
 
@@ -16,6 +16,7 @@ export type ChatResponse =
       generatedWith: ModelProvenance;
     }
   | { type: ChatResponseType.Clarification; message: string; missingFields: string[] }
+  | { type: ChatResponseType.WishOffer; message: string; offer: WishOffer }
   | { type: ChatResponseType.Error; code: string; message: string; retryable: boolean };
 
 /**
@@ -26,7 +27,9 @@ export type ChatResponse =
  * follows a `save_menu` tool call that confirmed the version (or found it confirmed already), so
  * the client can show the menu as saved. `preference_change_proposed` is a change of the dietary
  * preferences waiting for the user's yes (saved with the reply, nothing else is written);
- * `preferences_updated` follows the change applied.
+ * `preferences_updated` follows the change applied. `wish_offer_proposed` names the closest
+ * recipes when none fits the wishes of a menu request; it waits for the user's answer (saved
+ * with the reply) and no menu is planned before it.
  */
 export type ChatStreamEvent =
   | { type: ChatStreamEventType.TextDelta; content: string }
@@ -41,6 +44,7 @@ export type ChatStreamEvent =
   | { type: ChatStreamEventType.MenuSaved; menuId: string; versionId: string }
   | { type: ChatStreamEventType.PreferenceChangeProposed; change: PreferenceChange }
   | { type: ChatStreamEventType.PreferencesUpdated; change: PreferenceChange }
+  | { type: ChatStreamEventType.WishOfferProposed; offer: WishOffer }
   | { type: ChatStreamEventType.Clarification; message: string; missingFields: string[] }
   | { type: ChatStreamEventType.Error; code: string; message: string; retryable: boolean }
   | { type: ChatStreamEventType.Done };

@@ -21,6 +21,7 @@ const ARGS: Record<string, unknown[]> = {
   ConflictingDietsBadRequestException: ['pescatarian', 'vegan'],
   TooManyPreferencesBadRequestException: [50],
   MenuViolatesRulesBadRequestException: [['day 0: contains peanut']],
+  EmbeddingDimensionsMismatchException: [1024, 768],
 };
 
 /**

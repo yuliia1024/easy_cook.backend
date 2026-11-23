@@ -1,5 +1,5 @@
 import { promptLabel } from '../../src/common/utils';
-import { OpenAiService } from '../../src/providers/open-ai/open-ai.service';
+import { LlmService } from '../../src/providers/llm/llm.service';
 import { compareWithBaseline, readBaseline, toBaseline, writeBaseline } from './baseline';
 import { loadCases } from './cases';
 import { EvalReport, formatSuite, SuiteReport, writeReport } from './report';
@@ -38,7 +38,7 @@ export interface EvalOutcome {
 export async function runEvals(
   args: EvalArgs,
   suites: EvalSuite[],
-  openAi: OpenAiService,
+  llm: LlmService,
   dirs: EvalDirs,
   log: (line: string) => void,
   now: () => Date = () => new Date(),
@@ -65,7 +65,7 @@ export async function runEvals(
         (tags.length > 0 ? `, tags ${tags.join(', ')}` : ''),
     );
     reasons.forEach((reason) => log(`  changed    ${reason}`));
-    const results = await runSuite(suite, cases, openAi, args);
+    const results = await runSuite(suite, cases, llm, args);
     const summary = summarize(suite.name, results, suite.prompts.map(promptLabel));
 
     const report: SuiteReport = { summary, baseline: null, results };

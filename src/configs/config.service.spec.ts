@@ -113,6 +113,19 @@ describe('ConfigService', () => {
     expect(() => new ConfigService()).toThrow(/ANTHROPIC_API_KEY/);
   });
 
+  it('accepts the embedding providers and the Ollama url, and rejects unknown ones', () => {
+    process.env.EMBEDDING_PROVIDERS = 'ollama, openai';
+    process.env.OLLAMA_BASE_URL = 'http://ollama:11434';
+    expect(() => new ConfigService()).not.toThrow();
+
+    process.env.EMBEDDING_PROVIDERS = 'ollama,cohere';
+    expect(() => new ConfigService()).toThrow(/EMBEDDING_PROVIDERS/);
+
+    process.env.EMBEDDING_PROVIDERS = 'openai';
+    process.env.OLLAMA_BASE_URL = 'ollama:11434';
+    expect(() => new ConfigService()).toThrow(/OLLAMA_BASE_URL/);
+  });
+
   it('rejects an unknown environment name', () => {
     process.env.ENV = 'qa';
 

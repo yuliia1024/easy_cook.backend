@@ -1,7 +1,8 @@
-# Easy Cook local stack. Host ports: api 3100, postgres 5442.
+# Easy Cook local stack. Host ports: api 3100, postgres 5442, ollama 11434.
 #
-#   npm run infra:up   -> postgres only (run the API with `npm run start:dev`)
-#   npm run compose    -> postgres + the API container
+#   npm run infra:up          -> postgres only (run the API with `npm run start:dev`)
+#   npm run infra:embeddings  -> the local embedding model (Ollama), ready once healthy
+#   npm run compose           -> postgres + the API container
 name: easy-cook
 
 services:
@@ -12,6 +13,7 @@ services:
     environment:
       PORT: 3000
       DATABASE_URL: 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public'
+      OLLAMA_BASE_URL: 'http://ollama:11434'
     ports:
       - '${PORT:-3100}:3000'
     depends_on:
@@ -36,5 +38,33 @@ services:
       timeout: 3s
       retries: 20
 
+  # The embedding model of the recipe search (EMBEDDING_PROVIDERS, first `ollama`). Pulls the
+  # model on the first start into the volume; healthy once the model is there. In Docker on macOS
+  # it runs on the CPU (no Metal) - enough for qwen3-embedding 0.6B; the native Ollama app is faster.
+  ollama:
+    container_name: easy-cook-ollama
+    image: ollama/ollama:0.40.15
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - 'ollama serve & until ollama list >/dev/null 2>&1; do sleep 1; done; ollama pull "$$EMBEDDING_MODEL" && wait'
+    environment:
+      # Keep in sync with EMBEDDING_MODELS.ollama in src/common/constants/search.ts.
+      EMBEDDING_MODEL: 'qwen3-embedding:0.6b-q8_0'
+      # The model stays loaded: the first query after an idle spell does not pay the load.
+      OLLAMA_KEEP_ALIVE: '-1'
+      OLLAMA_NUM_PARALLEL: '4'
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - '11434:11434'
+    healthcheck:
+      test: ['CMD-SHELL', 'ollama show "$$EMBEDDING_MODEL" >/dev/null 2>&1']
+      interval: 5s
+      timeout: 5s
+      # The first pull (~640 MB) takes a while.
+      start_period: 10m
+      retries: 30
+
 volumes:
   pg_data:
+  ollama_data:

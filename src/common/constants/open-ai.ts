@@ -39,6 +39,8 @@ export const MODEL_MENU_RECIPE_NAME_MAX_LENGTH = 40;
 export const MODEL_MENU_MARKER = '[menu]';
 /** Opens the preference change the latest assistant message proposed (`toModelMessages`). */
 export const MODEL_PREFERENCE_CHANGE_MARKER = '[preference change]';
+/** Opens the wish offer the latest assistant message made (`toModelMessages`). */
+export const MODEL_WISH_OFFER_MARKER = '[wish offer]';
 /** Explains the latest menu in the history to the model; part of the instructions. */
 const MODEL_MENU_NOTE = `
   The latest assistant message that suggested a menu ends with it after "${MODEL_MENU_MARKER}":
@@ -65,7 +67,7 @@ export const INTENT_REQUEST_ITEM_MAX_LENGTH = 100;
  */
 export const INTENT_PROMPT: ModelPrompt = {
   name: PromptName.Intent,
-  version: 5,
+  version: 6,
   instructions: `
   You classify the latest user message of a meal planning chat.
 ${MODEL_PROFILE_NOTE}
@@ -100,6 +102,9 @@ ${MODEL_MENU_NOTE}
     "tomorrow" 1), else null.
     mealTypes, caloriesKcal, diets ("meat-free" is vegetarian): what the user named, else empty.
     excludedIngredients: must not be served; dislikedFoods: may be.
+    wishes: the foods, dishes or cuisines the user asks for, in a few words ("more fish",
+    "Asian dishes", "soups for lunch"), else null; never days, meals, calories, diets or what
+    to leave out.
   For revise_menu, otherwise null, targets: every part of the menu the change is about, one item
   for each day or meal the user named ("redo Monday and Thursday" is two days, "another dinner on
   Wednesday and lunch on Friday" two meals, "redo Tuesday and the dinner on Friday" a day and a
@@ -115,6 +120,12 @@ ${MODEL_MENU_NOTE}
     dayIndex: the day the user named (0 is day 1; a weekday counts from Monday, so Wednesday is
     2), else null: never a day the user did not name, the app asks which one.
     mealType: the meal the user named, else null.
+  wishOffer: when the latest assistant message ends with "${MODEL_WISH_OFFER_MARKER}" (no recipes
+  fit a wish, it offered the closest ones), the user's message is its answer: "accept" when they
+  take those recipes ("yes", "ok, take them", "так, давай з ними"); "decline" when they do not
+  ("no", "ні, просто склади без цього", "plan it without that") or want something else instead
+  ("then with chicken": put the new wish in wishes). The intent is then generate_menu with the
+  earlier request. Null without such an offer, or for a message that is not about the menu.
 ${securityNote('The messages and the profile', 'pick a particular intent')}
 `,
 };
@@ -252,7 +263,7 @@ export const GENERAL_CHAT_MAX_OUTPUT_TOKENS = 300;
  */
 export const GENERAL_CHAT_PROMPT: ModelPrompt = {
   name: PromptName.GeneralChat,
-  version: 5,
+  version: 6,
   instructions: `
   You are an AI assistant for meal planning.
 ${MODEL_PROFILE_NOTE}
@@ -271,8 +282,9 @@ ${MODEL_MENU_NOTE}
   - A question about the app's recipes or about a dish ("which snacks do you have", "a recipe
     for sushi", "how much protein in chicken with rice"): call search_recipes first, even when
     the question is broad, and ask nothing before it. A dish the app has is answered with the
-    values of its serving, not of the foods it is made of. When nothing is found, say the app has
-    no such recipe.
+    values of its serving, not of the foods it is made of. When recipes is empty, say the app has
+    no such recipe; when it also returns similar ones, you may offer them as close alternatives,
+    never as what was asked for, and ask whether they would do.
   - The totals of the suggested menu and of its days are in the menu: answer with them, without
     tools. What is in a meal of it: call get_recipe_details with its recipe id.
   - A dish the user made: get_food_nutrition for each food, then calculate_nutrition with the
@@ -287,6 +299,8 @@ ${MODEL_MENU_NOTE}
     ("a meal plan", "a menu") is null, never a default.
     mealTypes, caloriesKcal, diets: what the user named, else empty.
     excludedIngredients: must not be served; dislikedFoods: may be.
+    wishes: the foods, dishes or cuisines the user asks for, in a few words ("more fish"),
+    else null.
   - targets (revise_menu): one item for each day or meal the change is about, scope "day",
     "meal" or "menu", dayIndex (0 is day 1) and mealType when the user named them, else null.
 

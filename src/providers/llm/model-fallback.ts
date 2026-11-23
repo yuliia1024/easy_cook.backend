@@ -5,6 +5,7 @@ import {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
+  SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import { Logger } from '@nestjs/common';
 import { ModelProviderName } from '../../common/constants';
@@ -13,6 +14,8 @@ import { ModelProviderName } from '../../common/constants';
 export interface ModelRoute {
   provider: ModelProviderName;
   model: LanguageModelV4;
+  /** Added to the call's own when this route serves it: options of this provider only. */
+  providerOptions?: SharedV4ProviderOptions;
 }
 
 export interface ModelFallbackSettings {
@@ -118,7 +121,10 @@ export class ModelFallback implements LanguageModelV4 {
     const failures: string[] = [];
     let lastError: unknown;
 
-    for (const [routeIndex, { provider, model }] of this.routes.entries()) {
+    for (const [routeIndex, { provider, model, providerOptions }] of this.routes.entries()) {
+      const routeOptions: LanguageModelV4CallOptions = providerOptions
+        ? { ...options, providerOptions: { ...options.providerOptions, ...providerOptions } }
+        : options;
       for (let attempt = 0; attempt <= retries; attempt++) {
         if (attempt > 0) {
           await sleep(retryDelayMs * 2 ** (attempt - 1), options.abortSignal);
@@ -133,7 +139,7 @@ export class ModelFallback implements LanguageModelV4 {
           : timeout.signal;
 
         try {
-          const result = await run(model, { ...options, abortSignal });
+          const result = await run(model, { ...routeOptions, abortSignal });
           this.served.push(provider);
           if (failures.length > 0) {
             logger.warn(

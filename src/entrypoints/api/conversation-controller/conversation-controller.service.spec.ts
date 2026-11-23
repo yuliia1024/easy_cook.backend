@@ -4,6 +4,7 @@ import {
   PreferenceChangeAction,
   PreferenceChangeStatus,
   PreferenceType,
+  WishOfferAnswer,
 } from '../../../common/constants';
 import { ChatOrchestratorService } from '../../../modules/services/chat-orchestrator/chat-orchestrator.service';
 import { ConversationService } from '../../../modules/services/conversation/conversation.service';
@@ -77,8 +78,29 @@ describe('ConversationControllerService', () => {
       CONVERSATION_ID,
       'Hi',
       abort.signal,
+      null,
     );
     expect(chunks).toContainEqual({ type: 'text-delta', id: 'text', delta: 'Hello' });
+  });
+
+  it('passes the wish offer button of a message on', async () => {
+    chatOrchestratorService.handleMessage.mockResolvedValue(
+      (async function* () {
+        yield { type: ChatStreamEventType.Done as const };
+      })(),
+    );
+
+    await service.sendMessage(CONVERSATION_ID, {
+      content: 'Use the similar recipes',
+      wishOffer: WishOfferAnswer.Accept,
+    });
+
+    expect(chatOrchestratorService.handleMessage).toHaveBeenCalledWith(
+      CONVERSATION_ID,
+      'Use the similar recipes',
+      undefined,
+      WishOfferAnswer.Accept,
+    );
   });
 
   it('deletes', async () => {

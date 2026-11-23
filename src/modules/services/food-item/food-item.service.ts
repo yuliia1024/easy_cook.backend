@@ -15,6 +15,7 @@ import {
   FoodItemData,
   FoodItemFilter,
   FoodItemRepository,
+  FoodItemWithTranslations,
 } from '../../data-access/food-item/food-item.repository';
 
 export type NewFoodItemData = Omit<FoodItemData, 'source'> & { source?: string };
@@ -26,11 +27,14 @@ const NUTRIENTS: Array<keyof NutrientValues> = ['kcalPer100g', 'proteinG', 'fatG
 export class FoodItemService {
   constructor(private readonly foodItemRepository: FoodItemRepository) {}
 
-  public async getPage(filter: FoodItemFilter, page: PageQuery): Promise<Page<FoodItem>> {
+  public async getPage(
+    filter: FoodItemFilter,
+    page: PageQuery,
+  ): Promise<Page<FoodItemWithTranslations>> {
     return this.foodItemRepository.findPage({ ...filter, search: filter.search?.trim() }, page);
   }
 
-  public async getById(id: string): Promise<FoodItem> {
+  public async getById(id: string): Promise<FoodItemWithTranslations> {
     const food = await this.foodItemRepository.findById(id);
     if (!food) {
       throw new FoodItemNotFoundException();
@@ -55,7 +59,7 @@ export class FoodItemService {
     return foods;
   }
 
-  public async create(data: NewFoodItemData): Promise<FoodItem> {
+  public async create(data: NewFoodItemData): Promise<FoodItemWithTranslations> {
     const food: FoodItemData = { ...data, source: data.source ?? FoodSource.Manual };
 
     this.assertMacrosFit(food);
@@ -69,7 +73,7 @@ export class FoodItemService {
    * Nutrients are checked merged with the stored values. The kcal check runs only when a nutrient
    * value changes, so an older row that does not pass it can still be renamed.
    */
-  public async update(id: string, data: Partial<FoodItemData>): Promise<FoodItem> {
+  public async update(id: string, data: Partial<FoodItemData>): Promise<FoodItemWithTranslations> {
     const current = await this.getById(id);
     const stored: NutrientValues = {
       kcalPer100g: toNumber(current.kcalPer100g),

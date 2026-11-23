@@ -20,7 +20,7 @@ import {
   replaceParts,
   ReplacementModelCall,
 } from '../../../src/modules/services/menu/menu-replacement';
-import { ModelResult, OpenAiService } from '../../../src/providers/open-ai/open-ai.service';
+import { ModelResult, LlmService } from '../../../src/providers/llm/llm.service';
 import { createMock } from '../../../src/test/create-mock';
 import { loadCases } from '../../lib/cases';
 import {
@@ -312,11 +312,11 @@ describe('menu-day suite', () => {
         ]),
       ),
     });
-    let openAi: jest.Mocked<OpenAiService>;
+    let llm: jest.Mocked<LlmService>;
     let oracleCalls: Array<{ candidates: unknown }>;
 
     beforeEach(async () => {
-      openAi = createMock<OpenAiService>();
+      llm = createMock<LlmService>();
       oracleCalls = [];
       await replaceParts(caseReplacement(theCase)!, replacementInput(theCase), async (call, p) => {
         oracleCalls.push({ candidates: JSON.parse(call.input[0].content as string).recipes });
@@ -337,11 +337,11 @@ describe('menu-day suite', () => {
           )!.id,
         ]),
       );
-      openAi.generateStructuredResult
+      llm.generateStructuredResult
         .mockResolvedValueOnce(result({ message: 'New day.', meals: dayIds }) as never)
         .mockResolvedValueOnce(result({ message: 'New dinner.', recipe: dinnerId }) as never);
 
-      await expect(menuDaySuite.run(theCase, openAi)).resolves.toEqual({
+      await expect(menuDaySuite.run(theCase, llm)).resolves.toEqual({
         output: { message: 'New day. New dinner.', days: good.days, unknown: [] },
         modelId: 'm',
         latencyMs: 20,
@@ -349,7 +349,7 @@ describe('menu-day suite', () => {
         metrics: { repairs: 0 },
       });
       const [[dayInput, daySchema, dayOptions], [mealInput, mealSchema, mealOptions]] =
-        openAi.generateStructuredResult.mock.calls;
+        llm.generateStructuredResult.mock.calls;
       expect(daySchema).toBe(MenuDayPlanSchema);
       expect(dayOptions.maxOutputTokens).toBe(MENU_DAY_MAX_OUTPUT_TOKENS);
       expect(JSON.parse((dayInput as Array<{ content: string }>)[0].content)).toMatchObject({
@@ -367,7 +367,7 @@ describe('menu-day suite', () => {
     });
 
     it('sends a part with problems back and counts the repairs of every part', async () => {
-      openAi.generateStructuredResult
+      llm.generateStructuredResult
         .mockResolvedValueOnce(
           result({ message: 'x', meals: { ...goodDay().meals, lunch: 'x' } }) as never,
         )
@@ -375,7 +375,7 @@ describe('menu-day suite', () => {
         .mockResolvedValueOnce(result({ message: 'x', recipe: 'd99' }) as never)
         .mockResolvedValue(result({ message: 'x', recipe: 'd98' }) as never);
 
-      const run = await menuDaySuite.run(theCase, openAi);
+      const run = await menuDaySuite.run(theCase, llm);
 
       expect(run).toMatchObject({
         output: {
@@ -385,18 +385,18 @@ describe('menu-day suite', () => {
         latencyMs: 10 * (2 + MENU_PLAN_MAX_ATTEMPTS),
         metrics: { repairs: 1 + MENU_PLAN_MAX_ATTEMPTS - 1 },
       });
-      const [, [messages]] = openAi.generateStructuredResult.mock.calls;
+      const [, [messages]] = llm.generateStructuredResult.mock.calls;
       expect((messages as Array<{ content: string }>).at(-1)?.content).toBe(
         menuDayRetryMessage(['dayIndex 1, lunch: "x" is not an id from the lunch recipes.']),
       );
     });
 
     it('fails invalid output with the usage of every call', async () => {
-      openAi.generateStructuredResult
+      llm.generateStructuredResult
         .mockResolvedValueOnce(result(goodDay()) as never)
         .mockRejectedValueOnce(new AssistantInvalidOutputException({ modelId: 'm', usage }));
 
-      const error = await menuDaySuite.run(theCase, openAi).catch((e: unknown) => e);
+      const error = await menuDaySuite.run(theCase, llm).catch((e: unknown) => e);
 
       expect((error as AssistantInvalidOutputException).call).toEqual({
         modelId: 'm',
@@ -411,7 +411,7 @@ describe('menu-day suite', () => {
         expected: { days: 3, meals: 0 },
       };
       const best = await bestOutput(whole);
-      openAi.generateStructuredResult.mockImplementation(async (messages, schema, options) => {
+      llm.generateStructuredResult.mockImplementation(async (messages, schema, options) => {
         expect(schema).toBe(MenuPlanSchema);
         expect(options).toMatchObject({ prompt: MENU_PLAN_PROMPT });
         expect(JSON.parse((messages as Array<{ content: string }>)[0].content).days).toBe(3);
@@ -424,9 +424,9 @@ describe('menu-day suite', () => {
         );
       });
 
-      const run = await menuDaySuite.run(whole, openAi);
+      const run = await menuDaySuite.run(whole, llm);
 
-      expect(openAi.generateStructuredResult).toHaveBeenCalledTimes(1);
+      expect(llm.generateStructuredResult).toHaveBeenCalledTimes(1);
       expect(run.output.days).toHaveLength(3);
       expect(run.output.unknown).toEqual([]);
       expect(passed(whole, best)).toEqual({

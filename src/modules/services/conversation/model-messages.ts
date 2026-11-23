@@ -1,14 +1,21 @@
 import { ModelMessage } from 'ai';
-import { MessageRole, MODEL_PREFERENCE_CHANGE_MARKER } from '../../../common/constants';
+import {
+  MessageRole,
+  MODEL_PREFERENCE_CHANGE_MARKER,
+  MODEL_WISH_OFFER_MARKER,
+} from '../../../common/constants';
 import { MenuComposition } from '../../../common/types';
 import { estimateTokens } from '../../../common/utils';
 import { MessageWithMenu } from '../../data-access/conversation/conversation.repository';
 import { toModelMenu } from './model-menu';
 import { pendingPreferenceChange } from './pending-preference-change';
+import { pendingWishOffer } from './pending-wish-offer';
 
 /** A saved message as the model reads it; the evals pass only the role and the text. */
 export type ModelHistoryMessage = Pick<MessageWithMenu, 'role' | 'content'> &
-  Partial<Pick<MessageWithMenu, 'menuVersionId' | 'menuVersion' | 'preferenceChange'>>;
+  Partial<
+    Pick<MessageWithMenu, 'menuVersionId' | 'menuVersion' | 'preferenceChange' | 'wishOffer'>
+  >;
 
 /** The menu of the version the message suggested; a snapshot without days is not one. */
 function suggestedMenu(message: ModelHistoryMessage): MenuComposition | null {
@@ -57,7 +64,8 @@ export function fitHistory<T extends ModelHistoryMessage>(messages: T[], maxToke
 
 /**
  * The text of each message as the model reads it: the latest suggested menu after its reply, and
- * the pending preference change after the latest reply (`MODEL_PREFERENCE_CHANGE_MARKER`).
+ * the pending preference change after the latest reply (`MODEL_PREFERENCE_CHANGE_MARKER`) and its
+ * pending wish offer (`MODEL_WISH_OFFER_MARKER`).
  */
 function modelTexts(messages: ModelHistoryMessage[]): string[] {
   const isAssistant = messages.map(({ role }) => role === MessageRole.Assistant);
@@ -65,14 +73,20 @@ function modelTexts(messages: ModelHistoryMessage[]): string[] {
     .map((message, index) => isAssistant[index] && suggestedMenu(message) !== null)
     .lastIndexOf(true);
   const change = pendingPreferenceChange(messages);
-  const changeIndex = change ? isAssistant.lastIndexOf(true) : -1;
+  const offer = pendingWishOffer(messages);
+  const latestReplyIndex = isAssistant.lastIndexOf(true);
   return messages.map((message, index) => {
     const menu = index === latestMenuIndex ? suggestedMenu(message) : null;
     const modelMenu = menu && toModelMenu(menu, message.menuVersionId ?? null);
     const parts = [message.content, modelMenu];
-    if (change && index === changeIndex) {
+    if (change && index === latestReplyIndex) {
       parts.push(
         `${MODEL_PREFERENCE_CHANGE_MARKER} ${change.action} ${change.preferenceType}: ${change.value}`,
+      );
+    }
+    if (offer && index === latestReplyIndex) {
+      parts.push(
+        `${MODEL_WISH_OFFER_MARKER} ${offer.wishes}: ${offer.recipes.map(({ name }) => name).join(', ')}`,
       );
     }
     return parts.filter(Boolean).join('\n\n');

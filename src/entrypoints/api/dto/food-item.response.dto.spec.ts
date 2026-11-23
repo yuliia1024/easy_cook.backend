@@ -1,4 +1,4 @@
-import { buildFoodItem } from '../../../test/fixtures';
+import { buildFoodItem, FOOD_ID } from '../../../test/fixtures';
 import { FoodItemResponseDto } from './food-item.response.dto';
 
 describe('FoodItemResponseDto', () => {
@@ -16,8 +16,21 @@ describe('FoodItemResponseDto', () => {
       state: 'boiled',
       source: 'seed',
       sourceId: 'rice-white-boiled',
+      translations: {},
       createdAt: food.createdAt,
       updatedAt: food.updatedAt,
+    });
+  });
+
+  it('maps the translations by locale', () => {
+    const food = buildFoodItem({
+      translations: [
+        { foodItemId: FOOD_ID, locale: 'uk', name: 'Рис білий, варений', updatedAt: new Date() },
+      ],
+    });
+
+    expect(FoodItemResponseDto.from(food).translations).toEqual({
+      uk: { name: 'Рис білий, варений' },
     });
   });
 

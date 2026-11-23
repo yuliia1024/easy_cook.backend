@@ -12,7 +12,7 @@ import {
   RecipeSnapshot,
   ResolvedDay,
 } from '../../../common/types';
-import { ModelCallOptions } from '../../../providers/open-ai/open-ai.service';
+import { ModelCallOptions } from '../../../providers/llm/llm.service';
 import { fitServings } from './menu-composition';
 import {
   menuDayErrors,

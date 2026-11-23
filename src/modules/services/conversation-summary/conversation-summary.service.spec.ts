@@ -9,7 +9,7 @@ import {
 } from '../../../common/constants';
 import { SummaryResultSchema } from '../../../common/contracts';
 import { AssistantUnavailableException } from '../../../common/exceptions';
-import { OpenAiService } from '../../../providers/open-ai/open-ai.service';
+import { LlmService } from '../../../providers/llm/llm.service';
 import { createMock } from '../../../test/create-mock';
 import { buildConversation, buildMessage, CONVERSATION_ID } from '../../../test/fixtures';
 import { ConversationService } from '../conversation/conversation.service';
@@ -18,7 +18,7 @@ import { ConversationSummaryService, summaryModelInput } from './conversation-su
 
 describe('ConversationSummaryService', () => {
   let conversationService: jest.Mocked<ConversationService>;
-  let openAiService: jest.Mocked<OpenAiService>;
+  let llmService: jest.Mocked<LlmService>;
   let service: ConversationSummaryService;
   const conversation = buildConversation({
     summary: 'Rejected the salmon.',
@@ -42,9 +42,9 @@ describe('ConversationSummaryService', () => {
 
   beforeEach(() => {
     conversationService = createMock<ConversationService>();
-    openAiService = createMock<OpenAiService>();
-    openAiService.generateStructured.mockResolvedValue({ summary: 'New summary.' });
-    service = new ConversationSummaryService(conversationService, openAiService);
+    llmService = createMock<LlmService>();
+    llmService.generateStructured.mockResolvedValue({ summary: 'New summary.' });
+    service = new ConversationSummaryService(conversationService, llmService);
   });
 
   it('does nothing while the messages after the summary are within the threshold', async () => {
@@ -52,7 +52,7 @@ describe('ConversationSummaryService', () => {
 
     await expect(service.summarizeIfNeeded(conversation)).resolves.toBe(false);
     expect(conversationService.getUnsummarizedMessages).toHaveBeenCalledWith(conversation);
-    expect(openAiService.generateStructured).not.toHaveBeenCalled();
+    expect(llmService.generateStructured).not.toHaveBeenCalled();
     expect(conversationService.saveSummary).not.toHaveBeenCalled();
   });
 
@@ -63,7 +63,7 @@ describe('ConversationSummaryService', () => {
     const abort = new AbortController();
 
     await expect(service.summarizeIfNeeded(conversation, abort.signal)).resolves.toBe(true);
-    expect(openAiService.generateStructured).toHaveBeenCalledWith(
+    expect(llmService.generateStructured).toHaveBeenCalledWith(
       summaryModelInput('Rejected the salmon.', older),
       SummaryResultSchema,
       {
@@ -84,12 +84,12 @@ describe('ConversationSummaryService', () => {
     conversationService.getUnsummarizedMessages.mockResolvedValue([long]);
 
     await expect(service.summarizeIfNeeded(conversation)).resolves.toBe(false);
-    expect(openAiService.generateStructured).not.toHaveBeenCalled();
+    expect(llmService.generateStructured).not.toHaveBeenCalled();
   });
 
   it('saves nothing when the model call fails', async () => {
     conversationService.getUnsummarizedMessages.mockResolvedValue(overThreshold());
-    openAiService.generateStructured.mockRejectedValue(new AssistantUnavailableException(true));
+    llmService.generateStructured.mockRejectedValue(new AssistantUnavailableException(true));
 
     await expect(service.summarizeIfNeeded(conversation)).rejects.toBeInstanceOf(
       AssistantUnavailableException,

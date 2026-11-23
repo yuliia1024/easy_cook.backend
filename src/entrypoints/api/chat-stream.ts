@@ -100,6 +100,10 @@ export function toChatStream(
             endText();
             writer.write({ type: 'data-preferences-updated', data: { change: event.change } });
             break;
+          case ChatStreamEventType.WishOfferProposed:
+            endText();
+            writer.write({ type: 'data-wish-offer', data: { offer: event.offer } });
+            break;
           case ChatStreamEventType.Error:
             endText();
             failed = true;

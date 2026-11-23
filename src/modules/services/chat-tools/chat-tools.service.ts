@@ -4,8 +4,10 @@ import {
   ChatToolName,
   FOOD_NUTRITION_MAX_RESULTS,
   PreferenceChangeStatus,
+  RECIPE_SEARCH_MAX_LIMIT,
   SaveMenuStatus,
   SEARCH_RECIPES_DEFAULT_RESULTS,
+  SEARCH_RECIPES_SIMILAR_MAX,
   SEARCH_RECIPES_SCAN_LIMIT,
   SortOrder,
 } from '../../../common/constants';
@@ -39,11 +41,12 @@ import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repositor
 import { ConversationService } from '../conversation/conversation.service';
 import { latestSuggestedVersion } from '../conversation/suggested-menu';
 import { FoodItemService } from '../food-item/food-item.service';
-import { dietTagsSatisfying } from '../menu/menu-rules';
+import { dietTagsSatisfying, searchFiltersOf } from '../menu/menu-rules';
 import { MenuService } from '../menu/menu.service';
 import { PreferenceChangeService } from '../preference-change/preference-change.service';
 import { NutritionService, RecipeNutrition } from '../nutrition/nutrition.service';
 import { RecipeService } from '../recipe/recipe.service';
+import { RecipeSearchService } from '../recipe-search/recipe-search.service';
 import {
   ChatTool,
   ChatToolWriteResult,
@@ -60,7 +63,8 @@ import {
 
 /**
  * The tools of the chat model. The read tools only read, through the services the API uses
- * (`RecipeService`, `FoodItemService`) and the deterministic `NutritionService`; the menu tools
+ * (`RecipeService`, `FoodItemService`), the recipe search (`RecipeSearchService`: `search_recipes`
+ * with a query) and the deterministic `NutritionService`; the menu tools
  * (`plan_menu`, `revise_menu`) are service calls the backend runs on the path of a classified menu
  * request, so the model decides when to plan but never what is checked or saved. `save_menu`
  * confirms the latest menu the conversation suggested through `MenuService.confirm`, as the
@@ -72,6 +76,7 @@ import {
 export class ChatToolsService {
   constructor(
     private readonly recipeService: RecipeService,
+    private readonly recipeSearchService: RecipeSearchService,
     private readonly foodItemService: FoodItemService,
     private readonly nutritionService: NutritionService,
     private readonly conversationService: ConversationService,
@@ -89,10 +94,12 @@ export class ChatToolsService {
       readTool({
         name: ChatToolName.SearchRecipes,
         description:
-          'Searches the recipes of the app by name, meal, diet and calories of a serving. ' +
+          'Finds the recipes of the app that fit what the user wants, best first, by meaning in ' +
+          'any language, and filters them by meal, diet, calories of a serving and time. ' +
           'fitsProfile false means the user must not eat it.',
         inputSchema: SearchRecipesInputSchema,
-        execute: (input: SearchRecipesInput) => this.searchRecipes(input, rules),
+        execute: (input: SearchRecipesInput, abortSignal?: AbortSignal) =>
+          this.searchRecipes(input, rules, abortSignal),
       }),
       readTool({
         name: ChatToolName.GetRecipeDetails,
@@ -214,27 +221,107 @@ export class ChatToolsService {
   }
 
   /**
-   * One page of recipes by name; with `maxKcalPerServing`, the first `SEARCH_RECIPES_SCAN_LIMIT`
-   * are read and filtered here, since calories are not stored per serving.
+   * With a query, the recipes that fit it best (`RecipeSearchService`, hybrid); without one, a page
+   * of recipes by the filters alone, in name order.
    */
   public async searchRecipes(
-    { query, mealType, diet, maxKcalPerServing, limit }: SearchRecipesInput,
+    input: SearchRecipesInput,
+    rules: PreferenceRules | null,
+    abortSignal?: AbortSignal,
+  ): Promise<SearchRecipesResult> {
+    return input.query === null
+      ? this.listRecipes(input, rules)
+      : this.findRecipes({ ...input, query: input.query }, rules, abortSignal);
+  }
+
+  /**
+   * The ranked search. The diets and allergies of the profile filter in SQL with the meal, the
+   * diet and the time, so the recipes the user must not eat never take the top places; the
+   * calories of a serving, not stored, filter the widest result here. When the search found only
+   * recipes near the query (`matched` false: "sushi" finds a poke bowl), none fits and the closest
+   * go to `similar`.
+   */
+  private async findRecipes(
+    {
+      query,
+      mealType,
+      diet,
+      maxKcalPerServing,
+      maxPrepTimeMinutes,
+      limit,
+    }: SearchRecipesInput & { query: string },
+    rules: PreferenceRules | null,
+    abortSignal?: AbortSignal,
+  ): Promise<SearchRecipesResult> {
+    const wanted = limit ?? SEARCH_RECIPES_DEFAULT_RESULTS;
+    const { hits, matched } = await this.recipeSearchService.search(
+      {
+        text: query,
+        filters: {
+          mealType: mealType ?? undefined,
+          ...searchFiltersOf(
+            [...(diet ? [diet] : []), ...(rules?.diets ?? [])],
+            rules?.allergies ?? [],
+          ),
+          maxPrepTimeMinutes: maxPrepTimeMinutes ?? undefined,
+        },
+        limit: maxKcalPerServing === null ? wanted + 1 : RECIPE_SEARCH_MAX_LIMIT,
+      },
+      abortSignal,
+    );
+    const found = this.summarize(
+      hits.map(({ recipe }) => recipe),
+      matched ? wanted : SEARCH_RECIPES_SIMILAR_MAX,
+      maxKcalPerServing,
+      null,
+      rules,
+      false,
+    );
+    return matched ? found : { recipes: [], more: false, similar: found.recipes };
+  }
+
+  /**
+   * One page of recipes by the filters; with `maxKcalPerServing` or `maxPrepTimeMinutes`, the
+   * first `SEARCH_RECIPES_SCAN_LIMIT` are read and filtered here.
+   */
+  private async listRecipes(
+    { mealType, diet, maxKcalPerServing, maxPrepTimeMinutes, limit }: SearchRecipesInput,
     rules: PreferenceRules | null,
   ): Promise<SearchRecipesResult> {
     const wanted = limit ?? SEARCH_RECIPES_DEFAULT_RESULTS;
+    const scan = maxKcalPerServing !== null || maxPrepTimeMinutes !== null;
     const { items, total } = await this.recipeService.getPage(
       {
-        search: query ?? undefined,
         mealType: mealType ?? undefined,
         dietTypeGroups: diet ? [[...dietTagsSatisfying(diet)]] : undefined,
       },
-      {
-        page: 1,
-        limit: maxKcalPerServing === null ? wanted : SEARCH_RECIPES_SCAN_LIMIT,
-        sortOrder: SortOrder.Asc,
-      },
+      { page: 1, limit: scan ? SEARCH_RECIPES_SCAN_LIMIT : wanted, sortOrder: SortOrder.Asc },
     );
-    const matching = items
+    return this.summarize(
+      items,
+      wanted,
+      maxKcalPerServing,
+      maxPrepTimeMinutes,
+      rules,
+      items.length < total,
+    );
+  }
+
+  /** The first `wanted` recipes within the limits, summarized; `more` when others are left. */
+  private summarize(
+    recipes: RecipeWithIngredients[],
+    wanted: number,
+    maxKcalPerServing: number | null,
+    maxPrepTimeMinutes: number | null,
+    rules: PreferenceRules | null,
+    unread: boolean,
+  ): SearchRecipesResult {
+    const matching = recipes
+      .filter(
+        ({ prepTimeMinutes }) =>
+          maxPrepTimeMinutes === null ||
+          (prepTimeMinutes !== null && prepTimeMinutes <= maxPrepTimeMinutes),
+      )
       .map((recipe) => ({ recipe, nutrition: this.nutritionOf(recipe) }))
       .filter(
         ({ nutrition }) =>
@@ -244,7 +331,8 @@ export class ChatToolsService {
       recipes: matching
         .slice(0, wanted)
         .map(({ recipe, nutrition }) => toRecipeSummary(recipe, nutrition, rules)),
-      more: matching.length > wanted || items.length < total,
+      more: matching.length > wanted || unread,
+      similar: [],
     };
   }
 
