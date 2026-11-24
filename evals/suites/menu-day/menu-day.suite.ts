@@ -31,10 +31,12 @@ import {
   widenReplacement,
 } from '../../../src/modules/services/menu/menu-diff';
 import {
+  bestAttempt,
   candidateProblems,
   daysProblem,
   menuPlanErrors,
   menuPlanModelCall,
+  menuPlanRepeats,
   planDays,
   PlannedDay,
   planWithRetries,
@@ -372,6 +374,7 @@ export async function planWholeMenu(
     call: ReplacementModelCall<T>,
     problemsOf: (plan: T) => string[],
     retryMessage: (problems: string[]) => string,
+    softProblemsOf: (plan: T) => string[],
   ) => Promise<T>,
 ): Promise<MenuDayOutput> {
   const profile = caseProfile(testCase);
@@ -401,6 +404,7 @@ export async function planWholeMenu(
         composeMenu(testCase, resolve(days)),
       ),
     menuPlanRetryMessage,
+    (planned) => menuPlanRepeats(planned, candidates, previous.length),
   );
   const wrongDays = daysProblem(plan, previous.length);
   const unknown = [...(wrongDays ? [wrongDays] : []), ...candidateProblems(plan, candidates)];
@@ -413,9 +417,9 @@ export async function planWholeMenu(
 
 /**
  * Replaces the parts of the case like `MenuPlannerService.replan`: `replaceParts` with a model
- * that sends every part's problems back until it has none (`planWithRetries`) and returns the last
- * answer to score it. The usage and latency are of every call; `repairs` is how many calls
- * followed the first one of a part. Output that did not match the schema fails with the usage of
+ * that sends every part's problems back until it has none (`planWithRetries`) and returns the
+ * answer the app would use (`bestAttempt`) to score it. The usage and latency are of every call
+ * answered; `repairs` is how many calls followed the first one of a part. Output that did not match the schema fails with the usage of
  * every call so far.
  */
 export async function runMenuDay(
@@ -435,6 +439,7 @@ export async function runMenuDay(
     { input, schema, options }: ReplacementModelCall<T>,
     problemsOf: (plan: T) => string[],
     retryMessage: (problems: string[]) => string,
+    softProblemsOf?: (plan: T) => string[],
   ): Promise<T> => {
     const attempts = await planWithRetries<T>(
       input,
@@ -446,9 +451,10 @@ export async function runMenuDay(
       problemsOf,
       MENU_PLAN_MAX_ATTEMPTS,
       retryMessage,
+      softProblemsOf,
     );
     repairs += attempts.length - 1;
-    return attempts[attempts.length - 1].plan;
+    return bestAttempt(attempts).plan;
   };
   try {
     let output: MenuDayOutput;

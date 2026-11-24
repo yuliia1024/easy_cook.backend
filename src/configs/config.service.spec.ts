@@ -126,6 +126,22 @@ describe('ConfigService', () => {
     expect(() => new ConfigService()).toThrow(/OLLAMA_BASE_URL/);
   });
 
+  it('requires LANGFUSE_SECRET_KEY only with LANGFUSE_PUBLIC_KEY, and an http(s) LANGFUSE_BASE_URL', () => {
+    process.env.LANGFUSE_SECRET_KEY = '';
+    process.env.LANGFUSE_BASE_URL = '';
+    expect(() => new ConfigService()).not.toThrow();
+
+    process.env.LANGFUSE_PUBLIC_KEY = 'pk-lf-1';
+    expect(() => new ConfigService()).toThrow(/LANGFUSE_SECRET_KEY/);
+
+    process.env.LANGFUSE_SECRET_KEY = 'sk-lf-1';
+    process.env.LANGFUSE_BASE_URL = 'http://localhost:3000';
+    expect(() => new ConfigService()).not.toThrow();
+
+    process.env.LANGFUSE_BASE_URL = 'localhost:3000';
+    expect(() => new ConfigService()).toThrow(/LANGFUSE_BASE_URL/);
+  });
+
   it('rejects an unknown environment name', () => {
     process.env.ENV = 'qa';
 

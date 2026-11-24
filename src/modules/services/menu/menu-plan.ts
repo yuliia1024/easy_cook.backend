@@ -13,6 +13,7 @@ import {
   menuPlanRetryMessage,
 } from '../../../common/constants';
 import { MenuPlan, MenuPlanSchema } from '../../../common/contracts';
+import { ServiceUnavailableError } from '../../../common/exceptions';
 import { MacroValues, MenuComposition, ProfileContext } from '../../../common/types';
 import { ModelCallOptions } from '../../../providers/llm/llm.service';
 import { toModelProfile } from '../profile-context/model-profile';
@@ -50,7 +51,10 @@ export const candidatesPerMeal = (days: number): number =>
  * `MENU_PLAN_CANDIDATE_POOL_FACTOR` form a pool, and `count` of them are taken from the pool
  * starting at `rotation` and wrapping around, so another rotation offers other recipes.
  * `wishedIds` (recipe ids the search found for the request's wishes, best first) come first, up
- * to `MENU_PLAN_WISHED_SHARE` of `count`, and the pool fills the rest. Pure.
+ * to `MENU_PLAN_WISHED_SHARE` of `count`, and the pool fills the rest. Recipes of `dislikedIds`
+ * (with a disliked food) are left out while the others fill the candidates; when they do not, all
+ * the others are taken, by calories, and the disliked ones closest to the calories fill up the
+ * rest: a model offered a disliked recipe picks it now and then. Pure.
  */
 export function selectCandidates(
   candidates: MenuPlanCandidate[],
@@ -59,6 +63,7 @@ export function selectCandidates(
   count: number,
   rotation: number,
   wishedIds: readonly string[] = [],
+  dislikedIds: ReadonlySet<string> = new Set(),
 ): MenuPlanCandidate[] {
   const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
   const wished = [...new Set(wishedIds)]
@@ -68,14 +73,19 @@ export function selectCandidates(
   const taken = new Set(wished.map(({ id }) => id));
   const rest = candidates.filter(({ id }) => !taken.has(id));
   const left = count - wished.length;
-  const ranked =
+  const byCalories = (recipes: MenuPlanCandidate[]): MenuPlanCandidate[] =>
     dailyKcal === null
-      ? rest
-      : [...rest].sort((a, b) => {
+      ? recipes
+      : [...recipes].sort((a, b) => {
           const target = dailyKcal * MENU_PLAN_MEAL_KCAL_SHARE[mealType];
           return Math.abs(a.perServing.kcal - target) - Math.abs(b.perServing.kcal - target);
         });
-  const pool = ranked.slice(0, left * MENU_PLAN_CANDIDATE_POOL_FACTOR);
+  const liked = rest.filter(({ id }) => !dislikedIds.has(id));
+  if (liked.length < rest.length && liked.length < left) {
+    const disliked = rest.filter(({ id }) => dislikedIds.has(id));
+    return [...wished, ...byCalories(liked), ...byCalories(disliked).slice(0, left - liked.length)];
+  }
+  const pool = byCalories(liked).slice(0, left * MENU_PLAN_CANDIDATE_POOL_FACTOR);
   if (pool.length <= left) {
     return [...wished, ...pool];
   }
@@ -190,17 +200,61 @@ export function menuPlanErrors(
   return errorsOf(compose(planDays(plan)).issues).map(({ message }) => `${message}.`);
 }
 
-/** A plan the model returned and what was wrong with it. */
-export interface MenuPlanAttempt<T = MenuPlan> {
-  plan: T;
-  problems: string[];
+/**
+ * Every repeat of the plan that could be avoided: a recipe on two days in a row (but for a meal
+ * with a single candidate), or one used again for a meal while its candidates have one not used
+ * yet. Pure.
+ */
+export function varietyProblems(plan: MenuPlan, candidates: MenuPlanCandidates): string[] {
+  const days = planDays(plan);
+  return MENU_PLAN_MEAL_TYPES.flatMap((mealType) => {
+    const ids = days.map((day) => day[mealType]);
+    const unused = candidates[mealType].map(({ id }) => id).filter((id) => !ids.includes(id));
+    const instead =
+      unused.length > 0
+        ? `not used yet: ${unused.join(', ')}`
+        : `use another id from the ${mealType} recipes`;
+    return ids.flatMap((id, i) => {
+      const at = `dayIndex ${i}, ${mealType}: "${id}" is already on dayIndex`;
+      if (i > 0 && id === ids[i - 1] && candidates[mealType].length > 1) {
+        return [`${at} ${i - 1}, the day before; ${instead}.`];
+      }
+      const first = ids.indexOf(id);
+      return first < i && unused.length > 0 ? [`${at} ${first}; ${instead}.`] : [];
+    });
+  });
 }
 
 /**
- * Asks the model for a plan until one has no `problemsOf`, up to `maxAttempts` calls: a plan with
- * problems goes back to the model with them (`retryMessage`). Returns every attempt, the last one
- * without problems unless all of them had some. `MenuPlannerService` and the menu plan and menu
- * day evals run the same loop, for a whole menu and for one day.
+ * The `varietyProblems` of a plan without `planProblems`, none of another: the soft problems of a
+ * menu plan (`planWithRetries`). Pure.
+ */
+export const menuPlanRepeats = (
+  plan: MenuPlan,
+  candidates: MenuPlanCandidates,
+  days: number,
+): string[] =>
+  planProblems(plan, candidates, days).length > 0 ? [] : varietyProblems(plan, candidates);
+
+/**
+ * A plan the model returned, what was wrong with it and its soft problems: those worth another
+ * attempt that do not make the plan unacceptable.
+ */
+export interface MenuPlanAttempt<T = MenuPlan> {
+  plan: T;
+  problems: string[];
+  softProblems: string[];
+}
+
+const isAcceptable = <T>({ problems }: MenuPlanAttempt<T>): boolean => problems.length === 0;
+
+/**
+ * Asks the model for a plan until one has no `problemsOf` and no `softProblemsOf`, up to
+ * `maxAttempts` calls: a plan with problems of either kind goes back to the model with them
+ * (`retryMessage`). Returns every attempt; `bestAttempt` is the one to use. A call that fails
+ * (no provider, invalid output) ends the loop when an attempt before it is acceptable, otherwise it
+ * throws: a menu that only repeats a recipe is not lost to a retry. `MenuPlannerService` and the
+ * menu plan and menu day evals run the same loop, for a whole menu and for one day.
  */
 export async function planWithRetries<T = MenuPlan>(
   input: ModelMessage[],
@@ -208,20 +262,43 @@ export async function planWithRetries<T = MenuPlan>(
   problemsOf: (plan: T) => string[],
   maxAttempts = MENU_PLAN_MAX_ATTEMPTS,
   retryMessage: (problems: string[]) => string = menuPlanRetryMessage,
+  softProblemsOf: (plan: T) => string[] = () => [],
 ): Promise<MenuPlanAttempt<T>[]> {
   const messages = [...input];
   const attempts: MenuPlanAttempt<T>[] = [];
   while (attempts.length < maxAttempts) {
-    const plan = await generate([...messages]);
+    let plan: T;
+    try {
+      plan = await generate([...messages]);
+    } catch (error) {
+      if (error instanceof ServiceUnavailableError && attempts.some(isAcceptable)) {
+        break;
+      }
+      throw error;
+    }
     const problems = problemsOf(plan);
-    attempts.push({ plan, problems });
-    if (problems.length === 0) {
+    const softProblems = softProblemsOf(plan);
+    attempts.push({ plan, problems, softProblems });
+    if (problems.length === 0 && softProblems.length === 0) {
       break;
     }
     messages.push(
       { role: 'assistant', content: JSON.stringify(plan) },
-      { role: 'user', content: retryMessage(problems) },
+      { role: 'user', content: retryMessage([...problems, ...softProblems]) },
     );
   }
   return attempts;
+}
+
+/**
+ * The attempt to use of `planWithRetries`: the one with the fewest soft problems, the latest of
+ * them, among those without problems; the last one when all have problems. Pure.
+ */
+export function bestAttempt<T>(attempts: MenuPlanAttempt<T>[]): MenuPlanAttempt<T> {
+  const acceptable = attempts.filter(isAcceptable);
+  return acceptable.length === 0
+    ? attempts[attempts.length - 1]
+    : acceptable.reduce((best, attempt) =>
+        attempt.softProblems.length <= best.softProblems.length ? attempt : best,
+      );
 }

@@ -11,6 +11,7 @@ import {
 import {
   MenuDayPlanSchema,
   MenuMealPlanSchema,
+  MenuPlan,
   MenuPlanSchema,
 } from '../../../src/common/contracts';
 import { AssistantInvalidOutputException } from '../../../src/common/exceptions';
@@ -437,6 +438,31 @@ describe('menu-day suite', () => {
         calories: true,
         disliked: true,
       });
+    });
+
+    it('sends the repeats of a whole menu back and accepts them after the last attempt', async () => {
+      const whole = {
+        ...theCase,
+        targets: [0, 1, 2].map((dayIndex) => ({ dayIndex, mealType: null })),
+      };
+      llm.generateStructuredResult.mockImplementation(async (messages) => {
+        const { recipes } = JSON.parse((messages as Array<{ content: string }>)[0].content);
+        const varied = wholeMenuOracle<MenuPlan>(3, recipes, () => []) as MenuPlan;
+        varied.days[1].meals.lunch = varied.days[0].meals.lunch;
+        return result(varied);
+      });
+
+      const run = await menuDaySuite.run(whole, llm);
+
+      expect(run).toMatchObject({
+        output: { unknown: [] },
+        metrics: { repairs: MENU_PLAN_MAX_ATTEMPTS - 1 },
+      });
+      expect(run.output.days).toHaveLength(3);
+      const [, [messages]] = llm.generateStructuredResult.mock.calls;
+      expect((messages as Array<{ content: string }>).at(-1)?.content).toContain(
+        'dayIndex 1, lunch: "l1" is already on dayIndex 0, the day before',
+      );
     });
   });
 

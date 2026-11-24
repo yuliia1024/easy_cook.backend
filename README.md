@@ -53,20 +53,34 @@ flowchart TD
   [Recipe search (RAG)](#recipe-search-rag).
 - **Resilience and observability.** Pinned model snapshots, provider fallback, every prompt
   versioned (`name@vN`), one summary line per message (time, first text, calls, tokens), and with
-  `ENV=local` a full JSON trace of the chain.
+  `ENV=local` a full JSON trace of the chain. Optional [Langfuse tracing](#langfuse-tracing).
+
+### Langfuse tracing
+
+[Langfuse](https://langfuse.com) shows every model call as a trace: the steps of a tool loop, the
+tool runs, the provider and model that answered (after a fallback too), time and tokens. It is
+off unless `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set (a project in Langfuse Cloud,
+or `LANGFUSE_BASE_URL` of a self-hosted server). `TracingService` (`src/providers/tracing/`)
+starts the Langfuse exporter on start-up and flushes on shutdown (`TRACING_SHUTDOWN_TIMEOUT_MS` at most). The AI SDK integration
+is never registered globally: only `LlmService` calls are traced (`TracingService.callTelemetry`),
+each named after its prompt (`chat@v3`) with the request id (metadata `requestId`, the same as
+`X-Request-Id` and the log lines); the embeddings of the recipe search are never traced. Traces
+are tagged with `ENV` as the Langfuse environment. The prompts, messages, tool arguments and
+replies go to Langfuse only with `ENV=local`; elsewhere a trace has the timings, tokens and tool
+names alone. The evals never trace.
 
 ## Eval results
 
 Every suite runs on the real model, each case 3 times; a prompt change must not fall below the
 committed baseline (`evals/baselines/`). Pass rates of the current baselines:
 
-| Suite           | What it checks                                                                         | Cases | gpt-4o-mini (main) | deepseek-flash (fallback) |
-| --------------- | -------------------------------------------------------------------------------------- | ----: | -----------------: | ------------------------: |
+| Suite           | What it checks                                                                                                               | Cases | gpt-4o-mini (main) | deepseek-flash (fallback) |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----: | -----------------: | ------------------------: |
 | `intent`        | routing of a message: intent, days, constraints, revision targets, wishes and the answer to a wish offer (uk / en / surzhyk) |    85 |         **93.3 %** |                **91.8 %** |
-| `clarification` | a vague request asks exactly for what is missing (LLM judge: Claude Haiku 4.5)         |    25 |             97.3 % |                    92.0 % |
-| `menu-plan`     | 1-7 day menus: right days, only candidates, rules, calories ±15 %, dislikes, variety   |    22 |             97.0 % |                    84.8 % |
-| `menu-day`      | revising a day / meal / several parts: nothing outside the scope changes, constraints  |    38 |            100.0 % |                   100.0 % |
-| `chat-tools`    | the right tool with valid arguments, no tool for small talk, plan / revise handed over, recipe search by meaning |    52 |             98.1 % |                    99.4 % |
+| `clarification` | a vague request asks exactly for what is missing (LLM judge: Claude Haiku 4.5)                                               |    25 |             97.3 % |                    92.0 % |
+| `menu-plan`     | 1-7 day menus: right days, only candidates, rules, calories ±15 %, dislikes, variety                                         |    22 |             97.0 % |                    84.8 % |
+| `menu-day`      | revising a day / meal / several parts: nothing outside the scope changes, constraints                                        |    38 |            100.0 % |                   100.0 % |
+| `chat-tools`    | the right tool with valid arguments, no tool for small talk, plan / revise handed over, recipe search by meaning             |    52 |             98.1 % |                    99.4 % |
 
 Measured on `intent@v6` and `general-chat@v6`. Details of each suite and the runner: [Evals](#evals).
 
@@ -385,10 +399,11 @@ nutrition per serving dumped from a seeded database and the ingredients of `data
 when the seed recipes change): every number of days from 1 to 7, and 1, 3 and 7 days for the
 profiles without restrictions (`basic`), `vegan`, `allergy` (peanut, egg; dislikes mushrooms) and
 `low_kcal` (1400 kcal; dislikes salmon), plus `vegetarian` and several candidate rotations. The
-fields score the last plan: `days` (exactly the days asked for), `candidates` (only ids of the
-candidates of that meal), `validation` (no problem the planner sends back to the model),
+fields score the plan used (`bestAttempt`): `days` (exactly the days asked for), `candidates` (only ids of the
+candidates of that meal), `validation` (no problem a plan is rejected for),
 `calories` (every day within 15 % of the goal, the servings fitted to it by `fitServings`), `disliked` (no disliked food), `variety` (no
-recipe on two days in a row, none twice while the meal has unused candidates). The metric
+recipe on two days in a row, none twice while the meal has unused candidates; the planner sends
+repeats back to the model, but accepts a menu that still has them). The metric
 `repairs` is the mean of the calls after the first one; it is saved in the baseline, not compared.
 
 **menu-day** (EVAL-5) - revising a suggested menu as `MenuPlannerService.replan` does

@@ -34,6 +34,9 @@ export const EMBEDDING_MODELS: Readonly<Record<EmbeddingProviderName, EmbeddingM
     queryPrefix: '',
     // Not calibrated yet: index with OpenAI and run the retrieval evals (docs/notes/rag-recipe-search.md).
     matchSimilarity: null,
+    // OpenAI takes up to 2048 texts a request.
+    batchSize: 64,
+    batchTimeoutMs: 60_000,
   },
   [EmbeddingProviderName.Ollama]: {
     provider: EmbeddingProviderName.Ollama,
@@ -46,17 +49,17 @@ export const EMBEDDING_MODELS: Readonly<Record<EmbeddingProviderName, EmbeddingM
     // The retrieval evals (2026-11-23): the best recipe of a dish the catalog lacks (sushi, pizza,
     // tiramisu...) is at most ~0.50, that of a query with answers mostly 0.5-0.67.
     matchSimilarity: 0.5,
+    // ~1 s a document on a CPU (an Intel laptop; a 4-core CI runner is slower): a batch of 64 ran
+    // past a 60 s timeout. Small batches cost no speed on a CPU and leave a slow machine room.
+    batchSize: 8,
+    batchTimeoutMs: 120_000,
   },
 };
 
-/** Texts per embeddings request when indexing (OpenAI takes up to 2048, a local model is slower). */
-export const EMBEDDING_BATCH_SIZE = 64;
 /** Requests of one indexing run in flight at once. */
 export const EMBEDDING_MAX_PARALLEL_CALLS = 2;
 /** One query embedding, retries included: it sits on the path of a chat reply. */
 export const EMBEDDING_QUERY_TIMEOUT_MS = 5_000;
-/** One batch of documents, retries included. */
-export const EMBEDDING_BATCH_TIMEOUT_MS = 60_000;
 /** Of the AI SDK, on a 5xx, 429 or network error; a query with a next provider is not retried. */
 export const EMBEDDING_MAX_RETRIES = 2;
 /** A provider that failed a query is skipped this long, so a dead local server costs one try. */

@@ -102,6 +102,21 @@ export class Configs {
   @Matches(/^https?:\/\/[^\s]+$/, { message: 'OLLAMA_BASE_URL must be an http(s) url' })
   OLLAMA_BASE_URL?: string;
 
+  /** Langfuse tracing of the model calls is on when the public and the secret key are both set. */
+  @IsOptional()
+  @IsString()
+  LANGFUSE_PUBLIC_KEY?: string;
+
+  @ValidateIf((configs: Configs) => !!configs.LANGFUSE_PUBLIC_KEY)
+  @IsString()
+  @IsNotEmpty({ message: 'LANGFUSE_SECRET_KEY is required when LANGFUSE_PUBLIC_KEY is set' })
+  LANGFUSE_SECRET_KEY?: string;
+
+  /** The Langfuse server (`https://cloud.langfuse.com` when unset or empty). */
+  @ValidateIf((configs: Configs) => !!configs.LANGFUSE_BASE_URL)
+  @Matches(/^https?:\/\/[^\s]+$/, { message: 'LANGFUSE_BASE_URL must be an http(s) url' })
+  LANGFUSE_BASE_URL?: string;
+
   /** Minimum level printed (`log` when unset); `debug` adds the SQL queries. */
   @IsOptional()
   @IsIn(LOG_LEVELS)

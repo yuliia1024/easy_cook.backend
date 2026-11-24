@@ -3,7 +3,6 @@ import { EmbeddingModelV4 } from '@ai-sdk/provider';
 import { Injectable, Logger } from '@nestjs/common';
 import { embedMany } from 'ai';
 import {
-  EMBEDDING_BATCH_TIMEOUT_MS,
   EMBEDDING_MAX_PARALLEL_CALLS,
   EMBEDDING_MAX_RETRIES,
   EMBEDDING_PROVIDER_COOLDOWN_MS,
@@ -115,7 +114,7 @@ export class EmbeddingService {
     throw new EmbeddingUnavailableException();
   }
 
-  /** Documents as they are, by the model of `modelKey`, in requests of the provider's batch size. */
+  /** Documents as they are, by the model of `modelKey`, within its `batchTimeoutMs`. */
   public async embedDocuments(modelKey: string, texts: string[]): Promise<EmbeddingBatch> {
     const route = this.routes.find(({ key }) => key === modelKey);
     if (!route) {
@@ -124,7 +123,7 @@ export class EmbeddingService {
     if (texts.length === 0) {
       return { embeddings: [], tokens: 0 };
     }
-    return this.embed(route, texts, EMBEDDING_BATCH_TIMEOUT_MS, EMBEDDING_MAX_RETRIES);
+    return this.embed(route, texts, route.model.batchTimeoutMs, EMBEDDING_MAX_RETRIES);
   }
 
   private async embed(
@@ -145,6 +144,8 @@ export class EmbeddingService {
         maxRetries,
         maxParallelCalls: EMBEDDING_MAX_PARALLEL_CALLS,
         abortSignal: AbortSignal.any(signals),
+        // Never traced: the values are the user's search queries (`TracingService`).
+        telemetry: { isEnabled: false },
       });
       batch = { embeddings: result.embeddings, tokens: result.usage?.tokens ?? 0 };
     } catch (error) {

@@ -12,12 +12,14 @@ import { ProfileControllerModule } from './entrypoints/api/profile-controller/pr
 import { RecipeControllerModule } from './entrypoints/api/recipe-controller/recipe-controller.module';
 import { LlmModule } from './providers/llm/llm.module';
 import { PrismaModule } from './providers/prisma/prisma.module';
+import { TracingModule } from './providers/tracing/tracing.module';
 
 @Module({
   imports: [
     ConfigModule,
     PrismaModule,
     LlmModule,
+    TracingModule,
     // Default limit for every route.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
     ProfileControllerModule,

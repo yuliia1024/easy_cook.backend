@@ -14,6 +14,13 @@ export interface EmbeddingModelSpec {
    * calibrated: every search with hits matches.
    */
   matchSimilarity: number | null;
+  /**
+   * Documents per embeddings request when indexing: one request must end within `batchTimeoutMs`
+   * on the slowest machine that runs it (a CPU in CI for a local model).
+   */
+  batchSize: number;
+  /** One batch of `batchSize` documents, retries included; past it the model counts as down. */
+  batchTimeoutMs: number;
 }
 
 /** The structured filters of a search: applied in SQL to both legs before ranking. */
