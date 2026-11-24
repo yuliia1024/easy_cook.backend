@@ -4,6 +4,7 @@ import { ApiConfigService } from './api-config/api-config.service';
 import { DatabaseConfigService } from './database-config/database-config.service';
 import { EmbeddingConfigService } from './embedding-config/embedding-config.service';
 import { ModelProvidersConfigService } from './model-providers-config/model-providers-config.service';
+import { TracingConfigService } from './tracing-config/tracing-config.service';
 
 const configServices = [
   ConfigService,
@@ -11,6 +12,7 @@ const configServices = [
   DatabaseConfigService,
   ModelProvidersConfigService,
   EmbeddingConfigService,
+  TracingConfigService,
 ];
 
 @Global()

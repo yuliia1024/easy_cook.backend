@@ -3,7 +3,7 @@ import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createOpenAI } from '@ai-sdk/openai';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { APICallError, LanguageModel } from 'ai';
+import { APICallError, generateText, LanguageModel, streamText } from 'ai';
 import { z } from 'zod';
 import {
   ChatToolErrorCode,
@@ -27,7 +27,9 @@ import {
   serviceCallTool,
   toToolSet,
 } from '../../modules/services/chat-tools/chat-tool-registry';
+import { createMock } from '../../test/create-mock';
 import { fakeConfig } from '../../test/fake-config';
+import { CallTelemetry, TracingService } from '../tracing/tracing.service';
 import { LlmModule } from './llm.module';
 import { LlmService } from './llm.service';
 
@@ -88,6 +90,14 @@ jest.mock('@ai-sdk/openai', () => ({
 jest.mock('@ai-sdk/deepseek', () => ({
   createDeepSeek: jest.fn(() => ({ chat })),
 }));
+jest.mock('ai', () => {
+  const actual = jest.requireActual<typeof import('ai')>('ai');
+  return {
+    ...actual,
+    streamText: jest.fn(actual.streamText),
+    generateText: jest.fn(actual.generateText),
+  };
+});
 jest.mock('@ai-sdk/anthropic', () => ({
   createAnthropic: jest.fn(() => ({ messages })),
 }));
@@ -124,6 +134,13 @@ describe('LlmService', () => {
     new ModelProvidersConfigService(fakeConfig({ OPEN_AI_API_KEY: 'sk-test', ...values }));
   const openAiConfig = configOf({});
   const withFallback = configOf({ MODEL_PROVIDERS: 'openai,deepseek', DEEPSEEK_API_KEY: 'sk-ds' });
+  const noTracing = createMock<TracingService>({
+    callTelemetry: (): CallTelemetry => ({ telemetry: { isEnabled: false } }),
+  });
+  const createLlm = (
+    config: ModelProvidersConfigService,
+    tracing: TracingService = noTracing,
+  ): LlmService => new LlmService(config, tracing);
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -134,14 +151,20 @@ describe('LlmService', () => {
 
   it('is provided by LlmModule', async () => {
     const module = await Test.createTestingModule({ imports: [LlmModule] })
-      .useMocker((token) => (token === ModelProvidersConfigService ? openAiConfig : undefined))
+      .useMocker((token) =>
+        token === ModelProvidersConfigService
+          ? openAiConfig
+          : token === TracingService
+            ? noTracing
+            : undefined,
+      )
       .compile();
 
     expect(module.get(LlmService)).toBeInstanceOf(LlmService);
   });
 
   it('creates the provider with OPEN_AI_API_KEY', () => {
-    new LlmService(openAiConfig);
+    createLlm(openAiConfig);
 
     expect(createOpenAI).toHaveBeenCalledWith({ apiKey: 'sk-test' });
   });
@@ -163,7 +186,7 @@ describe('LlmService', () => {
     );
 
     const deltas = await collect(
-      new LlmService(openAiConfig).streamText([{ role: 'user', content: 'Tell a story' }], OPTIONS),
+      createLlm(openAiConfig).streamText([{ role: 'user', content: 'Tell a story' }], OPTIONS),
     );
 
     expect(responses).toHaveBeenCalledWith(OPEN_AI_MODEL);
@@ -188,7 +211,7 @@ describe('LlmService', () => {
       ]),
     );
 
-    await collect(new LlmService(openAiConfig).streamText('x', OPTIONS));
+    await collect(createLlm(openAiConfig).streamText('x', OPTIONS));
 
     expect(log).toHaveBeenCalledWith(
       expect.stringMatching(
@@ -218,7 +241,7 @@ describe('LlmService', () => {
       ]),
     );
 
-    await collect(new LlmService(openAiConfig).streamText('x', OPTIONS));
+    await collect(createLlm(openAiConfig).streamText('x', OPTIONS));
 
     expect(warn).toHaveBeenCalledWith(
       expect.stringMatching(
@@ -232,7 +255,7 @@ describe('LlmService', () => {
       streamOf([...textParts('Once'), { type: 'error', error: new Error('server error') }]),
     );
 
-    await expect(collect(new LlmService(openAiConfig).streamText('x', OPTIONS))).rejects.toEqual(
+    await expect(collect(createLlm(openAiConfig).streamText('x', OPTIONS))).rejects.toEqual(
       new AssistantUnavailableException(true),
     );
   });
@@ -247,7 +270,7 @@ describe('LlmService', () => {
     );
 
     const calls = await runWithRequestId('req-1', async () => {
-      await collect(new LlmService(openAiConfig).streamText('x', OPTIONS));
+      await collect(createLlm(openAiConfig).streamText('x', OPTIONS));
       return getModelCalls();
     });
 
@@ -270,7 +293,7 @@ describe('LlmService', () => {
     );
 
     const calls = await runWithRequestId('req-1', async () => {
-      await collect(new LlmService(openAiConfig).streamText('x', OPTIONS)).catch(() => null);
+      await collect(createLlm(openAiConfig).streamText('x', OPTIONS)).catch(() => null);
       return getModelCalls();
     });
 
@@ -292,7 +315,7 @@ describe('LlmService', () => {
     });
 
     await runWithRequestId('req-1', async () => {
-      for await (const _delta of new LlmService(openAiConfig).streamText('x', OPTIONS)) {
+      for await (const _delta of createLlm(openAiConfig).streamText('x', OPTIONS)) {
         break;
       }
     });
@@ -312,7 +335,7 @@ describe('LlmService', () => {
       }),
     });
 
-    const stream = new LlmService(openAiConfig).streamText('x', {
+    const stream = createLlm(openAiConfig).streamText('x', {
       ...OPTIONS,
       abortSignal: abort.signal,
     });
@@ -328,7 +351,7 @@ describe('LlmService', () => {
   it('keeps whether an API error is retryable', async () => {
     doStream.mockRejectedValue(apiError(false));
 
-    const error = await collect(new LlmService(openAiConfig).streamText('x', OPTIONS)).catch(
+    const error = await collect(createLlm(openAiConfig).streamText('x', OPTIONS)).catch(
       (e: unknown) => e,
     );
 
@@ -341,7 +364,7 @@ describe('LlmService', () => {
     abort.abort();
     doGenerate.mockRejectedValue(new Error('aborted'));
 
-    const error = await new LlmService(openAiConfig)
+    const error = await createLlm(openAiConfig)
       .generateStructured('x', z.object({}), { ...OPTIONS, abortSignal: abort.signal })
       .catch((e: unknown) => e);
 
@@ -371,13 +394,13 @@ describe('LlmService', () => {
     });
 
     it('fails to start with deepseek in MODEL_PROVIDERS but no key', () => {
-      expect(() => new LlmService(configOf({ MODEL_PROVIDERS: 'openai,deepseek' }))).toThrow(
+      expect(() => createLlm(configOf({ MODEL_PROVIDERS: 'openai,deepseek' }))).toThrow(
         'MODEL_PROVIDERS has deepseek without an API key',
       );
     });
 
     it('creates the DeepSeek provider with DEEPSEEK_API_KEY', () => {
-      new LlmService(withFallback);
+      createLlm(withFallback);
 
       expect(createDeepSeek).toHaveBeenCalledWith({ apiKey: 'sk-ds' });
     });
@@ -387,7 +410,7 @@ describe('LlmService', () => {
       doGenerate.mockRejectedValue(down());
       deepSeekGenerate.mockResolvedValue(generated);
 
-      const result = await new LlmService(withFallback).generateStructuredResult(
+      const result = await createLlm(withFallback).generateStructuredResult(
         'Hi',
         z.object({ ok: z.boolean() }),
         OPTIONS,
@@ -401,6 +424,24 @@ describe('LlmService', () => {
         deepseek: { thinking: { type: 'disabled' } },
       });
       expect(log).toHaveBeenCalledWith(expect.stringMatching(/^deepseek deepseek-test brief@v2 /));
+    });
+
+    it('names DeepSeek, not the first route, as the model of the trace', async () => {
+      jest.spyOn(Logger.prototype, 'log').mockImplementation();
+      const tracing = createMock<TracingService>({
+        callTelemetry: (): CallTelemetry => ({ telemetry: { isEnabled: false } }),
+      });
+      doGenerate.mockRejectedValue(down());
+      deepSeekGenerate.mockResolvedValue(generated);
+
+      await createLlm(withFallback, tracing).generateStructured(
+        'Hi',
+        z.object({ ok: z.boolean() }),
+        OPTIONS,
+      );
+
+      expect(tracing.markServed).toHaveBeenCalledTimes(1);
+      expect(tracing.markServed).toHaveBeenCalledWith(ModelProviderName.DeepSeek, 'deepseek-test');
     });
 
     it('streams from DeepSeek when OpenAI fails before the first output', async () => {
@@ -418,7 +459,7 @@ describe('LlmService', () => {
         ]),
       );
 
-      const deltas = await collect(new LlmService(withFallback).streamText('x', OPTIONS));
+      const deltas = await collect(createLlm(withFallback).streamText('x', OPTIONS));
 
       expect(deltas).toEqual(['From ', 'DeepSeek']);
       expect(doStream).toHaveBeenCalledTimes(2);
@@ -428,7 +469,7 @@ describe('LlmService', () => {
       doGenerate.mockRejectedValue(apiError(false));
 
       await expect(
-        new LlmService(withFallback).generateStructured('Hi', z.object({}), OPTIONS),
+        createLlm(withFallback).generateStructured('Hi', z.object({}), OPTIONS),
       ).rejects.toEqual(new AssistantUnavailableException(false));
       expect(doGenerate).toHaveBeenCalledTimes(1);
       expect(deepSeekGenerate).not.toHaveBeenCalled();
@@ -438,7 +479,7 @@ describe('LlmService', () => {
       doGenerate.mockRejectedValue(down());
 
       await expect(
-        new LlmService(withFallback).generateStructured('Hi', z.object({}), {
+        createLlm(withFallback).generateStructured('Hi', z.object({}), {
           ...OPTIONS,
           model: { provider: ModelProviderName.OpenAi, id: 'gpt-judge' },
         }),
@@ -450,7 +491,7 @@ describe('LlmService', () => {
       jest.spyOn(Logger.prototype, 'log').mockImplementation();
       anthropicGenerate.mockResolvedValue({ ...generated, response: { modelId: 'claude-test' } });
 
-      const result = await new LlmService(
+      const result = await createLlm(
         configOf({ ANTHROPIC_API_KEY: 'sk-a' }),
       ).generateStructuredResult('Hi', z.object({ ok: z.boolean() }), {
         ...OPTIONS,
@@ -467,7 +508,7 @@ describe('LlmService', () => {
 
     it('fails a call to a provider without a key as unavailable', async () => {
       await expect(
-        new LlmService(openAiConfig).generateStructured('Hi', z.object({}), {
+        createLlm(openAiConfig).generateStructured('Hi', z.object({}), {
           ...OPTIONS,
           model: { provider: ModelProviderName.Anthropic, id: ANTHROPIC_MODEL },
         }),
@@ -478,7 +519,7 @@ describe('LlmService', () => {
       jest.spyOn(Logger.prototype, 'log').mockImplementation();
       deepSeekGenerate.mockResolvedValue(generated);
 
-      await new LlmService(
+      await createLlm(
         configOf({ MODEL_PROVIDERS: 'deepseek', DEEPSEEK_API_KEY: 'sk-ds' }),
       ).generateStructured('Hi', z.object({ ok: z.boolean() }), OPTIONS);
 
@@ -534,7 +575,7 @@ describe('LlmService', () => {
 
       const calls = await runWithRequestId('req-1', async () => {
         await collect(
-          new LlmService(openAiConfig).streamWithTools('Soup?', {
+          createLlm(openAiConfig).streamWithTools('Soup?', {
             ...OPTIONS,
             tools: toToolSet([searchTool], run, new Logger('test')),
             maxSteps: 5,
@@ -574,7 +615,7 @@ describe('LlmService', () => {
       const run = new ChatToolRun();
 
       const deltas = await collect(
-        new LlmService(openAiConfig).streamWithTools([{ role: 'user', content: 'Soup?' }], {
+        createLlm(openAiConfig).streamWithTools([{ role: 'user', content: 'Soup?' }], {
           ...OPTIONS,
           tools: toToolSet([searchTool], run, new Logger('test')),
           maxSteps: 5,
@@ -604,7 +645,7 @@ describe('LlmService', () => {
         .mockImplementationOnce(async () => answer('Sorry.'));
 
       const deltas = await collect(
-        new LlmService(openAiConfig).streamWithTools('Soup?', {
+        createLlm(openAiConfig).streamWithTools('Soup?', {
           ...OPTIONS,
           tools: toToolSet([searchTool], new ChatToolRun(), new Logger('test')),
           maxSteps: 5,
@@ -625,7 +666,7 @@ describe('LlmService', () => {
         .mockImplementationOnce(async () => answer('Here you go.'));
 
       const deltas = await collect(
-        new LlmService(openAiConfig).streamWithTools('Soup?', {
+        createLlm(openAiConfig).streamWithTools('Soup?', {
           ...OPTIONS,
           tools: toToolSet([searchTool], new ChatToolRun(), new Logger('test')),
           maxSteps: 2,
@@ -642,7 +683,7 @@ describe('LlmService', () => {
       doStream.mockImplementationOnce(async () => answer('Hi.'));
 
       await collect(
-        new LlmService(openAiConfig).streamWithTools('Hi', {
+        createLlm(openAiConfig).streamWithTools('Hi', {
           ...OPTIONS,
           tools: toToolSet([searchTool], new ChatToolRun(), new Logger('test')),
           maxSteps: 2,
@@ -662,7 +703,7 @@ describe('LlmService', () => {
       );
 
       await collect(
-        new LlmService(openAiConfig).streamWithTools('Soup?', {
+        createLlm(openAiConfig).streamWithTools('Soup?', {
           ...OPTIONS,
           tools: toToolSet([searchTool], new ChatToolRun(), new Logger('test')),
           maxSteps: 3,
@@ -692,7 +733,7 @@ describe('LlmService', () => {
       const run = new ChatToolRun();
 
       await collect(
-        new LlmService(openAiConfig).streamWithTools('Plan it', {
+        createLlm(openAiConfig).streamWithTools('Plan it', {
           ...OPTIONS,
           tools: toToolSet([planTool], run, new Logger('test')),
           maxSteps: 5,
@@ -728,7 +769,7 @@ describe('LlmService', () => {
           response: { id: 'resp_2', modelId: 'gpt-test' },
         });
 
-      const result = await new LlmService(openAiConfig).generateWithToolsResult('Soup?', {
+      const result = await createLlm(openAiConfig).generateWithToolsResult('Soup?', {
         ...OPTIONS,
         tools: toToolSet([searchTool], new ChatToolRun(), new Logger('test')),
         maxSteps: 2,
@@ -748,7 +789,7 @@ describe('LlmService', () => {
       doGenerate.mockRejectedValue(new Error('socket hang up'));
 
       await expect(
-        new LlmService(openAiConfig).generateWithToolsResult('Soup?', {
+        createLlm(openAiConfig).generateWithToolsResult('Soup?', {
           ...OPTIONS,
           tools: {},
           maxSteps: 2,
@@ -769,13 +810,61 @@ describe('LlmService', () => {
 
       await expect(
         collect(
-          new LlmService(openAiConfig).streamWithTools('Soup?', {
+          createLlm(openAiConfig).streamWithTools('Soup?', {
             ...OPTIONS,
             tools: {},
             maxSteps: 2,
           }),
         ),
       ).rejects.toBeInstanceOf(AssistantUnavailableException);
+    });
+  });
+
+  describe('tracing', () => {
+    const callTelemetry: CallTelemetry = {
+      telemetry: { isEnabled: true, functionId: 'brief@v2', recordInputs: false },
+      runtimeContext: { requestId: 'req-1' },
+    };
+    const traced = createMock<TracingService>({ callTelemetry: jest.fn(() => callTelemetry) });
+
+    beforeEach(() => {
+      jest.spyOn(Logger.prototype, 'log').mockImplementation();
+    });
+
+    it('passes the telemetry of the prompt to a stream', async () => {
+      doStream.mockResolvedValue(
+        streamOf([
+          ...textParts('Hi'),
+          { type: 'finish', usage, finishReason: { unified: 'stop', raw: 'completed' } },
+        ]),
+      );
+
+      await collect(createLlm(openAiConfig, traced).streamText('x', OPTIONS));
+
+      expect(traced.callTelemetry).toHaveBeenCalledWith('brief@v2');
+      expect(jest.mocked(streamText).mock.calls[0][0]).toEqual(
+        expect.objectContaining(callTelemetry),
+      );
+    });
+
+    it('passes the telemetry of the prompt to a structured call', async () => {
+      doGenerate.mockResolvedValue({
+        content: [{ type: 'text', text: '{"ok":true}' }],
+        finishReason: { unified: 'stop', raw: 'completed' },
+        usage,
+        warnings: [],
+        response: { id: 'resp_1', modelId: 'gpt-test' },
+      });
+
+      await createLlm(openAiConfig, traced).generateStructured(
+        'Hi',
+        z.object({ ok: z.boolean() }),
+        OPTIONS,
+      );
+
+      expect(jest.mocked(generateText).mock.calls[0][0]).toEqual(
+        expect.objectContaining(callTelemetry),
+      );
     });
   });
 
@@ -794,7 +883,7 @@ describe('LlmService', () => {
       doGenerate.mockResolvedValue(generated('{"intent":"b"}'));
 
       await expect(
-        new LlmService(openAiConfig).generateStructured('Hi', schema, OPTIONS),
+        createLlm(openAiConfig).generateStructured('Hi', schema, OPTIONS),
       ).resolves.toEqual({ intent: 'b' });
       expect(doGenerate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -815,11 +904,7 @@ describe('LlmService', () => {
       jest.spyOn(Logger.prototype, 'log').mockImplementation();
       doGenerate.mockResolvedValue(generated('{"intent":"a"}'));
 
-      const result = await new LlmService(openAiConfig).generateStructuredResult(
-        'Hi',
-        schema,
-        OPTIONS,
-      );
+      const result = await createLlm(openAiConfig).generateStructuredResult('Hi', schema, OPTIONS);
 
       expect(result).toEqual({
         output: { intent: 'a' },
@@ -833,7 +918,7 @@ describe('LlmService', () => {
       jest.spyOn(Logger.prototype, 'log').mockImplementation();
       doGenerate.mockResolvedValue(generated('{"intent":"a"}'));
 
-      await new LlmService(openAiConfig).generateStructured('Hi', schema, {
+      await createLlm(openAiConfig).generateStructured('Hi', schema, {
         ...OPTIONS,
         model: { provider: ModelProviderName.OpenAi, id: 'gpt-judge' },
       });
@@ -856,7 +941,7 @@ describe('LlmService', () => {
         },
       });
 
-      const { usage } = await new LlmService(openAiConfig).generateStructuredResult(
+      const { usage } = await createLlm(openAiConfig).generateStructuredResult(
         'Hi',
         schema,
         OPTIONS,
@@ -871,7 +956,7 @@ describe('LlmService', () => {
         doGenerate.mockResolvedValue(generated(text));
 
         await expect(
-          new LlmService(openAiConfig).generateStructured('Hi', schema, OPTIONS),
+          createLlm(openAiConfig).generateStructured('Hi', schema, OPTIONS),
         ).rejects.toBeInstanceOf(AssistantInvalidOutputException);
       },
     );
@@ -881,7 +966,7 @@ describe('LlmService', () => {
       async (text) => {
         doGenerate.mockResolvedValue(generated(text));
 
-        const error = await new LlmService(openAiConfig)
+        const error = await createLlm(openAiConfig)
           .generateStructuredResult('Hi', schema, OPTIONS)
           .catch((e: unknown) => e);
 
@@ -898,7 +983,7 @@ describe('LlmService', () => {
       doGenerate.mockResolvedValue(generated('{"intent":"a"}'));
       const strict = z.object({ intent: z.enum(['a']) }).refine(() => false);
 
-      const error = await new LlmService(openAiConfig)
+      const error = await createLlm(openAiConfig)
         .generateStructuredResult('Hi', strict, OPTIONS)
         .catch((e: unknown) => e);
 
@@ -913,7 +998,7 @@ describe('LlmService', () => {
       doGenerate.mockResolvedValue(generated('{"intent":"a"}'));
 
       const calls = await runWithRequestId('req-1', async () => {
-        await new LlmService(openAiConfig).generateStructured('Hi', schema, OPTIONS);
+        await createLlm(openAiConfig).generateStructured('Hi', schema, OPTIONS);
         return getModelCalls();
       });
 
@@ -933,7 +1018,7 @@ describe('LlmService', () => {
       doGenerate.mockRejectedValue(new Error('aborted'));
 
       const calls = await runWithRequestId('req-1', async () => {
-        await new LlmService(openAiConfig)
+        await createLlm(openAiConfig)
           .generateStructured('Hi', schema, { ...OPTIONS, abortSignal: abort.signal })
           .catch(() => null);
         return getModelCalls();
@@ -949,7 +1034,7 @@ describe('LlmService', () => {
       doGenerate.mockRejectedValue(apiError(false));
 
       await expect(
-        new LlmService(openAiConfig).generateStructured('Hi', schema, OPTIONS),
+        createLlm(openAiConfig).generateStructured('Hi', schema, OPTIONS),
       ).rejects.toEqual(new AssistantUnavailableException(false));
     });
   });

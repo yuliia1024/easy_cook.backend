@@ -1,7 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { EmbeddingModelV4 } from '@ai-sdk/provider';
 import { Logger } from '@nestjs/common';
-import { APICallError } from 'ai';
+import { APICallError, embedMany } from 'ai';
 import {
   EMBEDDING_MODELS,
   EMBEDDING_PROVIDER_COOLDOWN_MS,
@@ -39,6 +39,10 @@ const embedding = jest.fn((id: string) =>
 jest.mock('@ai-sdk/openai', () => ({
   createOpenAI: jest.fn(() => ({ embedding })),
 }));
+jest.mock('ai', () => {
+  const actual = jest.requireActual<typeof import('ai')>('ai');
+  return { ...actual, embedMany: jest.fn(actual.embedMany) };
+});
 
 const LOCAL = 'ollama/qwen3-embedding:0.6b-q8_0@1024';
 const OPENAI = 'openai/text-embedding-3-large@1024';
@@ -91,6 +95,12 @@ describe('EmbeddingService', () => {
   });
 
   describe('embedQuery', () => {
+    it("is never traced: the query is the user's text", async () => {
+      await build().embedQuery('soup');
+
+      expect(jest.mocked(embedMany).mock.calls[0][0].telemetry).toEqual({ isEnabled: false });
+    });
+
     it('is served by the local model, with its query prefix and the pinned dimensions', async () => {
       await expect(build().embedQuery('soup')).resolves.toEqual({
         vector: vector(),

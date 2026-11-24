@@ -145,6 +145,8 @@ export class EmbeddingService {
         maxRetries,
         maxParallelCalls: EMBEDDING_MAX_PARALLEL_CALLS,
         abortSignal: AbortSignal.any(signals),
+        // Never traced: the values are the user's search queries (`TracingService`).
+        telemetry: { isEnabled: false },
       });
       batch = { embeddings: result.embeddings, tokens: result.usage?.tokens ?? 0 };
     } catch (error) {

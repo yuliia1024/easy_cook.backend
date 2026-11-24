@@ -123,6 +123,20 @@ describe('ModelFallback', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
+  it('reports the route that served, not the first one', async () => {
+    openAi.doGenerate.mockRejectedValue(apiError(503, true));
+    deepSeek.doGenerate.mockResolvedValue(RESULT);
+    const onServed = jest.fn();
+
+    await fallback({ onServed }).doGenerate(OPTIONS);
+
+    expect(onServed).toHaveBeenCalledTimes(1);
+    expect(onServed).toHaveBeenCalledWith({
+      provider: ModelProviderName.DeepSeek,
+      modelId: 'deepseek.chat-model',
+    });
+  });
+
   it.each([
     ['a 5xx', 503],
     ['a rate limit', 429],
