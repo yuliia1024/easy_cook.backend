@@ -33,7 +33,10 @@ import {
   MenuPlanSchema,
   MenuRequest,
 } from '../../../common/contracts';
-import { AssistantInvalidOutputException } from '../../../common/exceptions';
+import {
+  AssistantInvalidOutputException,
+  AssistantUnavailableException,
+} from '../../../common/exceptions';
 import {
   ChatProgressEvent,
   ChatResponse,
@@ -510,6 +513,38 @@ describe('MenuPlannerService', () => {
     });
   });
 
+  it('offers no recipe with a disliked food while the others fill the candidates', async () => {
+    const lentils = Array.from({ length: candidatesPerMeal(1) }, (_, i) =>
+      buildRecipe({
+        id: `rec-lentils-${i}`,
+        name: `Lentil soup ${i}`,
+        mealType: MealType.Lunch,
+        ingredients: [
+          buildIngredient({
+            foodItem: buildFoodItem({ name: 'Lentils, boiled', nameEn: 'Lentils, boiled' }),
+          }),
+        ],
+      }),
+    );
+    recipeService.getAllowed.mockResolvedValue([breakfast, lunch, ...lentils, dinner, snack]);
+    llmService.generateStructuredResult.mockResolvedValue(
+      result({ ...plan, days: [{ dayIndex: 0, meals: { ...meals, lunch: 'l1' } }] }),
+    );
+
+    await service.plan('Light day', oneDay, {
+      ...profile,
+      rules: { ...profile.rules, dislikedFoods: ['rice'] },
+    });
+
+    const { recipes } = JSON.parse(sentMessages()[0].content) as {
+      recipes: Record<string, Array<{ name: string }>>;
+    };
+    expect(recipes.lunch.map(({ name }) => name)).not.toContain('Rice bowl');
+    expect(recipes.lunch).toHaveLength(candidatesPerMeal(1));
+    // The only breakfast is disliked too: it is offered for want of others.
+    expect(recipes.breakfast.map(({ name }) => name)).toEqual(['Rice porridge']);
+  });
+
   it('reports the issues of the chosen recipes against the preferences', async () => {
     const response = await service.plan('Light day', oneDay, {
       ...profile,
@@ -712,6 +747,91 @@ describe('MenuPlannerService', () => {
       expect(warn).toHaveBeenLastCalledWith(
         `Menu plan failed after ${MENU_PLAN_MAX_ATTEMPTS} attempts`,
       );
+    });
+
+    describe('repeated recipes', () => {
+      const twoDays: MenuRequest = { ...oneDay, days: 2 };
+      const second = { breakfast: 'b2', lunch: 'l2', dinner: 'd2', snack: 's2' };
+      const planOf = (...days: Array<typeof meals>): MenuPlan => ({
+        ...plan,
+        days: days.map((dayMeals, dayIndex) => ({ dayIndex, meals: dayMeals })),
+      });
+      const varied = planOf(meals, second);
+      const repeating = planOf(meals, { ...second, lunch: 'l1' });
+      const invalid = planOf(meals, { ...second, lunch: 'x' });
+      const problem =
+        'dayIndex 1, lunch: "l1" is already on dayIndex 0, the day before; not used yet: l2.';
+
+      beforeEach(() => {
+        recipeService.getAllowed.mockResolvedValue(
+          [breakfast, lunch, dinner, snack].flatMap((recipe) => [
+            recipe,
+            { ...recipe, id: `${recipe.id}2`, name: `${recipe.name} 2` },
+          ]),
+        );
+      });
+
+      it('sends them back and takes the varied plan', async () => {
+        llmService.generateStructuredResult
+          .mockResolvedValueOnce(result(repeating))
+          .mockResolvedValueOnce(result(varied));
+
+        await expect(service.plan('Two days', twoDays, profile)).resolves.toMatchObject({
+          type: ChatResponseType.MenuReady,
+          days: [
+            { meals: [{}, { recipeId: 'rec-l' }, {}, {}] },
+            { meals: [{}, { recipeId: 'rec-l2' }, {}, {}] },
+          ],
+        });
+        expect(sentMessages(1).at(-1)?.content).toBe(menuPlanRetryMessage([problem]));
+        expect(warn).toHaveBeenCalledWith(`Menu plan attempt 1 of 3 has 1 problem(s): ${problem}`);
+      });
+
+      it('accepts a plan that still has them after the last attempt', async () => {
+        llmService.generateStructuredResult.mockResolvedValue(result(repeating));
+
+        await expect(service.plan('Two days', twoDays, profile)).resolves.toMatchObject({
+          type: ChatResponseType.MenuReady,
+          days: [
+            { meals: [{}, { recipeId: 'rec-l' }, {}, {}] },
+            { meals: [{}, { recipeId: 'rec-l' }, {}, {}] },
+          ],
+        });
+        expect(llmService.generateStructuredResult).toHaveBeenCalledTimes(MENU_PLAN_MAX_ATTEMPTS);
+        expect(warn).toHaveBeenLastCalledWith(
+          'Menu plan attempt 3 accepted with 1 problem(s) after 3 attempts',
+        );
+      });
+
+      it('takes it, with the model that planned it, over later attempts that break the rules', async () => {
+        llmService.generateStructuredResult
+          .mockResolvedValueOnce(result(repeating))
+          .mockResolvedValue({ ...result(invalid), modelId: 'other-model' });
+
+        await expect(service.plan('Two days', twoDays, profile)).resolves.toMatchObject({
+          type: ChatResponseType.MenuReady,
+          generatedWith: { modelId },
+        });
+        expect(llmService.generateStructuredResult).toHaveBeenCalledTimes(MENU_PLAN_MAX_ATTEMPTS);
+      });
+
+      it('takes it when the retry fails', async () => {
+        llmService.generateStructuredResult
+          .mockResolvedValueOnce(result(repeating))
+          .mockRejectedValueOnce(new AssistantUnavailableException());
+
+        await expect(service.plan('Two days', twoDays, profile)).resolves.toMatchObject({
+          type: ChatResponseType.MenuReady,
+        });
+      });
+
+      it('fails when every attempt breaks the rules', async () => {
+        llmService.generateStructuredResult.mockResolvedValue(result(invalid));
+
+        await expect(service.plan('Two days', twoDays, profile)).rejects.toBeInstanceOf(
+          AssistantInvalidOutputException,
+        );
+      });
     });
   });
   describe('replan of a day', () => {

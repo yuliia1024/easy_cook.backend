@@ -61,6 +61,12 @@ NestJS 12 monolith, Prisma 7 (Postgres via `@prisma/adapter-pg`), Redis (ioredis
   calls and tokens summed over the request (`recordModelCall` in the request context), tool calls.
   `LlmService` logs every step of a tool loop with its timing and every unfinished (aborted /
   failed) call; the registry logs every tool run with its call id and time, never its arguments.
+- Langfuse tracing (`providers/tracing/`, README "Langfuse tracing"): off unless
+  `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY`. `TracingService` starts the OpenTelemetry
+  exporter; the AI SDK integration is never registered globally - a call is traced only when it
+  takes `TracingService.callTelemetry(promptLabel)` (every `LlmService` call: trace named after the
+  prompt, `requestId` metadata). Prompts, messages and replies are recorded with `ENV=local` only
+  (`TracingConfigService.recordsContent`); never turn that on elsewhere. Embeddings are never traced.
 - Agent runs (`modules/services/agent-run/`, table `agent_runs`): the audit log of the chat agent,
   one row per user message written in the orchestrator's `finally` whatever the outcome (a write
   tool in a failed reply is on record too): request id, user / reply message, outcome, timings,

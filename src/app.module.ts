@@ -21,6 +21,7 @@ import { LlmModule } from './providers/llm/llm.module';
 import { PrismaModule } from './providers/prisma/prisma.module';
 import { RedisThrottlerStorage } from './providers/redis/redis-throttler.storage';
 import { RedisModule } from './providers/redis/redis.module';
+import { TracingModule } from './providers/tracing/tracing.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { RedisModule } from './providers/redis/redis.module';
     PrismaModule,
     RedisModule,
     LlmModule,
+    TracingModule,
     AuthModule,
     // Limits of every route, counted in Redis (`RATE_LIMITS`).
     ThrottlerModule.forRootAsync({

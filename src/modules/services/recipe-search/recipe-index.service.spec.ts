@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { EMBEDDING_BATCH_SIZE } from '../../../common/constants';
+import { EMBEDDING_MODELS, EmbeddingProviderName } from '../../../common/constants';
 import { EmbeddingUnavailableException } from '../../../common/exceptions';
 import { EmbeddingService } from '../../../providers/embedding/embedding.service';
 import { createMock } from '../../../test/create-mock';
@@ -15,6 +15,7 @@ import { buildRecipeDocument } from './recipe-document';
 import { RecipeIndexService } from './recipe-index.service';
 
 const OPENAI = 'openai/text-embedding-3-large@1024';
+const LOCAL_BATCH = EMBEDDING_MODELS[EmbeddingProviderName.Ollama].batchSize;
 
 describe('RecipeIndexService', () => {
   let recipes: jest.Mocked<RecipeRepository>;
@@ -32,7 +33,7 @@ describe('RecipeIndexService', () => {
     embeddingHash: doc.contentHash,
   }));
   const manyRecipes = (): ReturnType<typeof buildRecipe>[] =>
-    Array.from({ length: EMBEDDING_BATCH_SIZE + 1 }, (_, i) =>
+    Array.from({ length: LOCAL_BATCH + 1 }, (_, i) =>
       buildRecipe({ id: `r${i}`, name: `Recipe ${i}` }),
     );
 
@@ -95,7 +96,10 @@ describe('RecipeIndexService', () => {
 
   describe('with a fallback model', () => {
     beforeEach(() => {
-      Object.assign(embeddings, { modelKeys: [LOCAL, OPENAI] });
+      Object.assign(embeddings, {
+        models: [...embeddings.models, EMBEDDING_MODELS[EmbeddingProviderName.OpenAi]],
+        modelKeys: [LOCAL, OPENAI],
+      });
     });
 
     it('fills an index per model and writes the documents once', async () => {
@@ -108,6 +112,19 @@ describe('RecipeIndexService', () => {
         [LOCAL, 2],
         [OPENAI, 2],
       ]);
+    });
+
+    it('embeds in the batch size of each model', async () => {
+      recipes.findAll.mockResolvedValue(manyRecipes());
+
+      await service.sync();
+
+      const sizes = (model: string): number[] =>
+        embeddings.embedDocuments.mock.calls
+          .filter(([key]) => key === model)
+          .map(([, texts]) => texts.length);
+      expect(sizes(LOCAL)).toEqual([LOCAL_BATCH, 1]);
+      expect(sizes(OPENAI)).toEqual([LOCAL_BATCH + 1]);
     });
 
     it('skips the model whose provider is down and fills the other', async () => {
@@ -147,15 +164,15 @@ describe('RecipeIndexService', () => {
     expect(embeddings.embedDocuments).toHaveBeenCalledTimes(2);
     expect(search.upsertEmbeddings).toHaveBeenCalledTimes(2);
     expect(onProgress.mock.calls).toEqual([
-      [LOCAL, EMBEDDING_BATCH_SIZE, EMBEDDING_BATCH_SIZE + 1],
-      [LOCAL, EMBEDDING_BATCH_SIZE + 1, EMBEDDING_BATCH_SIZE + 1],
+      [LOCAL, LOCAL_BATCH, LOCAL_BATCH + 1],
+      [LOCAL, LOCAL_BATCH + 1, LOCAL_BATCH + 1],
     ]);
   });
 
   it('keeps the batches saved before a failed one', async () => {
     recipes.findAll.mockResolvedValue(manyRecipes());
     embeddings.embedDocuments
-      .mockResolvedValueOnce({ embeddings: new Array(EMBEDDING_BATCH_SIZE).fill([1]), tokens: 1 })
+      .mockResolvedValueOnce({ embeddings: new Array(LOCAL_BATCH).fill([1]), tokens: 1 })
       .mockRejectedValueOnce(new EmbeddingUnavailableException());
 
     const result = await service.sync();

@@ -20,7 +20,9 @@ import { join } from 'node:path';
 import { Logger } from '@nestjs/common';
 import { ModelProviderName } from '../src/common/constants';
 import { ModelProvidersConfigService } from '../src/configs/model-providers-config/model-providers-config.service';
+import { TracingConfigService } from '../src/configs/tracing-config/tracing-config.service';
 import { LlmService } from '../src/providers/llm/llm.service';
+import { TracingService } from '../src/providers/tracing/tracing.service';
 import { MODEL_VENDORS } from '../src/providers/llm/vendors';
 import { parseEvalArgs } from './lib/args';
 import { baselinesDir, readBaseline } from './lib/baseline';
@@ -79,12 +81,16 @@ async function main(): Promise<boolean> {
   // Failed calls end up in the report; the per-call log lines would only bury the summary.
   Logger.overrideLogger(false);
   // One provider, no fallback: a result measures one model.
-  const llm = new LlmService({
-    openAiApiKey,
-    deepSeekApiKey,
-    anthropicApiKey,
-    providers: [args.provider],
-  } as ModelProvidersConfigService);
+  const llm = new LlmService(
+    {
+      openAiApiKey,
+      deepSeekApiKey,
+      anthropicApiKey,
+      providers: [args.provider],
+    } as ModelProvidersConfigService,
+    // No tracing: the report holds what a run measured.
+    new TracingService({ langfuse: null } as TracingConfigService),
+  );
 
   const { ok } = await runEvals(
     args,

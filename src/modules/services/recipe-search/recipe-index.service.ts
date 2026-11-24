@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EMBEDDING_BATCH_SIZE } from '../../../common/constants';
 import { EmbeddingUnavailableException } from '../../../common/exceptions';
+import { embeddingModelKey } from '../../../common/utils';
 import { EmbeddingService } from '../../../providers/embedding/embedding.service';
 import {
   IndexStatus,
@@ -77,7 +77,8 @@ export class RecipeIndexService {
 
     const models: ModelIndexResult[] = [];
     let documentsWritten = 0;
-    for (const [index, model] of this.embeddingService.modelKeys.entries()) {
+    for (const [index, spec] of this.embeddingService.models.entries()) {
+      const model = embeddingModelKey(spec);
       const state = new Map(
         (await this.searchRepository.findIndexState(model)).map((row) => [row.recipeId, row]),
       );
@@ -93,7 +94,7 @@ export class RecipeIndexService {
       const toEmbed = documents.filter(
         (doc) => force || state.get(doc.recipeId)?.embeddingHash !== doc.contentHash,
       );
-      models.push(await this.embedAll(model, toEmbed, onProgress));
+      models.push(await this.embedAll(model, spec.batchSize, toEmbed, onProgress));
     }
 
     const result: IndexSyncResult = {
@@ -131,11 +132,12 @@ export class RecipeIndexService {
 
   private async embedAll(
     model: string,
+    batchSize: number,
     documents: RecipeDocument[],
     onProgress: IndexSyncOptions['onProgress'],
   ): Promise<ModelIndexResult> {
     const result: ModelIndexResult = { model, embedded: 0, tokens: 0, error: null };
-    for (const batch of chunk(documents, EMBEDDING_BATCH_SIZE)) {
+    for (const batch of chunk(documents, batchSize)) {
       try {
         result.tokens += await this.embedBatch(model, batch);
       } catch (error) {

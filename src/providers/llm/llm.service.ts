@@ -38,6 +38,7 @@ import {
 import { promptLabel } from '../../common/utils';
 import { ModelProvidersConfigService } from '../../configs/model-providers-config/model-providers-config.service';
 import { ModelFallback, ModelRoute } from './model-fallback';
+import { TracingService } from '../tracing/tracing.service';
 import { MODEL_VENDORS } from './vendors';
 
 /** A single prompt or a conversation, oldest message first. */
@@ -128,7 +129,10 @@ export class LlmService {
   >;
   private readonly providers: ModelProviderName[];
 
-  constructor(config: ModelProvidersConfigService) {
+  constructor(
+    config: ModelProvidersConfigService,
+    private readonly tracing: TracingService,
+  ) {
     this.clients = Object.fromEntries(
       Object.values(MODEL_VENDORS).flatMap((vendor) => {
         const apiKey = vendor.apiKey(config);
@@ -364,6 +368,7 @@ export class LlmService {
       retryDelayMs: MODEL_RETRY_DELAY_MS,
       label: promptLabel(prompt),
       logger: this.logger,
+      onServed: ({ provider, modelId }) => this.tracing.markServed(provider, modelId),
     });
   }
 
@@ -397,6 +402,7 @@ export class LlmService {
       timeout: MODEL_CALL_TIMEOUT_MS,
       abortSignal,
       ...(typeof input === 'string' ? { prompt: input } : { messages: input }),
+      ...this.tracing.callTelemetry(promptLabel(prompt)),
     };
   }
 

@@ -28,6 +28,17 @@ export interface ModelFallbackSettings {
   /** Names the call in the log lines (`promptLabel`). */
   label: string;
   logger: Logger;
+  /**
+   * Called with the route of every response, inside the SDK call: the model named by the
+   * instance (`provider` / `modelId`) is the first route's, whichever served.
+   */
+  onServed?: (route: ServedRoute) => void;
+}
+
+/** The provider and model that answered one call. */
+export interface ServedRoute {
+  provider: ModelProviderName;
+  modelId: string;
 }
 
 /** Stream parts that come before the model's output and say nothing about whether it will come. */
@@ -117,7 +128,7 @@ export class ModelFallback implements LanguageModelV4 {
     options: LanguageModelV4CallOptions,
     run: (model: LanguageModelV4, options: LanguageModelV4CallOptions) => PromiseLike<T>,
   ): Promise<T> {
-    const { attemptTimeoutMs, retries, retryDelayMs, label, logger } = this.settings;
+    const { attemptTimeoutMs, retries, retryDelayMs, label, logger, onServed } = this.settings;
     const failures: string[] = [];
     let lastError: unknown;
 
@@ -141,6 +152,7 @@ export class ModelFallback implements LanguageModelV4 {
         try {
           const result = await run(model, { ...routeOptions, abortSignal });
           this.served.push(provider);
+          onServed?.({ provider, modelId: model.modelId });
           if (failures.length > 0) {
             logger.warn(
               `${label} served by ${provider} (${model.modelId}) after ${failures.join('; ')}`,
