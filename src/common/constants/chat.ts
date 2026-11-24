@@ -66,7 +66,8 @@ export const TEXT_PART_BREAKS: ReadonlySet<ChatStreamEventType> = new Set([
 ]);
 /**
  * The most a reply may take, every model call, retry and tool of it included (a revision runs one
- * planner call per day or meal); past it the reply ends with `assistant_unavailable`.
+ * planner call per day or meal); past it the reply ends with `assistant_unavailable`, unless the
+ * planner already has a menu it can accept.
  */
 export const CHAT_REPLY_TIMEOUT_MS = 180_000;
 /** Between two text parts of the saved reply (`TEXT_PART_BREAKS`). */

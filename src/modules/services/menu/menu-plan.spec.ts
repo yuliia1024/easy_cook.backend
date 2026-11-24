@@ -18,13 +18,15 @@ import { toModelProfile } from '../profile-context/model-profile';
 import {
   bestAttempt,
   candidatesPerMeal,
+  dislikedProblems,
   labelCandidates,
+  LabelledCandidates,
   MenuPlanAttempt,
   MenuPlanCandidate,
   MenuPlanCandidates,
   menuPlanErrors,
   menuPlanModelCall,
-  menuPlanRepeats,
+  menuPlanSoftProblems,
   planDays,
   planProblems,
   planWithRetries,
@@ -109,6 +111,29 @@ describe('selectCandidates', () => {
     ]);
   });
 
+  it('leaves the spare candidates empty rather than disliked once there is a recipe for every day', () => {
+    const disliked = new Set(['l100', 'l200', 'l400', 'l600', 'l700']);
+
+    expect(ids(selectCandidates(lunches, MealType.Lunch, 2000, 6, 0, [], disliked, 3))).toEqual([
+      'l800',
+      'l900',
+      'l1000',
+    ]);
+  });
+
+  it('takes only as many disliked recipes as the days still need, the wished ones counted', () => {
+    const disliked = new Set(['l100', 'l200', 'l400', 'l600', 'l700', 'l900']);
+
+    expect(ids(selectCandidates(lunches, MealType.Lunch, 2000, 6, 0, [], disliked, 3))).toEqual([
+      'l800',
+      'l1000',
+      'l700',
+    ]);
+    expect(
+      ids(selectCandidates(lunches, MealType.Lunch, 2000, 6, 0, ['l100'], disliked, 3)),
+    ).toEqual(['l100', 'l800', 'l1000']);
+  });
+
   it('keeps a wished recipe with a disliked food: the user asked for it', () => {
     expect(
       ids(selectCandidates(lunches, MealType.Lunch, 2000, 2, 0, ['l100'], new Set(['l100']))),
@@ -148,6 +173,20 @@ describe('labelCandidates', () => {
       ['s1', 'rec-s'],
       ['d1', 'rec-d'],
     ]);
+  });
+
+  it('names the candidates with a disliked food by their short ids', () => {
+    const { dislikedIds } = labelCandidates(
+      {
+        breakfast: [candidate('rec-b1', 400), candidate('rec-b2', 300)],
+        lunch: [candidate('rec-l', 700)],
+        dinner: [candidate('rec-d', 600)],
+        snack: [candidate('rec-s', 150)],
+      },
+      new Set(['rec-b2', 'rec-d', 'rec-other']),
+    );
+
+    expect([...dislikedIds]).toEqual(['b2', 'd1']);
   });
 });
 
@@ -326,7 +365,7 @@ describe('varietyProblems', () => {
 
   it('names a recipe on two days in a row when every candidate is used', () => {
     expect(varietyProblems(planOf('l1', 'l2', 'l2'), candidatesOf(2))).toEqual([
-      'dayIndex 2, lunch: "l2" is already on dayIndex 1, the day before; use another id from the lunch recipes.',
+      'dayIndex 2, lunch: "l2" is already on dayIndex 1, the day before; use another one: l1.',
     ]);
   });
 
@@ -363,19 +402,72 @@ describe('varietyProblems', () => {
     ]);
   });
 
-  describe('menuPlanRepeats', () => {
-    it('are the variety problems of a plan of the right days and candidates', () => {
-      const plan = planOf('l1', 'l1');
+  describe('with disliked candidates', () => {
+    const disliked = new Set(['l3', 'l4']);
 
-      expect(menuPlanRepeats(plan, candidatesOf(2), 2)).toEqual(
-        varietyProblems(plan, candidatesOf(2)),
+    it('allows a repeat only a disliked recipe could avoid', () => {
+      expect(varietyProblems(planOf('l1', 'l2', 'l1'), candidatesOf(4), disliked)).toEqual([]);
+    });
+
+    it('never names a disliked recipe to use instead', () => {
+      expect(varietyProblems(planOf('l1', 'l1', 'l3'), candidatesOf(4), disliked)).toEqual([
+        'dayIndex 1, lunch: "l1" is already on dayIndex 0, the day before; not used yet: l2.',
+      ]);
+      expect(varietyProblems(planOf('l1', 'l2', 'l2'), candidatesOf(4), disliked)).toEqual([
+        'dayIndex 2, lunch: "l2" is already on dayIndex 1, the day before; use another one: l1.',
+      ]);
+    });
+
+    it('allows the only other recipe on two days in a row', () => {
+      const allButOne = new Set(['l2', 'l3', 'l4']);
+
+      expect(varietyProblems(planOf('l1', 'l1'), candidatesOf(4), allButOne)).toEqual([]);
+      expect(varietyProblems(planOf('l2', 'l2'), candidatesOf(4), allButOne)).toEqual([
+        'dayIndex 1, lunch: "l2" is already on dayIndex 0, the day before; not used yet: l1.',
+      ]);
+    });
+  });
+
+  describe('dislikedProblems', () => {
+    const disliked = new Set(['l3', 'l4']);
+
+    it('names a disliked recipe while the meal has another one not used yet', () => {
+      expect(dislikedProblems(planOf('l1', 'l3'), candidatesOf(4), disliked)).toEqual([
+        'dayIndex 1, lunch: "l3" has a food the user dislikes; not used yet: l2.',
+      ]);
+    });
+
+    it('allows it once every other recipe is used', () => {
+      expect(dislikedProblems(planOf('l1', 'l3', 'l2'), candidatesOf(4), disliked)).toEqual([]);
+    });
+
+    it('finds none without disliked candidates', () => {
+      expect(dislikedProblems(planOf('l1', 'l1'), candidatesOf(4), new Set())).toEqual([]);
+    });
+  });
+
+  describe('menuPlanSoftProblems', () => {
+    const labelled = (
+      lunches: number,
+      ...dislikedIds: string[]
+    ): Pick<LabelledCandidates, 'candidates' | 'dislikedIds'> => ({
+      candidates: candidatesOf(lunches),
+      dislikedIds: new Set(dislikedIds),
+    });
+
+    it('are the disliked and the variety problems of a plan of the right days and candidates', () => {
+      expect(menuPlanSoftProblems(planOf('l1', 'l1'), labelled(2), 2)).toEqual(
+        varietyProblems(planOf('l1', 'l1'), candidatesOf(2)),
       );
-      expect(menuPlanRepeats(plan, candidatesOf(2), 2)).toHaveLength(1);
+      expect(menuPlanSoftProblems(planOf('l1', 'l1', 'l3'), labelled(4, 'l3', 'l4'), 3)).toEqual([
+        'dayIndex 2, lunch: "l3" has a food the user dislikes; not used yet: l2.',
+        'dayIndex 1, lunch: "l1" is already on dayIndex 0, the day before; not used yet: l2.',
+      ]);
     });
 
     it('are none of a plan with other days or unknown ids: it goes back for those', () => {
-      expect(menuPlanRepeats(planOf('l1', 'l1'), candidatesOf(2), 3)).toEqual([]);
-      expect(menuPlanRepeats(planOf('x', 'x'), candidatesOf(2), 2)).toEqual([]);
+      expect(menuPlanSoftProblems(planOf('l1', 'l1'), labelled(2), 3)).toEqual([]);
+      expect(menuPlanSoftProblems(planOf('x', 'x'), labelled(2), 2)).toEqual([]);
     });
   });
 });

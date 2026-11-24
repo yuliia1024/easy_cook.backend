@@ -28,7 +28,10 @@ import {
   RecipeSnapshot,
   ResolvedDay,
 } from '../../../common/types';
-import { AssistantInvalidOutputException } from '../../../common/exceptions';
+import {
+  AssistantInvalidOutputException,
+  AssistantUnavailableException,
+} from '../../../common/exceptions';
 import { promptLabel } from '../../../common/utils';
 import { ModelCallOptions, LlmService } from '../../../providers/llm/llm.service';
 import { RecipeWithIngredients } from '../../data-access/recipe/recipe.repository';
@@ -52,7 +55,7 @@ import {
   menuPlanErrors,
   MenuPlanMealType,
   menuPlanModelCall,
-  menuPlanRepeats,
+  menuPlanSoftProblems,
   planDays,
   PlannedDay,
   planWithRetries,
@@ -98,6 +101,12 @@ export function offeredRecipes(
   return wished;
 }
 
+/** Whether the reply ran out of its time (`AbortSignal.timeout`), unlike a client that went away. */
+const isTimedOut = (signal: AbortSignal | undefined): boolean =>
+  signal?.aborted === true &&
+  signal.reason instanceof DOMException &&
+  signal.reason.name === 'TimeoutError';
+
 /** The allowed recipes with their nutrition and the labelled candidates. */
 interface PreparedMenu extends LabelledCandidates {
   options: Map<string, RecipeOption>;
@@ -117,8 +126,9 @@ const roundToUnits = ({ kcal, proteinG, fatG, carbsG }: MacroValues): MacroValue
  * knowing the profile goal, the daily target and the calories and macros of a serving. A plan with problems
  * (other days, a recipe that is not a candidate, an error of `validateMenu`) goes back to the
  * model with the problems, up to `MENU_PLAN_MAX_ATTEMPTS` calls; after the last one it is invalid
- * output. A plan that repeats recipes (`varietyProblems`) goes back too, but is accepted when no
- * attempt is better (`bestAttempt`). The servings of every day are fitted to the daily calories of the request
+ * output. A plan that repeats recipes or has a disliked food it could do without
+ * (`menuPlanSoftProblems`) goes back too, but is accepted when no attempt is better
+ * (`bestAttempt`), also when the time of the reply runs out on a later one. The servings of every day are fitted to the daily calories of the request
  * (`fitServings`), one each without them. The menu comes with its issues against the profile and
  * its meals with the recipe snapshots, and the model and prompt version that planned it
  * (`generatedWith`, of the attempt used). Nothing is saved.
@@ -182,7 +192,7 @@ export class MenuPlannerService {
         offer,
       };
     }
-    const { options, candidates, recipeIds } = this.prepare(
+    const { options, candidates, recipeIds, dislikedIds } = this.prepare(
       recipes,
       request,
       context.rules,
@@ -212,7 +222,7 @@ export class MenuPlannerService {
         ),
       menuPlanRetryMessage,
       onProgress,
-      (planned) => menuPlanRepeats(planned, candidates, days),
+      (planned) => menuPlanSoftProblems(planned, { candidates, dislikedIds }, days),
     );
     this.logger.log(
       `Menu of ${days} days planned in ${attempts} attempt(s) by ${generatedWith.modelId} with ${generatedWith.prompt}`,
@@ -324,18 +334,16 @@ export class MenuPlannerService {
         rejectedRecipeIds,
         dailyKcal: request.caloriesKcal,
         label: (allowed) =>
-          labelCandidates(
-            this.candidates(
-              allowed.map((recipe) => ({
-                ...recipe,
-                disliked: recipe.ingredients.some(({ foodName, foodNameEn }) =>
-                  isDislikedFood(foodName, foodNameEn, context.rules),
-                ),
-              })),
-              MENU_MIN_DAYS,
-              request.caloriesKcal,
-              wished,
-            ),
+          this.candidates(
+            allowed.map((recipe) => ({
+              ...recipe,
+              disliked: recipe.ingredients.some(({ foodName, foodNameEn }) =>
+                isDislikedFood(foodName, foodNameEn, context.rules),
+              ),
+            })),
+            MENU_MIN_DAYS,
+            request.caloriesKcal,
+            wished,
           ),
         compose,
       },
@@ -496,22 +504,20 @@ export class MenuPlannerService {
         { recipe, nutrition: this.nutritionService.calculateRecipe(recipe) },
       ]),
     );
-    const labelled = labelCandidates(
-      this.candidates(
-        [...options.values()].map(({ recipe, nutrition }) => ({
-          id: recipe.id,
-          name: recipe.name,
-          mealType: recipe.mealType,
-          perServing: nutrition.perServing,
-          complete: nutrition.complete,
-          disliked: recipe.ingredients.some(({ foodItem }) =>
-            isDislikedFood(foodItem.name, foodItem.nameEn, rules),
-          ),
-        })),
-        days,
-        request.caloriesKcal,
-        wished,
-      ),
+    const labelled = this.candidates(
+      [...options.values()].map(({ recipe, nutrition }) => ({
+        id: recipe.id,
+        name: recipe.name,
+        mealType: recipe.mealType,
+        perServing: nutrition.perServing,
+        complete: nutrition.complete,
+        disliked: recipe.ingredients.some(({ foodItem }) =>
+          isDislikedFood(foodItem.name, foodItem.nameEn, rules),
+        ),
+      })),
+      days,
+      request.caloriesKcal,
+      wished,
     );
     onProgress({
       type: ChatStreamEventType.MenuPending,
@@ -524,8 +530,9 @@ export class MenuPlannerService {
   /**
    * Asks the model until the plan has no `problemsOf` and no `softProblemsOf`, up to
    * `MENU_PLAN_MAX_ATTEMPTS` calls (`planWithRetries`); when every attempt has `problemsOf`, it is
-   * invalid output. Returns the plan (`bestAttempt`) with the model and prompt version of its call
-   * and the number of attempts.
+   * invalid output. A call cut by the time of the reply counts as a failed one, so a plan accepted
+   * before it is kept; a client that went away ends the loop. Returns the plan (`bestAttempt`) with
+   * the model and prompt version of its call and the number of attempts.
    */
   private async generate<T>(
     input: ModelMessage[],
@@ -543,13 +550,17 @@ export class MenuPlannerService {
       input,
       async (messages) => {
         status(ChatStatusStep.PickingLunches);
-        const result = await this.llmService.generateStructuredResult(
-          messages,
-          schema,
-          callOptions,
-        );
-        modelIds.push(result.modelId);
-        return result.output;
+        try {
+          const result = await this.llmService.generateStructuredResult(
+            messages,
+            schema,
+            callOptions,
+          );
+          modelIds.push(result.modelId);
+          return result.output;
+        } catch (error) {
+          throw isTimedOut(callOptions.abortSignal) ? new AssistantUnavailableException() : error;
+        }
       },
       (plan) => {
         status(ChatStatusStep.CheckingConstraints);
@@ -588,19 +599,23 @@ export class MenuPlannerService {
   }
 
   /**
-   * The candidates of every meal, rotated by a random offset so a new plan gets other ones, the
-   * `wished` recipes first, the `disliked` ones only for want of others.
+   * The labelled candidates of every meal, rotated by a random offset so a new plan gets other
+   * ones, the `wished` recipes first, the `disliked` ones only for want of others for the days. A
+   * wished recipe is not disliked: the user asked for it.
    */
   private candidates(
     recipes: CandidateRecipe[],
     days: number,
     dailyKcal: number | null,
     wished: WishedRecipes = {},
-  ): MenuPlanCandidates {
+  ): LabelledCandidates {
     const count = candidatesPerMeal(days);
     const rotation = Math.floor(Math.random() * count * MENU_PLAN_CANDIDATE_POOL_FACTOR);
-    const disliked = new Set(recipes.filter((recipe) => recipe.disliked).map(({ id }) => id));
-    return Object.fromEntries(
+    const wishedIds = new Set(Object.values(wished).flat());
+    const disliked = new Set(
+      recipes.filter((recipe) => recipe.disliked && !wishedIds.has(recipe.id)).map(({ id }) => id),
+    );
+    const selected = Object.fromEntries(
       MENU_PLAN_MEAL_TYPES.map((mealType) => [
         mealType,
         selectCandidates(
@@ -618,9 +633,11 @@ export class MenuPlannerService {
           rotation,
           wished[mealType],
           disliked,
+          days,
         ),
       ]),
     ) as MenuPlanCandidates;
+    return labelCandidates(selected, disliked);
   }
 
   /** The day with the recipes of the short ids the model picked, one serving each. */

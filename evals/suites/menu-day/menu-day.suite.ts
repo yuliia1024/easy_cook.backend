@@ -36,7 +36,7 @@ import {
   daysProblem,
   menuPlanErrors,
   menuPlanModelCall,
-  menuPlanRepeats,
+  menuPlanSoftProblems,
   planDays,
   PlannedDay,
   planWithRetries,
@@ -380,12 +380,13 @@ export async function planWholeMenu(
   const profile = caseProfile(testCase);
   const previous = previousDays(testCase);
   const dailyKcal = dailyKcalOf(testCase);
-  const { candidates, recipeIds } = labelRecipes(
+  const labelled = labelRecipes(
     allowedRecipes(profile),
     profile,
     previous.length,
     testCase.rotation,
   );
+  const { candidates, recipeIds } = labelled;
   const resolve = (planned: PlannedDay[]): ResolvedDay[] => {
     const days = planned.map((meals, dayIndex): ResolvedDay => ({
       dayIndex,
@@ -404,7 +405,7 @@ export async function planWholeMenu(
         composeMenu(testCase, resolve(days)),
       ),
     menuPlanRetryMessage,
-    (planned) => menuPlanRepeats(planned, candidates, previous.length),
+    (planned) => menuPlanSoftProblems(planned, labelled, previous.length),
   );
   const wrongDays = daysProblem(plan, previous.length);
   const unknown = [...(wrongDays ? [wrongDays] : []), ...candidateProblems(plan, candidates)];
