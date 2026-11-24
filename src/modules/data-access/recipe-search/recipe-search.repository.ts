@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import {
   RECIPE_SEARCH_EF_SEARCH,
+  RECIPE_SEARCH_RANK_NORMALIZATION,
   RECIPE_SEARCH_RRF_K,
   RECIPE_SEARCH_TS_CONFIG,
 } from '../../../common/constants';
@@ -128,8 +129,9 @@ export class RecipeSearchRepository {
   /**
    * Both legs pre-filter in SQL and run in one transaction with an iterative HNSW scan
    * (pgvector >= 0.8), so a selective filter still yields `candidates` rows. The full-text leg
-   * matches any word of the query (OR), ranked by cover density, and tells whether a recipe has
-   * every word (`allWords`); the fusion is `sum of weight / (RECIPE_SEARCH_RRF_K + rank)`.
+   * matches any word of the query (OR), ranked by cover density (equal scores by the source of the
+   * recipe, the same in every database), and tells whether a recipe has every word (`allWords`);
+   * the fusion is `sum of weight / (RECIPE_SEARCH_RRF_K + rank)`.
    */
   public async search(params: HybridSearchParams): Promise<RecipeSearchRow[]> {
     const where = this.filterSql(params.filters);
@@ -184,15 +186,16 @@ export class RecipeSearchRepository {
   private lexicalLeg(text: string, where: Prisma.Sql, candidates: number): Prisma.Sql {
     return Prisma.sql`
       SELECT recipe_id, NULL::float8 AS distance,
-        (ROW_NUMBER() OVER (ORDER BY score DESC, recipe_id))::int AS rank, all_words
+        (ROW_NUMBER() OVER (ORDER BY score DESC, source, source_id, recipe_id))::int AS rank, all_words
       FROM (
-        SELECT d.recipe_id, ts_rank_cd(d.search_vector, q.query, 32) AS score,
+        SELECT d.recipe_id, r.source, r.source_id,
+          ts_rank_cd(d.search_vector, q.query, ${RECIPE_SEARCH_RANK_NORMALIZATION}::int) AS score,
           d.search_vector @@ plainto_tsquery(${RECIPE_SEARCH_TS_CONFIG}::regconfig, ${text}) AS all_words
         FROM recipe_search_documents d
         JOIN recipes r ON r.id = d.recipe_id,
         LATERAL (SELECT replace(plainto_tsquery(${RECIPE_SEARCH_TS_CONFIG}::regconfig, ${text})::text, '&', '|')::tsquery AS query) q
         WHERE d.search_vector @@ q.query ${where}
-        ORDER BY score DESC, d.recipe_id
+        ORDER BY score DESC, r.source, r.source_id, d.recipe_id
         LIMIT ${candidates}
       ) matched`;
   }
