@@ -23,6 +23,7 @@ import {
 import { MenuComposer } from '../../../src/modules/services/menu/menu-composer';
 import { fitServings } from '../../../src/modules/services/menu/menu-composition';
 import {
+  bestAttempt,
   candidateProblems,
   candidatesPerMeal,
   daysProblem,
@@ -31,12 +32,18 @@ import {
   MenuPlanCandidates,
   menuPlanErrors,
   menuPlanModelCall,
+  menuPlanRepeats,
   planDays,
   PlannedDay,
   planWithRetries,
   selectCandidates,
+  varietyProblems,
 } from '../../../src/modules/services/menu/menu-plan';
-import { dietTagsSatisfying, isForbiddenFood } from '../../../src/modules/services/menu/menu-rules';
+import {
+  dietTagsSatisfying,
+  isDislikedFood,
+  isForbiddenFood,
+} from '../../../src/modules/services/menu/menu-rules';
 import { ModelResult, LlmService } from '../../../src/providers/llm/llm.service';
 import { EvalCaseSchema, EvalSuite, FieldScore, SuiteRun } from '../../lib/types';
 
@@ -132,7 +139,7 @@ export function allowedRecipes(profile: ProfileContext): RecipeSnapshot[] {
 
 /**
  * `selectCandidates` of every meal among the recipes, for `days` planned days, labelled by short
- * ids, as `MenuPlannerService` offers them.
+ * ids, as `MenuPlannerService` offers them (recipes with a disliked food only for want of others).
  */
 export function labelRecipes(
   recipes: RecipeSnapshot[],
@@ -140,6 +147,15 @@ export function labelRecipes(
   days: number,
   rotation: number,
 ): LabelledCandidates {
+  const disliked = new Set(
+    recipes
+      .filter(({ ingredients }) =>
+        ingredients.some(({ foodName, foodNameEn }) =>
+          isDislikedFood(foodName, foodNameEn, profile.rules),
+        ),
+      )
+      .map(({ id }) => id),
+  );
   const selected = Object.fromEntries(
     MENU_PLAN_MEAL_TYPES.map((mealType) => [
       mealType,
@@ -151,6 +167,8 @@ export function labelRecipes(
         profile.nutritionGoal?.caloriesKcal ?? null,
         candidatesPerMeal(days),
         rotation,
+        [],
+        disliked,
       ),
     ]),
   ) as MenuPlanCandidates;
@@ -190,26 +208,14 @@ export function composeCase(testCase: MenuPlanCase, days: PlannedDay[]): MenuCom
   );
 }
 
-/**
- * Whether the plan varies the meals: no recipe on two days in a row and no recipe twice for a
- * meal while its candidates had one not used yet.
- */
-export function isVaried(plan: MenuPlan, candidates: MenuPlanCandidates): boolean {
-  const days = planDays(plan);
-  return MENU_PLAN_MEAL_TYPES.every((mealType) => {
-    const ids = days.map((day) => day[mealType]);
-    const distinct = new Set(ids).size;
-    return (
-      ids.every((id, i) => i === 0 || id !== ids[i - 1]) &&
-      distinct >= Math.min(ids.length, candidates[mealType].length)
-    );
-  });
-}
+/** Whether the plan varies the meals: no repeat the planner sends back (`varietyProblems`). */
+export const isVaried = (plan: MenuPlan, candidates: MenuPlanCandidates): boolean =>
+  varietyProblems(plan, candidates).length === 0;
 
 /**
  * The plan after the retries. `days`: exactly the days asked for, each `dayIndex` once;
- * `candidates`: every meal a candidate of that meal; `validation`: no problem the planner sends
- * back (`menuPlanErrors`); `calories`: every day within `MENU_DAY_KCAL_TOLERANCE` of the goal;
+ * `candidates`: every meal a candidate of that meal; `validation`: no problem a plan is
+ * rejected for (`menuPlanErrors`); `calories`: every day within `MENU_DAY_KCAL_TOLERANCE` of the goal;
  * `disliked`: no disliked food; `variety`: `isVaried`. The last four are scored only when the days
  * and the candidates are right. Output that did not match the schema (`null`) fails every field.
  */
@@ -278,8 +284,8 @@ export const addUsage = (a: ModelUsage, b: ModelUsage): ModelUsage => ({
 
 /**
  * Plans the case like `MenuPlannerService`: the planner call, and the plan with its problems back
- * to the model until it has none (`planWithRetries`). The usage and latency are of every call;
- * `repairs` is how many calls followed the first one. Output that did not match the schema fails
+ * to the model until it has none (`planWithRetries`, `bestAttempt`). The usage and latency are of
+ * every call answered; `repairs` is how many calls followed the first one. Output that did not match the schema fails
  * with the usage of every call so far.
  */
 export async function runMenuPlan(
@@ -310,9 +316,12 @@ export async function runMenuPlan(
       },
       (plan) =>
         menuPlanErrors(plan, candidates, testCase.days, (days) => composeCase(testCase, days)),
+      undefined,
+      undefined,
+      (plan) => menuPlanRepeats(plan, candidates, testCase.days),
     );
     return {
-      output: attempts[attempts.length - 1].plan,
+      output: bestAttempt(attempts).plan,
       modelId: calls[0].modelId,
       latencyMs: calls.reduce((total, call) => total + call.latencyMs, 0),
       usage: usage(),
@@ -331,7 +340,7 @@ export async function runMenuPlan(
 
 /**
  * The menu planner (`MenuPlannerService`) with its retries: days, candidate ids, validation,
- * calories, disliked foods and variety of the last plan, and the repairs it took.
+ * calories, disliked foods and variety of the plan used, and the repairs it took.
  */
 export const menuPlanSuite: EvalSuite<MenuPlanCase, MenuPlan> = {
   name: 'menu-plan',

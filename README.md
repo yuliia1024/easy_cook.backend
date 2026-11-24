@@ -399,10 +399,11 @@ nutrition per serving dumped from a seeded database and the ingredients of `data
 when the seed recipes change): every number of days from 1 to 7, and 1, 3 and 7 days for the
 profiles without restrictions (`basic`), `vegan`, `allergy` (peanut, egg; dislikes mushrooms) and
 `low_kcal` (1400 kcal; dislikes salmon), plus `vegetarian` and several candidate rotations. The
-fields score the last plan: `days` (exactly the days asked for), `candidates` (only ids of the
-candidates of that meal), `validation` (no problem the planner sends back to the model),
+fields score the plan used (`bestAttempt`): `days` (exactly the days asked for), `candidates` (only ids of the
+candidates of that meal), `validation` (no problem a plan is rejected for),
 `calories` (every day within 15 % of the goal, the servings fitted to it by `fitServings`), `disliked` (no disliked food), `variety` (no
-recipe on two days in a row, none twice while the meal has unused candidates). The metric
+recipe on two days in a row, none twice while the meal has unused candidates; the planner sends
+repeats back to the model, but accepts a menu that still has them). The metric
 `repairs` is the mean of the calls after the first one; it is saved in the baseline, not compared.
 
 **menu-day** (EVAL-5) - revising a suggested menu as `MenuPlannerService.replan` does

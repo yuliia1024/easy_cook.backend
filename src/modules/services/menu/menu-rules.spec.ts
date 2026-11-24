@@ -20,6 +20,7 @@ import {
   allergensOf,
   dietTagsSatisfying,
   errorsOf,
+  isDislikedFood,
   isForbiddenFood,
   isRecipeAllowed,
   mentions,
@@ -112,6 +113,28 @@ describe('menu rules', () => {
       expect(isForbiddenFood('Mushrooms', null, { ...NO_RULES, dislikedFoods: ['mushroom'] })).toBe(
         false,
       );
+    });
+  });
+
+  describe('isDislikedFood', () => {
+    const rules: PreferenceRules = { ...NO_RULES, dislikedFoods: ['mushroom'] };
+
+    it.each([
+      ['White mushrooms', null, true],
+      ['Гриби', 'Mushrooms, white, raw', true],
+      ['Beef', 'Beef, lean', false],
+    ])('%s / %s → %s', (name, nameEn, expected) => {
+      expect(isDislikedFood(name, nameEn, rules)).toBe(expected);
+    });
+
+    it('ignores allergies and excluded ingredients', () => {
+      expect(
+        isDislikedFood('Peanut butter', null, {
+          ...NO_RULES,
+          allergies: ['peanut'],
+          excludedIngredients: ['peanut'],
+        }),
+      ).toBe(false);
     });
   });
 

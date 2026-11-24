@@ -47,6 +47,20 @@ export function isForbiddenFood(
   );
 }
 
+/**
+ * Whether the food name mentions a disliked food of the rules. Unlike `isForbiddenFood` it rules
+ * nothing out: the planner offers such recipes only when too few others are left.
+ */
+export function isDislikedFood(
+  name: string,
+  nameEn: string | null,
+  { dislikedFoods }: PreferenceRules,
+): boolean {
+  return dislikedFoods.some(
+    (value) => mentions(name, value) || (nameEn !== null && mentions(nameEn, value)),
+  );
+}
+
 /** The allergens a profile allergy names: "dairy" -> milk, "tree nuts" -> tree nut, "kiwi" -> none. */
 export function allergensOf(allergy: string): Allergen[] {
   return (Object.entries(ALLERGEN_ALIASES) as [Allergen, readonly string[]][])

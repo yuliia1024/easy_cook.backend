@@ -17,6 +17,7 @@ import {
   MenuPlanCandidates,
   MenuPlanMealType,
   planDays,
+  varietyProblems,
 } from '../../../src/modules/services/menu/menu-plan';
 import { loadCases } from '../../lib/cases';
 import {
@@ -97,6 +98,31 @@ describe('menu-plan suite', () => {
       }
     });
 
+    it.each([
+      ['allergy', 7],
+      ['low_kcal', 7],
+      ['low_kcal', 1],
+    ])('offers no recipe with a food the %s profile dislikes for %i day(s)', (profile, days) => {
+      const byName = new Map(MENU_PLAN_RECIPES.map((recipe) => [recipe.name, recipe]));
+      const { dislikedFoods } = MENU_PLAN_PROFILES[profile].rules;
+
+      for (const rotation of [0, 3, 7]) {
+        const candidates = caseCandidates(testCase(days, { profile, rotation }));
+        const disliked = MENU_PLAN_MEAL_TYPES.flatMap((mealType) => candidates[mealType]).filter(
+          ({ name }) =>
+            byName
+              .get(name)!
+              .ingredients.some(({ foodName, foodNameEn }) =>
+                dislikedFoods.some(
+                  (food) =>
+                    mentions(foodName, food) || (foodNameEn !== null && mentions(foodNameEn, food)),
+                ),
+              ),
+        );
+        expect(disliked).toEqual([]);
+      }
+    });
+
     it('offers them by short ids, like the app', () => {
       expect(caseCandidates(testCase(1)).dinner.map(({ id }) => id)).toEqual([
         'd1',
@@ -119,16 +145,15 @@ describe('menu-plan suite', () => {
     it('composes the planned recipes, servings fitted to the goal, with their issues against the profile', () => {
       const theCase = testCase(1, { profile: 'low_kcal' });
       const candidates = caseCandidates(theCase);
-      const salmon = candidates.lunch.findIndex(({ name }) => name === 'Salmon poke bowl');
-      const menu = composeCase(theCase, planDays(planOf(candidates, [[0, salmon, 0]])));
+      const menu = composeCase(theCase, planDays(planOf(candidates, [[0, 1, 0]])));
 
       expect(menu.days[0].meals.map(({ recipeName }) => recipeName)).toEqual(
         MENU_PLAN_MEAL_TYPES.map(
-          (mealType) => candidates[mealType][mealType === MealType.Lunch ? salmon : 0].name,
+          (mealType) => candidates[mealType][mealType === MealType.Lunch ? 1 : 0].name,
         ),
       );
       expect(Math.abs(menu.days[0].totals.kcal - 1400)).toBeLessThanOrEqual(70);
-      expect(menu.issues.map(({ code }) => code)).toEqual(['disliked_food']);
+      expect(menu.issues).toEqual([]);
     });
   });
 
@@ -192,19 +217,6 @@ describe('menu-plan suite', () => {
       expect(Math.abs(kcal - 2000)).toBeLessThanOrEqual(100);
     });
 
-    it('fails a disliked food', () => {
-      const theCase = testCase(1, { profile: 'low_kcal' });
-      const candidates = caseCandidates(theCase);
-      const salmon = candidates.lunch.findIndex(({ name }) => name === 'Salmon poke bowl');
-
-      expect(scoreMenuPlan(theCase, planOf(candidates, [[0, salmon, 0]]))[4]).toMatchObject({
-        field: 'disliked',
-        pass: false,
-        expected: ['salmon'],
-        actual: [expect.stringContaining('Salmon poke bowl')],
-      });
-    });
-
     it('fails the validation, calories, disliked foods and variety of a plan with other days', () => {
       const candidates = caseCandidates(testCase(3));
       const plan = planOf(candidates, [
@@ -223,6 +235,21 @@ describe('menu-plan suite', () => {
         ['variety', false],
       ]);
       expect(scores[2].actual).toEqual([expect.stringContaining('Return exactly 3 days')]);
+    });
+
+    it('fails only the variety of a plan that repeats a recipe: the app accepts it', () => {
+      const theCase = testCase(2);
+      const candidates = caseCandidates(theCase);
+      const plan = planOf(candidates, [
+        [0, 0, 0],
+        [1, 0, 1],
+      ]);
+
+      expect(
+        fields(scoreMenuPlan(theCase, plan))
+          .filter(([, pass]) => !pass)
+          .map(([field]) => field),
+      ).toEqual(['variety']);
     });
 
     it('fails an id that is not a candidate of the meal', () => {
@@ -353,6 +380,45 @@ describe('menu-plan suite', () => {
       await expect(menuPlanSuite.run(theCase, llm)).resolves.toMatchObject({
         output: wrong,
         metrics: { repairs: MENU_PLAN_MAX_ATTEMPTS - 1 },
+      });
+    });
+
+    describe('of a plan that repeats a recipe', () => {
+      const twoDays = testCase(2);
+      const twoDaysCandidates = caseCandidates(twoDays);
+      const repeating = planOf(twoDaysCandidates, [
+        [0, 0, 0],
+        [1, 0, 1],
+      ]);
+      const varied = planOf(twoDaysCandidates, [
+        [0, 0, 0],
+        [1, 1, 1],
+      ]);
+
+      it('sends the repeats back and counts the repair', async () => {
+        llm.generateStructuredResult
+          .mockResolvedValueOnce(result(repeating) as never)
+          .mockResolvedValueOnce(result(varied) as never);
+
+        await expect(menuPlanSuite.run(twoDays, llm)).resolves.toMatchObject({
+          output: varied,
+          metrics: { repairs: 1 },
+        });
+        const [, [messages]] = llm.generateStructuredResult.mock.calls;
+        expect((messages as Array<{ content: string }>).at(-1)?.content).toBe(
+          menuPlanRetryMessage(varietyProblems(repeating, twoDaysCandidates)),
+        );
+      });
+
+      it('returns it, like the app, when the attempts after it are wrong', async () => {
+        llm.generateStructuredResult
+          .mockResolvedValueOnce(result(repeating) as never)
+          .mockResolvedValue(result({ ...varied, days: [] }) as never);
+
+        await expect(menuPlanSuite.run(twoDays, llm)).resolves.toMatchObject({
+          output: repeating,
+          metrics: { repairs: MENU_PLAN_MAX_ATTEMPTS - 1 },
+        });
       });
     });
 

@@ -222,6 +222,18 @@ describe('EmbeddingService', () => {
       expect(ollamaEmbed).not.toHaveBeenCalled();
     });
 
+    it.each([
+      [LOCAL, EMBEDDING_MODELS[EmbeddingProviderName.Ollama].batchTimeoutMs],
+      [OPENAI, EMBEDDING_MODELS[EmbeddingProviderName.OpenAi].batchTimeoutMs],
+    ])('gives a batch of %s the timeout of its model', async (model, timeoutMs) => {
+      const timeout = jest.spyOn(AbortSignal, 'timeout');
+
+      await build().embedDocuments(model, ['a']);
+
+      expect(timeout).toHaveBeenCalledWith(timeoutMs);
+      timeout.mockRestore();
+    });
+
     it('does not fall back: each model fills its own vectors', async () => {
       ollamaEmbed.mockRejectedValue(connectionRefused(false));
 

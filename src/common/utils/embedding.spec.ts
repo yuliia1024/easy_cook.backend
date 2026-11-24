@@ -10,6 +10,8 @@ describe('embeddingModelKey', () => {
         dimensions: 1024,
         queryPrefix: '',
         matchSimilarity: null,
+        batchSize: 64,
+        batchTimeoutMs: 60_000,
       }),
     ).toBe('openai/text-embedding-3-large@1024');
   });
