@@ -142,6 +142,47 @@ describe('recipe search (e2e)', () => {
     ]);
   });
 
+  describe('full-text ranking', () => {
+    const lexical = (text: string): Promise<string[]> =>
+      names({ text, mode: RecipeSearchMode.Lexical });
+    const addRecipe = async (
+      id: string,
+      sourceId: string,
+      name: string,
+      instructions: string,
+    ): Promise<void> => {
+      await prisma.recipe.create({
+        data: { id, sourceId, name, instructions, mealType: 'snack', servings: 1, source: 'seed' },
+      });
+    };
+    const LOW_ID = '00000000-0000-4000-8000-000000000001';
+    const HIGH_ID = 'ffffffff-ffff-4fff-bfff-ffffffffffff';
+
+    it('puts the shorter document first when both have the words as often', async () => {
+      await addRecipe(
+        LOW_ID,
+        'a',
+        'Pancakes long',
+        `Fry. ${'Wait and turn them over. '.repeat(9)}`,
+      );
+      await addRecipe(HIGH_ID, 'b', 'Pancakes short', 'Fry.');
+      await index.sync();
+
+      await expect(lexical('pancakes')).resolves.toEqual(['Pancakes short', 'Pancakes long']);
+    });
+
+    it.each([
+      [LOW_ID, HIGH_ID],
+      [HIGH_ID, LOW_ID],
+    ])('orders equal scores by the source, whatever the ids (%s, %s)', async (first, second) => {
+      await addRecipe(first, 'a', 'Pancakes one', 'Fry.');
+      await addRecipe(second, 'b', 'Pancakes two', 'Fry.');
+      await index.sync();
+
+      await expect(lexical('pancakes')).resolves.toEqual(['Pancakes one', 'Pancakes two']);
+    });
+  });
+
   it('applies the filters before ranking, in both legs', async () => {
     await expect(names({ text: 'salmon', filters: { mealType: 'breakfast' } })).resolves.toEqual([
       'Buckwheat porridge with milk',

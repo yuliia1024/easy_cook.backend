@@ -32,6 +32,16 @@ jobs:
           --health-timeout 3s
           --health-retries 20
 
+      redis:
+        image: redis:8.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+
     # The app validates its env on start-up. OpenAI is faked in every test, so the key is a dummy.
     # e2e tests run on TEST_DATABASE_URL and refuse to start when it equals DATABASE_URL.
     env:
@@ -43,6 +53,13 @@ jobs:
       OPEN_AI_API_KEY: sk-ci-dummy
       DATABASE_URL: postgresql://easy_cook:easy_cook@localhost:5432/easy_cook?schema=public
       TEST_DATABASE_URL: postgresql://easy_cook:easy_cook@localhost:5432/easy_cook_test?schema=public
+      # e2e tests run on TEST_REDIS_URL (flushed) and refuse to start when it equals REDIS_URL.
+      REDIS_URL: redis://localhost:6379/0
+      TEST_REDIS_URL: redis://localhost:6379/15
+      # Google is faked in every test; the secret only signs CSRF tokens of the test run.
+      GOOGLE_CLIENT_ID: ci.apps.googleusercontent.com
+      AUTH_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      AUTH_COOKIE_SECURE: 'false'
 
     steps:
       - uses: actions/checkout@v5

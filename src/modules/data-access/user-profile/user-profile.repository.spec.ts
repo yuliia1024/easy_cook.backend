@@ -1,7 +1,6 @@
-import { buildProfile, PROFILE_ID } from '../../../test/fixtures';
+import { buildProfile, PROFILE_ID, USER_ID } from '../../../test/fixtures';
 import { createPrismaMock, PrismaMock } from '../../../test/prisma-mock';
 import { UserProfileRepository } from './user-profile.repository';
-import { SortOrder } from '../../../common/constants';
 
 describe('UserProfileRepository', () => {
   let prisma: PrismaMock;
@@ -20,20 +19,22 @@ describe('UserProfileRepository', () => {
     repository = new UserProfileRepository(prisma);
   });
 
-  it('finds the oldest profile', async () => {
+  it('finds the profile of the user', async () => {
     const profile = buildProfile();
-    prisma.userProfile.findFirst.mockResolvedValue(profile);
+    prisma.userProfile.findUnique.mockResolvedValue(profile);
 
-    await expect(repository.findCurrent()).resolves.toBe(profile);
-    expect(prisma.userProfile.findFirst).toHaveBeenCalledWith({
-      orderBy: { createdAt: SortOrder.Asc },
-    });
+    await expect(repository.findByUserId(USER_ID)).resolves.toBe(profile);
+    expect(prisma.userProfile.findUnique).toHaveBeenCalledWith({ where: { userId: USER_ID } });
   });
 
-  it('creates', async () => {
-    await repository.create(data);
+  it('creates or replaces the profile of the user', async () => {
+    await repository.upsert(USER_ID, data);
 
-    expect(prisma.userProfile.create).toHaveBeenCalledWith({ data });
+    expect(prisma.userProfile.upsert).toHaveBeenCalledWith({
+      where: { userId: USER_ID },
+      create: { ...data, userId: USER_ID },
+      update: data,
+    });
   });
 
   it('updates by id', async () => {

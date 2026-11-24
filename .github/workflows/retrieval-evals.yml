@@ -44,9 +44,14 @@ jobs:
     env:
       PORT: '3100'
       ENV: development
+      CORS_ORIGINS: http://localhost:5173
       DATABASE_URL: postgresql://easy_cook:easy_cook@localhost:5432/easy_cook?schema=public
       # Required by the config, never called: the evals measure the local model alone.
       OPEN_AI_API_KEY: unused
+      # Validated on start-up, never used by the search (no sessions here).
+      REDIS_URL: redis://:unused@localhost:6379/0
+      GOOGLE_CLIENT_ID: unused.apps.googleusercontent.com
+      AUTH_SECRET: unused-unused-unused-unused-unused-0123
       EMBEDDING_PROVIDERS: ollama
       OLLAMA_BASE_URL: http://localhost:11434
 

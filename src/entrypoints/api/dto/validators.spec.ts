@@ -1,6 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { IsBoolean, validate } from 'class-validator';
-import { IsNutrientValue, IsOptionalNotNull, ToArray, ToBoolean, Trim } from './validators';
+import { IsOptionalNotNull, ToArray, ToBoolean, Trim } from './validators';
 
 class Sample {
   @Trim()
@@ -11,9 +11,6 @@ class Sample {
 
   @ToBoolean()
   flag?: boolean;
-
-  @IsNutrientValue(100)
-  protein?: number | null;
 
   @IsOptionalNotNull()
   @IsBoolean()
@@ -58,19 +55,6 @@ describe('validators', () => {
 
     it('rejects null', async () => {
       expect((await validate(build({ done: null }))).map((e) => e.property)).toEqual(['done']);
-    });
-  });
-
-  describe('IsNutrientValue', () => {
-    const errors = async (protein: unknown): Promise<number> =>
-      (await validate(build({ protein }))).length;
-
-    it.each([undefined, null, 0, 12.5, 100])('accepts %p', async (value) => {
-      expect(await errors(value)).toBe(0);
-    });
-
-    it.each([-1, 100.5, 1.234, '5', Number.NaN])('rejects %p', async (value) => {
-      expect(await errors(value)).toBe(1);
     });
   });
 });

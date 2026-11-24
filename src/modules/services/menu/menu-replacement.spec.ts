@@ -65,6 +65,7 @@ const input = (overrides: Partial<ReplacementInput> = {}): ReplacementInput => (
       ]),
     ) as MenuPlanCandidates,
     recipeIds: new Map(recipes.map(({ id }) => [id, id])),
+    dislikedIds: new Set(),
   }),
   compose: (days) => new MenuComposer().compose(days, profile),
   ...overrides,

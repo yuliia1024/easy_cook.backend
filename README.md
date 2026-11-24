@@ -13,7 +13,8 @@ The LLM never has the last word: it only picks recipe ids from the candidates th
 and every menu goes through deterministic code (composition, menu rules, nutrition maths, the diff
 of a revision) before it is saved. The prompts are measured by evals on the real models.
 
-Single user, no auth, local run.
+Sign-in with Google (an httpOnly session cookie in Redis), every user with their own profile, menus
+and chats; the food and recipe catalog is shared and read only (seeded). See [Auth and security](#auth-and-security).
 
 ## Architecture
 
@@ -90,9 +91,9 @@ Requires Node 24 (`nvm use`), Docker, and an OpenAI key (DeepSeek optional, as t
 
 ```bash
 nvm use
-cp .env.example .env          # set OPEN_AI_API_KEY (and DEEPSEEK_API_KEY for the fallback)
+cp .env.example .env          # set OPEN_AI_API_KEY, GOOGLE_CLIENT_ID, AUTH_SECRET, AUTH_ALLOWED_EMAILS
 npm install                   # also generates the Prisma client
-npm run infra:up              # postgres on localhost:5442
+npm run infra:up              # postgres on localhost:5442, redis on localhost:6389
 npm run db:seed               # ~520 foods + 300 recipes from data/seed (idempotent)
 npm run start:dev             # applies migrations; API on http://localhost:3100/api, Swagger on /docs
 # or everything in docker:
@@ -100,16 +101,9 @@ npm run compose
 ```
 
 Then start the web app (`../easy_cook.frontend`, `npm run dev`, http://localhost:5173), fill in the
-profile, calculate the daily goal and ask the chat for a menu. Without the web app:
-
-```bash
-curl -X PUT localhost:3100/api/profile -H 'content-type: application/json' \
-  -d '{"age":30,"heightCm":175,"weightKg":70,"sex":"male","activityLevel":"moderate","goal":"maintain"}'
-curl -X POST localhost:3100/api/nutrition/goals/calculate
-curl -X POST localhost:3100/api/conversations -H 'content-type: application/json' -d '{}'
-curl -N -X POST localhost:3100/api/conversations/<id>/messages -H 'content-type: application/json' \
-  -d '{"content":"Make me a vegetarian menu for 3 days"}'
-```
+sign in with Google, fill in the profile, calculate the daily goal and ask the chat for a menu. Every
+route but `/api/health` and the sign-in needs the session cookie, so use the web app (or Swagger after
+signing in there).
 
 Check everything: `npm run lint && npm run type-check && npm test && npm run test:e2e && npm run build`.
 Run the evals (costs a few cents per suite): `npm run eval`, `npm run eval -- --provider deepseek`,
@@ -122,7 +116,33 @@ pull request).
 | -------- | --------- |
 | API      | 3100      |
 | Postgres | 5442      |
+| Redis    | 6389      |
 | Ollama   | 11434     |
+
+## Auth and security
+
+- **Sign-in:** `GET /api/auth/nonce` (a one-time nonce, 10 min, also an httpOnly cookie) -> Google
+  Identity Services in the web app with that nonce -> `POST /api/auth/google { idToken }`. The ID token
+  is verified against Google's keys, `GOOGLE_CLIENT_ID` (audience), the issuer, the expiry, a verified
+  email and the nonce of this browser, used once (no replayed or foreign token). A new user only for
+  an email in `AUTH_ALLOWED_EMAILS`; a user in the database (the owner, added by the
+  `add_users` migration) may always sign in.
+- **Session:** a random 256-bit token in an httpOnly, Secure, `SameSite=Strict`, host-only cookie
+  (`__Host-ec_session`); Redis keeps only its sha256. It ends after 7 days unused, 14 days after the
+  sign-in, on `POST /api/auth/logout`, or when the user is deleted;
+  every sign-in gets a new token, at most 10 sessions per user. `GET /api/auth/session` -> the user and
+  the CSRF token. Redis down -> 503, never 401.
+- **CSRF:** every unsafe request needs `X-CSRF-Token` (an HMAC of the session with `AUTH_SECRET`), an
+  allowed `Origin` (`CORS_ORIGINS`; `*` means localhost only and only with `ENV=local`, every
+  other environment lists its origins) and a JSON body (415 otherwise).
+- **Rate limits** (Redis, in process memory while Redis is down): a signed-in client by its email,
+  any other by its IP, an IPv6 one by its /64 (`TRUST_PROXY_HOPS` behind a proxy). Every route
+  300 / min signed in, 60 / min anonymous; a chat message (the model) 5 / min, past which the
+  client is blocked from that limit for 5 min signed in, an hour anonymous. The sign-in: 3 failed
+  attempts per 15 min (a success clears them), then 30 min blocked. A blocked request is not counted;
+  `Retry-After[-<limit>]` says when to retry.
+- **Headers:** helmet (`Referrer-Policy: no-referrer`, HSTS, frame denial, ...) and
+  `Cache-Control: no-store` on every response.
 
 ### From scratch
 
@@ -138,8 +158,9 @@ npm run start:dev             # API on http://localhost:3100/api
 ```
 
 The web app (`../easy_cook.frontend`, `npm run dev`) runs on http://localhost:5173; its dev server
-proxies `/api` to port 3100. A build served from another origin calls the API directly, which
-`CORS_ORIGINS=*` in `.env.example` allows.
+proxies `/api` to port 3100, as `npm run preview` (http://localhost:4173) does. `CORS_ORIGINS` lists
+the web app origins: `.env.example` has both local ones; production lists the web app URL (e.g.
+`https://app.example.com`). `*` means any localhost and is refused outside `ENV=local`.
 
 Requires Node 24 LTS (`.nvmrc`; run `nvm use`). NestJS 12 ships as ESM and the project is CommonJS:
 Node loads it through `require(esm)`, and Jest needs `--experimental-vm-modules` for the same
@@ -251,7 +272,7 @@ Everything is under `/api`; Swagger UI on `/docs`.
 
 | Method               | Path                                                                       |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | -------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| GET                  | `/health`                                                                  | 503 when the database is down                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| GET                  | `/health`                                                                  | 503 when the database or Redis is down                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | GET / PUT / PATCH    | `/profile`                                                                 | the single profile; `GET` is 404 until `PUT`                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | GET                  | `/profile/options`                                                         | allowed values of every enum-like field                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | GET                  | `/nutrition/goals`, `/nutrition/goals/current`, `/nutrition/goals/preview` | history (newest first), goal in effect, rule based targets without saving                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -260,14 +281,10 @@ Everything is under `/api`; Swagger UI on `/docs`.
 | GET / POST           | `/preferences`                                                             | values are trimmed and lower-cased; `diet` must be a diet tag                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | DELETE               | `/preferences/:id`                                                         |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | GET                  | `/foods?search=&state=&source=&page=&limit=`                               | search matches `name` and `nameEn`                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| GET / PATCH          | `/foods/:id`                                                               | `null` clears a value                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| POST                 | `/foods`                                                                   | macros cannot exceed 100 g per 100 g                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| GET                  | `/foods/:id`                                                               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | GET                  | `/recipes?search=&mealType=&dietType=&page=&limit=`                        | `dietType` repeated or comma separated: the recipe has every tag                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| GET / PATCH / DELETE | `/recipes/:id`                                                             | `PATCH` with `ingredients` replaces the list                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| POST                 | `/recipes`                                                                 | every ingredient must point to an existing food (400 otherwise)                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| GET                  | `/recipes/:id`                                                             |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | GET                  | `/recipes/:id/nutrition?includeOptional=`                                  | per ingredient, total, per serving                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| POST                 | `/recipes/:id/ingredients`                                                 |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| PATCH / DELETE       | `/recipes/:id/ingredients/:ingredientId`                                   |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | GET                  | `/menus?status=`                                                           | confirmed menus by default; `status=draft` the ones without a confirmed version, `all` both                                                                                                                                                                                                                                                                                                                                                                                          |
 | GET                  | `/menus/:id`                                                               | every version, newest first, nutrition per meal and day, issues                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | PATCH / DELETE       | `/menus/:id`                                                               | rename / delete                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -402,8 +419,8 @@ profiles without restrictions (`basic`), `vegan`, `allergy` (peanut, egg; dislik
 fields score the plan used (`bestAttempt`): `days` (exactly the days asked for), `candidates` (only ids of the
 candidates of that meal), `validation` (no problem a plan is rejected for),
 `calories` (every day within 15 % of the goal, the servings fitted to it by `fitServings`), `disliked` (no disliked food), `variety` (no
-recipe on two days in a row, none twice while the meal has unused candidates; the planner sends
-repeats back to the model, but accepts a menu that still has them). The metric
+recipe on two days in a row, none twice while the meal has unused candidates without a disliked
+food; the planner sends repeats back to the model, but accepts a menu that still has them). The metric
 `repairs` is the mean of the calls after the first one; it is saved in the baseline, not compared.
 
 **menu-day** (EVAL-5) - revising a suggested menu as `MenuPlannerService.replan` does

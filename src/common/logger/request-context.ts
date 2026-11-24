@@ -11,6 +11,8 @@ interface RequestContext {
   requestId: string;
   /** Every model response of the request, in order (`recordModelCall`). */
   modelCalls: ModelCallRecord[];
+  /** The signed-in user, set by `SessionGuard`; unset without a session. */
+  userId?: string;
 }
 
 const storage = new AsyncLocalStorage<RequestContext>();
@@ -39,4 +41,17 @@ export function recordModelCall(call: ModelCallRecord): void {
 /** The model responses of the current request so far; none outside a request. */
 export function getModelCalls(): readonly ModelCallRecord[] {
   return [...(storage.getStore()?.modelCalls ?? [])];
+}
+
+/** Called by `SessionGuard` for a live session; outside a request does nothing. */
+export function setCurrentUserId(userId: string): void {
+  const store = storage.getStore();
+  if (store) {
+    store.userId = userId;
+  }
+}
+
+/** The signed-in user of the current request; undefined on a public route or outside a request. */
+export function getCurrentUserId(): string | undefined {
+  return storage.getStore()?.userId;
 }

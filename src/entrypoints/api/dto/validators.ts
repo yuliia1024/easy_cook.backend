@@ -1,6 +1,5 @@
-import { applyDecorators } from '@nestjs/common';
 import { Transform } from 'class-transformer';
-import { IsNumber, IsOptional, Max, Min, ValidateIf } from 'class-validator';
+import { ValidateIf } from 'class-validator';
 
 /**
  * Optional, but `null` is validated (and rejected) instead of skipped like with `IsOptional`:
@@ -29,15 +28,3 @@ export const ToArray = (): PropertyDecorator =>
 /** Query string booleans: only `true` / `1` are true. */
 export const ToBoolean = (): PropertyDecorator =>
   Transform(({ value }) => (typeof value === 'string' ? ['true', '1'].includes(value) : value));
-
-/**
- * A nutrient amount per 100 g. Optional on input; `null` means "unknown" and is stored as such.
- */
-export const IsNutrientValue = (max: number): PropertyDecorator =>
-  applyDecorators(
-    IsOptional(),
-    ValidateIf((_, value) => value !== null),
-    IsNumber({ allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2 }),
-    Min(0),
-    Max(max),
-  );

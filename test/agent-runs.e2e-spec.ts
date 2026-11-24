@@ -1,4 +1,3 @@
-import request from 'supertest';
 import { ChatToolName, ChatTraceOutcome, Intent } from '../src/common/constants';
 import { EMPTY_MENU_REQUEST } from '../src/modules/services/menu/menu-request';
 import { createMenuWorld } from './menu-fixtures';
@@ -16,7 +15,7 @@ import {
 /** The audit log of the chat agent: one `agent_runs` row per user message, whatever the outcome. */
 describe('agent runs (e2e)', () => {
   let ctx: TestApp;
-  const http = () => request(ctx.app.getHttpServer());
+  const http = () => ctx.http();
   const start = async (): Promise<string> =>
     (await http().post('/api/conversations').send({}).expect(201)).body.id;
   const say = async (id: string, content: string, requestId = 'req-e2e'): Promise<void> => {
@@ -41,7 +40,7 @@ describe('agent runs (e2e)', () => {
   beforeEach(async () => {
     await resetDatabase(ctx.prisma);
     resetFakeLlm();
-    resetRateLimits();
+    await resetRateLimits();
     await createMenuWorld(ctx);
   });
 

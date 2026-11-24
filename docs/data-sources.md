@@ -13,7 +13,6 @@ Where the food and recipe data comes from, what is committed, and how to refresh
 | `data/seed/food-categories.json` | Categories (`FoodCategory`) of the 208 foods the recipes use, assigned by hand | Project's own | Not loaded, recipe diet tags and allergens are derived from it when seeding |
 | `data/seed/control-recipes.json` | Hand-computed nutrition of 3 seed recipes, the arithmetic is in the file | Project's own | Not loaded, used by `data:validate` / `data:verify` |
 | USDA FoodData Central **Foundation Foods** (default) and optionally **SR Legacy**, CSV | https://fdc.nal.usda.gov/download-datasets | Public domain (CC0 1.0), see below | `food_items`, `source = usda_fdc`, `source_id` = FDC id |
-| Foods created through the API | The user | | `food_items`, `source = manual` |
 | **RecipeNLG** recipes (planned, DATA-4, prototype only) | https://recipenlg.cs.put.poznan.pl | Non-commercial research and educational use only, see [Recipes](#recipes) | `recipes` + `recipe_ingredients`, `source = recipenlg`, `source_id` = RecipeNLG id |
 
 ### USDA FoodData Central

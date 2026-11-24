@@ -32,7 +32,7 @@ import {
   MenuPlanCandidates,
   menuPlanErrors,
   menuPlanModelCall,
-  menuPlanRepeats,
+  menuPlanSoftProblems,
   planDays,
   PlannedDay,
   planWithRetries,
@@ -139,7 +139,8 @@ export function allowedRecipes(profile: ProfileContext): RecipeSnapshot[] {
 
 /**
  * `selectCandidates` of every meal among the recipes, for `days` planned days, labelled by short
- * ids, as `MenuPlannerService` offers them (recipes with a disliked food only for want of others).
+ * ids, as `MenuPlannerService` offers them (recipes with a disliked food only for want of others
+ * for the days).
  */
 export function labelRecipes(
   recipes: RecipeSnapshot[],
@@ -169,10 +170,11 @@ export function labelRecipes(
         rotation,
         [],
         disliked,
+        days,
       ),
     ]),
   ) as MenuPlanCandidates;
-  return labelCandidates(selected);
+  return labelCandidates(selected, disliked);
 }
 
 /** The allowed recipes of the case's profile (`allowedRecipes`), labelled (`labelRecipes`). */
@@ -209,8 +211,11 @@ export function composeCase(testCase: MenuPlanCase, days: PlannedDay[]): MenuCom
 }
 
 /** Whether the plan varies the meals: no repeat the planner sends back (`varietyProblems`). */
-export const isVaried = (plan: MenuPlan, candidates: MenuPlanCandidates): boolean =>
-  varietyProblems(plan, candidates).length === 0;
+export const isVaried = (
+  plan: MenuPlan,
+  candidates: MenuPlanCandidates,
+  dislikedIds?: ReadonlySet<string>,
+): boolean => varietyProblems(plan, candidates, dislikedIds).length === 0;
 
 /**
  * The plan after the retries. `days`: exactly the days asked for, each `dayIndex` once;
@@ -220,7 +225,7 @@ export const isVaried = (plan: MenuPlan, candidates: MenuPlanCandidates): boolea
  * and the candidates are right. Output that did not match the schema (`null`) fails every field.
  */
 export function scoreMenuPlan(testCase: MenuPlanCase, output: MenuPlan | null): FieldScore[] {
-  const candidates = caseCandidates(testCase);
+  const { candidates, dislikedIds } = labelledCandidates(testCase);
   const daysRight = output !== null && daysProblem(output, testCase.days) === null;
   const unknown = output === null ? null : candidateProblems(output, candidates);
   const menu =
@@ -269,7 +274,7 @@ export function scoreMenuPlan(testCase: MenuPlanCase, output: MenuPlan | null): 
     },
     {
       field: 'variety',
-      pass: menu !== null && isVaried(output!, candidates),
+      pass: menu !== null && isVaried(output!, candidates, dislikedIds),
       expected: 'no repeats while candidates are left, none on consecutive days',
       actual: output === null ? null : planDays(output),
     },
@@ -292,7 +297,8 @@ export async function runMenuPlan(
   testCase: MenuPlanCase,
   llm: LlmService,
 ): Promise<SuiteRun<MenuPlan>> {
-  const candidates = caseCandidates(testCase);
+  const labelled = labelledCandidates(testCase);
+  const { candidates } = labelled;
   const { input, schema, options } = menuPlanModelCall(
     testCase.request,
     testCase.days,
@@ -318,7 +324,7 @@ export async function runMenuPlan(
         menuPlanErrors(plan, candidates, testCase.days, (days) => composeCase(testCase, days)),
       undefined,
       undefined,
-      (plan) => menuPlanRepeats(plan, candidates, testCase.days),
+      (plan) => menuPlanSoftProblems(plan, labelled, testCase.days),
     );
     return {
       output: bestAttempt(attempts).plan,

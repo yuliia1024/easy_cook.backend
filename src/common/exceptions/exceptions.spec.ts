@@ -1,8 +1,11 @@
 import { HttpStatus } from '@nestjs/common';
 import * as badRequest from './bad-request';
 import * as conflict from './conflict';
+import * as forbidden from './forbidden';
 import * as notFound from './not-found';
 import * as serviceUnavailable from './service-unavailable';
+import * as unauthorized from './unauthorized';
+import * as unsupportedMediaType from './unsupported-media-type';
 import { AppError } from './app-error';
 
 /** Constructor arguments for the exceptions that need them. */
@@ -31,8 +34,11 @@ const ARGS: Record<string, unknown[]> = {
 describe('exception taxonomy', () => {
   const groups: Array<[string, Record<string, unknown>, HttpStatus]> = [
     ['bad-request', badRequest, HttpStatus.BAD_REQUEST],
+    ['unauthorized', unauthorized, HttpStatus.UNAUTHORIZED],
+    ['forbidden', forbidden, HttpStatus.FORBIDDEN],
     ['not-found', notFound, HttpStatus.NOT_FOUND],
     ['conflict', conflict, HttpStatus.CONFLICT],
+    ['unsupported-media-type', unsupportedMediaType, HttpStatus.UNSUPPORTED_MEDIA_TYPE],
     ['service-unavailable', serviceUnavailable, HttpStatus.SERVICE_UNAVAILABLE],
   ];
 
@@ -78,14 +84,6 @@ describe('exception taxonomy', () => {
     [
       new badRequest.ImplausibleBmiBadRequestException(75.04),
       'Weight and height give an implausible BMI (75.0); check the values',
-    ],
-    [
-      new badRequest.FoodKcalMismatchBadRequestException(130, 199.6),
-      '130 kcal does not match protein, fat and carbs (≈ 200 kcal by 4/9/4)',
-    ],
-    [
-      new badRequest.ServingTooHeavyBadRequestException(2500.4, 2000),
-      'One serving would weigh 2500 g; at most 2000 g',
     ],
     [
       new badRequest.ConflictingDietsBadRequestException('pescatarian', 'vegan'),

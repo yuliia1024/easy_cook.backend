@@ -1,7 +1,9 @@
 // UserProfile and its targets and preferences.
 
+/// One per user, created on the first save of the profile.
 model UserProfile {
   id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @unique @map("user_id") @db.Uuid
   age           Int
   heightCm      Decimal  @map("height_cm") @db.Decimal(5, 1)
   weightKg      Decimal  @map("weight_kg") @db.Decimal(5, 1)
@@ -14,6 +16,7 @@ model UserProfile {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   nutritionGoals     NutritionGoal[]
   dietaryPreferences DietaryPreference[]
   menus              Menu[]

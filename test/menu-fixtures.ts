@@ -1,4 +1,4 @@
-import request, { Test } from 'supertest';
+import { Test } from 'supertest';
 import {
   MealType,
   MENU_PLAN_MEAL_TYPES,
@@ -12,6 +12,7 @@ import { composeMenu, snapshotRecipe } from '../src/modules/services/menu/menu-c
 import { validateMenu } from '../src/modules/services/menu/menu-rules';
 import { NutritionService } from '../src/modules/services/nutrition/nutrition.service';
 import { ProfileContextService } from '../src/modules/services/profile-context/profile-context.service';
+import { createFood, createRecipe } from './catalog-fixtures';
 import { TestApp } from './test-app';
 
 export interface MenuDayBody {
@@ -34,7 +35,7 @@ export async function createMenuWorld(
   ctx: TestApp,
   { goal = true }: { goal?: boolean } = {},
 ): Promise<MenuWorld> {
-  const http = () => request(ctx.app.getHttpServer());
+  const http = () => ctx.http();
   const post = (path: string, body: object): Test => http().post(path).send(body).expect(201);
 
   await http()
@@ -52,38 +53,33 @@ export async function createMenuWorld(
     await post('/api/nutrition/goals/calculate', {});
   }
 
-  const food = async (name: string, kcal: number, p: number, f: number, c: number) =>
-    (
-      await post('/api/foods', {
-        name,
-        state: 'other',
-        kcalPer100g: kcal,
-        proteinG: p,
-        fatG: f,
-        carbsG: c,
-      })
-    ).body.id as string;
+  const food = (name: string, kcal: number, p: number, f: number, c: number): Promise<string> =>
+    createFood(ctx.prisma, {
+      name,
+      state: 'other',
+      kcalPer100g: kcal,
+      proteinG: p,
+      fatG: f,
+      carbsG: c,
+    });
   const oats = await food('Oat flakes, dry', 370, 13, 7, 60);
   const rice = await food('Rice, boiled', 130, 2.7, 0.3, 28);
   const chicken = await food('Chicken breast, cooked', 165, 31, 3.6, 0);
   const peanut = await food('Peanut butter', 590, 25, 50, 12);
 
-  const recipe = async (
+  const recipe = (
     name: string,
     mealType: string,
     dietType: string[],
     ingredients: Array<[string, number]>,
-  ) =>
-    (
-      await post('/api/recipes', {
-        name,
-        instructions: 'Cook.',
-        mealType,
-        dietType,
-        servings: 1,
-        ingredients: ingredients.map(([foodItemId, quantityG]) => ({ foodItemId, quantityG })),
-      })
-    ).body.id as string;
+  ): Promise<string> =>
+    createRecipe(ctx.prisma, {
+      name,
+      mealType,
+      dietType,
+      servings: 1,
+      ingredients: ingredients.map(([foodItemId, quantityG]) => ({ foodItemId, quantityG })),
+    });
 
   return {
     recipe: {
@@ -114,28 +110,21 @@ export async function createMenuWorld(
 
 /** A vegan lunch, `Lentil stew` (400 g boiled lentils), for menus that leave out the chicken. */
 export async function addLentilStew(ctx: TestApp): Promise<string> {
-  const post = (path: string, body: object): Test =>
-    request(ctx.app.getHttpServer()).post(path).send(body).expect(201);
-  const lentils = (
-    await post('/api/foods', {
-      name: 'Lentils, boiled',
-      state: 'boiled',
-      kcalPer100g: 116,
-      proteinG: 9,
-      fatG: 0.4,
-      carbsG: 20,
-    })
-  ).body.id as string;
-  return (
-    await post('/api/recipes', {
-      name: 'Lentil stew',
-      instructions: 'Cook.',
-      mealType: 'lunch',
-      dietType: ['vegan'],
-      servings: 1,
-      ingredients: [{ foodItemId: lentils, quantityG: 400 }],
-    })
-  ).body.id as string;
+  const lentils = await createFood(ctx.prisma, {
+    name: 'Lentils, boiled',
+    state: 'boiled',
+    kcalPer100g: 116,
+    proteinG: 9,
+    fatG: 0.4,
+    carbsG: 20,
+  });
+  return createRecipe(ctx.prisma, {
+    name: 'Lentil stew',
+    mealType: 'lunch',
+    dietType: ['vegan'],
+    servings: 1,
+    ingredients: [{ foodItemId: lentils, quantityG: 400 }],
+  });
 }
 
 /**
@@ -148,7 +137,7 @@ export async function seedMenu(
   days: MenuDayBody[],
   notes: string | null = null,
 ): Promise<string> {
-  const { profileId } = await ctx.app.get(ProfileContextService).get();
+  const { profileId } = await ctx.asUser(() => ctx.app.get(ProfileContextService).get());
   const menu = await ctx.prisma.menu.create({ data: { profileId, title } });
   await seedVersion(ctx, menu.id, days, notes);
   return menu.id;
@@ -164,7 +153,7 @@ export async function seedVersion(
   days: MenuDayBody[],
   notes: string | null = null,
 ): Promise<string> {
-  const context = await ctx.app.get(ProfileContextService).get();
+  const context = await ctx.asUser(() => ctx.app.get(ProfileContextService).get());
   const nutrition = ctx.app.get(NutritionService);
   const recipes = new Map(
     (
@@ -236,17 +225,13 @@ export async function addRiceRecipes(ctx: TestApp, count: number): Promise<void>
   const rice = await ctx.prisma.foodItem.findFirstOrThrow({ where: { name: 'Rice, boiled' } });
   for (const mealType of MENU_PLAN_MEAL_TYPES) {
     for (let i = 1; i <= count; i++) {
-      await request(ctx.app.getHttpServer())
-        .post('/api/recipes')
-        .send({
-          name: `Rice ${mealType} ${i}`,
-          instructions: 'Cook.',
-          mealType,
-          dietType: ['vegan'],
-          servings: 1,
-          ingredients: [{ foodItemId: rice.id, quantityG: 200 }],
-        })
-        .expect(201);
+      await createRecipe(ctx.prisma, {
+        name: `Rice ${mealType} ${i}`,
+        mealType,
+        dietType: ['vegan'],
+        servings: 1,
+        ingredients: [{ foodItemId: rice.id, quantityG: 200 }],
+      });
     }
   }
 }

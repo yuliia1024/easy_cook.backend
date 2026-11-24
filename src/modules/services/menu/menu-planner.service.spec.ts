@@ -545,6 +545,30 @@ describe('MenuPlannerService', () => {
     expect(recipes.breakfast.map(({ name }) => name)).toEqual(['Rice porridge']);
   });
 
+  it('offers no disliked recipe as a spare once there is another for every day', async () => {
+    const lentils = buildRecipe({
+      id: 'rec-lentils',
+      name: 'Lentil soup',
+      mealType: MealType.Lunch,
+      ingredients: [
+        buildIngredient({
+          foodItem: buildFoodItem({ name: 'Lentils, boiled', nameEn: 'Lentils, boiled' }),
+        }),
+      ],
+    });
+    recipeService.getAllowed.mockResolvedValue([breakfast, lunch, lentils, dinner, snack]);
+
+    await service.plan('Light day', oneDay, {
+      ...profile,
+      rules: { ...profile.rules, dislikedFoods: ['rice'] },
+    });
+
+    const { recipes } = JSON.parse(sentMessages()[0].content) as {
+      recipes: Record<string, Array<{ name: string }>>;
+    };
+    expect(recipes.lunch.map(({ name }) => name)).toEqual(['Lentil soup']);
+  });
+
   it('reports the issues of the chosen recipes against the preferences', async () => {
     const response = await service.plan('Light day', oneDay, {
       ...profile,
@@ -823,6 +847,119 @@ describe('MenuPlannerService', () => {
         await expect(service.plan('Two days', twoDays, profile)).resolves.toMatchObject({
           type: ChatResponseType.MenuReady,
         });
+      });
+
+      describe('once the reply is cut', () => {
+        /** Waits for the signal to abort and throws its reason, like an aborted model call. */
+        const untilAborted = (signal: AbortSignal): Promise<never> =>
+          new Promise((_, reject) => {
+            signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+          });
+        /** The signal of a reply: the client's and the deadline, as the orchestrator builds it. */
+        const replySignal = (client = new AbortController()): AbortSignal =>
+          AbortSignal.any([client.signal, AbortSignal.timeout(20)]);
+
+        it('takes it when the time of the reply runs out on the retry', async () => {
+          const signal = replySignal();
+          llmService.generateStructuredResult
+            .mockResolvedValueOnce(result(repeating))
+            .mockImplementationOnce(() => untilAborted(signal));
+
+          await expect(service.plan('Two days', twoDays, profile, signal)).resolves.toMatchObject({
+            type: ChatResponseType.MenuReady,
+          });
+          expect(llmService.generateStructuredResult).toHaveBeenCalledTimes(2);
+        });
+
+        it('fails as unavailable when the time runs out without a plan to take', async () => {
+          const signal = replySignal();
+          llmService.generateStructuredResult.mockImplementationOnce(() => untilAborted(signal));
+
+          await expect(service.plan('Two days', twoDays, profile, signal)).rejects.toBeInstanceOf(
+            AssistantUnavailableException,
+          );
+        });
+
+        it('stops with the abort when the client goes away on the retry', async () => {
+          const client = new AbortController();
+          const reason = new DOMException('Gone', 'AbortError');
+          const signal = replySignal(client);
+          llmService.generateStructuredResult
+            .mockResolvedValueOnce(result(repeating))
+            .mockImplementationOnce(() => {
+              const call = untilAborted(signal);
+              client.abort(reason);
+              return call;
+            });
+
+          await expect(service.plan('Two days', twoDays, profile, signal)).rejects.toBe(reason);
+        });
+      });
+
+      it('takes a wished recipe with a disliked food as it is: the user asked for it', async () => {
+        const offer = {
+          wishes: 'rice',
+          recipes: [{ id: 'rec-l', name: 'Rice bowl', mealType: MealType.Lunch }],
+        };
+        const lentils = buildRecipe({
+          id: 'rec-lentils',
+          name: 'Lentil soup',
+          mealType: MealType.Lunch,
+          ingredients: [
+            buildIngredient({
+              foodItem: buildFoodItem({ name: 'Lentils, boiled', nameEn: 'Lentils, boiled' }),
+            }),
+          ],
+        });
+        recipeService.getAllowed.mockResolvedValue([breakfast, lunch, lentils, dinner, snack]);
+
+        await service.plan(
+          'Rice',
+          { ...oneDay, wishes: 'rice' },
+          { ...profile, rules: { ...profile.rules, dislikedFoods: ['rice'] } },
+          undefined,
+          undefined,
+          offer,
+        );
+
+        expect(llmService.generateStructuredResult).toHaveBeenCalledTimes(1);
+      });
+
+      it('keeps a repeat only a disliked recipe could avoid', async () => {
+        const lentils = buildRecipe({
+          id: 'rec-lentils',
+          name: 'Lentil soup',
+          mealType: MealType.Lunch,
+          ingredients: [
+            buildIngredient({
+              foodItem: buildFoodItem({ name: 'Lentils, boiled', nameEn: 'Lentils, boiled' }),
+            }),
+          ],
+        });
+        recipeService.getAllowed.mockResolvedValue([
+          ...[breakfast, lunch, dinner, snack].flatMap((recipe) => [
+            recipe,
+            { ...recipe, id: `${recipe.id}2`, name: `${recipe.name} 2` },
+          ]),
+          lentils,
+        ]);
+        const threeDays = planOf(meals, second, { ...meals, lunch: 'l1' });
+        llmService.generateStructuredResult.mockResolvedValue(result(threeDays));
+
+        await service.plan(
+          'Three days',
+          { ...oneDay, days: 3 },
+          {
+            ...profile,
+            rules: { ...profile.rules, dislikedFoods: ['lentils'] },
+          },
+        );
+
+        const { recipes } = JSON.parse(sentMessages()[0].content) as {
+          recipes: Record<string, Array<{ id: string; name: string }>>;
+        };
+        expect(recipes.lunch.at(-1)).toMatchObject({ id: 'l3', name: 'Lentil soup' });
+        expect(llmService.generateStructuredResult).toHaveBeenCalledTimes(1);
       });
 
       it('fails when every attempt breaks the rules', async () => {

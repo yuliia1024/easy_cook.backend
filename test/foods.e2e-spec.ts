@@ -1,9 +1,9 @@
-import request from 'supertest';
+import { createFood } from './catalog-fixtures';
 import { createTestApp, resetDatabase, TestApp } from './test-app';
 
 describe('/api/foods (e2e)', () => {
   let ctx: TestApp;
-  const http = () => request(ctx.app.getHttpServer());
+  const http = () => ctx.http();
 
   const riceDry = {
     name: 'White rice, dry',
@@ -27,89 +27,33 @@ describe('/api/foods (e2e)', () => {
     await ctx.app.close();
   });
 
-  describe('POST', () => {
-    it('creates a food with the manual source', async () => {
-      const { body } = await http().post('/api/foods').send(riceDry).expect(201);
+  it('is read only: no route writes the catalog', async () => {
+    const id = await createFood(ctx.prisma, riceDry);
 
-      expect(body).toMatchObject({ ...riceDry, source: 'manual', sourceId: null });
-      expect(body.id).toEqual(expect.any(String));
-    });
-
-    it('stores unknown nutrients as null', async () => {
-      const { body } = await http()
-        .post('/api/foods')
-        .send({ name: 'Sauce', state: 'other', kcalPer100g: 80 })
-        .expect(201);
-
-      expect(body).toMatchObject({ kcalPer100g: 80, proteinG: null, fatG: null, carbsG: null });
-    });
-
-    it.each([
-      ['negative values', { kcalPer100g: -1 }],
-      ['an unknown state', { state: 'grilled' }],
-      ['unknown fields', { color: 'white' }],
-      ['a source (always manual)', { source: 'usda_fdc' }],
-    ])('rejects %s with 400', async (_case, patch) => {
-      await http()
-        .post('/api/foods')
-        .send({ ...riceDry, ...patch })
-        .expect(400);
-    });
-
-    it('rejects macros heavier than 100 g', async () => {
-      const { body } = await http()
-        .post('/api/foods')
-        .send({ ...riceDry, proteinG: 50, fatG: 30, carbsG: 30 })
-        .expect(400);
-
-      expect(body.message).toContain('cannot exceed 100 g');
-    });
-
-    it('rejects kcal that do not match the macros', async () => {
-      // 4/9/4 estimate of the dry rice: 354 kcal
-      const { body } = await http()
-        .post('/api/foods')
-        .send({ ...riceDry, kcalPer100g: 130 })
-        .expect(400);
-
-      expect(body.message).toBe(
-        '130 kcal does not match protein, fat and carbs (≈ 354 kcal by 4/9/4)',
-      );
-    });
-
-    it('keeps source + source id unique', async () => {
-      const withId = { ...riceDry, sourceId: 'my-rice' };
-      await http().post('/api/foods').send(withId).expect(201);
-
-      await http().post('/api/foods').send(withId).expect(409);
-    });
+    await http().post('/api/foods').send(riceDry).expect(404);
+    await http().patch(`/api/foods/${id}`).send({ name: 'Rice' }).expect(404);
+    expect(await ctx.prisma.foodItem.count()).toBe(1);
   });
 
   describe('GET', () => {
     beforeEach(async () => {
-      await http().post('/api/foods').send(riceDry).expect(201);
-      await http()
-        .post('/api/foods')
-        .send({
-          ...riceDry,
-          name: 'White rice, boiled',
-          nameEn: 'Rice, white, cooked',
-          state: 'boiled',
-          kcalPer100g: 130,
-          proteinG: 2.7,
-          fatG: 0.3,
-          carbsG: 28.2,
-        })
-        .expect(201);
-      await http()
-        .post('/api/foods')
-        .send({
-          name: 'Buckwheat, dry',
-          nameEn: 'Buckwheat groats, roasted',
-          state: 'dried',
-          kcalPer100g: 343,
-        })
-        .expect(201);
+      await createFood(ctx.prisma, riceDry);
+      await createFood(ctx.prisma, {
+        ...riceDry,
+        name: 'White rice, boiled',
+        nameEn: 'Rice, white, cooked',
+        state: 'boiled',
+        kcalPer100g: 130,
+        proteinG: 2.7,
+        fatG: 0.3,
+        carbsG: 28.2,
+      });
+      await createFood(ctx.prisma, {
+        name: 'Buckwheat, dry',
+        nameEn: 'Buckwheat groats, roasted',
+        state: 'dried',
+        kcalPer100g: 343,
+      });
     });
 
     it('pages sorted by name', async () => {
@@ -158,46 +102,6 @@ describe('/api/foods (e2e)', () => {
       await http().get(`/api/foods/${id}`).expect(200);
       await http().get('/api/foods/2b1e7f3a-5d47-4a8e-9f6c-1d2e3f4a5b6c').expect(404);
       await http().get('/api/foods/not-a-uuid').expect(400);
-    });
-  });
-
-  describe('PATCH', () => {
-    it('updates and clears values', async () => {
-      const { body: food } = await http().post('/api/foods').send(riceDry).expect(201);
-
-      const { body } = await http()
-        .patch(`/api/foods/${food.id}`)
-        .send({ name: 'Basmati rice', fatG: null })
-        .expect(200);
-
-      expect(body).toMatchObject({ name: 'Basmati rice', fatG: null, kcalPer100g: 365 });
-    });
-
-    it('checks the macros and kcal against the stored values', async () => {
-      const { body: food } = await http().post('/api/foods').send(riceDry).expect(201);
-
-      await http().patch(`/api/foods/${food.id}`).send({ proteinG: 25 }).expect(400);
-      await http().patch(`/api/foods/${food.id}`).send({ kcalPer100g: 600 }).expect(400);
-    });
-
-    it.each(['name', 'state'])('rejects null for %s with 400', async (field) => {
-      const { body: food } = await http().post('/api/foods').send(riceDry).expect(201);
-
-      await http()
-        .patch(`/api/foods/${food.id}`)
-        .send({ [field]: null })
-        .expect(400);
-    });
-
-    it('changes the state of a food no recipe uses', async () => {
-      const { body: food } = await http().post('/api/foods').send(riceDry).expect(201);
-
-      const { body } = await http()
-        .patch(`/api/foods/${food.id}`)
-        .send({ state: 'raw' })
-        .expect(200);
-
-      expect(body.state).toBe('raw');
     });
   });
 });

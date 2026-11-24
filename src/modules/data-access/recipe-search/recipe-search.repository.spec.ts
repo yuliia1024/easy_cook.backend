@@ -1,5 +1,9 @@
 import { Prisma } from '../../../generated/prisma/client';
-import { RECIPE_SEARCH_EF_SEARCH, RECIPE_SEARCH_RRF_K } from '../../../common/constants';
+import {
+  RECIPE_SEARCH_EF_SEARCH,
+  RECIPE_SEARCH_RANK_NORMALIZATION,
+  RECIPE_SEARCH_RRF_K,
+} from '../../../common/constants';
 import { createPrismaMock, PrismaMock } from '../../../test/prisma-mock';
 import { HybridSearchParams, RecipeSearchRepository } from './recipe-search.repository';
 
@@ -76,6 +80,16 @@ describe('RecipeSearchRepository', () => {
           RECIPE_SEARCH_RRF_K,
         ]),
       );
+    });
+
+    it('ranks the full-text leg by the length of the document too, equal scores by the source', async () => {
+      await repository.search({ ...params, embedding: null });
+
+      const { sql, values } = sqlOf(prisma.$queryRaw, 1);
+      expect(sql).toContain('ts_rank_cd(d.search_vector, q.query, ?::int) AS score');
+      expect(values).toContain(RECIPE_SEARCH_RANK_NORMALIZATION);
+      expect(sql).toContain('ORDER BY score DESC, source, source_id, recipe_id');
+      expect(sql).toContain('ORDER BY score DESC, r.source, r.source_id, d.recipe_id LIMIT');
     });
 
     it('leaves out the semantic leg without an embedding and the full-text leg without text', async () => {

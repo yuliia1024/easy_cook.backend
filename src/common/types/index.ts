@@ -6,3 +6,4 @@ export * from './profile';
 export * from './model';
 export * from './chat-tools';
 export * from './search';
+export * from './auth';

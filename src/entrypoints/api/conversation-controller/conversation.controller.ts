@@ -20,10 +20,11 @@ import {
   ApiProduces,
   ApiTags,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import { pipeUIMessageStreamToResponse } from 'ai';
 import { Response } from 'express';
+import { RateLimitName } from '../../../common/constants';
 import { ErrorResponseDto } from '../dto/error.response.dto';
+import { RateLimit } from '../rate-limit/rate-limit.decorator';
 import { ConversationControllerService } from './conversation-controller.service';
 import {
   ConfirmPreferenceChangeDto,
@@ -118,10 +119,11 @@ export class ConversationController {
    * applied, `data-wish-offer` when no recipe fits the wishes of a menu request and the closest
    * ones wait for the user's answer (a message, or `wishOffer` from its buttons), and
    * `data-error` + `error` when the reply failed. The reply is saved once it is complete. 400 and 404 come before the stream; a client
-   * that disconnects stops the model call. Limited to 30 messages a minute: each one calls the model.
+   * that disconnects stops the model call. Each one calls the model: 5 a minute per user
+   * (`RATE_LIMITS.llm`), then blocked for 5 minutes.
    */
   @Post(':id/messages')
-  @Throttle({ default: { ttl: 60_000, limit: 30 } })
+  @RateLimit(RateLimitName.Llm)
   @ApiProduces('text/event-stream')
   async sendMessage(
     @Param('id', ParseUUIDPipe) id: string,

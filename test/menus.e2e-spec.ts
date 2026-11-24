@@ -1,4 +1,3 @@
-import request from 'supertest';
 import { createMenuWorld, MenuDayBody, MenuWorld, seedMenu, seedVersion } from './menu-fixtures';
 import { createTestApp, resetDatabase, TestApp } from './test-app';
 
@@ -6,7 +5,7 @@ describe('/api/menus (e2e)', () => {
   let ctx: TestApp;
   let world: MenuWorld;
   let menuId: string;
-  const http = () => request(ctx.app.getHttpServer());
+  const http = () => ctx.http();
   const UNKNOWN_ID = '2b1e7f3a-5d47-4a8e-9f6c-1d2e3f4a5b6c';
 
   const days = (): MenuDayBody[] => [
@@ -138,7 +137,7 @@ describe('/api/menus (e2e)', () => {
   });
 
   it('keeps the snapshot of a deleted recipe', async () => {
-    await http().delete(`/api/recipes/${world.recipe.oats}`).expect(204);
+    await ctx.prisma.recipe.delete({ where: { id: world.recipe.oats } });
 
     const { body } = await http().get(`/api/menus/${menuId}`).expect(200);
     expect(body.versions[0].days[0].meals[0]).toMatchObject({

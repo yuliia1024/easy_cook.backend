@@ -25,12 +25,8 @@ export enum FoodSource {
 }
 
 export const FOOD_NAME_MAX_LENGTH = 255;
-export const SOURCE_ID_MAX_LENGTH = 64;
 /** Pure fat, the most energy-dense food. */
 export const MAX_KCAL_PER_100G = 900;
-
-/** Allowed gap between the stated kcal and the 4/9/4 estimate (fibre, polyols, rounding). */
-export const FOOD_KCAL_TOLERANCE = { absolute: 20, relative: 0.25 } as const;
 
 /**
  * What a food is, for deriving the diet tags and allergens of a recipe; a food may have several.

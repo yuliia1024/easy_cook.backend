@@ -1,7 +1,7 @@
 # Easy Cook backend - conventions
 
-NestJS 12 monolith, Prisma 7 (Postgres via `@prisma/adapter-pg`), Jest 30, TypeScript 6, Node 24 (`.nvmrc`). Single user, no auth. The web app is a separate
-repository. Layout:
+NestJS 12 monolith, Prisma 7 (Postgres via `@prisma/adapter-pg`), Redis (ioredis), Jest 30, TypeScript 6, Node 24
+(`.nvmrc`). Google sign-in, many users; the web app is a separate repository. Layout:
 
 - `src/configs/` - one `*-config.service.ts` per area; every env var is declared and validated in `configs.ts`.
 - `src/common/` - constants (enums, limits), exceptions, shared types, contracts, utils (`toNumber` for Prisma `Decimal`).
@@ -72,6 +72,15 @@ repository. Layout:
   tool in a failed reply is on record too): request id, user / reply message, outcome, timings,
   tokens, `ModelCallRecord[]` and `ChatToolCall[]` with tool call ids. Kept when the conversation
   is deleted (ids set null); only added, never updated. A failed write is logged, never fails the reply.
+- Auth (README "Auth and security"): `AuthService` (`modules/services/auth/`) - Google ID token
+  (`GoogleIdentityService`, the only code that calls Google) + a one-time login nonce, sessions in
+  Redis by the sha256 of an httpOnly cookie token (`AuthSessionRepository`, the only code besides the
+  rate limits that touches Redis), CSRF tokens. Global guards in order: `RequestOriginGuard` (origin,
+  JSON body), `SessionGuard` (reads the session, sets `getCurrentUserId()`), `RateLimitGuard`
+  (email / IP, `RATE_LIMITS`, `@RateLimit(...)`), `AuthGuard` (session + `X-CSRF-Token`). Every route
+  needs a session unless `@Public()`. Per-user data is reached only through
+  `UserProfileService.getCurrent()` (the profile of the current user): scope new per-user tables by
+  the profile, never take a user or profile id from the client. Never log tokens, cookies or emails.
 - `src/entrypoints/api/<name>-controller/` - controller, controller service (orchestrates the flow,
   maps to response DTOs with `static from()`), DTOs.
 - `prisma/schema/*.prisma` (one file per domain) + `prisma/migrations/` - create migrations with `NAME=... npm run migration:create`
@@ -82,8 +91,9 @@ repository. Layout:
   `recipe_ingredient_translations`, keyed by (row, `Locale`); the main columns stay English (search,
   prompts, evals use them). Seeded from `data/seed/translations/<locale>.json` (validated by
   `npm run data:validate`), returned by the API as `translations: { uk: {...} }`, searched by the
-  food / recipe name filters and added to the recipe search document. A new English name or text
-  through the API drops the translations of the old one.
+  food / recipe name filters and added to the recipe search document.
+- The catalog (foods, recipes) is read only through the API: it comes from the seed and the dataset
+  imports, and e2e tests write it with `test/catalog-fixtures.ts`.
 - `evals/` - prompt evals on the real model (`npm run eval`, not in `npm test`): cases in
   `suites/<name>/cases.jsonl`, runner logic in `lib/` with specs, committed `baselines/`,
   git-ignored `reports/`. A prompt change must not be worse than the baseline. The `Evals`
@@ -100,6 +110,8 @@ repository. Layout:
   API behaviour across layers goes into `test/*.e2e-spec.ts` (Supertest, test database).
 - Before calling a task done run `npm run lint`, `npm run type-check`, `npm test`, `npm run test:e2e`
   and `npm run build`.
+  Jest only transpiles (`tsconfig.jest.json`, `isolatedModules`, half the cores): `type-check` is
+  what checks the types of the specs.
 - Add explicit return types to methods you create or modify.
 - New exceptions extend a base from `src/common/exceptions/app-error.ts` and live in the file named
   after their status (`bad-request.ts`, `conflict.ts`, ...). `exceptions.spec.ts` checks this.
@@ -111,4 +123,6 @@ repository. Layout:
   judge in `evals/lib/judge.ts`). Changing its text means raising the version; `open-ai.spec.ts`
   pins the hash of every released version. The model and prompt version go to the logs, to
   `MenuVersion.notes` and to the eval reports and baselines.
-- Local ports: API 3100, Postgres 5442, Ollama 11434 (`npm run infra:embeddings`).
+- Local ports: API 3100, Postgres 5442, Redis 6389, Ollama 11434 (`npm run infra:embeddings`).
+- e2e tests run signed in (`createTestApp` -> `ctx.http()`, `ctx.asUser()` for a direct service
+  call); Google is faked (`fakeGoogleIdToken`), Redis is `TEST_REDIS_URL` (flushed).

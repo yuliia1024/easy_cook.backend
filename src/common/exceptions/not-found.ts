@@ -30,12 +30,6 @@ export class RecipeNotFoundException extends NotFoundError {
   }
 }
 
-export class RecipeIngredientNotFoundException extends NotFoundError {
-  constructor() {
-    super('Recipe ingredient not found');
-  }
-}
-
 export class MenuNotFoundException extends NotFoundError {
   constructor() {
     super('Menu not found');

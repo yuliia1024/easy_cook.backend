@@ -14,11 +14,7 @@ import {
 } from '../../../common/contracts';
 import { ProfileContext } from '../../../common/types';
 import { Message } from '../../../generated/prisma/client';
-import {
-  ModelCallOptions,
-  ModelInput,
-  LlmService,
-} from '../../../providers/llm/llm.service';
+import { ModelCallOptions, ModelInput, LlmService } from '../../../providers/llm/llm.service';
 import { ModelHistory } from '../conversation/conversation.service';
 import { ModelHistoryMessage, toModelMessages } from '../conversation/model-messages';
 import {

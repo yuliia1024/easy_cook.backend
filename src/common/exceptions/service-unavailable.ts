@@ -40,3 +40,16 @@ export class EmbeddingDimensionsMismatchException extends ServiceUnavailableErro
     super(`Embedding model returned ${actual} dimensions, expected ${expected}`);
   }
 }
+
+export class RedisUnavailableException extends ServiceUnavailableError {
+  constructor() {
+    super('Redis is unavailable');
+  }
+}
+
+/** The session of a request could not be read (Redis or the database failed). */
+export class SessionUnavailableException extends ServiceUnavailableError {
+  constructor() {
+    super('Sessions are unavailable');
+  }
+}

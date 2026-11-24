@@ -48,11 +48,12 @@ describe('ConfigService', () => {
   });
 
   it.each([
-    ['any origin outside production', 'local', '*'],
-    ['no origins outside production', 'local', undefined],
+    ['the local origins locally', 'local', '*'],
+    ['no origins locally', 'local', undefined],
     ['a list of origins on production', 'production', 'https://a.com, https://b.com'],
   ])('accepts %s', (_case, env, origins) => {
     process.env.ENV = env;
+    process.env.REDIS_URL = `redis://:${'x'.repeat(16)}@redis:6379/0`;
     if (origins === undefined) delete process.env.CORS_ORIGINS;
     else process.env.CORS_ORIGINS = origins;
 
@@ -62,6 +63,8 @@ describe('ConfigService', () => {
   it.each([
     ['any origin on production', 'production', '*'],
     ['no origins on production', 'production', undefined],
+    ['any origin on staging', 'staging', '*'],
+    ['no origins on development', 'development', ''],
     ['an origin without a scheme', 'local', 'a.com'],
   ])('rejects %s', (_case, env, origins) => {
     process.env.ENV = env;
@@ -146,5 +149,76 @@ describe('ConfigService', () => {
     process.env.ENV = 'qa';
 
     expect(() => new ConfigService()).toThrow(/ENV/);
+  });
+
+  it.each(['REDIS_URL', 'GOOGLE_CLIENT_ID', 'AUTH_SECRET'])('fails fast without %s', (key) => {
+    delete process.env[key];
+
+    expect(() => new ConfigService()).toThrow(new RegExp(key));
+  });
+
+  it('rejects a short auth secret and a non-redis url', () => {
+    process.env.AUTH_SECRET = 'short';
+    process.env.REDIS_URL = 'http://localhost:6379';
+
+    expect(() => new ConfigService()).toThrow(
+      /AUTH_SECRET[\s\S]*REDIS_URL|REDIS_URL[\s\S]*AUTH_SECRET/,
+    );
+  });
+
+  it('accepts a list of allowed emails and rejects anything else', () => {
+    process.env.AUTH_ALLOWED_EMAILS = 'a@example.com, b@example.org';
+    expect(() => new ConfigService()).not.toThrow();
+
+    process.env.AUTH_ALLOWED_EMAILS = 'a@example.com; nobody';
+    expect(() => new ConfigService()).toThrow(/AUTH_ALLOWED_EMAILS/);
+  });
+
+  it('allows an insecure cookie only locally and never with SameSite=none', () => {
+    process.env.AUTH_COOKIE_SECURE = 'false';
+    expect(() => new ConfigService()).not.toThrow();
+
+    process.env.AUTH_COOKIE_SAME_SITE = 'none';
+    expect(() => new ConfigService()).toThrow(/AUTH_COOKIE_SECURE/);
+
+    process.env.AUTH_COOKIE_SAME_SITE = 'lax';
+    process.env.ENV = 'staging';
+    expect(() => new ConfigService()).toThrow(/AUTH_COOKIE_SECURE/);
+
+    process.env.AUTH_COOKIE_SECURE = 'yes';
+    process.env.ENV = 'local';
+    expect(() => new ConfigService()).toThrow(/AUTH_COOKIE_SECURE/);
+  });
+
+  it('requires a Redis password outside local', () => {
+    process.env.ENV = 'staging';
+    process.env.CORS_ORIGINS = 'https://app.example.com';
+    expect(() => new ConfigService()).toThrow(/REDIS_URL/);
+
+    process.env.REDIS_URL = 'rediss://:secret@redis.internal:6379/0';
+    expect(() => new ConfigService()).not.toThrow();
+  });
+
+  it('accepts a number of trusted proxies', () => {
+    process.env.TRUST_PROXY_HOPS = '1';
+    expect(() => new ConfigService()).not.toThrow();
+
+    process.env.TRUST_PROXY_HOPS = '-1';
+    expect(() => new ConfigService()).toThrow(/TRUST_PROXY_HOPS/);
+  });
+
+  it.each(['AUTH_ALLOWED_EMAILS', 'AUTH_COOKIE_SECURE', 'AUTH_COOKIE_SAME_SITE'])(
+    'takes an empty %s as unset',
+    (key) => {
+      process.env[key] = '';
+
+      expect(() => new ConfigService()).not.toThrow();
+    },
+  );
+
+  it('rejects an unknown SameSite', () => {
+    process.env.AUTH_COOKIE_SAME_SITE = 'loose';
+
+    expect(() => new ConfigService()).toThrow(/AUTH_COOKIE_SAME_SITE/);
   });
 });

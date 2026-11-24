@@ -14,3 +14,15 @@ export function testDatabaseUrl(): string {
   }
   return url;
 }
+
+/** e2e tests run against TEST_REDIS_URL (another database), never the dev one: it is flushed. */
+export function testRedisUrl(): string {
+  const url = process.env.TEST_REDIS_URL;
+  if (!url) {
+    throw new Error('Set TEST_REDIS_URL (see .env.example) to run the e2e tests');
+  }
+  if (url === process.env.REDIS_URL) {
+    throw new Error('TEST_REDIS_URL must differ from REDIS_URL: e2e tests flush it');
+  }
+  return url;
+}

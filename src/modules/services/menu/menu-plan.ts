@@ -52,9 +52,10 @@ export const candidatesPerMeal = (days: number): number =>
  * starting at `rotation` and wrapping around, so another rotation offers other recipes.
  * `wishedIds` (recipe ids the search found for the request's wishes, best first) come first, up
  * to `MENU_PLAN_WISHED_SHARE` of `count`, and the pool fills the rest. Recipes of `dislikedIds`
- * (with a disliked food) are left out while the others fill the candidates; when they do not, all
- * the others are taken, by calories, and the disliked ones closest to the calories fill up the
- * rest: a model offered a disliked recipe picks it now and then. Pure.
+ * (with a disliked food) are left out while the others are enough for `needed` different recipes
+ * (one for every day); when they are not, the disliked ones closest to the calories make up the
+ * difference, never the spare candidates: a model offered a disliked recipe picks it now and then.
+ * Pure.
  */
 export function selectCandidates(
   candidates: MenuPlanCandidate[],
@@ -64,6 +65,7 @@ export function selectCandidates(
   rotation: number,
   wishedIds: readonly string[] = [],
   dislikedIds: ReadonlySet<string> = new Set(),
+  needed: number = count,
 ): MenuPlanCandidate[] {
   const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
   const wished = [...new Set(wishedIds)]
@@ -81,9 +83,10 @@ export function selectCandidates(
           return Math.abs(a.perServing.kcal - target) - Math.abs(b.perServing.kcal - target);
         });
   const liked = rest.filter(({ id }) => !dislikedIds.has(id));
-  if (liked.length < rest.length && liked.length < left) {
+  const missing = Math.min(needed, count) - wished.length - liked.length;
+  if (missing > 0) {
     const disliked = rest.filter(({ id }) => dislikedIds.has(id));
-    return [...wished, ...byCalories(liked), ...byCalories(disliked).slice(0, left - liked.length)];
+    return [...wished, ...byCalories(liked), ...byCalories(disliked).slice(0, missing)];
   }
   const pool = byCalories(liked).slice(0, left * MENU_PLAN_CANDIDATE_POOL_FACTOR);
   if (pool.length <= left) {
@@ -98,22 +101,34 @@ export interface LabelledCandidates {
   candidates: MenuPlanCandidates;
   /** The recipe id of every short id. */
   recipeIds: Map<string, string>;
+  /** The short ids of the candidates with a disliked food. */
+  dislikedIds: ReadonlySet<string>;
 }
 
-/** Gives every candidate a short id (`MENU_PLAN_CANDIDATE_PREFIX` and its position). Pure. */
-export function labelCandidates(candidates: MenuPlanCandidates): LabelledCandidates {
+/**
+ * Gives every candidate a short id (`MENU_PLAN_CANDIDATE_PREFIX` and its position);
+ * `dislikedRecipeIds` are the recipes with a disliked food. Pure.
+ */
+export function labelCandidates(
+  candidates: MenuPlanCandidates,
+  dislikedRecipeIds: ReadonlySet<string> = new Set(),
+): LabelledCandidates {
   const recipeIds = new Map<string, string>();
+  const dislikedIds = new Set<string>();
   const labelled = Object.fromEntries(
     MENU_PLAN_MEAL_TYPES.map((mealType) => [
       mealType,
       candidates[mealType].map((candidate, i) => {
         const id = `${MENU_PLAN_CANDIDATE_PREFIX[mealType]}${i + 1}`;
         recipeIds.set(id, candidate.id);
+        if (dislikedRecipeIds.has(candidate.id)) {
+          dislikedIds.add(id);
+        }
         return { ...candidate, id };
       }),
     ]),
   ) as MenuPlanCandidates;
-  return { candidates: labelled, recipeIds };
+  return { candidates: labelled, recipeIds, dislikedIds };
 }
 
 /**
@@ -201,22 +216,28 @@ export function menuPlanErrors(
 }
 
 /**
- * Every repeat of the plan that could be avoided: a recipe on two days in a row (but for a meal
- * with a single candidate), or one used again for a meal while its candidates have one not used
- * yet. Pure.
+ * Every repeat of the plan that could be avoided: a recipe on two days in a row, or one used again
+ * for a meal while its candidates have one not used yet. A repeat is only avoided by a candidate
+ * without a disliked food (`dislikedIds`): repeating a recipe is better than a disliked one. Pure.
  */
-export function varietyProblems(plan: MenuPlan, candidates: MenuPlanCandidates): string[] {
+export function varietyProblems(
+  plan: MenuPlan,
+  candidates: MenuPlanCandidates,
+  dislikedIds: ReadonlySet<string> = new Set(),
+): string[] {
   const days = planDays(plan);
   return MENU_PLAN_MEAL_TYPES.flatMap((mealType) => {
     const ids = days.map((day) => day[mealType]);
-    const unused = candidates[mealType].map(({ id }) => id).filter((id) => !ids.includes(id));
-    const instead =
-      unused.length > 0
-        ? `not used yet: ${unused.join(', ')}`
-        : `use another id from the ${mealType} recipes`;
+    const liked = candidates[mealType].map(({ id }) => id).filter((id) => !dislikedIds.has(id));
+    const unused = liked.filter((id) => !ids.includes(id));
     return ids.flatMap((id, i) => {
       const at = `dayIndex ${i}, ${mealType}: "${id}" is already on dayIndex`;
-      if (i > 0 && id === ids[i - 1] && candidates[mealType].length > 1) {
+      const others = liked.filter((other) => other !== id);
+      const instead =
+        unused.length > 0
+          ? `not used yet: ${unused.join(', ')}`
+          : `use another one: ${others.join(', ')}`;
+      if (i > 0 && id === ids[i - 1] && others.length > 0) {
         return [`${at} ${i - 1}, the day before; ${instead}.`];
       }
       const first = ids.indexOf(id);
@@ -226,15 +247,45 @@ export function varietyProblems(plan: MenuPlan, candidates: MenuPlanCandidates):
 }
 
 /**
- * The `varietyProblems` of a plan without `planProblems`, none of another: the soft problems of a
- * menu plan (`planWithRetries`). Pure.
+ * Every meal of the plan with a disliked food (`dislikedIds`) while the candidates of the meal have
+ * one without, not used yet. Pure.
  */
-export const menuPlanRepeats = (
+export function dislikedProblems(
   plan: MenuPlan,
   candidates: MenuPlanCandidates,
+  dislikedIds: ReadonlySet<string>,
+): string[] {
+  const days = planDays(plan);
+  return MENU_PLAN_MEAL_TYPES.flatMap((mealType) => {
+    const ids = days.map((day) => day[mealType]);
+    const unused = candidates[mealType]
+      .map(({ id }) => id)
+      .filter((id) => !dislikedIds.has(id) && !ids.includes(id));
+    return ids.flatMap((id, i) =>
+      dislikedIds.has(id) && unused.length > 0
+        ? [
+            `dayIndex ${i}, ${mealType}: "${id}" has a food the user dislikes; not used yet: ${unused.join(', ')}.`,
+          ]
+        : [],
+    );
+  });
+}
+
+/**
+ * The `dislikedProblems` and `varietyProblems` of a plan without `planProblems`, none of another:
+ * the soft problems of a menu plan (`planWithRetries`). Pure.
+ */
+export const menuPlanSoftProblems = (
+  plan: MenuPlan,
+  { candidates, dislikedIds }: Pick<LabelledCandidates, 'candidates' | 'dislikedIds'>,
   days: number,
 ): string[] =>
-  planProblems(plan, candidates, days).length > 0 ? [] : varietyProblems(plan, candidates);
+  planProblems(plan, candidates, days).length > 0
+    ? []
+    : [
+        ...dislikedProblems(plan, candidates, dislikedIds),
+        ...varietyProblems(plan, candidates, dislikedIds),
+      ];
 
 /**
  * A plan the model returned, what was wrong with it and its soft problems: those worth another

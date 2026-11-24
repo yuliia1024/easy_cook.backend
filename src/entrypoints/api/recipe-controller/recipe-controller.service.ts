@@ -6,14 +6,7 @@ import {
 } from '../../../modules/services/nutrition/nutrition.service';
 import { RecipeService } from '../../../modules/services/recipe/recipe.service';
 import { PageResponseDto, PaginationQueryDto } from '../dto/pagination.dto';
-import {
-  CreateRecipeDto,
-  RecipeIngredientDto,
-  RecipeNutritionQueryDto,
-  RecipeQueryDto,
-  UpdateRecipeDto,
-  UpdateRecipeIngredientDto,
-} from './dto/recipe.dto';
+import { RecipeNutritionQueryDto, RecipeQueryDto } from './dto/recipe.dto';
 import { RecipeResponseDto } from './dto/recipe.response.dto';
 
 @Injectable()
@@ -43,37 +36,6 @@ export class RecipeControllerService {
     return this.nutritionService.calculateRecipe(recipe, {
       includeOptional: query.includeOptional ?? false,
     });
-  }
-
-  public async create({ ingredients, ...data }: CreateRecipeDto): Promise<RecipeResponseDto> {
-    return this.toResponse(await this.recipeService.create(data, ingredients));
-  }
-
-  public async update(
-    id: string,
-    { ingredients, ...data }: UpdateRecipeDto,
-  ): Promise<RecipeResponseDto> {
-    return this.toResponse(await this.recipeService.update(id, data, ingredients));
-  }
-
-  public async delete(id: string): Promise<void> {
-    await this.recipeService.delete(id);
-  }
-
-  public async addIngredient(id: string, dto: RecipeIngredientDto): Promise<RecipeResponseDto> {
-    return this.toResponse(await this.recipeService.addIngredient(id, dto));
-  }
-
-  public async updateIngredient(
-    id: string,
-    ingredientId: string,
-    dto: UpdateRecipeIngredientDto,
-  ): Promise<RecipeResponseDto> {
-    return this.toResponse(await this.recipeService.updateIngredient(id, ingredientId, dto));
-  }
-
-  public async removeIngredient(id: string, ingredientId: string): Promise<RecipeResponseDto> {
-    return this.toResponse(await this.recipeService.removeIngredient(id, ingredientId));
   }
 
   private toResponse(recipe: RecipeWithIngredients): RecipeResponseDto {

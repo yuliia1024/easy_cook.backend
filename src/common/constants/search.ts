@@ -92,6 +92,12 @@ export const RECIPE_SEARCH_QUERY_MAX_LENGTH = 500;
 export const RECIPE_SEARCH_MIN_WORD_LENGTH = 3;
 export const RECIPE_SEARCH_DEFAULT_LIMIT = 10;
 export const RECIPE_SEARCH_MAX_LIMIT = 50;
+/**
+ * Normalization of `ts_rank_cd`: the score divided by the log of the document length (1), scaled to
+ * 0..1 (32). Without the length nearly half of the hits of a query share a score, and their order
+ * would be that of the random recipe ids, another one in every database.
+ */
+export const RECIPE_SEARCH_RANK_NORMALIZATION = 1 | 32;
 /** Candidates each leg hands to the fusion, at least the limit. */
 export const RECIPE_SEARCH_CANDIDATES = 50;
 /** RRF constant: score = sum of weight / (k + rank); 60 is the value of the original paper. */

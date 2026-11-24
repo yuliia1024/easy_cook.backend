@@ -19,19 +19,6 @@ export interface FoodItemFilter {
   source?: string;
 }
 
-/** Null nutrient = unknown value. */
-export interface FoodItemData {
-  name: string;
-  nameEn?: string | null;
-  kcalPer100g?: number | null;
-  proteinG?: number | null;
-  fatG?: number | null;
-  carbsG?: number | null;
-  state: string;
-  source: string;
-  sourceId?: string | null;
-}
-
 @Injectable()
 export class FoodItemRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -61,30 +48,6 @@ export class FoodItemRepository {
   /** The foods of `ids` that exist. */
   public async findByIds(ids: string[]): Promise<FoodItem[]> {
     return this.prisma.foodItem.findMany({ where: { id: { in: ids } } });
-  }
-
-  public async isUsedInRecipes(id: string): Promise<boolean> {
-    return (await this.prisma.recipeIngredient.count({ where: { foodItemId: id } })) > 0;
-  }
-
-  public async findBySource(source: string, sourceId: string): Promise<FoodItem | null> {
-    return this.prisma.foodItem.findUnique({ where: { source_sourceId: { source, sourceId } } });
-  }
-
-  public async create(data: FoodItemData): Promise<FoodItemWithTranslations> {
-    return this.prisma.foodItem.create({ data, include: FOOD_ITEM_INCLUDE });
-  }
-
-  /** A new `name` drops the translations of the old one. */
-  public async update(id: string, data: Partial<FoodItemData>): Promise<FoodItemWithTranslations> {
-    return this.prisma.foodItem.update({
-      where: { id },
-      data: {
-        ...data,
-        ...(data.name !== undefined && { translations: { deleteMany: {} } }),
-      },
-      include: FOOD_ITEM_INCLUDE,
-    });
   }
 
   private where({ search, state, source }: FoodItemFilter): Prisma.FoodItemWhereInput {

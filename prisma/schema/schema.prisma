@@ -1,4 +1,4 @@
-// Single source of truth for the database, one file per domain (profile, catalog, menu, chat); this one
+// Single source of truth for the database, one file per domain (auth, profile, catalog, menu, chat); this one
 // holds the generator and datasource. Change a model, then `NAME=... npm run migration:create`
 // (or `npm run migration:dev`). Never edit a committed migration.
 //

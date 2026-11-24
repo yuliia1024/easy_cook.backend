@@ -4,15 +4,20 @@ import { BMI_LIMITS, Goal, UNDERWEIGHT_BMI } from '../../../common/constants';
 import {
   ImplausibleBmiBadRequestException,
   ProfileNotFoundException,
+  SessionRequiredUnauthorizedException,
   WeightLossUnderweightBadRequestException,
 } from '../../../common/exceptions';
+import { getCurrentUserId } from '../../../common/logger';
 import { toNumber } from '../../../common/utils';
 import {
   ProfileData,
   UserProfileRepository,
 } from '../../data-access/user-profile/user-profile.repository';
 
-/** One user, no auth: there is at most one profile and every request works with it. */
+/**
+ * The profile of the signed-in user (`SessionGuard` puts the user into the request context): every
+ * per-user service reaches its data through it, so one user never sees another's.
+ */
 @Injectable()
 export class UserProfileService {
   constructor(private readonly userProfileRepository: UserProfileRepository) {}
@@ -27,17 +32,13 @@ export class UserProfileService {
 
   /** The profile, or null until it is filled in. */
   public async findCurrent(): Promise<UserProfile | null> {
-    return this.userProfileRepository.findCurrent();
+    return this.userProfileRepository.findByUserId(this.currentUserId());
   }
 
   /** Creates the profile on the first save, replaces its fields afterwards. */
   public async save(data: ProfileData): Promise<UserProfile> {
     this.assertHealthy(data);
-    const profile = await this.userProfileRepository.findCurrent();
-
-    return profile
-      ? this.userProfileRepository.update(profile.id, data)
-      : this.userProfileRepository.create(data);
+    return this.userProfileRepository.upsert(this.currentUserId(), data);
   }
 
   public async update(data: Partial<ProfileData>): Promise<UserProfile> {
@@ -49,6 +50,15 @@ export class UserProfileService {
       ...data,
     });
     return this.userProfileRepository.update(profile.id, data);
+  }
+
+  /** 401 outside a signed-in request: never falls back to some profile. */
+  private currentUserId(): string {
+    const userId = getCurrentUserId();
+    if (!userId) {
+      throw new SessionRequiredUnauthorizedException();
+    }
+    return userId;
   }
 
   /** The BMI must be plausible, and an underweight profile cannot aim to lose weight. */
